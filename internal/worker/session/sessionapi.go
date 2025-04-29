@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
+	"github.com/tansive/tansive-internal/internal/common/uuidv7utils"
 	"github.com/tansive/tansive-internal/internal/worker/session/api"
 )
 
@@ -23,9 +24,13 @@ func createSession(r *http.Request) (*httpx.Response, error) {
 		return nil, ErrInvalidSession.Msg("invalid session ID")
 	}
 
-	if err := ActiveSessionManager().CreateSession(sessionID, &Session{
-		ID:      sessionID,
-		Context: req.Context,
+	if !uuidv7utils.IsUUIDv7(sessionID) {
+		return nil, ErrInvalidSession.Msg("session ID must be a valid UUIDv7")
+	}
+
+	if err := ActiveSessionManager().CreateSession(sessionID, &session{
+		id:      sessionID,
+		context: req.Context,
 	}); err != nil {
 		return nil, err
 	}
@@ -53,8 +58,8 @@ func getSession(r *http.Request) (*httpx.Response, error) {
 
 	rsp := &api.GetSessionResponse{
 		Session: api.Session{
-			ID:      session.ID.String(),
-			Context: session.Context,
+			ID:      session.id.String(),
+			Context: session.context,
 		},
 	}
 	return &httpx.Response{
@@ -74,8 +79,8 @@ func listSessions(r *http.Request) (*httpx.Response, error) {
 	}
 	for i, session := range sessions {
 		rsp.Sessions[i] = api.Session{
-			ID:      session.ID.String(),
-			Context: session.Context,
+			ID:      session.id.String(),
+			Context: session.context,
 		}
 	}
 

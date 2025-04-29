@@ -31,9 +31,10 @@ func SendJsonRsp(ctx context.Context, w http.ResponseWriter, statusCode int, msg
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
 	if statusCode == http.StatusCreated && len(location) > 0 {
 		w.Header().Set("Location", location[0])
 	}
+	w.WriteHeader(statusCode)
 	w.Write(msgJson)
+
 }

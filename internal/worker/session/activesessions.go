@@ -1,23 +1,33 @@
 package session
 
 import (
+	"time"
+
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 type activeSessions struct {
-	sessions map[uuid.UUID]*Session
+	sessions map[uuid.UUID]*session
 }
 
-type Session struct {
-	ID      uuid.UUID
-	Context types.NullableAny
+type session struct {
+	id      uuid.UUID
+	context types.NullableAny
+	channel *channel
+}
+
+type channel struct {
+	sessionId             uuid.UUID
+	conn                  *websocket.Conn
+	peerHeartBeatInterval time.Duration
 }
 
 var sessionManager *activeSessions
 
-func (as *activeSessions) CreateSession(id uuid.UUID, s *Session) apperrors.Error {
+func (as *activeSessions) CreateSession(id uuid.UUID, s *session) apperrors.Error {
 	if id == uuid.Nil {
 		return ErrInvalidSession
 	}
@@ -25,19 +35,19 @@ func (as *activeSessions) CreateSession(id uuid.UUID, s *Session) apperrors.Erro
 	if _, exists := as.sessions[id]; exists {
 		return ErrAlreadyExists.New("session already exists")
 	}
-	as.sessions[s.ID] = s
+	as.sessions[s.id] = s
 	return nil
 }
 
-func (as *activeSessions) GetSession(id uuid.UUID) (*Session, apperrors.Error) {
+func (as *activeSessions) GetSession(id uuid.UUID) (*session, apperrors.Error) {
 	if session, exists := as.sessions[id]; exists {
 		return session, nil
 	}
 	return nil, ErrInvalidSession
 }
 
-func (as *activeSessions) ListSessions() ([]*Session, apperrors.Error) {
-	var sessionList []*Session
+func (as *activeSessions) ListSessions() ([]*session, apperrors.Error) {
+	var sessionList []*session
 	for _, session := range as.sessions {
 		sessionList = append(sessionList, session)
 	}
@@ -54,7 +64,7 @@ func (as *activeSessions) DeleteSession(id uuid.UUID) apperrors.Error {
 
 func init() {
 	sessionManager = &activeSessions{
-		sessions: make(map[uuid.UUID]*Session),
+		sessions: make(map[uuid.UUID]*session),
 	}
 }
 

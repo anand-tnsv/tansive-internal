@@ -3,6 +3,8 @@ package httpx
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
 type Error struct {
@@ -42,6 +44,21 @@ func (e *Error) Error() string {
 
 func (current Error) Is(other error) bool {
 	return current.Error() == other.Error()
+}
+
+func SendError(w http.ResponseWriter, err apperrors.Error) {
+	if err == nil {
+		return
+	}
+	statusCode := err.StatusCode()
+	if statusCode == 0 {
+		statusCode = http.StatusInternalServerError
+	}
+	httperror := &Error{
+		StatusCode:  statusCode,
+		Description: err.ErrorAll(),
+	}
+	httperror.Send(w)
 }
 
 // Common Errors

@@ -54,7 +54,7 @@ func (s *AgentServer) HandleCORS(next http.Handler) http.Handler {
 		AllowedOrigins:   []string{"*"}, //TODO: Change this to specific origin
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "Content-Length", "Accept-Encoding"},
-		ExposedHeaders:   []string{"Link"},
+		ExposedHeaders:   []string{"Link", "Location", "X-Tansive-Request-Id"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	})(next)

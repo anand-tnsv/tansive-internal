@@ -6,8 +6,8 @@ import (
 )
 
 type SessionManager interface {
-	CreateSession(uuid.UUID, *Session) apperrors.Error
-	GetSession(uuid.UUID) (*Session, apperrors.Error)
-	ListSessions() ([]*Session, apperrors.Error)
+	CreateSession(uuid.UUID, *session) apperrors.Error
+	GetSession(uuid.UUID) (*session, apperrors.Error)
+	ListSessions() ([]*session, apperrors.Error)
 	DeleteSession(uuid.UUID) apperrors.Error
 }

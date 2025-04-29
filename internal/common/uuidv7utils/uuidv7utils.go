@@ -7,13 +7,18 @@ import (
 	"github.com/google/uuid"
 )
 
-// UUID7 generates a new UUIDv7 and returns it.
+// UUID7 generates a new UUIDv7 and returns it
 func UUID7() uuid.UUID {
 	uuidv7, _ := uuid.NewV7()
 	return uuidv7
 }
 
-// GetTimestampFromUUID extracts the timestamp from a UUIDv7 and returns it as a time.Time.
+// IsUUIDv7 checks if the given UUID is a valid UUIDv7
+func IsUUIDv7(id uuid.UUID) bool {
+	return id.Version() == uuid.Version(7)
+}
+
+// GetTimestampFromUUID extracts the timestamp from a UUIDv7 and returns it as a time.Time
 func GetTimestampFromUUID(u uuid.UUID) time.Time {
 	tsMillis := binary.BigEndian.Uint64(u[0:8]) >> 16 // Top 48 bits = timestamp in milliseconds
 	return time.UnixMilli(int64(tsMillis))

@@ -35,6 +35,8 @@ func Router(r chi.Router) {
 	for _, handler := range resourceObjectHandlers {
 		r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
 	}
+	// Route for connection that'll upgrade HTTP to WebSocket
+	r.Method(http.MethodGet, "/{id}/channel", http.HandlerFunc(getSessionChannel))
 }
 
 func SessionAuthenticator(next http.Handler) http.Handler {
