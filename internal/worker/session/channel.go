@@ -22,17 +22,20 @@ func getSessionChannel(w http.ResponseWriter, r *http.Request) {
 	var sessionId uuid.UUID
 	sessionId, err := uuid.Parse(id)
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("invalid session ID format")
 		httpx.SendError(w, ErrInvalidSession.Msg("invalid session ID"))
 		return
 	}
 	session, apperr := ActiveSessionManager().GetSession(sessionId)
 	if apperr != nil {
+		log.Ctx(ctx).Error().Err(apperr).Msg("failed to get session")
 		httpx.SendError(w, apperr)
 		return
 	}
 
 	// Check if the session has a valid connection
 	if session.channel != nil && session.channel.conn != nil {
+		log.Ctx(ctx).Warn().Msg("session already has an active channel")
 		httpx.SendError(w, ErrAlreadyExists.Msg("session already has an active channel"))
 		return
 	}
@@ -63,6 +66,8 @@ func getSessionChannel(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to control channel")
 	}
+	log.Ctx(ctx).Info().Msg("channel control completed")
+	session.channel.conn = nil // clear the connection after control is done
 }
 
 func gracefulCloseWithCode(ctx context.Context, conn *websocket.Conn, code int, reason string) error {
