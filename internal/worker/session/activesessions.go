@@ -23,7 +23,8 @@ type channel struct {
 	sessionId             uuid.UUID
 	conn                  *websocket.Conn
 	peerHeartBeatInterval time.Duration
-	chanSendToPeer        chan ChannelMessage
+	reader                MessageReader
+	writer                MessageWriter
 }
 
 var sessionManager *activeSessions

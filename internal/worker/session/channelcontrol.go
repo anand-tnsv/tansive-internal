@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/jsonrpc"
 )
 
 func control(ctx context.Context, channel *channel) apperrors.Error {
@@ -34,7 +35,7 @@ func control(ctx context.Context, channel *channel) apperrors.Error {
 		closeConn(websocket.CloseNormalClosure, "channel control finished")
 	}()
 
-	chanReadFromPeer := make(chan ChannelMessageIn, 50)
+	chanReadFromPeer := make(chan []byte, 50)
 	defer func() {
 		close(chanReadFromPeer)
 	}()
@@ -55,18 +56,18 @@ func control(ctx context.Context, channel *channel) apperrors.Error {
 			}
 		}()
 		for {
-			var msg ChannelMessageIn
-			if err := conn.ReadJSON(&msg); err != nil {
+			if t, msg, err := conn.ReadMessage(); err != nil && t != websocket.TextMessage {
 				log.Ctx(ctx).Error().Err(err).Msg("failed to read message from channel")
 				closeConn(websocket.CloseInternalServerErr, "failed to read message from channel")
 				cancel()
 				return
+			} else {
+				chanReadFromPeer <- msg
 			}
-			chanReadFromPeer <- msg
 		}
 	}(ctxWithCancel)
 
-	sendToPeer := make(chan ChannelMessage, 50)
+	sendToPeer := make(chan []byte, 50)
 	defer func() {
 		close(sendToPeer)
 	}()
@@ -88,7 +89,7 @@ func control(ctx context.Context, channel *channel) apperrors.Error {
 				closeConn(websocket.CloseNormalClosure, "context cancelled")
 				return
 			case msg := <-sendToPeer:
-				if err := conn.WriteJSON(msg); err != nil {
+				if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 					log.Ctx(ctx).Error().Err(err).Msg("failed to send message to channel")
 					closeConn(websocket.CloseInternalServerErr, "failed to send message to channel")
 					return
@@ -98,7 +99,8 @@ func control(ctx context.Context, channel *channel) apperrors.Error {
 	}(ctxWithCancel)
 
 	// Set the channel's sendToPeer channel
-	channel.chanSendToPeer = sendToPeer
+	channel.reader = NewChannelMessageReader(chanReadFromPeer)
+	channel.writer = NewChannelMessageWriter(sendToPeer)
 
 	// Start sending heartbeats to the peer
 	wg.Add(1)
@@ -108,9 +110,17 @@ func control(ctx context.Context, channel *channel) apperrors.Error {
 recvLoop:
 	for {
 		select {
-		case resp := <-chanReadFromPeer:
+		case req := <-chanReadFromPeer:
 			{
-				log.Ctx(ctx).Info().Msgf("Received message from channel: %s", resp.Type)
+				msg, err := jsonrpc.ParseRequest(req)
+				if err != nil {
+					log.Ctx(ctx).Error().Err(err).Msg("failed to parse message from channel")
+					closeConn(websocket.CloseInternalServerErr, "failed to parse message from channel")
+					apperror = ErrChannelFailed.Msg("failed to parse message from channel")
+					cancel()
+					break recvLoop
+				}
+				log.Ctx(ctx).Info().Msgf("Received message from channel: %s", msg.Method)
 			}
 		case <-ctx.Done():
 			log.Ctx(ctx).Info().Msg("Context cancelled, closing channel control")
@@ -137,6 +147,7 @@ recvLoop:
 
 func initializeChannel(ctx context.Context, sessionID uuid.UUID, channel *channel) apperrors.Error {
 	initMsg := &InitChannelMessage{
+		SessionId:         sessionID,
 		HeartbeatInterval: 30, // interval in seconds
 	}
 	conn := channel.conn
@@ -146,17 +157,18 @@ func initializeChannel(ctx context.Context, sessionID uuid.UUID, channel *channe
 			gracefulCloseWithCode(ctx, conn, code, reason)
 		})
 	}
-	if err := conn.WriteJSON(ChannelMessage{
-		SessionId: sessionID,
-		Type:      InitChannelMessageType,
-		Data:      initMsg,
-	}); err != nil {
+	req, _ := jsonrpc.ConstructNotification(
+		InitChannelMessageType,
+		initMsg,
+	)
+
+	if err := conn.WriteMessage(websocket.TextMessage, req); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to send initialization message")
 		closeConn(websocket.CloseInternalServerErr, "channel initialization failed")
 		return ErrChannelFailed.Msg("failed to initialize channel")
 	}
 
-	responseChan := make(chan ChannelMessageIn, 1)
+	responseChan := make(chan jsonrpc.Request, 1)
 	errorChan := make(chan error, 1)
 	defer func() {
 		close(responseChan)
@@ -173,7 +185,7 @@ func initializeChannel(ctx context.Context, sessionID uuid.UUID, channel *channe
 			wg.Done()
 		}()
 
-		var resp ChannelMessageIn
+		var resp jsonrpc.Request
 		if err := conn.ReadJSON(&resp); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to read response from channel")
 			errorChan <- err
@@ -185,9 +197,10 @@ func initializeChannel(ctx context.Context, sessionID uuid.UUID, channel *channe
 	var apperror apperrors.Error
 	select {
 	case resp := <-responseChan:
-		if resp.Type == InitChannelMessageType {
+		if resp.Method == InitChannelMessageType {
 			log.Ctx(ctx).Info().Msg("Channel initialized successfully")
-			if msg, err := getInitChannelMessage(resp.Data); err == nil && msg != nil {
+			msg := InitChannelMessage{}
+			if err := resp.Params.GetAs(&msg); err == nil {
 				log.Ctx(ctx).Info().Msgf("Heartbeat interval set to %d seconds", msg.HeartbeatInterval)
 				channel.peerHeartBeatInterval = time.Duration(msg.HeartbeatInterval) * time.Second
 			} else {
@@ -238,14 +251,18 @@ func sendHeartBeats(ctx context.Context, channel *channel, wg *sync.WaitGroup) {
 		}()
 		ticker := time.NewTicker(channel.peerHeartBeatInterval)
 		defer ticker.Stop()
+		heartbeatMessage, _ := jsonrpc.ConstructNotification(
+			HeartbeatMessageType,
+			&HeartbeatMessage{
+				SessionId: channel.sessionId,
+			},
+		)
 		for {
 			select {
 			case <-ticker.C:
-				if channel.chanSendToPeer != nil {
-					channel.chanSendToPeer <- ChannelMessage{
-						SessionId: channel.sessionId,
-						Type:      HeartbeatMessageType,
-					}
+				if channel.writer != nil {
+
+					channel.writer.WriteMessage(heartbeatMessage)
 				}
 			case <-ctx.Done():
 				log.Ctx(ctx).Info().Msg("Stopping heartbeat sender")
