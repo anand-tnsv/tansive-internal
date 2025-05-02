@@ -2,36 +2,35 @@ package session
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/jsonrpc"
 )
 
-func control(ctx context.Context, channel *channel) apperrors.Error {
+func (channel *channel) start(ctx context.Context) apperrors.Error {
 	conn := channel.conn
 	if conn == nil {
 		return ErrChannelFailed.Msg("channel connection is nil")
 	}
-	if err := initializeChannel(ctx, channel.sessionId, channel); err != nil {
+	if err := channel.initialize(ctx); err != nil {
 		return err
 	}
 
 	// We generally call closeConn pretty liberally, so we use a sync.Once to ensure that we only close the connection once.
+	ctxWithCancel, cancel := context.WithCancel(ctx)
 	var once sync.Once
 	closeConn := func(code int, reason string) {
 		once.Do(func() {
+			cancel()
 			gracefulCloseWithCode(ctx, conn, code, reason)
 		})
 	}
-
-	ctxWithCancel, cancel := context.WithCancel(ctx)
 	defer func() {
-		cancel()
 		closeConn(websocket.CloseNormalClosure, "channel control finished")
 	}()
 
@@ -42,7 +41,7 @@ func control(ctx context.Context, channel *channel) apperrors.Error {
 
 	var wg = &sync.WaitGroup{}
 
-	// This gorouting reads messages from the peer.  The problem with Gorilla Websocket
+	// This goroutine reads messages from the peer.  The problem with Gorilla Websocket
 	// is that it does not take context. Therefore, we need to close the connection to
 	// signal this goroutine to bail out when necessary.
 	wg.Add(1)
@@ -52,14 +51,12 @@ func control(ctx context.Context, channel *channel) apperrors.Error {
 			if r := recover(); r != nil {
 				log.Ctx(ctx).Error().Msgf("Recovered from panic: %v", r)
 				closeConn(websocket.CloseInternalServerErr, "channel read i/o error")
-				cancel()
 			}
 		}()
 		for {
 			if t, msg, err := conn.ReadMessage(); err != nil && t != websocket.TextMessage {
 				log.Ctx(ctx).Error().Err(err).Msg("failed to read message from channel")
 				closeConn(websocket.CloseInternalServerErr, "failed to read message from channel")
-				cancel()
 				return
 			} else {
 				chanReadFromPeer <- msg
@@ -104,7 +101,7 @@ func control(ctx context.Context, channel *channel) apperrors.Error {
 
 	// Start sending heartbeats to the peer
 	wg.Add(1)
-	sendHeartBeats(ctxWithCancel, channel, wg)
+	channel.sendHeartBeats(ctxWithCancel, wg)
 
 	var apperror apperrors.Error = nil
 recvLoop:
@@ -117,14 +114,21 @@ recvLoop:
 					log.Ctx(ctx).Error().Err(err).Msg("failed to parse message from channel")
 					closeConn(websocket.CloseInternalServerErr, "failed to parse message from channel")
 					apperror = ErrChannelFailed.Msg("failed to parse message from channel")
-					cancel()
 					break recvLoop
 				}
-				log.Ctx(ctx).Info().Msgf("Received message from channel: %s", msg.Method)
+				if err := channel.handleRequest(ctx, msg); err != nil {
+					if errors.Is(err, ErrBadRequest) {
+						log.Ctx(ctx).Error().Msgf("Bad request received: %s", msg.Method)
+						// this is probably indicative of dysfunctional state, so we close the connection
+						closeConn(websocket.CloseInvalidFramePayloadData, "bad request")
+						break recvLoop
+					} else {
+						log.Ctx(ctx).Error().Err(err).Msgf("Failed to handle request: %s", msg.Method)
+					}
+				}
 			}
 		case <-ctx.Done():
 			log.Ctx(ctx).Info().Msg("Context cancelled, closing channel control")
-			cancel()
 			closeConn(websocket.CloseNormalClosure, "context cancelled")
 			break recvLoop
 		case <-ctxWithCancel.Done():
@@ -134,7 +138,6 @@ recvLoop:
 
 		case <-time.After(60 * time.Second): // Timeout for receiving messages
 			log.Ctx(ctx).Warn().Msg("No messages received for 60 seconds, closing channel control")
-			cancel()
 			closeConn(websocket.CloseGoingAway, "receive timeout")
 			apperror = ErrChannelFailed.Msg("receive timeout")
 			break recvLoop
@@ -145,9 +148,9 @@ recvLoop:
 	return apperror
 }
 
-func initializeChannel(ctx context.Context, sessionID uuid.UUID, channel *channel) apperrors.Error {
+func (channel *channel) initialize(ctx context.Context) apperrors.Error {
 	initMsg := &InitChannelMessage{
-		SessionId:         sessionID,
+		SessionId:         channel.sessionId,
 		HeartbeatInterval: 30, // interval in seconds
 	}
 	conn := channel.conn
@@ -158,7 +161,7 @@ func initializeChannel(ctx context.Context, sessionID uuid.UUID, channel *channe
 		})
 	}
 	req, _ := jsonrpc.ConstructNotification(
-		InitChannelMessageType,
+		InitChannel,
 		initMsg,
 	)
 
@@ -197,7 +200,7 @@ func initializeChannel(ctx context.Context, sessionID uuid.UUID, channel *channe
 	var apperror apperrors.Error
 	select {
 	case resp := <-responseChan:
-		if resp.Method == InitChannelMessageType {
+		if resp.Method == InitChannel {
 			log.Ctx(ctx).Info().Msg("Channel initialized successfully")
 			msg := InitChannelMessage{}
 			if err := resp.Params.GetAs(&msg); err == nil {
@@ -241,7 +244,7 @@ func initializeChannel(ctx context.Context, sessionID uuid.UUID, channel *channe
 // sendHeartBeats sends periodic heartbeat messages to the channel.
 // This is supposed to be a fire-and-forget routine that runs in the background.
 // If the routine panics, the connection will eventually be closed due to the heartbeat timeout.
-func sendHeartBeats(ctx context.Context, channel *channel, wg *sync.WaitGroup) {
+func (channel *channel) sendHeartBeats(ctx context.Context, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()
 		defer func() {
@@ -252,7 +255,7 @@ func sendHeartBeats(ctx context.Context, channel *channel, wg *sync.WaitGroup) {
 		ticker := time.NewTicker(channel.peerHeartBeatInterval)
 		defer ticker.Stop()
 		heartbeatMessage, _ := jsonrpc.ConstructNotification(
-			HeartbeatMessageType,
+			Heartbeat,
 			&HeartbeatMessage{
 				SessionId: channel.sessionId,
 			},
@@ -272,33 +275,21 @@ func sendHeartBeats(ctx context.Context, channel *channel, wg *sync.WaitGroup) {
 	}()
 }
 
-/*
-const readTimeout = 60 * time.Second
-const pingInterval = 30 * time.Second
-
-conn.SetPongHandler(func(appData string) error {
-	log.Ctx(ctx).Debug().Msg("received pong")
-	return conn.SetReadDeadline(time.Now().Add(readTimeout))
-})
-
-// Initially set read deadline
-conn.SetReadDeadline(time.Now().Add(readTimeout))
-
-// In a goroutine, send periodic pings
-go func() {
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("ping failed")
-				closeConn("ping failed", websocket.CloseGoingAway)
-				return
-			}
-		}
+func (channel *channel) handleRequest(ctx context.Context, req *jsonrpc.Request) apperrors.Error {
+	if channel.reader == nil || channel.writer == nil {
+		return ErrChannelFailed.Msg("channel not initialized")
 	}
-}()
-*/
+	switch req.Method {
+	case InitChannel:
+		log.Ctx(ctx).Error().Msg("Received InitChannel request, but this should not happen after initialization")
+		return ErrBadRequest.Msg("init channel request received after initialization")
+
+	case Heartbeat:
+		log.Ctx(ctx).Info().Msg("Received Heartbeat request")
+		return nil // Heartbeat does not require any action
+
+	default:
+		log.Ctx(ctx).Error().Msgf("Unknown method: %s", req.Method)
+		return ErrUnknownMethod
+	}
+}

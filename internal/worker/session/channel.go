@@ -12,6 +12,8 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
+// Channel implements a WebSocket transport for the session
+
 func getSessionChannel(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
@@ -55,14 +57,14 @@ func getSessionChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer gracefulCloseWithCode(r.Context(), conn, websocket.CloseNormalClosure, "session channel closed")
-
+	ctx = log.With().Str("session_id", sessionId.String()).Caller().Logger().WithContext(ctx)
 	// Set the connection in the session
 	session.channel = &channel{
 		sessionId: sessionId,
 		conn:      conn,
 	}
-	// pass this to the channel controller
-	err = control(ctx, session.channel)
+	// start the channel
+	err = session.channel.start(ctx)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to control channel")
 	}

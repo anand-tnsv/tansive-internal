@@ -12,4 +12,5 @@ var (
 	ErrAlreadyExists  apperrors.Error = ErrSessionError.New("session already exists").SetStatusCode(http.StatusConflict)
 	ErrBadRequest     apperrors.Error = apperrors.New("bad request").SetStatusCode(http.StatusBadRequest)
 	ErrChannelFailed  apperrors.Error = apperrors.New("channel failed").SetStatusCode(http.StatusInternalServerError)
+	ErrUnknownMethod  apperrors.Error = apperrors.New("unknown method").SetStatusCode(http.StatusMethodNotAllowed)
 )
