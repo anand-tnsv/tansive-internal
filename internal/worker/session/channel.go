@@ -59,10 +59,10 @@ func getSessionChannel(w http.ResponseWriter, r *http.Request) {
 	defer gracefulCloseWithCode(r.Context(), conn, websocket.CloseNormalClosure, "session channel closed")
 	ctx = log.With().Str("session_id", sessionId.String()).Caller().Logger().WithContext(ctx)
 	// Set the connection in the session
-	session.channel = &channel{
-		sessionId: sessionId,
-		conn:      conn,
-	}
+	session.channel = NewChannel()
+	session.channel.sessionId = sessionId
+	session.channel.conn = conn
+
 	// start the channel
 	err = session.channel.start(ctx)
 	if err != nil {

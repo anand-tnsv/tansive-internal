@@ -149,7 +149,7 @@ recvLoop:
 }
 
 func (channel *channel) initialize(ctx context.Context) apperrors.Error {
-	initMsg := &InitChannelMessage{
+	initMsg := &InitChannelNotification{
 		SessionId:         channel.sessionId,
 		HeartbeatInterval: 30, // interval in seconds
 	}
@@ -161,7 +161,7 @@ func (channel *channel) initialize(ctx context.Context) apperrors.Error {
 		})
 	}
 	req, _ := jsonrpc.ConstructNotification(
-		InitChannel,
+		MethodInitChannel,
 		initMsg,
 	)
 
@@ -200,9 +200,9 @@ func (channel *channel) initialize(ctx context.Context) apperrors.Error {
 	var apperror apperrors.Error
 	select {
 	case resp := <-responseChan:
-		if resp.Method == InitChannel {
+		if resp.Method == MethodInitChannel {
 			log.Ctx(ctx).Info().Msg("Channel initialized successfully")
-			msg := InitChannelMessage{}
+			msg := InitChannelNotification{}
 			if err := resp.Params.GetAs(&msg); err == nil {
 				log.Ctx(ctx).Info().Msgf("Heartbeat interval set to %d seconds", msg.HeartbeatInterval)
 				channel.peerHeartBeatInterval = time.Duration(msg.HeartbeatInterval) * time.Second
@@ -255,8 +255,8 @@ func (channel *channel) sendHeartBeats(ctx context.Context, wg *sync.WaitGroup) 
 		ticker := time.NewTicker(channel.peerHeartBeatInterval)
 		defer ticker.Stop()
 		heartbeatMessage, _ := jsonrpc.ConstructNotification(
-			Heartbeat,
-			&HeartbeatMessage{
+			MethodHeartbeat,
+			&HeartbeatNotification{
 				SessionId: channel.sessionId,
 			},
 		)
@@ -280,16 +280,36 @@ func (channel *channel) handleRequest(ctx context.Context, req *jsonrpc.Request)
 		return ErrChannelFailed.Msg("channel not initialized")
 	}
 	switch req.Method {
-	case InitChannel:
+	case MethodInitChannel:
 		log.Ctx(ctx).Error().Msg("Received InitChannel request, but this should not happen after initialization")
 		return ErrBadRequest.Msg("init channel request received after initialization")
 
-	case Heartbeat:
+	case MethodHeartbeat:
 		log.Ctx(ctx).Info().Msg("Received Heartbeat request")
 		return nil // Heartbeat does not require any action
+
+	case MethodStartTerminal:
+		log.Ctx(ctx).Info().Msg("Received StartPty request")
+		if err := HandleStartTerminal(ctx, req, channel.writer, channel.ttys); err != nil {
+			return err
+		}
+
+	case MethodStopTerminal:
+		log.Ctx(ctx).Info().Msg("Received StopPty request")
+		if err := HandleStopTerminal(ctx, req, channel.writer, channel.ttys); err != nil {
+			return err
+		}
+
+	case MethodTerminalData:
+		log.Ctx(ctx).Info().Msg("Received TerminalData request")
+		if err := HandleTerminalData(ctx, req, channel.writer, channel.ttys); err != nil {
+			return err
+		}
 
 	default:
 		log.Ctx(ctx).Error().Msgf("Unknown method: %s", req.Method)
 		return ErrUnknownMethod
 	}
+
+	return nil
 }

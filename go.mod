@@ -5,7 +5,7 @@ go 1.21.6
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/anand-gl/jsoncanonicalizer v0.1.0
-	github.com/creack/pty v1.1.9
+	github.com/creack/pty v1.1.24
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator/v10 v10.22.1
@@ -15,6 +15,7 @@ require (
 	github.com/jackc/pgconn v1.9.1-0.20210724152538-d89c8390a530
 	github.com/jackc/pgtype v1.14.0
 	github.com/jackc/pgx/v4 v4.12.1-0.20210724153913-640aa07df17c
+	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0

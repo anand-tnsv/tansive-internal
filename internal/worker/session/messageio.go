@@ -55,29 +55,29 @@ func (w *chanMessageWriter) WriteMessage(msg []byte) error {
 			log.Error().Msgf("Recovered from panic in WriteMessage: %v", r)
 		}
 	}()
+
+	msgLen := len(msg)
+	if msgLen == 0 {
+		return nil
+	}
 	// Add to buffer if the message has a marker
 	result := gjson.GetBytes(msg, "result.marker")
 	if result.Exists() {
 		id := result.String()
-
-		msgLen := len(msg)
-		if msgLen == 0 {
-			return nil
-		}
-		shouldWrite := true
+		shouldBuffer := true
 		w.mu.Lock()
 		defer w.mu.Unlock()
 		for w.bufferedSize+msgLen > maxBufferedBytes {
 			// Evict oldest (pop from front)
 			if len(w.buffer) == 0 {
-				// don't write this message
-				shouldWrite = false
+				// this message is too large to buffer
+				shouldBuffer = false
 				break
 			}
 			w.bufferedSize -= w.buffer[0].size
 			w.buffer = w.buffer[1:]
 		}
-		if shouldWrite {
+		if shouldBuffer {
 			m := messageBuffer{
 				data:   msg,
 				size:   msgLen,

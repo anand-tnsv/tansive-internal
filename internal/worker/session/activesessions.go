@@ -1,6 +1,8 @@
 package session
 
 import (
+	"os"
+	"os/exec"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,7 +27,28 @@ type channel struct {
 	peerHeartBeatInterval time.Duration
 	reader                MessageReader
 	writer                MessageWriter
+	ttys                  Ttys
 }
+
+func NewChannel() *channel {
+	return &channel{
+		sessionId:             uuid.Nil,
+		conn:                  nil,
+		peerHeartBeatInterval: 0,
+		reader:                nil,
+		writer:                nil,
+		ttys:                  make(Ttys),
+	}
+}
+
+type tty struct {
+	terminalId uuid.UUID
+	ptmx       *os.File         // file descriptor for read/write to terminal
+	cmd        *exec.Cmd        // command associated with the terminal
+	recorder   *AsciinemaWriter // recorder for terminal output
+}
+
+type Ttys map[uuid.UUID]*tty
 
 var sessionManager *activeSessions
 
