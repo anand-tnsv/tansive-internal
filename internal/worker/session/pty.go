@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os/exec"
+	"syscall"
 
 	"github.com/creack/pty"
 	"github.com/google/uuid"
@@ -137,13 +138,21 @@ func createPtySession(ctx context.Context, req *StartTerminalRequest, w MessageW
 	}
 
 	cmd := exec.Command("zsh", "-li")
-	ptmx, err := pty.StartWithAttrs(cmd, nil, nil)
+	ptmx, err := pty.StartWithAttrs(cmd, nil, &syscall.SysProcAttr{
+		Setsid:  true,
+		Setctty: true,
+		Ctty:    0, // Will override below
+	})
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to start pty")
 		return ErrChannelFailed.Msg("failed to start pty")
 	}
+	cmd.SysProcAttr.Ctty = int(ptmx.Fd())
 	// Create a recorder
 	recorder, err := NewAsciinemaWriter(req.SessionId.String() + "-" + req.TerminalId.String() + ".cast")
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create asciinema recorder")
+	}
 
 	// capture output
 	go func() {

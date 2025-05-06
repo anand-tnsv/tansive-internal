@@ -28,6 +28,7 @@ type channel struct {
 	reader                MessageReader
 	writer                MessageWriter
 	ttys                  Ttys
+	shellContext          *shellContext
 }
 
 func NewChannel() *channel {
@@ -49,6 +50,10 @@ type tty struct {
 }
 
 type Ttys map[uuid.UUID]*tty
+
+type shellContext struct {
+	dir string
+}
 
 var sessionManager *activeSessions
 

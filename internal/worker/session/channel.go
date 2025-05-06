@@ -63,6 +63,12 @@ func getSessionChannel(w http.ResponseWriter, r *http.Request) {
 	session.channel.sessionId = sessionId
 	session.channel.conn = conn
 
+	// Set the shell context
+	sc := shellContext{
+		dir: "/tmp/" + sessionId.String(),
+	}
+	session.channel.shellContext = &sc
+
 	// start the channel
 	err = session.channel.start(ctx)
 	if err != nil {
