@@ -12,11 +12,14 @@ const (
 )
 
 const (
-	MethodInitChannel   jsonrpc.MethodType = "init"
-	MethodHeartbeat     jsonrpc.MethodType = "heartbeat"
-	MethodStartTerminal jsonrpc.MethodType = "startTerminal"
-	MethodStopTerminal  jsonrpc.MethodType = "stopTerminal"
-	MethodTerminalData  jsonrpc.MethodType = "terminalData"
+	MethodInitChannel   jsonrpc.MethodType = "channel.init"
+	MethodHeartbeat     jsonrpc.MethodType = "channel.heartbeat"
+	MethodStartTerminal jsonrpc.MethodType = "terminal.start"
+	MethodStopTerminal  jsonrpc.MethodType = "terminal.stop"
+	MethodTerminalData  jsonrpc.MethodType = "terminal.data"
+	MethodRunCommand    jsonrpc.MethodType = "command.run"
+	MethodCommandData   jsonrpc.MethodType = "command.data"
+	MethodStopCommand   jsonrpc.MethodType = "command.stop"
 )
 
 type InitChannelNotification struct {
@@ -44,4 +47,33 @@ type TerminalDataNotification struct {
 	TerminalId uuid.UUID `json:"terminal_id"`    // Unique identifier for the terminal.
 	Marker     string    `json:"marker"`         // data marker, used for buffered resends
 	Data       string    `json:"data,omitempty"` // Data to be sent to the PTY, can be any JSON-serializable data.
+}
+
+const (
+	KernelTypeShell      = "shell"      // Shell command type
+	KernelTypeJavascript = "javascript" // JavaScript command type
+)
+
+type RunCommandRequest struct {
+	SessionId uuid.UUID `json:"session_id"` // Unique identifier for the session.
+	Kernel    string    `json:"kernel"`     // Type of command
+	Data      string    `json:"command"`    // Command to be executed.
+}
+
+const (
+	StreamStdout = "stdout" // Standard output stream
+	StreamStderr = "stderr" // Standard error stream
+	StreamClose  = "close"  // Stream close event
+)
+
+type CommandDataNotification struct {
+	SessionId uuid.UUID `json:"session_id"`     // Unique identifier for the session.
+	CommandId string    `json:"command_id"`     // Unique identifier for the command.
+	Stream    string    `json:"stream"`         // Stream type (e.g., "stdout", "stderr").
+	Data      string    `json:"data,omitempty"` // Data to be sent to the PTY, can be any JSON-serializable data.
+}
+
+type StopCommandRequest struct {
+	SessionId uuid.UUID `json:"session_id"` // Unique identifier for the session.
+	CommandId string    `json:"command_id"` // Unique identifier for the command.
 }

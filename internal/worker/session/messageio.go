@@ -2,6 +2,8 @@ package session
 
 import (
 	"errors"
+	"io"
+	"os"
 	"sync"
 	"time"
 
@@ -162,4 +164,42 @@ func NewChannelMessageReader(ch <-chan []byte) MessageReader {
 // NewChannelMessageWriter creates a MessageWriter from a send-only channel
 func NewChannelMessageWriter(ch chan<- []byte) MessageWriter {
 	return &chanMessageWriter{ch: ch}
+}
+
+type stdoutMessageWriter struct {
+	mu     sync.Mutex
+	paused bool
+	out    io.Writer // typically os.Stdout
+}
+
+func NewStdoutMessageWriter() MessageWriter {
+	return &stdoutMessageWriter{out: os.Stdout}
+}
+
+func (w *stdoutMessageWriter) WriteMessage(msg []byte) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.paused {
+		return nil
+	}
+
+	_, err := w.out.Write(msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *stdoutMessageWriter) Pause() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.paused = true
+}
+
+func (w *stdoutMessageWriter) Resume() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.paused = false
 }

@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -42,6 +43,15 @@ func getSessionChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create session working directory
+	dir := "/tmp/" + sessionId.String()
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create session working directory")
+		httpx.SendError(w, ErrSessionError.Msg("failed to create session working directory"))
+		return
+	}
+
 	// Upgrade the HTTP connection to a WebSocket connection
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -64,10 +74,7 @@ func getSessionChannel(w http.ResponseWriter, r *http.Request) {
 	session.channel.conn = conn
 
 	// Set the shell context
-	sc := shellContext{
-		dir: "/tmp/" + sessionId.String(),
-	}
-	session.channel.shellContext = &sc
+	session.channel.commandContext.shellConfig.dir = dir
 
 	// start the channel
 	err = session.channel.start(ctx)

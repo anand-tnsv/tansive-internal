@@ -78,10 +78,10 @@ func (t *tansivejs) jsShellCmd(ctx context.Context) func(call goja.FunctionCall)
 			}
 		}()
 
-		cmd, err := createCommand(ctxCmd, command, &cmdIOStreams{
+		cmd, err := createCommand(ctxCmd, command, &commandIOWriters{
 			out: &stdout,
 			err: &stderr,
-		}, t.channel)
+		}, t.channel.commandContext.shellConfig)
 		if err != nil {
 			panic(t.vm.NewTypeError("%s\n%s", stderr.String(), err.Error()))
 		}

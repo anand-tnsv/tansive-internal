@@ -13,17 +13,16 @@ import (
 
 func TestShellCmd(t *testing.T) {
 	cmd := "ping 8.8.8.8"
-	channel := NewChannel()
-	channel.shellContext = &shellContext{
+	sc := &shellConfig{
 		dir: "/tmp/test-shell-cmd",
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	// run a timer to invoke a cancel after 5 seconds
 	go func() {
-		time.Sleep(10 * time.Second)
+		time.Sleep(2 * time.Second)
 		cancel()
 	}()
-	err := shellCmd(ctx, channel, cmd)
+	err := shellCmd(ctx, cmd, sc)
 	if err == nil {
 		t.Errorf("shellCmd failed: %v", err)
 	}
@@ -34,7 +33,7 @@ func TestShellCmdForGoja(t *testing.T) {
 	util.SetGlobal(vm)
 	console.SetGlobal(vm, nil)
 	channel := NewChannel()
-	channel.shellContext = &shellContext{
+	channel.commandContext.shellConfig = &shellConfig{
 		dir: "/tmp/test-shell-cmd",
 	}
 	InstallTansiveObject(context.Background(), vm, channel)

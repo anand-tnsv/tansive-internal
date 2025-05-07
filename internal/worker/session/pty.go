@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
 	"syscall"
 
@@ -13,50 +14,23 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/jsonrpc"
 )
 
-func HandleStartTerminal(ctx context.Context, msg *jsonrpc.Request, w MessageWriter, ptys Ttys) apperrors.Error {
+func HandleStartTerminal(ctx context.Context, msg *jsonrpc.Request, w MessageWriter, ptys Ttys, c *shellConfig) apperrors.Error {
 	req := &StartTerminalRequest{}
 	if err := msg.Params.GetAs(req); err != nil {
-		return ErrInvalidParams
+		return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInvalidParams, "invalid parameters", nil)
 	}
 	// check if the pty already exists
 	if _, exists := ptys[req.TerminalId]; exists {
-		rsp, err := jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInvalidParams, "pty already exists", nil)
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for existing pty")
-			return nil
-		}
-		if err := w.WriteMessage(rsp); err != nil {
-			return ErrChannelFailed.Msg("failed to write error response")
-		}
-		return nil
+		return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInvalidParams, "pty already exists", nil)
 	}
 	// Create a new pty and add it to the map
-	if apperr := createPtySession(ctx, req, w, ptys); apperr != nil {
-		var rsp []byte
+	if apperr := createPtySession(ctx, req, w, ptys, c); apperr != nil {
 		if errors.Is(apperr, ErrInvalidParams) {
-			var err error
-			rsp, err = jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInvalidParams, apperr.Error(), nil)
-			if err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for invalid terminal ID")
-				return nil
-			}
+			return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInvalidParams, apperr.Error(), nil)
 		} else if errors.Is(apperr, ErrChannelFailed) {
-			var err error
-			rsp, err = jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInternalError, apperr.Error(), nil)
-			if err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for failed pty start")
-				return nil
-			}
+			return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInternalError, apperr.Error(), nil)
 		} else {
-			var err error
-			rsp, err = jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInternalError, "failed to start pty", nil)
-			if err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for failed pty start")
-				return nil
-			}
-		}
-		if err := w.WriteMessage(rsp); err != nil {
-			return ErrChannelFailed.Msg("failed to write error response")
+			return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInternalError, "failed to start pty", nil)
 		}
 	}
 	return nil
@@ -66,51 +40,22 @@ func HandleStopTerminal(ctx context.Context, msg *jsonrpc.Request, w MessageWrit
 	req := &StopTerminalRequest{}
 	if err := msg.Params.GetAs(req); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to parse stop terminal request parameters")
-		rsp, err := jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInvalidParams, "invalid parameters", nil)
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for invalid parameters")
-			return nil
-		}
-		if err := w.WriteMessage(rsp); err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to write error response for invalid parameters")
-			return ErrChannelFailed.Msg("failed to write error response")
-		}
-		return nil
+		return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInvalidParams, "invalid parameters", nil)
 	}
-
 	if apperr := stopPtySession(ctx, req, w, ptys); apperr != nil {
-		var rsp []byte
 		if errors.Is(apperr, ErrInvalidParams) {
-			var err error
-			rsp, err = jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInvalidParams, apperr.Error(), nil)
-			if err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for invalid terminal ID")
-				return nil
-			}
+			return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInvalidParams, apperr.Error(), nil)
 		} else if errors.Is(apperr, ErrChannelFailed) {
-			var err error
-			rsp, err = jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInternalError, apperr.Error(), nil)
-			if err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for failed pty start")
-				return nil
-			}
+			return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInternalError, apperr.Error(), nil)
 		} else {
-			var err error
-			rsp, err = jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInternalError, "failed to start pty", nil)
-			if err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for failed pty start")
-				return nil
-			}
-		}
-		if err := w.WriteMessage(rsp); err != nil {
-			return ErrChannelFailed.Msg("failed to write error response")
+			return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInternalError, "failed to stop pty", nil)
 		}
 	}
 	log.Ctx(ctx).Info().Msgf("stopped pty session with ID: %s", req.TerminalId.String())
 	return nil
 }
 
-func createPtySession(ctx context.Context, req *StartTerminalRequest, w MessageWriter, ptys Ttys) apperrors.Error {
+func createPtySession(ctx context.Context, req *StartTerminalRequest, w MessageWriter, ptys Ttys, c *shellConfig) apperrors.Error {
 	// Create a new pty session
 	if req.TerminalId == uuid.Nil {
 		log.Ctx(ctx).Error().Msg("invalid terminal ID format")
@@ -138,6 +83,10 @@ func createPtySession(ctx context.Context, req *StartTerminalRequest, w MessageW
 	}
 
 	cmd := exec.Command("zsh", "-li")
+	cmd.Dir = c.dir
+	baseEnv := os.Environ()
+	env := appendOrReplaceEnv(baseEnv, "HOME", c.dir)
+	cmd.Env = env
 	ptmx, err := pty.StartWithAttrs(cmd, nil, &syscall.SysProcAttr{
 		Setsid:  true,
 		Setctty: true,
@@ -243,47 +192,20 @@ func cleanUpTty(ctx context.Context, terminalId uuid.UUID, ptys Ttys) bool {
 func HandleTerminalData(ctx context.Context, msg *jsonrpc.Request, w MessageWriter, ptys Ttys) apperrors.Error {
 	req := &TerminalDataNotification{}
 	if err := msg.Params.GetAs(req); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to parse stop terminal request parameters")
-		rsp, err := jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInvalidParams, "invalid parameters", nil)
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for invalid parameters")
-			return nil
-		}
-		if err := w.WriteMessage(rsp); err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to write error response for invalid parameters")
-			return ErrChannelFailed.Msg("failed to write error response")
-		}
-		return nil
+		return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInvalidParams, "invalid parameters", nil)
 	}
 
 	tty, exists := ptys[req.TerminalId]
 	if !exists {
 		log.Ctx(ctx).Error().Msgf("pty session with ID %s does not exist", req.TerminalId.String())
-		rsp, err := jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInvalidParams, "invalid parameters", nil)
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for invalid parameters")
-			return nil
-		}
-		if err := w.WriteMessage(rsp); err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to write error response for invalid parameters")
-			return ErrChannelFailed.Msg("failed to write error response")
-		}
-		return nil
+		return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInvalidParams, "invalid parameters", nil)
 	}
 
 	if req.Data != "" && tty.ptmx != nil {
 		// Write the data to the pty
 		if _, err := tty.ptmx.Write([]byte(req.Data)); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to write data to pty")
-			rsp, err := jsonrpc.ConstructErrorResponse(msg.ID, jsonrpc.ErrCodeInternalError, "failed to write to pty", nil)
-			if err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for failed write")
-				return nil
-			}
-			if err := w.WriteMessage(rsp); err != nil {
-				return ErrChannelFailed.Msg("failed to write error response")
-			}
-			return nil
+			return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInternalError, "failed to write to pty", nil)
 		}
 		if tty.recorder != nil {
 			tty.recorder.Write("i", string(req.Data))

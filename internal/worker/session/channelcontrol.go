@@ -290,7 +290,7 @@ func (channel *channel) handleRequest(ctx context.Context, req *jsonrpc.Request)
 
 	case MethodStartTerminal:
 		log.Ctx(ctx).Info().Msg("Received StartPty request")
-		if err := HandleStartTerminal(ctx, req, channel.writer, channel.ttys); err != nil {
+		if err := HandleStartTerminal(ctx, req, channel.writer, channel.ttys, channel.commandContext.shellConfig); err != nil {
 			return err
 		}
 
@@ -306,10 +306,34 @@ func (channel *channel) handleRequest(ctx context.Context, req *jsonrpc.Request)
 			return err
 		}
 
+	case MethodRunCommand:
+		log.Ctx(ctx).Info().Msg("Received RunCommand request")
+		if err := HandleRunCommandRequest(ctx, req, channel.writer, channel.commandContext); err != nil {
+			return err
+		}
+
+	case MethodStopCommand:
+		log.Ctx(ctx).Info().Msg("Received StopCommand request")
+		if err := HandleStopCommandRequest(ctx, req, channel.writer, channel.commandContext); err != nil {
+			return err
+		}
+
 	default:
 		log.Ctx(ctx).Error().Msgf("Unknown method: %s", req.Method)
 		return ErrUnknownMethod
 	}
 
+	return nil
+}
+
+func sendJsonRpcError(ctx context.Context, w MessageWriter, id string, code int, msg string, data any) apperrors.Error {
+	rsp, err := jsonrpc.ConstructErrorResponse(id, code, msg, data)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to construct error response for invalid terminal ID")
+		return nil
+	}
+	if err := w.WriteMessage(rsp); err != nil {
+		return ErrChannelFailed.Msg("failed to write error response")
+	}
 	return nil
 }

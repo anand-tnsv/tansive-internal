@@ -3,8 +3,10 @@ package session
 import (
 	"os"
 	"os/exec"
+	"sync"
 	"time"
 
+	"github.com/dop251/goja"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -28,18 +30,24 @@ type channel struct {
 	reader                MessageReader
 	writer                MessageWriter
 	ttys                  Ttys
-	shellContext          *shellContext
+	commandContext        *commandContext
 }
 
 func NewChannel() *channel {
-	return &channel{
+	c := &channel{
 		sessionId:             uuid.Nil,
 		conn:                  nil,
 		peerHeartBeatInterval: 0,
 		reader:                nil,
 		writer:                nil,
 		ttys:                  make(Ttys),
+		commandContext: &commandContext{
+			vm:          goja.New(),
+			mu:          &sync.Mutex{},
+			shellConfig: &shellConfig{},
+		},
 	}
+	return c
 }
 
 type tty struct {
@@ -51,7 +59,15 @@ type tty struct {
 
 type Ttys map[uuid.UUID]*tty
 
-type shellContext struct {
+type commandContext struct {
+	mu          *sync.Mutex // allow serial execution of commands
+	vm          *goja.Runtime
+	requestId   string // request ID for the command currently being executed
+	shellConfig *shellConfig
+	cancel      func()
+}
+
+type shellConfig struct {
 	dir string
 }
 

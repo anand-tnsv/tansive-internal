@@ -120,11 +120,13 @@ func ParseResponse(data []byte) (*Response, error) {
 
 // Example error codes from JSON-RPC 2.0 spec
 const (
-	ErrCodeParseError     = -32700
-	ErrCodeInvalidRequest = -32600
-	ErrCodeMethodNotFound = -32601
-	ErrCodeInvalidParams  = -32602
-	ErrCodeInternalError  = -32603
+	ErrCodeParseError        = -32700
+	ErrCodeInvalidRequest    = -32600
+	ErrCodeMethodNotFound    = -32601
+	ErrCodeInvalidParams     = -32602
+	ErrCodeInternalError     = -32603
+	ErrCodeConcurrentCommand = -32001
+	ErrCodeBadCommand        = -32002
 )
 
 // FormatErrorMessage returns a user-friendly error message from an error
