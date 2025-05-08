@@ -8,7 +8,7 @@ GOTEST := $(GO) test
 BUILDDIR := build
 
 # Applications
-APPS := tansivesrv tansive-worker
+APPS := tansivesrv tansive-worker tansive-cli
 
 # Targets
 .PHONY: all clean test build
@@ -26,6 +26,11 @@ tansive-worker:
 	@echo "Building tansive-worker..."
 	@mkdir -p $(BUILDDIR)
 	$(GOBUILD) -o $(BUILDDIR)/tansive-worker ./cmd/worker
+
+tansive-cli:
+	@echo "Building tansive-cli..."
+	@mkdir -p $(BUILDDIR)
+	$(GOBUILD) -o $(BUILDDIR)/tansive-cli ./cmd/tansive-cli
 
 clean:
 	@echo "Cleaning..."

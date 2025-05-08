@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/jackc/pgtype"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
 )
 
@@ -283,7 +283,7 @@ func TestSaveHierarchicalSchema(t *testing.T) {
 				}
 				// load the resource from the database
 				m := r.Metadata()
-				lr, err := LoadSchemaByHash(ctx, r.StorageRepresentation().GetHash(), &m)
+				lr, err := GetSchemaByHash(ctx, r.StorageRepresentation().GetHash(), &m)
 				if assert.NoError(t, err) { // Check if no error occurred
 					assert.NotNil(t, lr)                                                                       // Check if the loaded resource is not nil
 					assert.Equal(t, r.Kind(), lr.Kind())                                                       // Check if the kind matches
@@ -297,7 +297,7 @@ func TestSaveHierarchicalSchema(t *testing.T) {
 				} else if r.Kind() == "ParameterSchema" {
 					tp = types.CatalogObjectTypeParameterSchema
 				}
-				lr, err = LoadSchemaByPath(ctx, tp, &m, WithWorkspaceID(ws.WorkspaceID))
+				lr, err = GetSchema(ctx, tp, &m, WithWorkspaceID(ws.WorkspaceID))
 				if assert.NoError(t, err) {
 					assert.NotNil(t, lr)
 					assert.Equal(t, r.Kind(), lr.Kind())
@@ -322,7 +322,7 @@ func TestSaveHierarchicalSchema(t *testing.T) {
 		if assert.NoError(t, err) {
 			// load the collection schema
 			m := collectionSchema.Metadata()
-			lr, err := LoadSchemaByHash(ctx, collectionSchema.StorageRepresentation().GetHash(), &m)
+			lr, err := GetSchemaByHash(ctx, collectionSchema.StorageRepresentation().GetHash(), &m)
 			if assert.NoError(t, err) {
 				assert.NotNil(t, lr)
 				assert.Equal(t, collectionSchema.Kind(), lr.Kind())
@@ -330,7 +330,7 @@ func TestSaveHierarchicalSchema(t *testing.T) {
 				assert.Equal(t, collectionSchema.StorageRepresentation().GetHash(), lr.StorageRepresentation().GetHash())
 			}
 			// load by path
-			lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+			lr, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 			if assert.NoError(t, err) {
 				assert.NotNil(t, lr)
 				assert.Equal(t, collectionSchema.Kind(), lr.Kind())
@@ -600,7 +600,7 @@ func TestSaveHierarchicalValue(t *testing.T) {
 	require.NoError(t, err)
 
 	// get the value
-	dir, err := getDirectoriesForWorkspace(ctx, ws.WorkspaceID)
+	dir, err := getWorkspaceDirs(ctx, ws.WorkspaceID)
 	require.NoError(t, err)
 
 	_, err = GetValue(ctx, &ValueMetadata{
@@ -613,7 +613,7 @@ func TestSaveHierarchicalValue(t *testing.T) {
 
 	// load collection by path
 	m := collectionSchema.Metadata()
-	lr, err := LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	lr, err := GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 	require.NotNil(t, lr)
 	assert.NotEqual(t, collectionHash, lr.StorageRepresentation().GetHash())
@@ -873,7 +873,7 @@ func TestReferences(t *testing.T) {
 	assert.NoError(t, err)
 
 	// get the directories for the workspace
-	dir, err := getDirectoriesForWorkspace(ctx, ws.WorkspaceID)
+	dir, err := getWorkspaceDirs(ctx, ws.WorkspaceID)
 	require.NoError(t, err)
 
 	// create the empty collections
@@ -921,11 +921,11 @@ func TestReferences(t *testing.T) {
 		err = SaveSchema(ctx, collectionSchema, WithWorkspaceID(ws.WorkspaceID))
 		require.NoError(t, err)
 		// get all references
-		refs, err := getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
+		refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.Len(t, refs, 1)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
 		require.NoError(t, err)
 		assert.Len(t, refs, 1)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema.FullyQualifiedName()}})
@@ -949,15 +949,15 @@ func TestReferences(t *testing.T) {
 		err = SaveSchema(ctx, collectionSchema, WithWorkspaceID(ws.WorkspaceID))
 		require.NoError(t, err)
 		// get all references
-		refs, err := getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
+		refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.Len(t, refs, 2)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn2}, {Name: paramFqn}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
 		require.NoError(t, err)
 		assert.Len(t, refs, 1)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
 		require.NoError(t, err)
 		assert.Len(t, refs, 1)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema.FullyQualifiedName()}})
@@ -970,15 +970,15 @@ func TestReferences(t *testing.T) {
 		err = SaveSchema(ctx, collectionSchema, WithWorkspaceID(ws.WorkspaceID))
 		require.NoError(t, err)
 		// get all references
-		refs, err := getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
+		refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.Len(t, refs, 1)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
 		require.NoError(t, err)
 		assert.Len(t, refs, 1)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
 		require.NoError(t, err)
 		assert.Len(t, refs, 0)
 	}
@@ -991,10 +991,10 @@ func TestReferences(t *testing.T) {
 		err = SaveSchema(ctx, r, WithWorkspaceID(ws.WorkspaceID))
 		require.NoError(t, err)
 		// get all references
-		refs, err := getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
+		refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn}})
 	}
@@ -1006,13 +1006,13 @@ func TestReferences(t *testing.T) {
 		err = SaveSchema(ctx, collectionSchema2, WithWorkspaceID(ws.WorkspaceID))
 		require.NoError(t, err)
 		// get all references
-		refs, err := getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema2.FullyQualifiedName())
+		refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema2.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn2}, {Name: paramFqn}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema.FullyQualifiedName()}, {Name: collectionSchema2.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema2.FullyQualifiedName()}})
 	}
@@ -1037,19 +1037,19 @@ func TestReferences(t *testing.T) {
 		err = SaveSchema(ctx, r, WithWorkspaceID(ws.WorkspaceID))
 		require.NoError(t, err)
 		// get all references
-		refs, err := getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn3)
+		refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn3)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema2.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema2.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema2.FullyQualifiedName())
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema2.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn}, {Name: paramFqn2}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn3}})
 	}
@@ -1064,22 +1064,22 @@ func TestReferences(t *testing.T) {
 		require.NoError(t, err)
 		paramFqn4 = r.FullyQualifiedName()
 		// get all references
-		refs, err := getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn4)
+		refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn4)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn3)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn3)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema2.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, paramFqn2)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: collectionSchema2.FullyQualifiedName()}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema2.FullyQualifiedName())
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema2.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn}, {Name: paramFqn2}})
-		refs, err = getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
+		refs, err = getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, collectionSchema.FullyQualifiedName())
 		require.NoError(t, err)
 		assert.ElementsMatch(t, refs, []schemamanager.SchemaReference{{Name: paramFqn3}})
 	}

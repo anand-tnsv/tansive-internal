@@ -82,7 +82,7 @@ func createPtySession(ctx context.Context, req *StartTerminalRequest, w MessageW
 		}
 	}
 
-	cmd := exec.Command("zsh", "-li")
+	cmd := exec.CommandContext(ctx, "zsh", "-li")
 	cmd.Dir = c.dir
 	baseEnv := os.Environ()
 	env := appendOrReplaceEnv(baseEnv, "HOME", c.dir)

@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
@@ -17,8 +17,8 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 type valueSchema struct {
@@ -69,7 +69,7 @@ func (vs *valueSchema) Validate() schemaerr.ValidationErrors {
 
 func GetValue(ctx context.Context, m *ValueMetadata, dir Directories) (*valueSchema, apperrors.Error) {
 	// load the object manager
-	om, err := LoadSchemaByPath(ctx,
+	om, err := GetSchema(ctx,
 		types.CatalogObjectTypeCollectionSchema,
 		&schemamanager.SchemaMetadata{
 			Catalog: m.Catalog,
@@ -138,7 +138,7 @@ func SaveValue(ctx context.Context, valueJson []byte, m *ValueMetadata, opts ...
 	// get the directories
 	if options.WorkspaceID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForWorkspace(ctx, options.WorkspaceID)
+		dir, err = getWorkspaceDirs(ctx, options.WorkspaceID)
 		if err != nil {
 			return err
 		}
@@ -147,7 +147,7 @@ func SaveValue(ctx context.Context, valueJson []byte, m *ValueMetadata, opts ...
 	}
 
 	// load the object manager
-	om, err := LoadSchemaByPath(ctx,
+	om, err := GetSchema(ctx,
 		types.CatalogObjectTypeCollectionSchema,
 		&schemamanager.SchemaMetadata{
 			Catalog: v.Metadata.Catalog,
@@ -167,7 +167,7 @@ func SaveValue(ctx context.Context, valueJson []byte, m *ValueMetadata, opts ...
 	oldHash := om.StorageRepresentation().GetHash()
 
 	// get object References
-	refs, err := getSchemaReferences(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, v.Metadata.Collection)
+	refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, v.Metadata.Collection)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to get object references")
 		refs = schemamanager.SchemaReferences{}

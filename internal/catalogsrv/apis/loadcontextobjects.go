@@ -9,117 +9,124 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 )
 
-func loadCatalogObject(ctx context.Context, c *common.CatalogContext, urlValues url.Values) (*common.CatalogContext, error) {
-	if c.CatalogId == uuid.Nil && c.Catalog == "" {
-		catalogId := getUrlValue(urlValues, "catalog_id")
+// loadCatalogObject loads catalog information into the context
+func loadCatalogObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
+	if catalogCtx.CatalogId == uuid.Nil && catalogCtx.Catalog == "" {
+		catalogID := getURLValue(values, "catalog_id")
 		var err error
-		if catalogId != "" {
-			c.CatalogId, err = uuid.Parse(catalogId)
+		if catalogID != "" {
+			catalogCtx.CatalogId, err = uuid.Parse(catalogID)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			catalog := getUrlValue(urlValues, "catalog")
+			catalog := getURLValue(values, "catalog")
 			if catalog != "" {
-				c.Catalog = catalog
+				catalogCtx.Catalog = catalog
 			}
 		}
 	}
-	if c.CatalogId != uuid.Nil {
-		if c.Catalog == "" {
-			catalog, err := db.DB(ctx).GetCatalog(ctx, c.CatalogId, "")
+
+	if catalogCtx.CatalogId != uuid.Nil {
+		if catalogCtx.Catalog == "" {
+			catalog, err := db.DB(ctx).GetCatalog(ctx, catalogCtx.CatalogId, "")
 			if err != nil {
 				return nil, err
 			}
-			c.Catalog = catalog.Name
+			catalogCtx.Catalog = catalog.Name
 		}
-	} else if c.Catalog != "" {
-		catalog, err := db.DB(ctx).GetCatalog(ctx, uuid.Nil, c.Catalog)
+	} else if catalogCtx.Catalog != "" {
+		catalog, err := db.DB(ctx).GetCatalog(ctx, uuid.Nil, catalogCtx.Catalog)
 		if err != nil {
 			return nil, err
 		}
-		c.CatalogId = catalog.CatalogID
+		catalogCtx.CatalogId = catalog.CatalogID
 	}
-	return c, nil
+	return catalogCtx, nil
 }
 
-func loadVariantObject(ctx context.Context, c *common.CatalogContext, urlValues url.Values) (*common.CatalogContext, error) {
-	if c.VariantId == uuid.Nil && c.Variant == "" {
-		variantId := getUrlValue(urlValues, "variant_id")
+// loadVariantObject loads variant information into the context
+func loadVariantObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
+	if catalogCtx.VariantId == uuid.Nil && catalogCtx.Variant == "" {
+		variantID := getURLValue(values, "variant_id")
 		var err error
-		if variantId != "" {
-			c.VariantId, err = uuid.Parse(variantId)
+		if variantID != "" {
+			catalogCtx.VariantId, err = uuid.Parse(variantID)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			variant := getUrlValue(urlValues, "variant")
+			variant := getURLValue(values, "variant")
 			if variant != "" {
-				c.Variant = variant
+				catalogCtx.Variant = variant
 			}
 		}
 	}
-	if c.VariantId != uuid.Nil {
-		if c.Variant == "" {
-			variant, err := db.DB(ctx).GetVariant(ctx, c.CatalogId, c.VariantId, "")
+
+	if catalogCtx.VariantId != uuid.Nil {
+		if catalogCtx.Variant == "" {
+			variant, err := db.DB(ctx).GetVariant(ctx, catalogCtx.CatalogId, catalogCtx.VariantId, "")
 			if err != nil {
 				return nil, err
 			}
-			c.Variant = variant.Name
+			catalogCtx.Variant = variant.Name
 		}
-	} else if c.Variant != "" {
-		variant, err := db.DB(ctx).GetVariant(ctx, c.CatalogId, uuid.Nil, c.Variant)
+	} else if catalogCtx.Variant != "" {
+		variant, err := db.DB(ctx).GetVariant(ctx, catalogCtx.CatalogId, uuid.Nil, catalogCtx.Variant)
 		if err != nil {
 			return nil, err
 		}
-		c.VariantId = variant.VariantID
+		catalogCtx.VariantId = variant.VariantID
 	}
-	return c, nil
+	return catalogCtx, nil
 }
 
-func loadWorkspaceObject(ctx context.Context, c *common.CatalogContext, urlValues url.Values) (*common.CatalogContext, error) {
-	if c.WorkspaceId == uuid.Nil && c.WorkspaceLabel == "" {
-		workspaceId := getUrlValue(urlValues, "workspace_id")
+// loadWorkspaceObject loads workspace information into the context
+func loadWorkspaceObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
+	if catalogCtx.WorkspaceId == uuid.Nil && catalogCtx.WorkspaceLabel == "" {
+		workspaceID := getURLValue(values, "workspace_id")
 		var err error
-		if workspaceId != "" {
-			c.WorkspaceId, err = uuid.Parse(workspaceId)
+		if workspaceID != "" {
+			catalogCtx.WorkspaceId, err = uuid.Parse(workspaceID)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			workspaceLabel := getUrlValue(urlValues, "workspace")
+			workspaceLabel := getURLValue(values, "workspace")
 			if workspaceLabel != "" {
-				c.WorkspaceLabel = workspaceLabel
+				catalogCtx.WorkspaceLabel = workspaceLabel
 			}
 		}
 	}
-	if c.WorkspaceId != uuid.Nil {
-		if c.WorkspaceLabel == "" {
-			workspace, err := db.DB(ctx).GetWorkspace(ctx, c.WorkspaceId)
+
+	if catalogCtx.WorkspaceId != uuid.Nil {
+		if catalogCtx.WorkspaceLabel == "" {
+			workspace, err := db.DB(ctx).GetWorkspace(ctx, catalogCtx.WorkspaceId)
 			if err != nil {
 				return nil, err
 			}
-			c.WorkspaceLabel = workspace.Label
+			catalogCtx.WorkspaceLabel = workspace.Label
 		}
-	} else if c.WorkspaceLabel != "" {
-		workspace, err := db.DB(ctx).GetWorkspaceByLabel(ctx, c.VariantId, c.WorkspaceLabel)
+	} else if catalogCtx.WorkspaceLabel != "" {
+		workspace, err := db.DB(ctx).GetWorkspaceByLabel(ctx, catalogCtx.VariantId, catalogCtx.WorkspaceLabel)
 		if err != nil {
 			return nil, err
 		}
-		c.WorkspaceId = workspace.WorkspaceID
+		catalogCtx.WorkspaceId = workspace.WorkspaceID
 	}
-	return c, nil
+	return catalogCtx, nil
 }
 
-func loadNamespaceObject(ctx context.Context, c *common.CatalogContext, urlValues url.Values) (*common.CatalogContext, error) {
-	var _ = ctx
-	if c.Namespace == "" {
-		c.Namespace = getUrlValue(urlValues, "namespace")
+// loadNamespaceObject loads namespace information into the context
+func loadNamespaceObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
+	_ = ctx
+	if catalogCtx.Namespace == "" {
+		catalogCtx.Namespace = getURLValue(values, "namespace")
 	}
-	return c, nil
+	return catalogCtx, nil
 }
 
-var key_shorthand = map[string]string{
+var urlKeyShorthand = map[string]string{
 	"catalog_id":   "c_id",
 	"catalog":      "c",
 	"variant_id":   "v_id",
@@ -129,13 +136,13 @@ var key_shorthand = map[string]string{
 	"namespace":    "n",
 }
 
-func getUrlValue(urlValues url.Values, key string) string {
-	v := urlValues.Get(key)
-	if v == "" {
-		key_shorthand, ok := key_shorthand[key]
-		if ok {
-			v = urlValues.Get(key_shorthand)
+// getURLValue retrieves a value from URL values, checking both full and shorthand keys
+func getURLValue(values url.Values, key string) string {
+	value := values.Get(key)
+	if value == "" {
+		if shorthand, ok := urlKeyShorthand[key]; ok {
+			value = values.Get(shorthand)
 		}
 	}
-	return v
+	return value
 }

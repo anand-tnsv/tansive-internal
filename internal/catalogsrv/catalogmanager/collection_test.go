@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"github.com/jackc/pgtype"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tidwall/sjson"
 	"sigs.k8s.io/yaml"
 )
@@ -645,7 +645,7 @@ func TestCollectionWithNamespaces(t *testing.T) {
 	err = SaveSchema(ctx, parameterSchema, WithWorkspaceID(ws.WorkspaceID))
 	require.Error(t, err)
 	// delete the parameter schema
-	dir, err := getDirectoriesForWorkspace(ctx, ws.WorkspaceID)
+	dir, err := getWorkspaceDirs(ctx, ws.WorkspaceID)
 	require.NoError(t, err)
 	m = parameterSchema.Metadata()
 	m.Namespace = types.NullString()

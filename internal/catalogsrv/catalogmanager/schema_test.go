@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/jackc/pgtype"
+	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	_ "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/tidwall/sjson"
 	"sigs.k8s.io/yaml"
 )
@@ -226,7 +226,7 @@ func TestSaveSchema(t *testing.T) {
 
 	// Load the collection schema
 	m := collectionSchema.Metadata()
-	lr, err := LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	lr, err := GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 	assert.Equal(t, lr.Kind(), collectionSchema.Kind())
 	assert.Equal(t, collectionSchema.Version(), lr.Version())
@@ -234,7 +234,7 @@ func TestSaveSchema(t *testing.T) {
 
 	// Load the parameter schema
 	m = parameterSchema.Metadata()
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 	assert.Equal(t, lr.Kind(), parameterSchema.Kind())
 	assert.Equal(t, parameterSchema.Version(), lr.Version())
@@ -273,7 +273,7 @@ func TestSaveSchema(t *testing.T) {
 	require.Error(t, err)
 
 	// try to delete the parameter schema
-	dir, err := getDirectoriesForWorkspace(ctx, ws.WorkspaceID)
+	dir, err := getWorkspaceDirs(ctx, ws.WorkspaceID)
 	require.NoError(t, err)
 	md := parameterSchema.Metadata()
 	md.Name = "integer-param-schema" // set name to load the deleted collection schema
@@ -467,7 +467,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	// retrieve the collection
 	m := collectionSchema.Metadata()
 	m.Path = ""
-	lr, err := LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	lr, err := GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 	assert.Equal(t, lr.Kind(), collectionSchema.Kind())
 	assert.Equal(t, collectionSchema.Version(), lr.Version())
@@ -492,7 +492,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	// Verify the root collection is saved correctly
 	m = collectionSchema.Metadata()
 	m.Path = "" // clear path to load root collection
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 	assert.Equal(t, collectionSchema.StorageRepresentation().GetHash(), lr.StorageRepresentation().GetHash())
 
@@ -512,7 +512,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	// Verify the new namespace collection is saved correctly
 	m = collectionSchema.Metadata()
 	m.Path = "" // clear path to load the new namespace collection
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 	assert.Equal(t, collectionSchema.StorageRepresentation().GetHash(), lr.StorageRepresentation().GetHash())
 	assert.Equal(t, lr.Metadata().Namespace.String(), "default", "Expected namespace to be 'another'")
@@ -535,7 +535,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	// Verify the parameter schema is saved correctly in the root namespace
 	m = parameterSchema.Metadata()
 	m.Path = "" // clear path to load root parameter schema
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 	assert.Equal(t, lr.Kind(), parameterSchema.Kind())
 	assert.Equal(t, parameterSchema.Version(), lr.Version())
@@ -582,7 +582,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	// Verify the parameter schema is saved correctly in the namespace
 	m = parameterSchema.Metadata()
 	m.Path = "" // clear path to load the namespace parameter schema
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 	assert.Equal(t, parameterSchema.StorageRepresentation().GetHash(), lr.StorageRepresentation().GetHash())
 	assert.Equal(t, lr.Metadata().Namespace.String(), "my-namespace", "Expected namespace to be 'my-namespace'")
@@ -628,7 +628,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	require.NoError(t, err)
 
 	// delete the parameter schema
-	dir, err := getDirectoriesForWorkspace(ctx, ws.WorkspaceID)
+	dir, err := getWorkspaceDirs(ctx, ws.WorkspaceID)
 	md := parameterSchema.Metadata()
 	md.Name = "integer-param-schema-modified" // set name to load the deleted collection schema
 	md.Namespace = types.NullableStringFrom("my-namespace")
@@ -639,7 +639,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	m.Name = "integer-param-schema-modified" // set name to load the deleted collection schema
 	m.Namespace = types.NullableStringFrom("my-namespace")
 	m.Path = "" // clear path to load the deleted collection schema
-	_, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	_, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.Error(t, err)
 
 	// delete the parameter schema that has references
@@ -657,7 +657,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	m.Name = "valid" // set name to load the deleted collectio n schema
 	m.Namespace = types.NullString()
 	m.Path = "/" // clear path to load the deleted collection schema
-	_, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	_, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.Error(t, err, "Expected error when loading deleted collection schema")
 	md.Name = "path"
 	md.Namespace = types.NullableStringFrom("my-namespace")
@@ -668,7 +668,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	m.Name = "path"                                        // set name to load the deleted collection schema
 	m.Namespace = types.NullableStringFrom("my-namespace") // set namespace to load the deleted collection schema
 	m.Path = "/"
-	_, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	_, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.Error(t, err, "Expected error when loading deleted root collection schema")
 
 	// delete the parameter schema that has references
@@ -715,7 +715,7 @@ func TestSchemaWithNamespaces(t *testing.T) {
 	m.Name = "integer-param-schema"  // set name to load the deleted collection schema
 	m.Namespace = types.NullString() // clear namespace to load the other parameter schema
 	m.Path = ""                      // clear path to load the other parameter schema
-	_, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
+	_, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m, WithWorkspaceID(ws.WorkspaceID))
 	require.NoError(t, err)
 }
 
@@ -919,7 +919,7 @@ func TestSaveSchemaInVariant(t *testing.T) {
 
 	// Load the collection schema
 	m := collectionSchema.Metadata()
-	lr, err := LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m)
+	lr, err := GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m)
 	require.NoError(t, err)
 	assert.Equal(t, lr.Kind(), collectionSchema.Kind())
 	assert.Equal(t, collectionSchema.Version(), lr.Version())
@@ -927,7 +927,7 @@ func TestSaveSchemaInVariant(t *testing.T) {
 
 	// Load the parameter schema
 	m = parameterSchema.Metadata()
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m)
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m)
 	require.NoError(t, err)
 	assert.Equal(t, lr.Kind(), parameterSchema.Kind())
 	assert.Equal(t, parameterSchema.Version(), lr.Version())
@@ -966,7 +966,7 @@ func TestSaveSchemaInVariant(t *testing.T) {
 	require.Error(t, err)
 
 	// try to delete the parameter schema
-	dir, err := getDirectoriesForVariant(ctx, varId)
+	dir, err := getVariantDirs(ctx, varId)
 	require.NoError(t, err)
 	md := parameterSchema.Metadata()
 	md.Name = "integer-param-schema" // set name to load the deleted collection schema
@@ -1151,7 +1151,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	// retrieve the collection
 	m := collectionSchema.Metadata()
 	m.Path = ""
-	lr, err := LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m)
+	lr, err := GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m)
 	require.NoError(t, err)
 	assert.Equal(t, lr.Kind(), collectionSchema.Kind())
 	assert.Equal(t, collectionSchema.Version(), lr.Version())
@@ -1176,7 +1176,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	// Verify the root collection is saved correctly
 	m = collectionSchema.Metadata()
 	m.Path = "" // clear path to load root collection
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m)
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m)
 	require.NoError(t, err)
 	assert.Equal(t, collectionSchema.StorageRepresentation().GetHash(), lr.StorageRepresentation().GetHash())
 
@@ -1196,7 +1196,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	// Verify the new namespace collection is saved correctly
 	m = collectionSchema.Metadata()
 	m.Path = "" // clear path to load the new namespace collection
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m)
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m)
 	require.NoError(t, err)
 	assert.Equal(t, collectionSchema.StorageRepresentation().GetHash(), lr.StorageRepresentation().GetHash())
 	assert.Equal(t, lr.Metadata().Namespace.String(), "default", "Expected namespace to be 'another'")
@@ -1219,7 +1219,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	// Verify the parameter schema is saved correctly in the root namespace
 	m = parameterSchema.Metadata()
 	m.Path = "" // clear path to load root parameter schema
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m)
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m)
 	require.NoError(t, err)
 	assert.Equal(t, lr.Kind(), parameterSchema.Kind())
 	assert.Equal(t, parameterSchema.Version(), lr.Version())
@@ -1266,7 +1266,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	// Verify the parameter schema is saved correctly in the namespace
 	m = parameterSchema.Metadata()
 	m.Path = "" // clear path to load the namespace parameter schema
-	lr, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m)
+	lr, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m)
 	require.NoError(t, err)
 	assert.Equal(t, parameterSchema.StorageRepresentation().GetHash(), lr.StorageRepresentation().GetHash())
 	assert.Equal(t, lr.Metadata().Namespace.String(), "my-namespace", "Expected namespace to be 'my-namespace'")
@@ -1312,7 +1312,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	require.NoError(t, err)
 
 	// delete the parameter schema
-	dir, err := getDirectoriesForVariant(ctx, varId)
+	dir, err := getVariantDirs(ctx, varId)
 	require.NoError(t, err)
 	md := parameterSchema.Metadata()
 	md.Name = "integer-param-schema-modified" // set name to load the deleted collection schema
@@ -1324,7 +1324,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	m.Name = "integer-param-schema-modified" // set name to load the deleted collection schema
 	m.Namespace = types.NullableStringFrom("my-namespace")
 	m.Path = "" // clear path to load the deleted collection schema
-	_, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m)
+	_, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m)
 	require.Error(t, err)
 
 	// delete the parameter schema that has references
@@ -1342,7 +1342,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	m.Name = "valid" // set name to load the deleted collectio n schema
 	m.Namespace = types.NullString()
 	m.Path = "/" // clear path to load the deleted collection schema
-	_, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m)
+	_, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m)
 	require.Error(t, err, "Expected error when loading deleted collection schema")
 	md.Name = "path"
 	md.Namespace = types.NullableStringFrom("my-namespace")
@@ -1353,7 +1353,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	m.Name = "path"                                        // set name to load the deleted collection schema
 	m.Namespace = types.NullableStringFrom("my-namespace") // set namespace to load the deleted collection schema
 	m.Path = "/"
-	_, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m)
+	_, err = GetSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m)
 	require.Error(t, err, "Expected error when loading deleted root collection schema")
 
 	// delete the parameter schema that has references
@@ -1400,7 +1400,7 @@ func TestSchemaWithNamespacesInVariant(t *testing.T) {
 	m.Name = "integer-param-schema"  // set name to load the deleted collection schema
 	m.Namespace = types.NullString() // clear namespace to load the other parameter schema
 	m.Path = ""                      // clear path to load the other parameter schema
-	_, err = LoadSchemaByPath(ctx, types.CatalogObjectTypeParameterSchema, &m)
+	_, err = GetSchema(ctx, types.CatalogObjectTypeParameterSchema, &m)
 	require.NoError(t, err)
 }
 

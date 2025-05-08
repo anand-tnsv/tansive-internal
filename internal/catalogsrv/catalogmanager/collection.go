@@ -8,15 +8,15 @@ import (
 	"path"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/api/schemastore"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 func NewCollectionManager(ctx context.Context, rsrcJson []byte, m *schemamanager.SchemaMetadata) (schemamanager.CollectionManager, apperrors.Error) {
@@ -73,13 +73,13 @@ func SaveCollection(ctx context.Context, cm schemamanager.CollectionManager, opt
 		dir = options.Dir
 	} else if options.WorkspaceID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForWorkspace(ctx, options.WorkspaceID)
+		dir, err = getWorkspaceDirs(ctx, options.WorkspaceID)
 		if err != nil {
 			return err
 		}
 	} else if m.IDS.VariantID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForVariant(ctx, m.IDS.VariantID)
+		dir, err = getVariantDirs(ctx, m.IDS.VariantID)
 		if err != nil {
 			return err
 		}
@@ -276,13 +276,13 @@ func DeleteCollection(ctx context.Context, m *schemamanager.SchemaMetadata, opts
 		dir = options.Dir
 	} else if options.WorkspaceID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForWorkspace(ctx, options.WorkspaceID)
+		dir, err = getWorkspaceDirs(ctx, options.WorkspaceID)
 		if err != nil {
 			return err
 		}
 	} else if m.IDS.VariantID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForVariant(ctx, m.IDS.VariantID)
+		dir, err = getVariantDirs(ctx, m.IDS.VariantID)
 		if err != nil {
 			return err
 		}
@@ -356,13 +356,13 @@ func loadCollectionObjectByPath(ctx context.Context, m *schemamanager.SchemaMeta
 		dir = options.Dir
 	} else if options.WorkspaceID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForWorkspace(ctx, options.WorkspaceID)
+		dir, err = getWorkspaceDirs(ctx, options.WorkspaceID)
 		if err != nil {
 			return nil, err
 		}
 	} else if m.IDS.VariantID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForVariant(ctx, m.IDS.VariantID)
+		dir, err = getVariantDirs(ctx, m.IDS.VariantID)
 		if err != nil {
 			return nil, err
 		}
@@ -396,7 +396,7 @@ func loadCollectionSchemaManager(ctx context.Context, hash string, cm schemamana
 		Catalog: cm.Metadata().Catalog,
 		Variant: cm.Metadata().Variant,
 	}
-	sm, err := LoadSchemaByHash(ctx, hash, m, opts...)
+	sm, err := GetSchemaByHash(ctx, hash, m, opts...)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load collection schema manager")
 		return err
@@ -537,9 +537,9 @@ func (cr *collectionResource) Update(ctx context.Context, rsrcJson []byte) apper
 	var dir Directories
 	var err apperrors.Error
 	if cr.reqCtx.WorkspaceID != uuid.Nil {
-		dir, err = getDirectoriesForWorkspace(ctx, cr.reqCtx.WorkspaceID)
+		dir, err = getWorkspaceDirs(ctx, cr.reqCtx.WorkspaceID)
 	} else {
-		dir, err = getDirectoriesForVariant(ctx, cr.reqCtx.VariantID)
+		dir, err = getVariantDirs(ctx, cr.reqCtx.VariantID)
 	}
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Str("workspace_id", cr.reqCtx.WorkspaceID.String()).Str("variant_id", cr.reqCtx.VariantID.String()).Msg("failed to get directories")
@@ -588,9 +588,9 @@ func (cr *collectionResource) Delete(ctx context.Context) apperrors.Error {
 	var dir Directories
 	var err apperrors.Error
 	if cr.reqCtx.WorkspaceID != uuid.Nil {
-		dir, err = getDirectoriesForWorkspace(ctx, cr.reqCtx.WorkspaceID)
+		dir, err = getWorkspaceDirs(ctx, cr.reqCtx.WorkspaceID)
 	} else {
-		dir, err = getDirectoriesForVariant(ctx, cr.reqCtx.VariantID)
+		dir, err = getVariantDirs(ctx, cr.reqCtx.VariantID)
 	}
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Str("workspace_id", cr.reqCtx.WorkspaceID.String()).Str("variant_id", cr.reqCtx.VariantID.String()).Msg("failed to get directories")

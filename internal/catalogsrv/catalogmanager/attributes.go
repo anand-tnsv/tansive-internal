@@ -7,13 +7,13 @@ import (
 	"path"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 	"github.com/tidwall/gjson"
 )
 
@@ -94,13 +94,13 @@ func DeleteAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param
 		dir = options.Dir
 	} else if options.WorkspaceID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForWorkspace(ctx, options.WorkspaceID)
+		dir, err = getWorkspaceDirs(ctx, options.WorkspaceID)
 		if err != nil {
 			return err
 		}
 	} else if m.IDS.VariantID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForVariant(ctx, m.IDS.VariantID)
+		dir, err = getVariantDirs(ctx, m.IDS.VariantID)
 		if err != nil {
 			return err
 		}
@@ -186,13 +186,13 @@ func UpdateAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, valu
 		dir = options.Dir
 	} else if options.WorkspaceID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForWorkspace(ctx, options.WorkspaceID)
+		dir, err = getWorkspaceDirs(ctx, options.WorkspaceID)
 		if err != nil {
 			return err
 		}
 	} else if m.IDS.VariantID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getDirectoriesForVariant(ctx, m.IDS.VariantID)
+		dir, err = getVariantDirs(ctx, m.IDS.VariantID)
 		if err != nil {
 			return err
 		}

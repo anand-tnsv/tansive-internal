@@ -77,3 +77,8 @@ type StopCommandRequest struct {
 	SessionId uuid.UUID `json:"session_id"` // Unique identifier for the session.
 	CommandId string    `json:"command_id"` // Unique identifier for the command.
 }
+
+type StopCommandResponse struct {
+	SessionId uuid.UUID `json:"session_id"` // Unique identifier for the session.
+	CommandId string    `json:"command_id"` // Unique identifier for the command.
+}

@@ -91,6 +91,7 @@ func HandleStopCommandRequest(ctx context.Context, msg *jsonrpc.Request, w Messa
 		return sendJsonRpcError(ctx, w, msg.ID, jsonrpc.ErrCodeInvalidParams, "no command running", nil)
 	}
 	if c.cancel != nil {
+		log.Ctx(ctx).Debug().Msg("stopping command")
 		c.cancel()
 		c.cancel = nil
 	}

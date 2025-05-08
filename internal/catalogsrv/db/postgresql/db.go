@@ -4,12 +4,11 @@ package postgresql
 import (
 	"context"
 
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dbmanager"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 type hatchCatalogDb struct {
@@ -27,19 +26,18 @@ func NewHatchCatalogDb(c dbmanager.ScopedConn) (*metadataManager, *objectManager
 	return h.mm, h.om, h.cm
 }
 
-func getTenantAndProjectFromContext(ctx context.Context) (tenantID types.TenantId, projectID types.ProjectId, err apperrors.Error) {
-	err = nil
-	tenantID = common.TenantIdFromContext(ctx)
-	projectID = common.ProjectIdFromContext(ctx)
+// getTenantAndProjectFromContext extracts tenant and project IDs from the context
+func getTenantAndProjectFromContext(ctx context.Context) (types.TenantId, types.ProjectId, apperrors.Error) {
+	tenantID := common.TenantIdFromContext(ctx)
+	projectID := common.ProjectIdFromContext(ctx)
 
 	// Validate tenantID and projectID to ensure they are not empty
 	if tenantID == "" {
-		err = dberror.ErrMissingTenantID.Err(dberror.ErrInvalidInput)
-	} else if projectID == "" {
-		err = dberror.ErrMissingProjecID.Err(dberror.ErrInvalidInput)
+		return "", "", dberror.ErrMissingTenantID.Err(dberror.ErrInvalidInput)
 	}
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to retrieve tenant and project IDs from context")
+	if projectID == "" {
+		return "", "", dberror.ErrMissingProjecID.Err(dberror.ErrInvalidInput)
 	}
-	return
+
+	return tenantID, projectID, nil
 }

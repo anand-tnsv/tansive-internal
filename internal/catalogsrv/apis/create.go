@@ -4,52 +4,53 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
+	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-// Create a new resource object
-func createObject(r *http.Request) (*httpx.Response, error) {
-	ctx := r.Context()
+// createObject creates a new resource object
+func createObject(req *http.Request) (*httpx.Response, error) {
+	ctx := req.Context()
 
-	if r.Body == nil {
+	if req.Body == nil {
 		return nil, httpx.ErrInvalidRequest()
 	}
 
-	req, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, httpx.ErrUnableToReadRequest()
 	}
 
-	n, err := getResourceName(r)
+	name, err := getResourceName(req)
 	if err != nil {
 		return nil, err
 	}
 
-	kind := getResourceKind(r)
+	kind := getResourceKind(req)
 	if kind == types.InvalidKind {
 		return nil, httpx.ErrInvalidRequest()
 	}
 
-	if err := validateRequest(req, kind); err != nil {
+	if err := validateRequest(body, kind); err != nil {
 		return nil, err
 	}
 
-	rm, err := catalogmanager.ResourceManagerForKind(ctx, kind, n)
+	manager, err := catalogmanager.ResourceManagerForKind(ctx, kind, name)
 	if err != nil {
 		return nil, err
 	}
 
-	resourceLoc, err := rm.Create(ctx, req)
+	resourceLoc, err := manager.Create(ctx, body)
 	if err != nil {
 		return nil, err
 	}
-	rsp := &httpx.Response{
+
+	resp := &httpx.Response{
 		StatusCode: http.StatusCreated,
 		Location:   resourceLoc,
 		Response:   nil,
 	}
 
-	return rsp, nil
+	return resp, nil
 }
