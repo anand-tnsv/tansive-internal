@@ -37,79 +37,79 @@ type ValueMetadata struct {
 type valueSpec map[string]types.NullableAny
 
 func (vs *valueSchema) Validate() schemaerr.ValidationErrors {
-	var ves schemaerr.ValidationErrors
+	var validationErrors schemaerr.ValidationErrors
 	err := schemavalidator.V().Struct(vs)
 	if err == nil {
 		return nil
 	}
-	ve, ok := err.(validator.ValidationErrors)
+	validatorErrors, ok := err.(validator.ValidationErrors)
 	if !ok {
-		return append(ves, schemaerr.ErrInvalidSchema)
+		return append(validationErrors, schemaerr.ErrInvalidSchema)
 	}
 
 	value := reflect.ValueOf(vs).Elem()
 	typeOfCS := value.Type()
 
-	for _, e := range ve {
+	for _, e := range validatorErrors {
 		jsonFieldName := schemavalidator.GetJSONFieldPath(value, typeOfCS, e.StructField())
 		switch e.Tag() {
 		case "required":
-			ves = append(ves, schemaerr.ErrMissingRequiredAttribute(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrMissingRequiredAttribute(jsonFieldName))
 		case "nameFormatValidator":
 			val, _ := e.Value().(string)
-			ves = append(ves, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "resourcePathValidator":
-			ves = append(ves, schemaerr.ErrInvalidObjectPath(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidObjectPath(jsonFieldName))
 		default:
-			ves = append(ves, schemaerr.ErrValidationFailed(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
 		}
 	}
-	return ves
+	return validationErrors
 }
 
-func GetValue(ctx context.Context, m *ValueMetadata, dir Directories) (*valueSchema, apperrors.Error) {
+func GetValue(ctx context.Context, metadata *ValueMetadata, dir Directories) (*valueSchema, apperrors.Error) {
 	// load the object manager
-	om, err := GetSchema(ctx,
+	objectManager, err := GetSchema(ctx,
 		types.CatalogObjectTypeCollectionSchema,
 		&schemamanager.SchemaMetadata{
-			Catalog: m.Catalog,
-			Variant: m.Variant,
-			Path:    path.Dir(m.Collection),
-			Name:    path.Base(m.Collection),
+			Catalog: metadata.Catalog,
+			Variant: metadata.Variant,
+			Path:    path.Dir(metadata.Collection),
+			Name:    path.Base(metadata.Collection),
 		},
 		WithDirectories(dir))
 
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load object manager")
 		if errors.Is(err, ErrObjectNotFound) {
-			return nil, ErrInvalidCollection.Msg("invalid collection " + m.Collection)
+			return nil, ErrInvalidCollection.Msg("invalid collection " + metadata.Collection)
 		}
 		return nil, ErrCatalogError.Err(err)
 	}
 
 	// get the values
-	valuesParam := om.CollectionSchemaManager().GetDefaultValues()
+	defaultValues := objectManager.CollectionSchemaManager().GetDefaultValues()
 	values := make(valueSpec)
-	for param, value := range valuesParam {
+	for param, value := range defaultValues {
 		values[param] = value.Value
 	}
 
-	vs := &valueSchema{
-		Version: om.Version(),
-		Kind:    om.Kind(),
+	valueSchema := &valueSchema{
+		Version: objectManager.Version(),
+		Kind:    objectManager.Kind(),
 		Metadata: ValueMetadata{
-			Catalog:    om.Metadata().Catalog,
-			Variant:    om.Metadata().Variant,
-			Collection: om.FullyQualifiedName(),
+			Catalog:    objectManager.Metadata().Catalog,
+			Variant:    objectManager.Metadata().Variant,
+			Collection: objectManager.FullyQualifiedName(),
 		},
 		Spec: values,
 	}
 
-	return vs, nil
+	return valueSchema, nil
 }
 
-func SaveValue(ctx context.Context, valueJson []byte, m *ValueMetadata, opts ...ObjectStoreOption) apperrors.Error {
-	if len(valueJson) == 0 {
+func SaveValue(ctx context.Context, valueJSON []byte, metadata *ValueMetadata, opts ...ObjectStoreOption) apperrors.Error {
+	if len(valueJSON) == 0 {
 		return validationerrors.ErrEmptySchema
 	}
 
@@ -119,17 +119,17 @@ func SaveValue(ctx context.Context, valueJson []byte, m *ValueMetadata, opts ...
 		opt(options)
 	}
 
-	v := valueSchema{}
-	if err := json.Unmarshal(valueJson, &v); err != nil {
+	valueSchema := valueSchema{}
+	if err := json.Unmarshal(valueJSON, &valueSchema); err != nil {
 		log.Ctx(ctx).Debug().Err(err).Msg("failed to unmarshal value schema")
 		return validationerrors.ErrInvalidSchema
 	}
 
-	if err := canonicalizeValueMetadata(v, m); err != nil {
+	if err := canonicalizeValueMetadata(valueSchema, metadata); err != nil {
 		return err
 	}
 
-	if err := v.Validate(); err != nil {
+	if err := valueSchema.Validate(); err != nil {
 		return validationerrors.ErrSchemaValidation.Msg(err.Error())
 	}
 
@@ -147,80 +147,80 @@ func SaveValue(ctx context.Context, valueJson []byte, m *ValueMetadata, opts ...
 	}
 
 	// load the object manager
-	om, err := GetSchema(ctx,
+	objectManager, err := GetSchema(ctx,
 		types.CatalogObjectTypeCollectionSchema,
 		&schemamanager.SchemaMetadata{
-			Catalog: v.Metadata.Catalog,
-			Variant: v.Metadata.Variant,
-			Path:    path.Dir(v.Metadata.Collection),
-			Name:    path.Base(v.Metadata.Collection),
+			Catalog: valueSchema.Metadata.Catalog,
+			Variant: valueSchema.Metadata.Variant,
+			Path:    path.Dir(valueSchema.Metadata.Collection),
+			Name:    path.Base(valueSchema.Metadata.Collection),
 		},
 		WithDirectories(dir))
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load object manager")
 		if errors.Is(err, ErrObjectNotFound) {
-			return ErrInvalidCollection.Msg("invalid collection " + v.Metadata.Collection)
+			return ErrInvalidCollection.Msg("invalid collection " + valueSchema.Metadata.Collection)
 		}
 		return ErrCatalogError.Err(err)
 	}
 
-	oldHash := om.StorageRepresentation().GetHash()
+	oldHash := objectManager.StorageRepresentation().GetHash()
 
 	// get object References
-	refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, v.Metadata.Collection)
+	refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, valueSchema.Metadata.Collection)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to get object references")
 		refs = schemamanager.SchemaReferences{}
 	}
 
 	// get the loaders
-	loaders := getSchemaLoaders(ctx, om.Metadata(), WithDirectories(dir))
+	loaders := getSchemaLoaders(ctx, objectManager.Metadata(), WithDirectories(dir))
 	loaders.ParameterRef = getParameterRefForName(refs)
 
 	// validate the value against the collection
-	c := om.CollectionSchemaManager()
-	if c == nil {
+	collectionManager := objectManager.CollectionSchemaManager()
+	if collectionManager == nil {
 		return validationerrors.ErrSchemaValidation.Msg("failed to load collection manager")
 	}
-	for param, value := range v.Spec {
-		v := c.GetValue(ctx, param)
-		if v.Value.Equals(value) {
+	for param, value := range valueSchema.Spec {
+		paramValue := collectionManager.GetValue(ctx, param)
+		if paramValue.Value.Equals(value) {
 			continue
 		}
-		if err := c.ValidateValue(ctx, loaders, param, value); err != nil {
+		if err := collectionManager.ValidateValue(ctx, loaders, param, value); err != nil {
 			return err
 		}
-		c.SetValue(ctx, param, value)
+		collectionManager.SetValue(ctx, param, value)
 	}
 
-	s := c.StorageRepresentation()
-	hash := s.GetHash()
+	storageRep := collectionManager.StorageRepresentation()
+	hash := storageRep.GetHash()
 
 	if hash == oldHash {
 		return nil
 	}
 
 	// save the collection object
-	data, e := s.Serialize()
-	if e != nil {
+	data, err := storageRep.Serialize()
+	if err != nil {
 		return validationerrors.ErrSchemaSerialization
 	}
-	obj := models.CatalogObject{
-		Type:    s.Type,
-		Version: s.Version,
+	catalogObject := models.CatalogObject{
+		Type:    storageRep.Type,
+		Version: storageRep.Version,
 		Data:    data,
 		Hash:    hash,
 	}
-	// Save obj to the database
-	dberr := db.DB(ctx).CreateCatalogObject(ctx, &obj)
-	if dberr != nil {
-		if errors.Is(dberr, dberror.ErrAlreadyExists) {
-			log.Ctx(ctx).Debug().Str("hash", obj.Hash).Msg("catalog object already exists")
+	// Save catalogObject to the database
+	dbErr := db.DB(ctx).CreateCatalogObject(ctx, &catalogObject)
+	if dbErr != nil {
+		if errors.Is(dbErr, dberror.ErrAlreadyExists) {
+			log.Ctx(ctx).Debug().Str("hash", catalogObject.Hash).Msg("catalog object already exists")
 			// in this case, we don't return. If we came here it means the object is not in the directory,
 			// so we'll keep chugging along and save the object to the directory
 		} else {
-			log.Ctx(ctx).Error().Err(dberr).Msg("failed to save catalog object")
-			return dberr
+			log.Ctx(ctx).Error().Err(dbErr).Msg("failed to save catalog object")
+			return dbErr
 		}
 	}
 	var refModel models.References
@@ -233,9 +233,9 @@ func SaveValue(ctx context.Context, valueJson []byte, m *ValueMetadata, opts ...
 	if err := db.DB(ctx).AddOrUpdateObjectByPath(
 		ctx, types.CatalogObjectTypeCollectionSchema,
 		dir.DirForType(types.CatalogObjectTypeCollectionSchema),
-		v.Metadata.Collection,
+		valueSchema.Metadata.Collection,
 		models.ObjectRef{
-			Hash:       obj.Hash,
+			Hash:       catalogObject.Hash,
 			References: refModel,
 		}); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to save object to directory")
@@ -245,22 +245,17 @@ func SaveValue(ctx context.Context, valueJson []byte, m *ValueMetadata, opts ...
 	return nil
 }
 
-func canonicalizeValueMetadata(v valueSchema, m *ValueMetadata) apperrors.Error {
-	if m != nil {
-		if m.Catalog != "" {
-			v.Metadata.Catalog = m.Catalog
+func canonicalizeValueMetadata(valueSchema valueSchema, metadata *ValueMetadata) apperrors.Error {
+	if metadata != nil {
+		if metadata.Catalog != "" {
+			valueSchema.Metadata.Catalog = metadata.Catalog
 		}
-		if !m.Variant.IsNil() {
-			v.Metadata.Variant = m.Variant
+		if !metadata.Variant.IsNil() {
+			valueSchema.Metadata.Variant = metadata.Variant
 		}
-		if m.Collection != "" {
-			v.Metadata.Collection = m.Collection
+		if metadata.Collection != "" {
+			valueSchema.Metadata.Collection = metadata.Collection
 		}
 	}
-
-	if v.Metadata.Variant.IsNil() {
-		v.Metadata.Variant = types.NullableString{Value: types.DefaultVariant, Valid: true}
-	}
-
 	return nil
 }

@@ -17,8 +17,9 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func GetAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param string, opts ...ObjectStoreOption) ([]byte, apperrors.Error) {
-	if m == nil || param == "" {
+// GetAttribute retrieves a single attribute value from a collection
+func GetAttribute(ctx context.Context, metadata *schemamanager.SchemaMetadata, attrName string, opts ...ObjectStoreOption) ([]byte, apperrors.Error) {
+	if metadata == nil || attrName == "" {
 		return nil, validationerrors.ErrEmptySchema
 	}
 
@@ -27,27 +28,27 @@ func GetAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param st
 		opt(&options)
 	}
 
-	collection, err := loadCollectionObjectByPath(ctx, m, opts...)
+	collection, err := loadCollectionObjectByPath(ctx, metadata, opts...)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return nil, ErrObjectNotFound.Msg("collection not found")
-		} else {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get existing collection")
-			return nil, err
 		}
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get existing collection")
+		return nil, err
 	}
-	var cm schemamanager.CollectionManager
-	cm, err = collectionManagerFromObject(ctx, collection, m)
+
+	cm, err := collectionManagerFromObject(ctx, collection, metadata)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load collection")
 		return nil, err
 	}
 
-	return cm.GetValueJSON(ctx, param)
+	return cm.GetValueJSON(ctx, attrName)
 }
 
-func GetAllAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, opts ...ObjectStoreOption) ([]byte, apperrors.Error) {
-	if m == nil {
+// GetAllAttributes retrieves all attribute values from a collection
+func GetAllAttributes(ctx context.Context, metadata *schemamanager.SchemaMetadata, opts ...ObjectStoreOption) ([]byte, apperrors.Error) {
+	if metadata == nil {
 		return nil, validationerrors.ErrEmptySchema
 	}
 
@@ -56,17 +57,16 @@ func GetAllAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, opts
 		opt(&options)
 	}
 
-	collection, err := loadCollectionObjectByPath(ctx, m, opts...)
+	collection, err := loadCollectionObjectByPath(ctx, metadata, opts...)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return nil, ErrObjectNotFound.Msg("collection not found")
-		} else {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get existing collection")
-			return nil, err
 		}
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get existing collection")
+		return nil, err
 	}
-	var cm schemamanager.CollectionManager
-	cm, err = collectionManagerFromObject(ctx, collection, m)
+
+	cm, err := collectionManagerFromObject(ctx, collection, metadata)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load collection")
 		return nil, err
@@ -75,8 +75,9 @@ func GetAllAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, opts
 	return cm.GetAllValuesJSON(ctx)
 }
 
-func DeleteAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param string, opts ...ObjectStoreOption) apperrors.Error {
-	if m == nil || param == "" {
+// DeleteAttribute removes an attribute from a collection
+func DeleteAttribute(ctx context.Context, metadata *schemamanager.SchemaMetadata, attrName string, opts ...ObjectStoreOption) apperrors.Error {
+	if metadata == nil || attrName == "" {
 		return validationerrors.ErrEmptySchema
 	}
 
@@ -86,8 +87,8 @@ func DeleteAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param
 	}
 
 	var dir Directories
-	t := types.CatalogObjectTypeCatalogCollection
-	pathWithName := path.Clean(m.GetStoragePath(t) + "/" + m.Name)
+	objType := types.CatalogObjectTypeCatalogCollection
+	storagePath := path.Clean(metadata.GetStoragePath(objType) + "/" + metadata.Name)
 
 	// get the directory
 	if !options.Dir.IsNil() {
@@ -98,9 +99,9 @@ func DeleteAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param
 		if err != nil {
 			return err
 		}
-	} else if m.IDS.VariantID != uuid.Nil {
+	} else if metadata.IDS.VariantID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getVariantDirs(ctx, m.IDS.VariantID)
+		dir, err = getVariantDirs(ctx, metadata.IDS.VariantID)
 		if err != nil {
 			return err
 		}
@@ -108,7 +109,7 @@ func DeleteAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param
 		return ErrInvalidVersionOrWorkspace
 	}
 
-	existingCollection, err := loadCollectionObjectByPath(ctx, m, opts...)
+	existingCollection, err := loadCollectionObjectByPath(ctx, metadata, opts...)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			existingCollection = nil
@@ -117,12 +118,13 @@ func DeleteAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param
 			return err
 		}
 	}
+
 	var cm schemamanager.CollectionManager
 	if existingCollection != nil {
 		if options.ErrorIfExists {
 			return ErrAlreadyExists.Msg("collection already exists")
 		}
-		cm, err = collectionManagerFromObject(ctx, existingCollection, m)
+		cm, err = collectionManagerFromObject(ctx, existingCollection, metadata)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to load existing collection")
 			return err
@@ -135,18 +137,19 @@ func DeleteAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param
 		return err
 	}
 
-	err = cm.SetDefaultValues(param)
+	err = cm.SetDefaultValues(attrName)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to set default values")
 		return err
 	}
 
-	s := cm.StorageRepresentation()
-	data, err := s.Serialize()
+	storage := cm.StorageRepresentation()
+	data, err := storage.Serialize()
 	if err != nil {
 		return err
 	}
-	newHash := s.GetHash()
+
+	newHash := storage.GetHash()
 	if existingCollection != nil && newHash == existingCollection.Hash {
 		if options.ErrorIfEqualToExisting {
 			return ErrEqualToExistingObject
@@ -154,21 +157,22 @@ func DeleteAttribute(ctx context.Context, m *schemamanager.SchemaMetadata, param
 		return nil
 	}
 
-	// store this object and update the reference
 	obj := models.CatalogObject{
 		Type:    types.CatalogObjectTypeCatalogCollection,
 		Hash:    newHash,
-		Version: s.Version,
+		Version: storage.Version,
 		Data:    data,
 	}
 
-	return saveCollectionObject(ctx, m, &obj, dir, pathWithName, schemaPath)
+	return saveCollectionObject(ctx, metadata, &obj, dir, storagePath, schemaPath)
 }
 
-type attributeValues map[string]types.NullableAny
+// AttributeValues represents a map of attribute names to their values
+type AttributeValues map[string]types.NullableAny
 
-func UpdateAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, values attributeValues, opts ...ObjectStoreOption) apperrors.Error {
-	if m == nil || values == nil {
+// UpdateAttributes updates multiple attributes in a collection
+func UpdateAttributes(ctx context.Context, metadata *schemamanager.SchemaMetadata, values AttributeValues, opts ...ObjectStoreOption) apperrors.Error {
+	if metadata == nil || values == nil {
 		return validationerrors.ErrEmptySchema
 	}
 
@@ -178,8 +182,8 @@ func UpdateAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, valu
 	}
 
 	var dir Directories
-	t := types.CatalogObjectTypeCatalogCollection
-	pathWithName := path.Clean(m.GetStoragePath(t) + "/" + m.Name)
+	objType := types.CatalogObjectTypeCatalogCollection
+	storagePath := path.Clean(metadata.GetStoragePath(objType) + "/" + metadata.Name)
 
 	// get the directory
 	if !options.Dir.IsNil() {
@@ -190,9 +194,9 @@ func UpdateAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, valu
 		if err != nil {
 			return err
 		}
-	} else if m.IDS.VariantID != uuid.Nil {
+	} else if metadata.IDS.VariantID != uuid.Nil {
 		var err apperrors.Error
-		dir, err = getVariantDirs(ctx, m.IDS.VariantID)
+		dir, err = getVariantDirs(ctx, metadata.IDS.VariantID)
 		if err != nil {
 			return err
 		}
@@ -200,7 +204,7 @@ func UpdateAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, valu
 		return ErrInvalidVersionOrWorkspace
 	}
 
-	existingCollection, err := loadCollectionObjectByPath(ctx, m, opts...)
+	existingCollection, err := loadCollectionObjectByPath(ctx, metadata, opts...)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			existingCollection = nil
@@ -209,12 +213,13 @@ func UpdateAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, valu
 			return err
 		}
 	}
+
 	var cm schemamanager.CollectionManager
 	if existingCollection != nil {
 		if options.ErrorIfExists {
 			return ErrAlreadyExists.Msg("collection already exists")
 		}
-		cm, err = collectionManagerFromObject(ctx, existingCollection, m)
+		cm, err = collectionManagerFromObject(ctx, existingCollection, metadata)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to load existing collection")
 			return err
@@ -227,26 +232,27 @@ func UpdateAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, valu
 		return err
 	}
 
-	for param, value := range values {
-		v, _ := cm.GetValue(ctx, param)
-		if v.Equals(value) {
-			log.Ctx(ctx).Info().Msg("value is the same, no update needed")
+	for attrName, value := range values {
+		existingValue, _ := cm.GetValue(ctx, attrName)
+		if existingValue.Equals(value) {
+			log.Ctx(ctx).Info().Msg("value unchanged, skipping update")
 			continue
 		}
 
-		err = cm.SetValue(ctx, schemaLoaders, param, value)
+		err = cm.SetValue(ctx, schemaLoaders, attrName, value)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to set value in collection manager")
 			return err
 		}
 	}
 
-	s := cm.StorageRepresentation()
-	data, err := s.Serialize()
+	storage := cm.StorageRepresentation()
+	data, err := storage.Serialize()
 	if err != nil {
 		return err
 	}
-	newHash := s.GetHash()
+
+	newHash := storage.GetHash()
 	if existingCollection != nil && newHash == existingCollection.Hash {
 		if options.ErrorIfEqualToExisting {
 			return ErrEqualToExistingObject
@@ -254,21 +260,22 @@ func UpdateAttributes(ctx context.Context, m *schemamanager.SchemaMetadata, valu
 		return nil
 	}
 
-	// store this object and update the reference
 	obj := models.CatalogObject{
 		Type:    types.CatalogObjectTypeCatalogCollection,
 		Hash:    newHash,
-		Version: s.Version,
+		Version: storage.Version,
 		Data:    data,
 	}
 
-	return saveCollectionObject(ctx, m, &obj, dir, pathWithName, schemaPath)
+	return saveCollectionObject(ctx, metadata, &obj, dir, storagePath, schemaPath)
 }
 
-type attributeResource struct {
+// AttributeResource manages attribute operations for a collection
+type AttributeResource struct {
 	reqCtx RequestContext
 }
 
+// NewAttributeResource creates a new AttributeResource instance
 func NewAttributeResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
@@ -276,7 +283,7 @@ func NewAttributeResource(ctx context.Context, reqCtx RequestContext) (schemaman
 	if reqCtx.Variant == "" || reqCtx.VariantID == uuid.Nil {
 		return nil, ErrInvalidVariant
 	}
-	return &attributeResource{
+	return &AttributeResource{
 		reqCtx: reqCtx,
 	}, nil
 }
@@ -286,7 +293,8 @@ type collectionSchemaRef struct {
 	path string
 }
 
-func (ar *attributeResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
+// Get retrieves attribute values from a collection
+func (ar *AttributeResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	var returnCollection bool
 	collectionSchema := collectionSchemaRef{}
 	if ar.reqCtx.QueryParams.Get("collection") == "true" {
@@ -298,44 +306,43 @@ func (ar *attributeResource) Get(ctx context.Context) ([]byte, apperrors.Error) 
 		collectionSchema.name = path.Base(ar.reqCtx.ObjectPath)
 		collectionSchema.path = path.Dir(ar.reqCtx.ObjectPath)
 	}
-	var _ = returnCollection
-	m := &schemamanager.SchemaMetadata{
+
+	metadata := &schemamanager.SchemaMetadata{
 		Catalog:   ar.reqCtx.Catalog,
 		Variant:   types.NullableStringFrom(ar.reqCtx.Variant),
 		Namespace: types.NullableStringFrom(ar.reqCtx.Namespace),
 		Path:      collectionSchema.path,
 		Name:      collectionSchema.name,
 	}
-	ves := m.Validate()
-	if ves != nil {
+	if err := metadata.Validate(); err != nil {
 		return nil, ErrInvalidSchema.Msg("invalid resource path")
 	}
-	m.IDS.CatalogID = ar.reqCtx.CatalogID
-	m.IDS.VariantID = ar.reqCtx.VariantID
+	metadata.IDS.CatalogID = ar.reqCtx.CatalogID
+	metadata.IDS.VariantID = ar.reqCtx.VariantID
 
 	if !returnCollection {
-		object, err := GetAttribute(ctx, m, ar.reqCtx.ObjectName, WithWorkspaceID(ar.reqCtx.WorkspaceID))
+		value, err := GetAttribute(ctx, metadata, ar.reqCtx.ObjectName, WithWorkspaceID(ar.reqCtx.WorkspaceID))
 		if err != nil {
 			return nil, err
 		}
-		val := map[string]json.RawMessage{
-			ar.reqCtx.ObjectName: object,
+		response := map[string]json.RawMessage{
+			ar.reqCtx.ObjectName: value,
 		}
-		if ret, err := json.Marshal(&val); err != nil {
+		if ret, err := json.Marshal(&response); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to marshal attribute")
 			return nil, ErrUnableToLoadObject.Msg("unable to load attribute")
 		} else {
 			return ret, nil
 		}
 	} else {
-		object, err := GetAllAttributes(ctx, m, WithWorkspaceID(ar.reqCtx.WorkspaceID))
+		values, err := GetAllAttributes(ctx, metadata, WithWorkspaceID(ar.reqCtx.WorkspaceID))
 		if err != nil {
 			return nil, err
 		}
-		val := map[string]json.RawMessage{
-			"values": object,
+		response := map[string]json.RawMessage{
+			"values": values,
 		}
-		if ret, err := json.Marshal(&val); err != nil {
+		if ret, err := json.Marshal(&response); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to marshal attribute")
 			return nil, ErrUnableToLoadObject.Msg("unable to load attribute")
 		} else {
@@ -344,11 +351,12 @@ func (ar *attributeResource) Get(ctx context.Context) ([]byte, apperrors.Error) 
 	}
 }
 
-func (ar *attributeResource) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {
+// Update modifies attribute values in a collection
+func (ar *AttributeResource) Update(ctx context.Context, resourceJSON []byte) apperrors.Error {
 	var updateCollection bool
-	if gjson.GetBytes(rsrcJson, "value").Exists() {
+	if gjson.GetBytes(resourceJSON, "value").Exists() {
 		updateCollection = false
-	} else if gjson.GetBytes(rsrcJson, "values").Exists() {
+	} else if gjson.GetBytes(resourceJSON, "values").Exists() {
 		updateCollection = true
 	} else {
 		return validationerrors.ErrSchemaValidation.Msg("invalid request")
@@ -363,73 +371,74 @@ func (ar *attributeResource) Update(ctx context.Context, rsrcJson []byte) apperr
 		collectionSchema.path = path.Dir(ar.reqCtx.ObjectPath)
 	}
 
-	m := &schemamanager.SchemaMetadata{
+	metadata := &schemamanager.SchemaMetadata{
 		Catalog:   ar.reqCtx.Catalog,
 		Variant:   types.NullableStringFrom(ar.reqCtx.Variant),
 		Namespace: types.NullableStringFrom(ar.reqCtx.Namespace),
 		Path:      collectionSchema.path,
 		Name:      collectionSchema.name,
 	}
-	ves := m.Validate()
-	if ves != nil {
-		return validationerrors.ErrSchemaValidation.Msg(ves.Error())
+	if err := metadata.Validate(); err != nil {
+		return validationerrors.ErrSchemaValidation.Msg(err.Error())
 	}
-	m.IDS.CatalogID = ar.reqCtx.CatalogID
-	m.IDS.VariantID = ar.reqCtx.VariantID
+	metadata.IDS.CatalogID = ar.reqCtx.CatalogID
+	metadata.IDS.VariantID = ar.reqCtx.VariantID
 
 	if updateCollection {
-		r := gjson.GetBytes(rsrcJson, "values")
-		if !r.Exists() {
+		valuesJSON := gjson.GetBytes(resourceJSON, "values")
+		if !valuesJSON.Exists() {
 			return validationerrors.ErrSchemaValidation.Msg("invalid request")
 		}
-		values := make(attributeValues)
-		if err := json.Unmarshal([]byte(r.Raw), &values); err != nil {
+		values := make(AttributeValues)
+		if err := json.Unmarshal([]byte(valuesJSON.Raw), &values); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal resource schema")
 			return validationerrors.ErrSchemaValidation.Msg("failed to parse request")
 		}
 		if len(values) > 0 {
-			return UpdateAttributes(ctx, m, values, WithWorkspaceID(ar.reqCtx.WorkspaceID))
+			return UpdateAttributes(ctx, metadata, values, WithWorkspaceID(ar.reqCtx.WorkspaceID))
 		}
 	} else {
-		value := gjson.GetBytes(rsrcJson, "value")
-		if !value.Exists() {
+		valueJSON := gjson.GetBytes(resourceJSON, "value")
+		if !valueJSON.Exists() {
 			return validationerrors.ErrSchemaValidation.Msg("invalid request")
 		}
-		values := make(attributeValues)
-		values[ar.reqCtx.ObjectName] = types.NullableAnySetRaw([]byte(value.Raw))
-		return UpdateAttributes(ctx, m, values, WithWorkspaceID(ar.reqCtx.WorkspaceID))
+		values := make(AttributeValues)
+		values[ar.reqCtx.ObjectName] = types.NullableAnySetRaw([]byte(valueJSON.Raw))
+		return UpdateAttributes(ctx, metadata, values, WithWorkspaceID(ar.reqCtx.WorkspaceID))
 	}
 	return nil
 }
 
-func (ar *attributeResource) Delete(ctx context.Context) apperrors.Error {
+// Delete removes an attribute from a collection
+func (ar *AttributeResource) Delete(ctx context.Context) apperrors.Error {
 	collectionSchema := collectionSchemaRef{}
 	collectionSchema.name = path.Base(ar.reqCtx.ObjectPath)
 	collectionSchema.path = path.Dir(ar.reqCtx.ObjectPath)
 
-	m := &schemamanager.SchemaMetadata{
+	metadata := &schemamanager.SchemaMetadata{
 		Catalog:   ar.reqCtx.Catalog,
 		Variant:   types.NullableStringFrom(ar.reqCtx.Variant),
 		Namespace: types.NullableStringFrom(ar.reqCtx.Namespace),
 		Path:      collectionSchema.path,
 		Name:      collectionSchema.name,
 	}
-	ves := m.Validate()
-	if ves != nil {
+	if err := metadata.Validate(); err != nil {
 		return ErrInvalidSchema.Msg("invalid resource path")
 	}
-	m.IDS.CatalogID = ar.reqCtx.CatalogID
-	m.IDS.VariantID = ar.reqCtx.VariantID
+	metadata.IDS.CatalogID = ar.reqCtx.CatalogID
+	metadata.IDS.VariantID = ar.reqCtx.VariantID
 
-	param := ar.reqCtx.ObjectName
+	attrName := ar.reqCtx.ObjectName
 
-	return DeleteAttribute(ctx, m, param, WithWorkspaceID(ar.reqCtx.WorkspaceID))
+	return DeleteAttribute(ctx, metadata, attrName, WithWorkspaceID(ar.reqCtx.WorkspaceID))
 }
 
-func (ar *attributeResource) Location() string {
+// Location returns the resource location
+func (ar *AttributeResource) Location() string {
 	return ""
 }
 
-func (ar *attributeResource) Create(ctx context.Context, rsrcJson []byte) (string, apperrors.Error) {
+// Create is not supported for attributes
+func (ar *AttributeResource) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
 	return ar.Location(), ErrInvalidRequest
 }

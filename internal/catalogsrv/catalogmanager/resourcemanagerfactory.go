@@ -5,9 +5,9 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
 )
@@ -27,20 +27,23 @@ type RequestContext struct {
 	QueryParams    url.Values
 }
 
-func RequestType(rsrcJson []byte) (kind string, apperr apperrors.Error) {
-	if !gjson.ValidBytes(rsrcJson) {
-		return "", ErrInvalidSchema.Msg("invalid message format")
+func RequestType(resourceJSON []byte) (kind string, err apperrors.Error) {
+	if !gjson.ValidBytes(resourceJSON) {
+		return "", ErrInvalidSchema.Msg("invalid JSON format")
 	}
-	result := gjson.GetBytes(rsrcJson, "kind")
+
+	result := gjson.GetBytes(resourceJSON, "kind")
 	if !result.Exists() {
-		return "", ErrInvalidSchema.Msg("missing kind")
+		return "", ErrInvalidSchema.Msg("missing kind field")
 	}
 	kind = result.String()
-	result = gjson.GetBytes(rsrcJson, "version")
+
+	result = gjson.GetBytes(resourceJSON, "version")
 	if !result.Exists() {
-		return "", ErrInvalidSchema.Msg("missing version")
+		return "", ErrInvalidSchema.Msg("missing version field")
 	}
 	version := result.String()
+
 	if schemavalidator.ValidateSchemaKind(kind) && version == types.VersionV1 {
 		return kind, nil
 	}
@@ -61,8 +64,9 @@ var resourceFactories = map[string]ResourceManagerFactory{
 }
 
 func ResourceManagerForKind(ctx context.Context, kind string, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
-	if factory, ok := resourceFactories[kind]; ok {
-		return factory(ctx, name)
+	factory, ok := resourceFactories[kind]
+	if !ok {
+		return nil, ErrInvalidSchema.Msg("unsupported resource kind: " + kind)
 	}
-	return nil, ErrInvalidSchema.Msg("unsupported resource kind")
+	return factory(ctx, name)
 }

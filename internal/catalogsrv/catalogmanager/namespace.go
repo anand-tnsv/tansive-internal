@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
@@ -17,8 +17,8 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 type namespaceSchema struct {
@@ -35,29 +35,29 @@ type namespaceMetadata struct {
 }
 
 type namespaceManager struct {
-	n models.Namespace
+	namespace models.Namespace
 }
 
 // var _ schemamanager.VariantManager = (*variantManager)(nil)
 
-func NewNamespaceManager(ctx context.Context, rsrcJson []byte, catalog string, variant string) (schemamanager.NamespaceManager, apperrors.Error) {
+func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog string, variant string) (schemamanager.NamespaceManager, apperrors.Error) {
 	projectID := common.ProjectIdFromContext(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}
 
-	if len(rsrcJson) == 0 {
+	if len(resourceJSON) == 0 {
 		return nil, ErrInvalidSchema
 	}
 
 	ns := &namespaceSchema{}
-	if err := json.Unmarshal(rsrcJson, ns); err != nil {
+	if err := json.Unmarshal(resourceJSON, ns); err != nil {
 		return nil, ErrInvalidSchema.Err(err)
 	}
 
-	ves := ns.Validate()
-	if ves != nil {
-		return nil, ErrInvalidSchema.Err(ves)
+	validationErrors := ns.Validate()
+	if validationErrors != nil {
+		return nil, ErrInvalidSchema.Err(validationErrors)
 	}
 
 	if catalog != "" {
@@ -103,7 +103,7 @@ func NewNamespaceManager(ctx context.Context, rsrcJson []byte, catalog string, v
 		}
 	}
 
-	n := models.Namespace{
+	namespace := models.Namespace{
 		Description: ns.Metadata.Description,
 		VariantID:   variantID,
 		CatalogID:   catalogID,
@@ -114,80 +114,82 @@ func NewNamespaceManager(ctx context.Context, rsrcJson []byte, catalog string, v
 	}
 
 	return &namespaceManager{
-		n: n,
+		namespace: namespace,
 	}, nil
 }
 
 func (ns *namespaceSchema) Validate() schemaerr.ValidationErrors {
-	var ves schemaerr.ValidationErrors
+	var validationErrors schemaerr.ValidationErrors
 	if ns.Kind != types.NamespaceKind {
-		ves = append(ves, schemaerr.ErrUnsupportedKind("kind"))
+		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
+
 	err := schemavalidator.V().Struct(ns)
 	if err == nil {
-		return ves
+		return validationErrors
 	}
-	ve, ok := err.(validator.ValidationErrors)
+
+	validatorErrors, ok := err.(validator.ValidationErrors)
 	if !ok {
-		return append(ves, schemaerr.ErrInvalidSchema)
+		return append(validationErrors, schemaerr.ErrInvalidSchema)
 	}
 
 	value := reflect.ValueOf(ns).Elem()
 	typeOfCS := value.Type()
 
-	for _, e := range ve {
+	for _, e := range validatorErrors {
 		jsonFieldName := schemavalidator.GetJSONFieldPath(value, typeOfCS, e.StructField())
 
 		switch e.Tag() {
 		case "required":
-			ves = append(ves, schemaerr.ErrMissingRequiredAttribute(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrMissingRequiredAttribute(jsonFieldName))
 		case "nameFormatValidator":
 			val, _ := e.Value().(string)
-			ves = append(ves, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "kindValidator":
-			ves = append(ves, schemaerr.ErrUnsupportedKind(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind(jsonFieldName))
 		case "requireVersionV1":
-			ves = append(ves, schemaerr.ErrInvalidVersion(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidVersion(jsonFieldName))
 		default:
-			ves = append(ves, schemaerr.ErrValidationFailed(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
 		}
 	}
-	return ves
+	return validationErrors
 }
 
 func (nm *namespaceManager) Name() string {
-	return nm.n.Name
+	return nm.namespace.Name
 }
 
 func (nm *namespaceManager) Description() string {
-	return nm.n.Description
+	return nm.namespace.Description
 }
 
 func (nm *namespaceManager) VariantID() uuid.UUID {
-	return nm.n.VariantID
+	return nm.namespace.VariantID
 }
 
 func (nm *namespaceManager) CatalogID() uuid.UUID {
-	return nm.n.CatalogID
+	return nm.namespace.CatalogID
 }
 
 func (nm *namespaceManager) Catalog() string {
-	return nm.n.Catalog
+	return nm.namespace.Catalog
 }
 
 func (nm *namespaceManager) Variant() string {
-	return nm.n.Variant
+	return nm.namespace.Variant
 }
 
 func (nm *namespaceManager) GetNamespaceModel() *models.Namespace {
-	return &nm.n
+	return &nm.namespace
 }
 
 func LoadNamespaceManagerByName(ctx context.Context, variantID uuid.UUID, name string) (schemamanager.NamespaceManager, apperrors.Error) {
 	if variantID == uuid.Nil {
 		return nil, ErrInvalidVariant
 	}
-	n, err := db.DB(ctx).GetNamespace(ctx, name, variantID)
+	namespace, err := db.DB(ctx).GetNamespace(ctx, name, variantID)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return nil, ErrNamespaceNotFound
@@ -196,12 +198,12 @@ func LoadNamespaceManagerByName(ctx context.Context, variantID uuid.UUID, name s
 		return nil, ErrCatalogError.Msg("unable to load namespace")
 	}
 	return &namespaceManager{
-		n: *n,
+		namespace: *namespace,
 	}, nil
 }
 
 func (nm *namespaceManager) Save(ctx context.Context) apperrors.Error {
-	err := db.DB(ctx).CreateNamespace(ctx, &nm.n)
+	err := db.DB(ctx).CreateNamespace(ctx, &nm.namespace)
 	if err != nil {
 		if errors.Is(err, dberror.ErrAlreadyExists) {
 			return ErrAlreadyExists.Msg("namespace already exists")
@@ -217,10 +219,10 @@ func (nm *namespaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error
 		Version: "v1",
 		Kind:    types.NamespaceKind,
 		Metadata: namespaceMetadata{
-			Catalog:     nm.n.Catalog,
-			Variant:     nm.n.Variant,
-			Name:        nm.n.Name,
-			Description: nm.n.Description,
+			Catalog:     nm.namespace.Catalog,
+			Variant:     nm.namespace.Variant,
+			Name:        nm.namespace.Name,
+			Description: nm.namespace.Description,
 		},
 	}
 
@@ -251,11 +253,11 @@ type namespaceResource struct {
 }
 
 func (nr *namespaceResource) Name() string {
-	return nr.name.Catalog
+	return nr.name.Namespace
 }
 
 func (nr *namespaceResource) ID() uuid.UUID {
-	return nr.name.WorkspaceID
+	return nr.name.VariantID
 }
 
 func (nr *namespaceResource) Location() string {
@@ -266,21 +268,20 @@ func (nr *namespaceResource) Manager() schemamanager.NamespaceManager {
 	return nr.nm
 }
 
-func (nr *namespaceResource) Create(ctx context.Context, rsrcJson []byte) (string, apperrors.Error) {
-	namespace, err := NewNamespaceManager(ctx, rsrcJson, nr.name.Catalog, nr.name.Variant)
+func (nr *namespaceResource) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
+	nm, err := NewNamespaceManager(ctx, resourceJSON, nr.name.Catalog, nr.name.Variant)
 	if err != nil {
 		return "", err
 	}
-	err = namespace.Save(ctx)
-	if err != nil {
+	if err := nm.Save(ctx); err != nil {
 		return "", err
 	}
-	nr.name.Namespace = namespace.Name()
+	nr.name.Namespace = nm.Name()
 	if nr.name.Catalog == "" {
-		nr.name.Catalog = namespace.Catalog()
+		nr.name.Catalog = nm.Catalog()
 	}
 	if nr.name.Variant == "" {
-		nr.name.Variant = namespace.Variant()
+		nr.name.Variant = nm.Variant()
 	}
 	return nr.Location(), nil
 }
@@ -307,18 +308,7 @@ func (nr *namespaceResource) Get(ctx context.Context) ([]byte, apperrors.Error) 
 }
 
 func (nr *namespaceResource) Delete(ctx context.Context) apperrors.Error {
-	if nr.name.VariantID == uuid.Nil || nr.name.Namespace == "" {
-		return ErrInvalidNamespace
-	}
-	err := DeleteNamespace(ctx, nr.name.Namespace, nr.name.VariantID)
-	if err != nil {
-		if errors.Is(err, ErrNamespaceNotFound) {
-			return nil
-		}
-		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace")
-		return ErrUnableToDeleteObject.Msg("unable to delete namespace")
-	}
-	return nil
+	return DeleteNamespace(ctx, nr.name.Namespace, nr.name.VariantID)
 }
 
 func (nr *namespaceResource) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {

@@ -7,14 +7,14 @@ import (
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/errors"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/api/schemastore"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 type collectionSchema struct {
@@ -32,41 +32,43 @@ type collectionSpec struct {
 }
 
 func (cs *collectionSchema) Validate() schemaerr.ValidationErrors {
-	var ves schemaerr.ValidationErrors
+	var validationErrors schemaerr.ValidationErrors
 	if cs.Kind != types.CollectionKind {
-		ves = append(ves, schemaerr.ErrUnsupportedKind("kind"))
+		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
+
 	err := schemavalidator.V().Struct(cs)
 	if err == nil {
-		return ves
+		return validationErrors
 	}
-	ve, ok := err.(validator.ValidationErrors)
+
+	validatorErrors, ok := err.(validator.ValidationErrors)
 	if !ok {
-		return append(ves, schemaerr.ErrInvalidSchema)
+		return append(validationErrors, schemaerr.ErrInvalidSchema)
 	}
 
 	value := reflect.ValueOf(cs).Elem()
 	typeOfCS := value.Type()
 
-	for _, e := range ve {
+	for _, e := range validatorErrors {
 		jsonFieldName := schemavalidator.GetJSONFieldPath(value, typeOfCS, e.StructField())
 		switch e.Tag() {
 		case "required":
-			ves = append(ves, schemaerr.ErrMissingRequiredAttribute(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrMissingRequiredAttribute(jsonFieldName))
 		case "oneof":
-			ves = append(ves, schemaerr.ErrInvalidFieldSchema(jsonFieldName, e.Value().(string)))
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidFieldSchema(jsonFieldName, e.Value().(string)))
 		case "nameFormatValidator":
 			val, _ := e.Value().(string)
-			ves = append(ves, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "resourcePathValidator":
-			ves = append(ves, schemaerr.ErrInvalidObjectPath(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidObjectPath(jsonFieldName))
 		case "catalogVersionValidator":
-			ves = append(ves, schemaerr.ErrInvalidCatalogVersion(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidCatalogVersion(jsonFieldName))
 		default:
-			ves = append(ves, schemaerr.ErrValidationFailed(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
 		}
 	}
-	return ves
+	return validationErrors
 }
 
 type collectionManager struct {
