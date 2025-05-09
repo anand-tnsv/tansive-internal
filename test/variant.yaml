@@ -1,0 +1,9 @@
+version: "v1"
+kind: Variant
+metadata:
+  name: example-variant
+  catalog: example-catalog
+  description: "An example variant for testing purposes"
+  tags:
+    - example
+    - test

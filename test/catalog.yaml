@@ -1,0 +1,9 @@
+version: "v1"
+kind: Catalog
+metadata:
+  name: example-catalog
+  description: "An example catalog for testing purposes"
+  version: "1.0.0"
+  tags:
+    - example
+    - test

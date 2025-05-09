@@ -1,0 +1,30 @@
+version: "v1"
+kind: Collection
+metadata:
+  name: example-collection
+  catalog: example-catalog
+  variant: example-variant
+  namespace: example-namespace
+  workspace: example-workspace
+  description: "An example collection for testing purposes"
+items:
+  - id: "item-1"
+    name: "First Item"
+    description: "This is the first item in the collection"
+    tags:
+      - first
+      - example
+  - id: "item-2"
+    name: "Second Item"
+    description: "This is the second item in the collection"
+    tags:
+      - second
+      - example
+parameters:
+  environment: "development"
+  region: "us-east-1"
+  instanceType: "t2.micro"
+  scaling:
+    minInstances: 2
+    maxInstances: 5
+    targetCPUUtilization: 70

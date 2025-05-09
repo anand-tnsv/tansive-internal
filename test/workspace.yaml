@@ -1,0 +1,11 @@
+version: "v1"
+kind: Workspace
+metadata:
+  name: example-workspace
+  catalog: example-catalog
+  variant: example-variant
+  namespace: example-namespace
+  description: "An example workspace for testing purposes"
+  tags:
+    - example
+    - test

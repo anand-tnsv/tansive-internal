@@ -1,0 +1,36 @@
+version: "v1"
+kind: CollectionSchema
+metadata:
+  name: example-collection-schema
+  catalog: example-catalog
+  variant: example-variant
+  namespace: example-namespace
+  description: "An example collection schema for testing purposes"
+schema:
+  type: object
+  properties:
+    id:
+      type: string
+      description: "Unique identifier for the item"
+    name:
+      type: string
+      description: "Name of the item"
+    description:
+      type: string
+      description: "Description of the item"
+    tags:
+      type: array
+      items:
+        type: string
+      description: "List of tags associated with the item"
+    metadata:
+      type: object
+      properties:
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+  required:
+    - id
+    - name

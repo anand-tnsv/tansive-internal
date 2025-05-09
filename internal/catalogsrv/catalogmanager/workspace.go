@@ -9,7 +9,9 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
+	"github.com/tidwall/gjson"
+
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
@@ -18,11 +20,11 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
-	"github.com/tidwall/gjson"
 )
 
+// workspaceSchema represents the structure of a workspace configuration
 type workspaceSchema struct {
 	Version  string            `json:"version" validate:"requireVersionV1"`
 	Kind     string            `json:"kind" validate:"required,kindValidator"`
@@ -41,25 +43,26 @@ type workspaceManager struct {
 	w models.Workspace
 }
 
-// var _ schemamanager.VariantManager = (*variantManager)(nil)
+// Ensure workspaceManager implements schemamanager.WorkspaceManager
+var _ schemamanager.WorkspaceManager = (*workspaceManager)(nil)
 
-func NewWorkspaceManager(ctx context.Context, rsrcJson []byte, catalog string, variant string) (schemamanager.WorkspaceManager, apperrors.Error) {
+// NewWorkspaceManager creates a new workspace manager instance
+func NewWorkspaceManager(ctx context.Context, rsrcJSON []byte, catalog, variant string) (schemamanager.WorkspaceManager, apperrors.Error) {
 	projectID := common.ProjectIdFromContext(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}
 
-	if len(rsrcJson) == 0 {
+	if len(rsrcJSON) == 0 {
 		return nil, ErrInvalidSchema
 	}
 
 	ws := &workspaceSchema{}
-	if err := json.Unmarshal(rsrcJson, ws); err != nil {
+	if err := json.Unmarshal(rsrcJSON, ws); err != nil {
 		return nil, ErrInvalidSchema.Err(err)
 	}
 
-	ves := ws.Validate()
-	if ves != nil {
+	if ves := ws.Validate(); ves != nil {
 		return nil, ErrInvalidSchema.Err(ves)
 	}
 
@@ -82,7 +85,6 @@ func NewWorkspaceManager(ctx context.Context, rsrcJson []byte, catalog string, v
 
 	if catalogID == uuid.Nil || ws.Metadata.Catalog != common.GetCatalogFromContext(ctx) {
 		var err apperrors.Error
-		// retrieve the catalogID
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, ws.Metadata.Catalog)
 		if err != nil {
 			if errors.Is(err, dberror.ErrNotFound) {
@@ -93,7 +95,6 @@ func NewWorkspaceManager(ctx context.Context, rsrcJson []byte, catalog string, v
 		}
 	}
 
-	// retrieve the variantID
 	if variantID == uuid.Nil || ws.Metadata.Variant != common.GetVariantFromContext(ctx) {
 		var err apperrors.Error
 		variantID, err = db.DB(ctx).GetVariantIDFromName(ctx, catalogID, ws.Metadata.Variant)
@@ -106,8 +107,7 @@ func NewWorkspaceManager(ctx context.Context, rsrcJson []byte, catalog string, v
 		}
 	}
 
-	// We don't support multiple versions of a variant. But we'll keep the version construct.
-	// Therefore the base version is always 1
+	// Base version is always 1 as we don't support multiple versions
 	ws.Metadata.BaseVersion = 1
 
 	w := models.Workspace{
@@ -118,9 +118,7 @@ func NewWorkspaceManager(ctx context.Context, rsrcJson []byte, catalog string, v
 		Label:       ws.Metadata.Label,
 	}
 
-	return &workspaceManager{
-		w: w,
-	}, nil
+	return &workspaceManager{w: w}, nil
 }
 
 func (ws *workspaceSchema) Validate() schemaerr.ValidationErrors {
@@ -227,19 +225,17 @@ func LoadWorkspaceManagerByLabel(ctx context.Context, variantID uuid.UUID, label
 }
 
 func (wm *workspaceManager) Save(ctx context.Context) apperrors.Error {
-	err := db.DB(ctx).CreateWorkspace(ctx, &wm.w)
-	if err != nil {
+	if err := db.DB(ctx).CreateWorkspace(ctx, &wm.w); err != nil {
 		if errors.Is(err, dberror.ErrAlreadyExists) {
-			return ErrAlreadyExists.Msg("workspace already exists")
+			return ErrAlreadyExists.Err(errors.New("workspace already exists"))
 		}
 		log.Ctx(ctx).Error().Err(err).Msg("failed to create workspace")
-		return ErrCatalogError.Msg("unable to create workspace")
+		return ErrCatalogError.Err(errors.New("unable to create workspace"))
 	}
 	return nil
 }
 
 func (wm *workspaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) {
-	// Get name of the catalog
 	catalog, err := db.DB(ctx).GetCatalogForWorkspace(ctx, wm.w.WorkspaceID)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
@@ -249,7 +245,6 @@ func (wm *workspaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error
 		return nil, ErrCatalogNotFound
 	}
 
-	// Get name of the variant
 	variant, err := db.DB(ctx).GetVariant(ctx, catalog.CatalogID, wm.w.VariantID, "")
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
@@ -261,7 +256,7 @@ func (wm *workspaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error
 
 	ws := &workspaceSchema{
 		Version: "v1",
-		Kind:    "Workspace",
+		Kind:    types.WorkspaceKind,
 		Metadata: workspaceMetadata{
 			Catalog:     catalog.Name,
 			Variant:     variant.Name,
@@ -271,10 +266,10 @@ func (wm *workspaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error
 		},
 	}
 
-	jsonData, e := json.Marshal(ws)
-	if e != nil {
-		log.Ctx(ctx).Error().Err(e).Msg("unable to marshal workspace schema")
-		return nil, ErrCatalogError.Msg("unable to marshal workspace schema")
+	jsonData, marshalErr := json.Marshal(ws)
+	if marshalErr != nil {
+		log.Ctx(ctx).Error().Err(marshalErr).Msg("unable to marshal workspace schema")
+		return nil, ErrCatalogError.Err(marshalErr)
 	}
 
 	return jsonData, nil
@@ -313,24 +308,27 @@ func (wr *workspaceResource) Manager() schemamanager.WorkspaceManager {
 	return wr.vm
 }
 
-func (wr *workspaceResource) Create(ctx context.Context, rsrcJson []byte) (string, apperrors.Error) {
-	workspace, err := NewWorkspaceManager(ctx, rsrcJson, wr.name.Catalog, wr.name.Variant)
+func (wr *workspaceResource) Create(ctx context.Context, rsrcJSON []byte) (string, apperrors.Error) {
+	workspace, err := NewWorkspaceManager(ctx, rsrcJSON, wr.name.Catalog, wr.name.Variant)
 	if err != nil {
 		return "", err
 	}
-	err = workspace.Save(ctx)
-	if err != nil {
+
+	if err := workspace.Save(ctx); err != nil {
 		return "", err
 	}
+
 	wr.name.WorkspaceID = workspace.ID()
 	wr.name.WorkspaceLabel = workspace.Label()
 	wr.vm = workspace
+
 	if wr.name.Catalog == "" {
-		wr.name.Catalog = gjson.GetBytes(rsrcJson, "metadata.catalog").String()
+		wr.name.Catalog = gjson.GetBytes(rsrcJSON, "metadata.catalog").String()
 	}
 	if wr.name.Variant == "" {
-		wr.name.Variant = gjson.GetBytes(rsrcJson, "metadata.variant").String()
+		wr.name.Variant = gjson.GetBytes(rsrcJSON, "metadata.variant").String()
 	}
+
 	return wr.Location(), nil
 }
 
@@ -354,26 +352,25 @@ func (wr *workspaceResource) Get(ctx context.Context) ([]byte, apperrors.Error) 
 func (wr *workspaceResource) Delete(ctx context.Context) apperrors.Error {
 	id := wr.name.WorkspaceID
 	if id == uuid.Nil {
-		err := db.DB(ctx).DeleteWorkspaceByLabel(ctx, wr.name.VariantID, wr.name.WorkspaceLabel)
-		if err != nil {
+		if err := db.DB(ctx).DeleteWorkspaceByLabel(ctx, wr.name.VariantID, wr.name.WorkspaceLabel); err != nil {
 			if !errors.Is(err, dberror.ErrNotFound) {
 				log.Ctx(ctx).Error().Err(err).Msg("failed to delete workspace")
-				return ErrUnableToDeleteObject.Msg("unable to delete workspace")
+				return ErrUnableToDeleteObject.Err(errors.New("unable to delete workspace"))
 			}
 		}
 		return nil
 	}
-	err := DeleteWorkspace(ctx, id)
-	if err != nil {
+
+	if err := DeleteWorkspace(ctx, id); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to delete workspace")
-		return ErrUnableToDeleteObject.Msg("unable to delete workspace")
+		return ErrUnableToDeleteObject.Err(errors.New("unable to delete workspace"))
 	}
 	return nil
 }
 
-func (wr *workspaceResource) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {
+func (wr *workspaceResource) Update(ctx context.Context, rsrcJSON []byte) apperrors.Error {
 	ws := &workspaceSchema{}
-	if err := json.Unmarshal(rsrcJson, ws); err != nil {
+	if err := json.Unmarshal(rsrcJSON, ws); err != nil {
 		return ErrInvalidSchema.Err(err)
 	}
 
