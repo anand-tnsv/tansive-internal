@@ -299,16 +299,16 @@ func SaveSchema(ctx context.Context, om schemamanager.SchemaManager, opts ...Obj
 	}
 
 	if t == types.CatalogObjectTypeCollectionSchema && !options.SkipValidationForUpdate {
-		syncCollectionReferencesInParameters(ctx, dir.ParametersDir, pathWithName, existingRefs, refs)
+		updateCollectionRefsInParameters(ctx, dir.ParametersDir, pathWithName, existingRefs, refs)
 	} else if t == types.CatalogObjectTypeParameterSchema && len(refs) > 0 {
-		syncParameterReferencesInCollections(ctx, dir, existingPath, pathWithName, existingRef, refs)
+		updateParameterRefsInCollections(ctx, dir, existingPath, pathWithName, existingRef, refs)
 	}
 
 	return nil
 }
 
-// syncParameterReferencesInCollections synchronizes parameter references in collections
-func syncParameterReferencesInCollections(ctx context.Context, dir Directories, existingPath, newPath string, existingParamObjRef *models.ObjectRef, newCollectionRefs schemamanager.SchemaReferences) {
+// updateParameterRefsInCollections updates parameter references in collections
+func updateParameterRefsInCollections(ctx context.Context, dir Directories, existingPath, newPath string, existingParamObjRef *models.ObjectRef, newCollectionRefs schemamanager.SchemaReferences) {
 	var newRefsForExistingParam models.References
 	if existingParamObjRef != nil {
 		for _, ref := range existingParamObjRef.References {
@@ -349,8 +349,8 @@ func syncParameterReferencesInCollections(ctx context.Context, dir Directories, 
 	}
 }
 
-// syncCollectionReferencesInParameters synchronizes collection references in parameters
-func syncCollectionReferencesInParameters(ctx context.Context, paramDir uuid.UUID, collectionFQP string, existingParamRefs, newParamRefs schemamanager.SchemaReferences) {
+// updateCollectionRefsInParameters synchronizes collection references in parameters
+func updateCollectionRefsInParameters(ctx context.Context, paramDir uuid.UUID, collectionFQP string, existingParamRefs, newParamRefs schemamanager.SchemaReferences) {
 	type refAction string
 	const (
 		actionAdd    refAction = "add"
