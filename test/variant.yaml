@@ -3,4 +3,4 @@ kind: Variant
 metadata:
   name: example-variant
   catalog: example-catalog
-  description: "An example variant for testing purposes"
+  description: "Another example variant for testing purposes"

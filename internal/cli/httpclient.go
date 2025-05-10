@@ -9,12 +9,24 @@ import (
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/tidwall/gjson"
 )
 
 // ServerError represents an error response from the server
 type ServerError struct {
 	Result int    `json:"result"`
 	Error  string `json:"error"`
+}
+
+// HTTPError represents an error response from the server with a status code
+type HTTPError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("HTTP error %d: %s", e.StatusCode, e.Message)
 }
 
 // HTTPClient represents a client for making HTTP requests to the catalog server
@@ -84,9 +96,15 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, error) {
 	if resp.StatusCode >= 400 {
 		var serverErr ServerError
 		if err := json.Unmarshal(body, &serverErr); err == nil && serverErr.Error != "" {
-			return nil, fmt.Errorf("%s", serverErr.Error)
+			return nil, &HTTPError{
+				StatusCode: resp.StatusCode,
+				Message:    serverErr.Error,
+			}
 		}
-		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    string(body),
+		}
 	}
 
 	return body, nil
@@ -134,4 +152,28 @@ func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, qu
 	}
 	_, err := c.DoRequest(opts)
 	return err
+}
+
+// UpdateResource updates an existing resource using the given JSON data
+func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, error) {
+	// Get the resource name from metadata.name
+	resourceName := gjson.GetBytes(data, "metadata.name").String()
+	if resourceName == "" {
+		return nil, fmt.Errorf("metadata.name is required for update")
+	}
+
+	// Clean the path components to avoid spurious slashes
+	resourceType = strings.Trim(resourceType, "/")
+	resourceName = strings.Trim(resourceName, "/")
+
+	// Construct the path ensuring no double slashes
+	path := strings.TrimSuffix(resourceType, "/") + "/" + strings.TrimPrefix(resourceName, "/")
+
+	opts := RequestOptions{
+		Method:      http.MethodPut,
+		Path:        path,
+		QueryParams: queryParams,
+		Body:        data,
+	}
+	return c.DoRequest(opts)
 }
