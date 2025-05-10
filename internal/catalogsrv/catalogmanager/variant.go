@@ -167,7 +167,7 @@ func (vm *variantManager) CatalogID() uuid.UUID {
 
 func LoadVariantManager(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) (schemamanager.VariantManager, apperrors.Error) {
 	if variantID == uuid.Nil && (catalogID == uuid.Nil || name == "") {
-		return nil, ErrInvalidVariant
+		return nil, ErrInvalidVariant.Msg("variant ID or both catalog ID and name must be provided")
 	}
 	variant, err := db.DB(ctx).GetVariant(ctx, catalogID, variantID, name)
 	if err != nil {
@@ -188,8 +188,14 @@ func (vm *variantManager) Save(ctx context.Context) apperrors.Error {
 		if errors.Is(err, dberror.ErrAlreadyExists) {
 			return ErrAlreadyExists.Msg("variant already exists")
 		}
+		if errors.Is(err, dberror.ErrInvalidCatalog) {
+			return ErrInvalidVariant.Msg("catalog does not exist or is invalid")
+		}
+		if errors.Is(err, dberror.ErrInvalidInput) {
+			return ErrInvalidVariant.Msg("invalid variant name format")
+		}
 		log.Ctx(ctx).Error().Err(err).Msg("failed to create variant")
-		return ErrAlreadyExists.Msg("variant already exists")
+		return err
 	}
 	return nil
 }
@@ -315,7 +321,7 @@ func (vr *variantResource) Update(ctx context.Context, rsrcJson []byte) apperror
 
 func NewVariantResource(ctx context.Context, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if name.Catalog == "" || name.CatalogID == uuid.Nil {
-		return nil, ErrInvalidVariant
+		return nil, ErrInvalidVariant.Msg("catalog name and ID are required for variant creation")
 	}
 	return &variantResource{
 		name: name,

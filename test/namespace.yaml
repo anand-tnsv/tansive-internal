@@ -2,9 +2,4 @@ version: "v1"
 kind: Namespace
 metadata:
   name: example-namespace
-  catalog: example-catalog
-  variant: example-variant
   description: "An example namespace for testing purposes"
-  tags:
-    - example
-    - test

@@ -6,6 +6,3 @@ metadata:
   variant: example-variant
   namespace: example-namespace
   description: "An example workspace for testing purposes"
-  tags:
-    - example
-    - test

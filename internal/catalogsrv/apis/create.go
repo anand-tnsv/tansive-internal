@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"errors"
 	"io"
 	"net/http"
 
@@ -14,7 +15,7 @@ func createObject(req *http.Request) (*httpx.Response, error) {
 	ctx := req.Context()
 
 	if req.Body == nil {
-		return nil, httpx.ErrInvalidRequest()
+		return nil, httpx.ErrInvalidRequest("request body is required")
 	}
 
 	body, err := io.ReadAll(req.Body)
@@ -29,7 +30,7 @@ func createObject(req *http.Request) (*httpx.Response, error) {
 
 	kind := getResourceKind(req)
 	if kind == types.InvalidKind {
-		return nil, httpx.ErrInvalidRequest()
+		return nil, httpx.ErrInvalidRequest("invalid resource kind")
 	}
 
 	if err := validateRequest(body, kind); err != nil {
@@ -43,6 +44,9 @@ func createObject(req *http.Request) (*httpx.Response, error) {
 
 	resourceLoc, err := manager.Create(ctx, body)
 	if err != nil {
+		if errors.Is(err, catalogmanager.ErrInvalidVariant) {
+			return nil, httpx.ErrInvalidVariant()
+		}
 		return nil, err
 	}
 

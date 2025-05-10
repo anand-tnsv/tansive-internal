@@ -2,12 +2,20 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 )
+
+// ServerError represents an error response from the server
+type ServerError struct {
+	Result int    `json:"result"`
+	Error  string `json:"error"`
+}
 
 // HTTPClient represents a client for making HTTP requests to the catalog server
 type HTTPClient struct {
@@ -56,7 +64,7 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, error) {
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	if c.config.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+		req.Header.Set("Authorization", "Bearer "+c.config.APIKey+"-TXYSZRE")
 	}
 
 	// Make the request
@@ -74,6 +82,10 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, error) {
 
 	// Check for error status codes
 	if resp.StatusCode >= 400 {
+		var serverErr ServerError
+		if err := json.Unmarshal(body, &serverErr); err == nil && serverErr.Error != "" {
+			return nil, fmt.Errorf("%s", serverErr.Error)
+		}
 		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -89,4 +101,37 @@ func (c *HTTPClient) CreateResource(resourceType string, data []byte, queryParam
 		Body:        data,
 	}
 	return c.DoRequest(opts)
+}
+
+// GetResource retrieves a resource using the given resource name
+func (c *HTTPClient) GetResource(resourceType string, resourceName string, queryParams map[string]string) ([]byte, error) {
+	// Clean the path components to avoid spurious slashes
+	resourceType = strings.Trim(resourceType, "/")
+	resourceName = strings.Trim(resourceName, "/")
+
+	// Construct the path ensuring no double slashes
+	path := strings.TrimSuffix(resourceType, "/") + "/" + strings.TrimPrefix(resourceName, "/")
+
+	opts := RequestOptions{
+		Method:      http.MethodGet,
+		Path:        path,
+		QueryParams: queryParams,
+	}
+	return c.DoRequest(opts)
+}
+
+// DeleteResource deletes a resource using the given resource name
+func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, queryParams map[string]string) error {
+	resourceType = strings.Trim(resourceType, "/")
+	resourceName = strings.Trim(resourceName, "/")
+
+	path := strings.TrimSuffix(resourceType, "/") + "/" + strings.TrimPrefix(resourceName, "/")
+
+	opts := RequestOptions{
+		Method:      http.MethodDelete,
+		Path:        path,
+		QueryParams: queryParams,
+	}
+	_, err := c.DoRequest(opts)
+	return err
 }

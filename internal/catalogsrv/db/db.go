@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dbmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/postgresql"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 // DB_ is an interface for the database connection. It wraps the underlying sql.Conn interface while
@@ -99,6 +99,7 @@ type ObjectManager interface {
 	PathExists(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (bool, apperrors.Error)
 	DeleteTree(ctx context.Context, directoryIds models.DirectoryIDs, path string) ([]string, apperrors.Error)
 	DeleteObjectWithReferences(ctx context.Context, t types.CatalogObjectType, dirIDs models.DirectoryIDs, delPath string, opts ...models.DirectoryObjectDeleteOptions) (string, apperrors.Error)
+	DeleteNamespaceObjects(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, namespace string) ([]string, apperrors.Error)
 }
 
 type ConnectionManager interface {

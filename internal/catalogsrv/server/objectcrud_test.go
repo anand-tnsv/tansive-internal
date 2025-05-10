@@ -18,6 +18,35 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+func TestCreateTenantProject(t *testing.T) {
+	ctx := newDb()
+	t.Cleanup(func() {
+		db.DB(ctx).Close(ctx)
+	})
+
+	tenantID := types.TenantId("TANAND")
+	projectID := types.ProjectId("PANAND")
+
+	// Create the tenant for testing
+	err := db.DB(ctx).CreateTenant(ctx, tenantID)
+	if err == nil {
+		t.Logf("Tenant created successfully")
+	} else {
+		t.Logf("Tenant creation failed: %v", err)
+	}
+
+	// Set the tenant ID in the context
+	ctx = common.SetTenantIdInContext(ctx, tenantID)
+
+	// Create the project for testing
+	err = db.DB(ctx).CreateProject(ctx, projectID)
+	if err == nil {
+		t.Logf("Project created successfully")
+	} else {
+		t.Logf("Project creation failed: %v", err)
+	}
+}
+
 func TestCatalogCreate(t *testing.T) {
 
 	ctx := newDb()
@@ -604,7 +633,7 @@ func TestWorkspaceCrud(t *testing.T) {
 			"version": "v1",
 			"kind": "Workspace",
 			"metadata": {
-				"label": "valid-workspace",
+				"name": "valid-workspace",
 				"description": "This is a valid workspace"
 			}
 	}`
@@ -637,7 +666,7 @@ func TestWorkspaceCrud(t *testing.T) {
 		"version": "v1",
 		"kind": "Workspace",
 		"metadata": {
-			"label": "valid-workspace",
+			"name": "valid-workspace",
 			"description": "This is a new description"
 		}
 	}`
@@ -678,7 +707,7 @@ func TestWorkspaceCrud(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Create a workspace without a label
+	// Create a workspace without a name
 	// Create a New Request
 	httpReq, _ = http.NewRequest("POST", "/workspaces", nil)
 	req = `
@@ -703,13 +732,13 @@ func TestWorkspaceCrud(t *testing.T) {
 	_, err = uuid.Parse(id)
 	assert.Nil(t, err)
 
-	// set a valid label for the workspace
+	// set a valid name for the workspace
 	req = `
 	{
 		"version": "v1",
 		"kind": "Workspace",
 		"metadata": {
-			"label": "valid-workspace",
+			"name": "valid-workspace",
 			"description": "This is a valid workspace"
 		}
 	}`
@@ -729,16 +758,16 @@ func TestWorkspaceCrud(t *testing.T) {
 		t.FailNow()
 	}
 	checkHeader(t, response.Header())
-	label := gjson.Get(response.Body.String(), "metadata.label").String()
-	assert.Equal(t, "valid-workspace", label)
+	name := gjson.Get(response.Body.String(), "metadata.name").String()
+	assert.Equal(t, "valid-workspace", name)
 
-	// Set the label to empty
+	// Set the name to empty
 	req = `
 	{
 		"version": "v1",
 		"kind": "Workspace",
 		"metadata": {
-			"label": "",
+			"name": "",
 			"description": ""
 		}
 	}`
@@ -758,8 +787,8 @@ func TestWorkspaceCrud(t *testing.T) {
 		t.FailNow()
 	}
 	checkHeader(t, response.Header())
-	label = gjson.Get(response.Body.String(), "metadata.label").String()
-	assert.Equal(t, "", label)
+	name = gjson.Get(response.Body.String(), "metadata.name").String()
+	assert.Equal(t, "", name)
 
 	// Delete the workspace
 	httpReq, _ = http.NewRequest("DELETE", loc, nil)
@@ -875,7 +904,7 @@ func TestObjectCrud(t *testing.T) {
 			"version": "v1",
 			"kind": "Workspace",
 			"metadata": {
-				"label": "valid-workspace",
+				"name": "valid-workspace",
 				"description": "This is a valid workspace"
 			}
 		}`
@@ -1740,7 +1769,7 @@ func createTestObjects(t *testing.T, ctx context.Context) *TestContext {
 			"version": "v1",
 			"kind": "Workspace",
 			"metadata": {
-				"label": "valid-workspace",
+				"name": "valid-workspace",
 				"description": "This is a valid workspace"
 			}
 		}`

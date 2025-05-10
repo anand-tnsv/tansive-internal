@@ -1,17 +1,17 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 )
 
 var (
 	// Global flags
-	catalog   string
-	variant   string
-	namespace string
-	workspace string
+	jsonOutput bool
+	configFile string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -21,112 +21,70 @@ var rootCmd = &cobra.Command{
 	Long: `Tansive CLI is a command line interface for managing Tansive resources.
 It allows you to create, read, update, and delete resources using YAML files.
 The CLI supports various resource types including catalogs, variants, namespaces, and workspaces.`,
-}
-
-// createCmd represents the create command
-var createCmd = &cobra.Command{
-	Use:   "create -f FILENAME",
-	Short: "Create a resource from a file",
-	Long: `Create a resource from a file. The resource type is determined by the 'kind' field in the YAML file.
-Supported resource types include:
-  - Catalog
-  - Variant
-  - Namespace
-  - Workspace
-  - CollectionSchema
-  - ParameterSchema
-  - Collection
-
-Example:
-  tansive create -f catalog.yaml
-  tansive create -f variant.yaml -c my-catalog
-  tansive create -f namespace.yaml -c my-catalog -v my-variant`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Get the filename from the flag
-		filename, err := cmd.Flags().GetString("filename")
-		if err != nil {
-			return fmt.Errorf("error getting filename: %w", err)
-		}
-		if filename == "" {
-			return fmt.Errorf("filename is required")
-		}
-
-		// Load the configuration
-		configPath, err := GetDefaultConfigPath()
-		if err != nil {
-			return fmt.Errorf("failed to get config path: %w", err)
-		}
-		if err := LoadConfig(configPath); err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		// Load the resource from the file
-		jsonData, resource, err := LoadResourceFromFile(filename)
-		if err != nil {
-			return fmt.Errorf("failed to load resource: %w", err)
-		}
-
-		// Get the resource type
-		resourceType, err := GetResourceType(resource.Kind)
-		if err != nil {
-			return fmt.Errorf("failed to get resource type: %w", err)
-		}
-
-		// Create the HTTP client
-		client := NewHTTPClient(GetConfig())
-
-		// Prepare query parameters
-		queryParams := make(map[string]string)
-		if catalog != "" {
-			queryParams["catalog"] = catalog
-		}
-		if variant != "" {
-			queryParams["variant"] = variant
-		}
-		if namespace != "" {
-			queryParams["namespace"] = namespace
-		}
-		if workspace != "" {
-			queryParams["workspace"] = workspace
-		}
-
-		// Create the resource
-		_, err = client.CreateResource(resourceType, jsonData, queryParams)
-		if err != nil {
-			return fmt.Errorf("failed to create resource: %w", err)
-		}
-
-		fmt.Printf("Successfully created %s\n", resource.Kind)
-		return nil
-	},
+	PersistentPreRun: preRunHandlePersistents,
 }
 
 func init() {
-	// Add flags to the create command
-	createCmd.Flags().StringP("filename", "f", "", "Filename to use to create the resource")
-	createCmd.MarkFlagRequired("filename")
+	// Set up persistent flags
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "", "", "Path to configuration file to override default")
+	rootCmd.PersistentFlags().BoolVarP(&jsonOutput, "json", "j", false, "Output in JSON format")
 
-	// Add context flags
-	createCmd.Flags().StringVarP(&catalog, "catalog", "c", "", "Catalog name")
-	createCmd.Flags().StringVarP(&variant, "variant", "v", "", "Variant name")
-	createCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Namespace name")
-	createCmd.Flags().StringVarP(&workspace, "workspace", "w", "", "Workspace name")
-
-	// Add the create command to the root command
-	rootCmd.AddCommand(createCmd)
+	// Add commands
+	rootCmd.AddCommand(newVersionCmd())
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() error {
-	return rootCmd.Execute()
+func Execute() {
+	rootCmd.SilenceErrors = true // Prevent Cobra from printing the error
+	rootCmd.SilenceUsage = true  // Prevent Cobra from printing usage on error
+
+	err := rootCmd.Execute()
+	if err != nil {
+		if jsonOutput {
+			kv := map[string]string{
+				"error": err.Error(),
+			}
+			printJSON(kv)
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
+		os.Exit(1)
+	}
 }
 
-// addCommands adds all the commands to the root command
-func addCommands(cmd *cobra.Command) {
-	// Add your commands here
-	// Example:
-	cmd.AddCommand(newVersionCmd())
+func preRunHandlePersistents(cmd *cobra.Command, args []string) {
+	// if a config file is provided, load config from config file
+	if configFile == "" {
+		var err error
+		configFile, err = GetDefaultConfigPath()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	isConfig := false
+	c := cmd
+	for c != nil {
+		if c.Name() == "config" {
+			isConfig = true
+			break
+		}
+		c = c.Parent()
+	}
+
+	if !isConfig {
+		if err := LoadConfig(configFile); err != nil {
+			if os.IsNotExist(err) {
+				fmt.Println("Tansive config file not found. Configure tansive with \"tansive config create\" first.")
+				os.Exit(1)
+			} else {
+				fmt.Printf("Unable to load config file: %s\n", err.Error())
+				os.Exit(1)
+			}
+		}
+	}
 }
 
 // Example command implementation
@@ -135,7 +93,24 @@ func newVersionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Print the version number of tansive-cli",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Println("tansive-cli v0.1.0")
+			if jsonOutput {
+				kv := map[string]string{
+					"version": "v0.2.0",
+				}
+				printJSON(kv)
+			} else {
+				cmd.Println("tansive-cli v0.2.0")
+			}
 		},
 	}
+}
+
+// printJSON prints the given map as JSON to stdout
+func printJSON(data interface{}) {
+	jsonData, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println(string(jsonData))
 }

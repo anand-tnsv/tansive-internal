@@ -1,36 +1,37 @@
-version: "v1"
+version: v1
 kind: CollectionSchema
 metadata:
-  name: example-collection-schema
-  catalog: example-catalog
-  variant: example-variant
-  namespace: example-namespace
-  description: "An example collection schema for testing purposes"
-schema:
-  type: object
-  properties:
-    id:
-      type: string
-      description: "Unique identifier for the item"
-    name:
-      type: string
-      description: "Name of the item"
-    description:
-      type: string
-      description: "Description of the item"
-    tags:
-      type: array
-      items:
-        type: string
-      description: "List of tags associated with the item"
-    metadata:
-      type: object
-      properties:
-        createdBy:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-  required:
-    - id
-    - name
+  name: valid
+  catalog: valid-catalog
+  variant: valid-variant
+  path: /
+  description: This is a new description
+spec:
+  parameters:
+    maxDelay:
+      schema: ""
+      dataType: Integer
+      default: 1000
+      annotations:
+    maxRetries:
+      schema: integer-param-schema
+      dataType: ""
+      annotations:
+    maxAttempts:
+      schema: integer-param-schema
+      dataType: ""
+      default: 8
+      annotations:
+        env: MAX_ATTEMPTS
+    maxLength:
+      schema: integer-param-schema
+      dataType: ""
+      default: 8
+      annotations:
+        env: MAX_LENGTH
+        maxValue: 10
+    maxValue:
+      dataType: Integer
+      default: 10
+      annotations:
+        env: MAX_VALUE

@@ -24,7 +24,7 @@ func NewCollectionManager(ctx context.Context, rsrcJson []byte, m *schemamanager
 		return nil, validationerrors.ErrEmptySchema
 	}
 
-	// get the metadata, replace fields in json from provided metadata. Set defaults.
+	// Get the metadata, replace fields in JSON from provided metadata, and set defaults.
 	rsrcJson, m, err := canonicalizeMetadata(rsrcJson, types.CollectionKind, m)
 	if err != nil {
 		return nil, validationerrors.ErrSchemaSerialization
@@ -35,21 +35,19 @@ func NewCollectionManager(ctx context.Context, rsrcJson []byte, m *schemamanager
 		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal resource schema")
 		return nil, validationerrors.ErrSchemaValidation
 	}
-	ves := cs.Validate()
-	if ves != nil {
+
+	if ves := cs.Validate(); ves != nil {
 		return nil, validationerrors.ErrSchemaValidation.Msg(ves.Error())
 	}
 
-	// validate the metadata
+	// Validate the metadata
 	if err := validateMetadata(ctx, m); err != nil {
 		return nil, err
 	}
 
 	cs.Metadata = *m
 
-	return &collectionManager{
-		schema: cs,
-	}, nil
+	return &collectionManager{schema: cs}, nil
 }
 
 func SaveCollection(ctx context.Context, cm schemamanager.CollectionManager, opts ...ObjectStoreOption) apperrors.Error {
@@ -68,33 +66,30 @@ func SaveCollection(ctx context.Context, cm schemamanager.CollectionManager, opt
 	pathWithName := path.Clean(rsrcPath + "/" + cm.Metadata().Name)
 
 	m := cm.Metadata()
-	// get the directory
-	if !options.Dir.IsNil() {
+	// Get the directory
+	switch {
+	case !options.Dir.IsNil():
 		dir = options.Dir
-	} else if options.WorkspaceID != uuid.Nil {
+	case options.WorkspaceID != uuid.Nil:
 		var err apperrors.Error
 		dir, err = getWorkspaceDirs(ctx, options.WorkspaceID)
 		if err != nil {
 			return err
 		}
-	} else if m.IDS.VariantID != uuid.Nil {
+	case m.IDS.VariantID != uuid.Nil:
 		var err apperrors.Error
 		dir, err = getVariantDirs(ctx, m.IDS.VariantID)
 		if err != nil {
 			return err
 		}
-	} else {
+	default:
 		return ErrInvalidVersionOrWorkspace
 	}
 
 	existingCollection, err := loadCollectionObjectByPath(ctx, &m, opts...)
-	if err != nil {
-		if errors.Is(err, dberror.ErrNotFound) {
-			existingCollection = nil
-		} else {
-			log.Ctx(ctx).Error().Err(err).Msg("failed to get existing collection")
-			return err
-		}
+	if err != nil && !errors.Is(err, dberror.ErrNotFound) {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get existing collection")
+		return err
 	}
 
 	var cmCurrent schemamanager.CollectionManager
@@ -107,7 +102,7 @@ func SaveCollection(ctx context.Context, cm schemamanager.CollectionManager, opt
 			log.Ctx(ctx).Error().Err(err).Msg("failed to load existing collection")
 			return err
 		}
-		// collection cannot be modified if schema is different
+		// Collection cannot be modified if schema is different
 		if cmCurrent.Schema() != cm.Schema() {
 			return ErrSchemaOfCollectionNotMutable
 		}
@@ -120,7 +115,7 @@ func SaveCollection(ctx context.Context, cm schemamanager.CollectionManager, opt
 	}
 	cm.SetCollectionSchemaPath(schemaPath)
 
-	var cmCurrentValues schemamanager.ParamValues = nil
+	var cmCurrentValues schemamanager.ParamValues
 	if cmCurrent != nil {
 		cmCurrentValues = cmCurrent.Values()
 	}
@@ -136,6 +131,7 @@ func SaveCollection(ctx context.Context, cm schemamanager.CollectionManager, opt
 	if err != nil {
 		return err
 	}
+
 	newHash := s.GetHash()
 	if existingCollection != nil && newHash == existingCollection.Hash {
 		if options.ErrorIfEqualToExisting {
@@ -143,7 +139,8 @@ func SaveCollection(ctx context.Context, cm schemamanager.CollectionManager, opt
 		}
 		return nil
 	}
-	// store this object and update the reference
+
+	// Store this object and update the reference
 	obj := models.CatalogObject{
 		Type:    t,
 		Hash:    newHash,
@@ -203,10 +200,10 @@ func saveCollectionObject(ctx context.Context, m *schemamanager.SchemaMetadata, 
 	if dberr != nil {
 		if errors.Is(dberr, dberror.ErrAlreadyExists) {
 			log.Ctx(ctx).Debug().Str("hash", obj.Hash).Msg("catalog object already exists")
-			return nil // already exists, nothing to do
+		} else {
+			log.Ctx(ctx).Error().Err(dberr).Msg("failed to save catalog object")
+			return dberr
 		}
-		log.Ctx(ctx).Error().Err(dberr).Msg("failed to save catalog object")
-		return dberr
 	}
 
 	repoId := uuid.Nil

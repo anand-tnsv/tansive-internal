@@ -22,10 +22,13 @@ func LoadResourceFromFile(filename string) ([]byte, *Resource, error) {
 		return nil, nil, fmt.Errorf("failed to read file: %v", err)
 	}
 
+	// Remove stray tabs
+	data = replaceTabsWithSpaces(data)
+
 	// Convert YAML to JSON
 	jsonData, err := yaml.YAMLToJSON(data)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to convert YAML to JSON: %v", err)
+		return nil, nil, fmt.Errorf("unable to parse YAML: %v", err)
 	}
 
 	// Parse the resource to get its kind
@@ -35,6 +38,19 @@ func LoadResourceFromFile(filename string) ([]byte, *Resource, error) {
 	}
 
 	return jsonData, &resource, nil
+}
+
+func replaceTabsWithSpaces(b []byte) []byte {
+	space := []byte("    ")
+	var result []byte
+	for _, c := range b {
+		if c == '\t' {
+			result = append(result, space...)
+		} else {
+			result = append(result, c)
+		}
+	}
+	return result
 }
 
 // GetResourceType returns the API endpoint path for a given resource kind
@@ -56,5 +72,31 @@ func GetResourceType(kind string) (string, error) {
 		return "collections", nil
 	default:
 		return "", fmt.Errorf("unknown resource kind: %s", kind)
+	}
+}
+
+// MapResourceTypeToURL maps a resource type string to its URL format
+func MapResourceTypeToURL(resourceType string) (string, error) {
+	switch resourceType {
+	case "catalog", "cat":
+		return "catalogs", nil
+	case "variant", "var":
+		return "variants", nil
+	case "namespace", "ns":
+		return "namespaces", nil
+	case "workspace", "ws":
+		return "workspaces", nil
+	case "collectionschema", "cs":
+		return "collectionschemas", nil
+	case "parameterschema", "ps":
+		return "parameterschemas", nil
+	case "collection", "col":
+		return "collections", nil
+	case "attribute", "attr":
+		return "attributes", nil
+	case "attributeset", "attrset":
+		return "attributes", nil
+	default:
+		return "", fmt.Errorf("unknown resource type: %s", resourceType)
 	}
 }

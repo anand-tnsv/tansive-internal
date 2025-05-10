@@ -10,13 +10,13 @@ import (
 
 	"github.com/golang/snappy"
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 func (om *objectManager) CreateSchemaDirectory(ctx context.Context, t types.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error {
@@ -1044,4 +1044,90 @@ func getSchemaDirectoryTableName(t types.CatalogObjectType) string {
 func isValidPath(path string) bool {
 	var validPathPattern = regexp.MustCompile(`^(/[A-Za-z0-9_-]+)+$`)
 	return validPathPattern.MatchString(path)
+}
+
+// DeleteNamespaceObjects deletes all objects in a namespace from the schema directory
+func (om *objectManager) DeleteNamespaceObjects(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, namespace string) ([]string, apperrors.Error) {
+	tenantID := common.TenantIdFromContext(ctx)
+	if tenantID == "" {
+		return nil, dberror.ErrMissingTenantID
+	}
+	tableName := getSchemaDirectoryTableName(t)
+	if tableName == "" {
+		return nil, dberror.ErrInvalidInput.Msg("invalid catalog object type")
+	}
+
+	tx, err := om.conn().BeginTx(ctx, &sql.TxOptions{
+		Isolation: sql.LevelSerializable,
+	})
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to start transaction")
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Get the current directory with FOR UPDATE lock
+	query := `SELECT directory FROM ` + tableName + ` WHERE directory_id = $1 AND tenant_id = $2 FOR UPDATE;`
+	var dir []byte
+	err = tx.QueryRowContext(ctx, query, directoryID, tenantID).Scan(&dir)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, dberror.ErrNotFound.Msg("directory not found")
+		}
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get directory")
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+
+	// Parse the directory
+	directory, errStd := models.JSONToDirectory(dir)
+	if errStd != nil {
+		log.Ctx(ctx).Error().Err(errStd).Msg("failed to unmarshal directory")
+		return nil, dberror.ErrDatabase.Err(errStd)
+	}
+
+	// Find and delete all objects in the namespace
+	var deletedPaths []string
+	namespacePrefix := "/--root--/" + namespace + "/"
+	for path := range directory {
+		if strings.HasPrefix(path, namespacePrefix) {
+			delete(directory, path)
+			deletedPaths = append(deletedPaths, path)
+		}
+	}
+
+	// If no objects were deleted, return early
+	if len(deletedPaths) == 0 {
+		if err := tx.Commit(); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to commit transaction")
+			return nil, dberror.ErrDatabase.Err(err)
+		}
+		return nil, nil
+	}
+
+	// Update the directory
+	updatedDir, errStd := models.DirectoryToJSON(directory)
+	if errStd != nil {
+		log.Ctx(ctx).Error().Err(errStd).Msg("failed to marshal directory")
+		return nil, dberror.ErrDatabase.Err(errStd)
+	}
+
+	// Update the directory within the transaction
+	query = `UPDATE ` + tableName + ` SET directory = $1 WHERE directory_id = $2 AND tenant_id = $3;`
+	_, err = tx.ExecContext(ctx, query, updatedDir, directoryID, tenantID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to update directory")
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to commit transaction")
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+
+	return deletedPaths, nil
 }

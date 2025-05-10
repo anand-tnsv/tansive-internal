@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
@@ -36,7 +37,7 @@ type workspaceMetadata struct {
 	Variant     string `json:"variant" validate:"omitempty,resourceNameValidator"`
 	BaseVersion int    `json:"-"`
 	Description string `json:"description"`
-	Label       string `json:"label" validate:"omitempty,resourceNameValidator"`
+	Label       string `json:"name" validate:"omitempty,resourceNameValidator"`
 }
 
 type workspaceManager struct {
@@ -227,7 +228,10 @@ func LoadWorkspaceManagerByLabel(ctx context.Context, variantID uuid.UUID, label
 func (wm *workspaceManager) Save(ctx context.Context) apperrors.Error {
 	if err := db.DB(ctx).CreateWorkspace(ctx, &wm.w); err != nil {
 		if errors.Is(err, dberror.ErrAlreadyExists) {
-			return ErrAlreadyExists.Err(errors.New("workspace already exists"))
+			if wm.w.Label != "" {
+				return ErrAlreadyExists.Msg(fmt.Sprintf("workspace with label '%s' already exists in this variant", wm.w.Label))
+			}
+			return ErrAlreadyExists.Msg("workspace with this ID already exists")
 		}
 		log.Ctx(ctx).Error().Err(err).Msg("failed to create workspace")
 		return ErrCatalogError.Err(errors.New("unable to create workspace"))

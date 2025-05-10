@@ -1,45 +1,11 @@
-version: "v1"
+version: v1
 kind: ParameterSchema
 metadata:
-  name: example-parameter-schema
-  catalog: example-catalog
-  variant: example-variant
-  namespace: example-namespace
-  description: "An example parameter schema for testing purposes"
-schema:
-  type: object
-  properties:
-    environment:
-      type: string
-      enum: [development, staging, production]
-      description: "Deployment environment"
-    region:
-      type: string
-      enum: [us-east-1, us-west-1, eu-west-1]
-      description: "AWS region for deployment"
-    instanceType:
-      type: string
-      enum: [t2.micro, t2.small, t2.medium]
-      description: "EC2 instance type"
-    scaling:
-      type: object
-      properties:
-        minInstances:
-          type: integer
-          minimum: 1
-          maximum: 10
-          description: "Minimum number of instances"
-        maxInstances:
-          type: integer
-          minimum: 1
-          maximum: 20
-          description: "Maximum number of instances"
-        targetCPUUtilization:
-          type: integer
-          minimum: 1
-          maximum: 100
-          description: "Target CPU utilization percentage"
-  required:
-    - environment
-    - region
-    - instanceType
+  name: integer-param-schema
+  description: integer-param-schema-description
+spec:
+  dataType: Integer
+  validation:
+    minValue: 1
+    maxValue: 10
+  default: 5

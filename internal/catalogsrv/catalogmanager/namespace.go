@@ -235,8 +235,9 @@ func (nm *namespaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error
 	return jsonData, nil
 }
 
-func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) apperrors.Error {
-	err := db.DB(ctx).DeleteNamespace(ctx, name, variantID)
+func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID, dir Directories) apperrors.Error {
+	// check if the namespace exists by retrieving it
+	_, err := db.DB(ctx).GetNamespace(ctx, name, variantID)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return ErrNamespaceNotFound
@@ -244,6 +245,31 @@ func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) appe
 		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace")
 		return err
 	}
+
+	// delete the namespace
+	err = db.DB(ctx).DeleteNamespace(ctx, name, variantID)
+	if err != nil {
+		if errors.Is(err, dberror.ErrNotFound) {
+			return ErrNamespaceNotFound
+		}
+		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace")
+		return err
+	}
+
+	// delete the namespace objects in all directories
+	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, name)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace objects in ParameterSchema")
+	}
+	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, name)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace objects in CollectionSchema")
+	}
+	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, types.CatalogObjectTypeCatalogCollection, dir.ValuesDir, name)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace objects in CatalogCollection")
+	}
+
 	return nil
 }
 
@@ -308,7 +334,18 @@ func (nr *namespaceResource) Get(ctx context.Context) ([]byte, apperrors.Error) 
 }
 
 func (nr *namespaceResource) Delete(ctx context.Context) apperrors.Error {
-	return DeleteNamespace(ctx, nr.name.Namespace, nr.name.VariantID)
+	// delete the namespace
+	var dir Directories
+	var err apperrors.Error
+	if nr.name.WorkspaceID != uuid.Nil {
+		dir, err = getWorkspaceDirs(ctx, nr.name.WorkspaceID)
+	} else {
+		dir, err = getVariantDirs(ctx, nr.name.VariantID)
+	}
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get directories")
+	}
+	return DeleteNamespace(ctx, nr.name.Namespace, nr.name.VariantID, dir)
 }
 
 func (nr *namespaceResource) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {
