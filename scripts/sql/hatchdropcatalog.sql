@@ -7,6 +7,12 @@ DROP TRIGGER IF EXISTS update_variants_updated_at ON variants;
 DROP TRIGGER IF EXISTS update_versions_updated_at ON versions;
 DROP TRIGGER IF EXISTS update_workspaces_updated_at ON workspaces;
 DROP TRIGGER IF EXISTS set_version_num ON versions;
+DROP TRIGGER IF EXISTS update_tenants_updated_at ON tenants;
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
+DROP TRIGGER IF EXISTS update_catalog_objects_updated_at ON catalog_objects;
+DROP TRIGGER IF EXISTS update_collections_directory_updated_at ON collections_directory;
+DROP TRIGGER IF EXISTS update_parameters_directory_updated_at ON parameters_directory;
+DROP TRIGGER IF EXISTS update_values_directory_updated_at ON values_directory;
 
 -- Drop functions
 DROP FUNCTION IF EXISTS set_updated_at() CASCADE;

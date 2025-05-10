@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -16,6 +17,8 @@ import (
  variant_id   | uuid                  |           | not null |
  tenant_id    | character varying(10) |           | not null |
  directory    | jsonb                 |           | not null |
+ created_at   | timestamptz          |           | not null | now()
+ updated_at   | timestamptz          |           | not null | now()
 Indexes:
     "collections_directory_pkey" PRIMARY KEY, btree (directory_id, tenant_id)
     "idx_collections_directory_directory_gin" gin (directory)
@@ -32,6 +35,8 @@ type SchemaDirectory struct {
 	VariantID   uuid.UUID      `db:"variant_id"`
 	TenantID    types.TenantId `db:"tenant_id"`
 	Directory   []byte         `db:"directory"` // JSONB
+	CreatedAt   time.Time      `db:"created_at"`
+	UpdatedAt   time.Time      `db:"updated_at"`
 }
 
 type DirectoryID struct {

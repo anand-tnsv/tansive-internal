@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 )
@@ -14,6 +16,8 @@ import (
  info        | jsonb                   |           |          |
  catalog_id  | uuid                    |           | not null |
  tenant_id   | character varying(10)   |           | not null |
+ created_at  | timestamptz            |           | not null | now()
+ updated_at  | timestamptz            |           | not null | now()
 */
 
 // Variant model definition
@@ -23,4 +27,6 @@ type Variant struct {
 	Description string       `db:"description"`
 	Info        pgtype.JSONB `db:"info"`
 	CatalogID   uuid.UUID    `db:"catalog_id"`
+	CreatedAt   time.Time    `db:"created_at"`
+	UpdatedAt   time.Time    `db:"updated_at"`
 }

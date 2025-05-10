@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -15,6 +17,8 @@ import (
  info        | jsonb                   |           |          |
  project_id  | character varying(10)   |           | not null |
  tenant_id   | character varying(10)   |           | not null |
+ created_at  | timestamptz            |           | not null | now()
+ updated_at  | timestamptz            |           | not null | now()
 */
 
 // Catalog model definition
@@ -24,4 +28,6 @@ type Catalog struct {
 	Description string          `db:"description"`
 	Info        pgtype.JSONB    `db:"info"`
 	ProjectID   types.ProjectId `db:"project_id"`
+	CreatedAt   time.Time       `db:"created_at"`
+	UpdatedAt   time.Time       `db:"updated_at"`
 }

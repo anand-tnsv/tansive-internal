@@ -1,16 +1,5 @@
 SET search_path TO public;
 
-CREATE TABLE IF NOT EXISTS tenants (
-  tenant_id VARCHAR(10) PRIMARY KEY
-);
-
-CREATE TABLE IF NOT EXISTS projects (
-  project_id VARCHAR(10),
-  tenant_id VARCHAR(10),
-  PRIMARY KEY (project_id, tenant_id),
-  FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE CASCADE
-);
-
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -18,6 +7,31 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE TABLE IF NOT EXISTS tenants (
+  tenant_id VARCHAR(10) PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TRIGGER update_tenants_updated_at
+BEFORE UPDATE ON tenants
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS projects (
+  project_id VARCHAR(10),
+  tenant_id VARCHAR(10),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (project_id, tenant_id),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE CASCADE
+);
+
+CREATE TRIGGER update_projects_updated_at
+BEFORE UPDATE ON projects
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -170,8 +184,14 @@ CREATE TABLE IF NOT EXISTS catalog_objects (
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   data BYTEA NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (hash, tenant_id)
 );
+
+CREATE TRIGGER update_catalog_objects_updated_at
+BEFORE UPDATE ON catalog_objects
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE IF NOT EXISTS collections_directory ( 
   directory_id UUID NOT NULL DEFAULT uuid_generate_v4(),
@@ -179,11 +199,18 @@ CREATE TABLE IF NOT EXISTS collections_directory (
   workspace_id UUID NULL,
   variant_id UUID NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (directory_id, tenant_id),
   FOREIGN KEY (version_num, variant_id, tenant_id) REFERENCES versions(version_num, variant_id, tenant_id) ON DELETE CASCADE,
   FOREIGN KEY (workspace_id, tenant_id) REFERENCES workspaces(workspace_id, tenant_id) ON DELETE CASCADE,
   directory JSONB NOT NULL
 );
+
+CREATE TRIGGER update_collections_directory_updated_at
+BEFORE UPDATE ON collections_directory
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
 CREATE INDEX IF NOT EXISTS idx_collections_directory_hash_gin
 ON collections_directory USING GIN (jsonb_path_query_array(directory, '$.*.hash'));
@@ -197,11 +224,18 @@ CREATE TABLE IF NOT EXISTS parameters_directory (
   workspace_id UUID NULL,
   variant_id UUID NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (directory_id, tenant_id),
   FOREIGN KEY (version_num, variant_id, tenant_id) REFERENCES versions(version_num, variant_id, tenant_id) ON DELETE CASCADE,
   FOREIGN KEY (workspace_id, tenant_id) REFERENCES workspaces(workspace_id, tenant_id) ON DELETE CASCADE,
   directory JSONB NOT NULL
 );
+
+CREATE TRIGGER update_parameters_directory_updated_at
+BEFORE UPDATE ON parameters_directory
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
 CREATE INDEX IF NOT EXISTS idx_parameters_directory_hash_gin
 ON parameters_directory USING GIN (jsonb_path_query_array(directory, '$.*.hash'));
@@ -215,11 +249,18 @@ CREATE TABLE IF NOT EXISTS values_directory (
   workspace_id UUID NULL,
   variant_id UUID NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (directory_id, tenant_id),
   FOREIGN KEY (version_num, variant_id, tenant_id) REFERENCES versions(version_num, variant_id, tenant_id) ON DELETE CASCADE,
   FOREIGN KEY (workspace_id, tenant_id) REFERENCES workspaces(workspace_id, tenant_id) ON DELETE CASCADE,
   directory JSONB NOT NULL
 );
+
+CREATE TRIGGER update_values_directory_updated_at
+BEFORE UPDATE ON values_directory
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
 CREATE INDEX IF NOT EXISTS idx_values_directory_hash_gin
 ON values_directory USING GIN (jsonb_path_query_array(directory, '$.*.hash'));

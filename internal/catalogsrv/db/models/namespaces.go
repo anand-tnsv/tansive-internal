@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -33,4 +35,6 @@ type Namespace struct {
 	CatalogID   uuid.UUID      `db:"-"`
 	Catalog     string         `db:"-"`
 	Variant     string         `db:"-"`
+	CreatedAt   time.Time      `db:"created_at"`
+	UpdatedAt   time.Time      `db:"updated_at"`
 }
