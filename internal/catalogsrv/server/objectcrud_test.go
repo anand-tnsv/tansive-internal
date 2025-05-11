@@ -1879,7 +1879,6 @@ func createTestObjects(t *testing.T, ctx context.Context) *TestContext {
 	}
 	return &testContext
 }
-
 func replaceTabsWithSpaces(s *string) {
 	*s = strings.ReplaceAll(*s, "\t", "    ")
 }

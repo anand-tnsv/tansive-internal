@@ -319,7 +319,7 @@ func (nr *namespaceResource) Get(ctx context.Context) ([]byte, apperrors.Error) 
 	namespace, err := LoadNamespaceManagerByName(ctx, nr.name.VariantID, nr.name.Namespace)
 	if err != nil {
 		if errors.Is(err, ErrNamespaceNotFound) {
-			return nil, nil
+			return nil, ErrNamespaceNotFound
 		}
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load namespace")
 		return nil, ErrUnableToLoadObject.Msg("unable to load namespace")

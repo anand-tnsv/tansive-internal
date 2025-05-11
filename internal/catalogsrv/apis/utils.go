@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
 )
@@ -21,6 +21,7 @@ func getResourceName(r *http.Request) (catalogmanager.RequestContext, error) {
 	variantName := chi.URLParam(r, "variantName")
 	namespace := chi.URLParam(r, "namespaceName")
 	workspace := chi.URLParam(r, "workspaceRef")
+	viewName := chi.URLParam(r, "viewName")
 
 	n := catalogmanager.RequestContext{}
 	catalogContext := common.CatalogContextFromContext(ctx)
@@ -48,42 +49,47 @@ func getResourceName(r *http.Request) (catalogmanager.RequestContext, error) {
 	} else if catalogContext != nil {
 		n.Namespace = catalogContext.Namespace
 	}
+	if viewName != "" {
+		n.ObjectName = viewName
+	}
 
 	// parse schema and collection objects
 	resourceName := chi.URLParam(r, "objectType")
 	resourceFqn := chi.URLParam(r, "*")
 	var objectName, objectPath string
 
-	if resourceName != "" && !types.IsValidResourceNameAndMethod(resourceName, r.Method) {
-		return n, httpx.ErrInvalidRequest("unsupported resource and/or method")
-	}
+	if resourceName != "" {
+		if !types.IsValidResourceNameAndMethod(resourceName, r.Method) {
+			return n, httpx.ErrInvalidRequest("unsupported resource and/or method")
+		}
+		if resourceFqn != "" {
+			objectName = path.Base(resourceFqn)
+			if objectName == "/" || objectName == "." {
+				objectName = ""
+			}
 
-	if resourceFqn != "" {
-		objectName = path.Base(resourceFqn)
-		if objectName == "/" || objectName == "." {
-			objectName = ""
+			// objectPath is the path without the last part
+			objectPath = path.Dir(resourceFqn)
+			if objectPath == "." {
+				objectPath = "/"
+			}
+			objectPath = path.Clean("/" + objectPath) // this will always start with /
 		}
 
-		// objectPath is the path without the last part
-		objectPath = path.Dir(resourceFqn)
-		if objectPath == "." {
-			objectPath = "/"
+		var catObjType types.CatalogObjectType
+		if resourceName == types.ResourceNameCollectionSchemas {
+			catObjType = types.CatalogObjectTypeCollectionSchema
+		} else if resourceName == types.ResourceNameParameterSchemas {
+			catObjType = types.CatalogObjectTypeParameterSchema
+		} else if resourceName == types.ResourceNameCollections {
+			catObjType = types.CatalogObjectTypeCatalogCollection
 		}
-		objectPath = path.Clean("/" + objectPath) // this will always start with /
-	}
 
-	var catObjType types.CatalogObjectType
-	if resourceName == types.ResourceNameCollectionSchemas {
-		catObjType = types.CatalogObjectTypeCollectionSchema
-	} else if resourceName == types.ResourceNameParameterSchemas {
-		catObjType = types.CatalogObjectTypeParameterSchema
-	} else if resourceName == types.ResourceNameCollections {
-		catObjType = types.CatalogObjectTypeCatalogCollection
-	}
+		n.ObjectName = objectName
+		n.ObjectPath = objectPath
+		n.ObjectType = catObjType
 
-	n.ObjectName = objectName
-	n.ObjectPath = objectPath
-	n.ObjectType = catObjType
+	}
 
 	n.QueryParams = r.URL.Query()
 

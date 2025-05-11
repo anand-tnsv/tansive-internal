@@ -61,6 +61,7 @@ var resourceFactories = map[string]ResourceManagerFactory{
 	types.ParameterSchemaKind:  NewSchemaResource,
 	types.CollectionKind:       NewCollectionResource,
 	types.AttributeKind:        NewAttributeResource,
+	types.ViewKind:             NewViewResource,
 }
 
 func ResourceManagerForKind(ctx context.Context, kind string, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {

@@ -45,6 +45,7 @@ const (
 	ResourceNameCollectionSchemas = "collectionschemas"
 	ResourceNameCollections       = "collections"
 	ResourceNameAttributes        = "attributes"
+	ResourceNameViews             = "views"
 )
 
 func Kind(t CatalogObjectType) string {
@@ -78,6 +79,8 @@ func KindFromResourceName(uri string) string {
 		return CollectionKind
 	case ResourceNameAttributes:
 		return AttributeKind
+	case ResourceNameViews:
+		return ViewKind
 	default:
 		return InvalidKind
 	}

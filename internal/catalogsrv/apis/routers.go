@@ -95,6 +95,26 @@ var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 	},
 	{
 		Method:  http.MethodPost,
+		Path:    "/views",
+		Handler: createObject,
+	},
+	{
+		Method:  http.MethodGet,
+		Path:    "/views/{viewName}",
+		Handler: getObject,
+	},
+	{
+		Method:  http.MethodPut,
+		Path:    "/views/{viewName}",
+		Handler: updateObject,
+	},
+	{
+		Method:  http.MethodDelete,
+		Path:    "/views/{viewName}",
+		Handler: deleteObject,
+	},
+	{
+		Method:  http.MethodPost,
 		Path:    "/{objectType}",
 		Handler: createObject,
 	},

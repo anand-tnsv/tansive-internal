@@ -35,7 +35,7 @@ func TestCreateView(t *testing.T) {
     "spec": {
         "rules": [{
             "Effect": "Allow",
-            "Action": "Read",
+            "Action": ["Read"],
             "Resource": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
         }]
     }
@@ -73,7 +73,7 @@ func TestCreateView(t *testing.T) {
     "spec": {
         "rules": [{
             "Effect": "Allow",
-            "Action": "Read",
+            "Action": ["Read"],
             "Resource": ["res://catalog/validcatalog"]
         }]
     }
@@ -94,7 +94,7 @@ func TestCreateView(t *testing.T) {
     "spec": {
         "rules": [{
             "Effect": "Allow",
-            "Action": "Read",
+            "Action": ["Read"],
             "Resource": ["res://catalog/validcatalog"]
         }]
     }
@@ -115,7 +115,7 @@ func TestCreateView(t *testing.T) {
     "spec": {
         "rules": [{
             "Effect": "Allow",
-            "Action": "Read",
+            "Action": ["Read"],
             "Resource": ["res://catalog/validcatalog"]
         }]
     }
@@ -136,7 +136,7 @@ func TestCreateView(t *testing.T) {
     "spec": {
         "rules": [{
             "Effect": "Invalid",
-            "Action": "Read",
+            "Action": ["Read"],
             "Resource": ["res://catalog/validcatalog"]
         }]
     }
@@ -157,7 +157,7 @@ func TestCreateView(t *testing.T) {
     "spec": {
         "rules": [{
             "Effect": "Allow",
-            "Action": "Invalid",
+            "Action": ["Invalid"],
             "Resource": ["res://catalog/validcatalog"]
         }]
     }
@@ -178,8 +178,50 @@ func TestCreateView(t *testing.T) {
     "spec": {
         "rules": [{
             "Effect": "Allow",
-            "Action": "Read",
+            "Action": ["Read"],
             "Resource": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
+        }]
+    }
+}`,
+			expected: ErrInvalidSchema,
+		},
+		{
+			name: "valid view with multiple actions",
+			jsonData: `
+{
+    "version": "v1", 
+    "kind": "View",
+    "metadata": {
+        "name": "valid-view-multi-action",
+        "catalog": "validcatalog",
+        "description": "This is a valid view with multiple actions"
+    },
+    "spec": {
+        "rules": [{
+            "Effect": "Allow",
+            "Action": ["Read", "Write", "Execute"],
+            "Resource": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+        }]
+    }
+}`,
+			expected: nil,
+		},
+		{
+			name: "invalid rule action with mixed valid and invalid",
+			jsonData: `
+{
+    "version": "v1",
+    "kind": "View",
+    "metadata": {
+        "name": "invalid-mixed-actions",
+        "catalog": "validcatalog",
+        "description": "View with mixed valid and invalid actions"
+    },
+    "spec": {
+        "rules": [{
+            "Effect": "Allow",
+            "Action": ["Read", "InvalidAction", "Write"],
+            "Resource": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -220,7 +262,7 @@ func TestCreateView(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := CreateView(ctx, []byte(tt.jsonData), "")
+			_, err := CreateView(ctx, []byte(tt.jsonData), "")
 			if tt.expected == nil {
 				assert.NoError(t, err)
 			} else {
@@ -270,17 +312,17 @@ func TestUpdateView(t *testing.T) {
 			"rules": [
 				{
 					"Effect": "Allow",
-					"Action": "Read",
+					"Action": ["Read"],
 					"Resource": ["res://catalog/test-catalog"]
 				}
 			]
 		}
 	}`
 
-	err = CreateView(ctx, []byte(initialView), "")
+	_, err = CreateView(ctx, []byte(initialView), "")
 	require.NoError(t, err)
 
-	// Test successful update
+	// Test successful update with multiple actions
 	updateView := `{
 		"version": "v1",
 		"kind": "View",
@@ -293,14 +335,14 @@ func TestUpdateView(t *testing.T) {
 			"rules": [
 				{
 					"Effect": "Allow",
-					"Action": "Write",
+					"Action": ["Read", "Write", "Execute"],
 					"Resource": ["res://catalog/test-catalog"]
 				}
 			]
 		}
 	}`
 
-	err = UpdateView(ctx, []byte(updateView), "test-catalog")
+	_, err = UpdateView(ctx, []byte(updateView), "test-view", "test-catalog")
 	require.NoError(t, err)
 
 	// Verify the update
@@ -320,13 +362,13 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [{
 					"Effect": "Allow",
-					"Action": "Write",
+					"Action": ["Write"],
 					"Resource": ["res://catalog/test-catalog"]
 				}]
 		}
 	}`
 
-	err = UpdateView(ctx, []byte(nonExistentView), "")
+	_, err = UpdateView(ctx, []byte(nonExistentView), "", "test-catalog")
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrViewNotFound))
 
@@ -344,11 +386,11 @@ func TestUpdateView(t *testing.T) {
 		}
 	}`
 
-	err = UpdateView(ctx, []byte(invalidCatalogView), "")
+	_, err = UpdateView(ctx, []byte(invalidCatalogView), "", "test-catalog")
 	assert.Error(t, err)
 
 	// Test updating with invalid JSON
-	err = UpdateView(ctx, []byte("invalid json"), "")
+	_, err = UpdateView(ctx, []byte("invalid json"), "", "test-catalog")
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrInvalidView))
 
@@ -364,14 +406,14 @@ func TestUpdateView(t *testing.T) {
 			"rules": [
 				{
 					"Effect": "InvalidEffect",
-					"Action": "Read",
+					"Action": ["Read"],
 					"Resource": ["test/resource"]
 				}
 			]
 		}
 	}`
 
-	err = UpdateView(ctx, []byte(invalidSchemaView), "")
+	_, err = UpdateView(ctx, []byte(invalidSchemaView), "", "test-catalog")
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrInvalidSchema))
 }
