@@ -7,12 +7,12 @@ import (
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager/datatyperegistry"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/parameter"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 

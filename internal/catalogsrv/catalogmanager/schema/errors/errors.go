@@ -94,6 +94,30 @@ func ErrInvalidVersion(attr string, value ...any) ValidationError {
 	}
 }
 
+func ErrInvalidResourceURI(attr string, value ...any) ValidationError {
+	return ValidationError{
+		Field:  attr,
+		Value:  value,
+		ErrStr: "invalid resource URI",
+	}
+}
+
+func ErrInvalidViewRuleEffect(attr string, value ...any) ValidationError {
+	return ValidationError{
+		Field:  attr,
+		Value:  value,
+		ErrStr: "invalid view rule effect",
+	}
+}
+
+func ErrInvalidViewRuleAction(attr string, value ...any) ValidationError {
+	return ValidationError{
+		Field:  attr,
+		Value:  value,
+		ErrStr: "invalid view rule action",
+	}
+}
+
 func ErrInvalidAnnotation(attr string, value ...string) ValidationError {
 	return ValidationError{
 		Field:  attr,

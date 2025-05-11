@@ -32,6 +32,7 @@ const (
 	CollectionSchemaKind = "CollectionSchema"
 	CollectionKind       = "Collection"
 	AttributeKind        = "Attribute"
+	ViewKind             = "View"
 	InvalidKind          = "InvalidKind"
 )
 

@@ -20,17 +20,13 @@ var validKinds = []string{
 	types.ParameterSchemaKind,
 	types.CollectionSchemaKind,
 	types.CollectionKind,
+	types.ViewKind,
 }
 
 // kindValidator checks if the given kind is a valid resource kind.
 func kindValidator(fl validator.FieldLevel) bool {
 	kind := fl.Field().String()
-	for _, validKind := range validKinds {
-		if kind == validKind {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(validKinds, kind)
 }
 
 const nameRegex = `^[A-Za-z0-9_-]+$`
@@ -72,6 +68,33 @@ func resourceNameValidator(fl validator.FieldLevel) bool {
 
 	re := regexp.MustCompile(resourceNameRegex)
 	return re.MatchString(str)
+}
+
+// resourceURIRegex validates resource URIs with the following structure:
+// - Must start with "res://"
+// - Must have a location component that follows the hierarchy:
+//   * catalog/<name> (required)
+//   * /variant/<name> (optional, requires catalog)
+//   * /namespace/<name> (optional, requires variant)
+//   * /workspace/<name> (optional, requires variant)
+// - May have additional path segments after the location
+// - All names must:
+//   * Start and end with alphanumeric
+//   * Contain only alphanumeric, hyphens, and underscores
+//   * Follow DNS label rules (max 63 chars, no uppercase)
+//
+// Examples:
+//   res://catalog/my-catalog
+//   res://catalog/my-catalog/variant/my-variant
+//   res://catalog/my-catalog/variant/my-variant/namespace/my-namespace
+//   res://catalog/my-catalog/variant/my-variant/workspace/my-workspace
+//   res://catalog/my-catalog/variant/my-variant/resource/path
+
+const resourceURIRegex = `^res://(catalog/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/variant/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/namespace/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/workspace/[a-z0-9]([-a-z0-9]*[a-z0-9])?)?)?)?)(/[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+
+// resourceURIValidator checks if the given URI is a valid resource URI.
+func resourceURIValidator(fl validator.FieldLevel) bool {
+	return regexp.MustCompile(resourceURIRegex).MatchString(fl.Field().String())
 }
 
 // notNull checks if a nullable value is not null
@@ -152,4 +175,5 @@ func init() {
 	V().RegisterValidation("catalogVersionValidator", catalogVersionValidator)
 	V().RegisterValidation("notNull", notNull)
 	V().RegisterValidation("requireVersionV1", requireVersionV1)
+	V().RegisterValidation("resourceURIValidator", resourceURIValidator)
 }

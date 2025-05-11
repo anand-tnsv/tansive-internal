@@ -41,4 +41,6 @@ var (
 	ErrUnableToSaveSchema                     apperrors.Error = ErrCatalogError.New("failed to save schema").SetStatusCode(http.StatusInternalServerError)
 	ErrSchemaConflict                         apperrors.Error = ErrCatalogError.New("schema conflicts with existing schema").SetStatusCode(http.StatusConflict)
 	ErrInvalidRequest                         apperrors.Error = ErrCatalogError.New("invalid request").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidView                            apperrors.Error = ErrCatalogError.New("invalid view").SetStatusCode(http.StatusBadRequest)
+	ErrViewNotFound                           apperrors.Error = ErrCatalogError.New("view not found").SetStatusCode(http.StatusNotFound)
 )

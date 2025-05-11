@@ -123,14 +123,14 @@ func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, ca
 		return nil, ErrInvalidSchema.Err(validationErrors)
 	}
 
-	// retrieve the catalogID
-	var catalogID uuid.UUID = common.GetCatalogIdFromContext(ctx)
-	var err apperrors.Error
-	if catalogID == uuid.Nil || vs.Metadata.Catalog != common.GetCatalogFromContext(ctx) {
+	// Get catalog ID from context or resolve by name
+	catalogID := common.GetCatalogIdFromContext(ctx)
+	if catalogID == uuid.Nil {
+		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, vs.Metadata.Catalog)
 		if err != nil {
 			if errors.Is(err, dberror.ErrNotFound) {
-				return nil, ErrCatalogNotFound
+				return nil, ErrCatalogNotFound.New("catalog not found: " + vs.Metadata.Catalog)
 			}
 			log.Ctx(ctx).Error().Err(err).Msg("failed to load catalog")
 			return nil, err

@@ -25,6 +25,7 @@ type MetadataManager interface {
 	CreateProject(ctx context.Context, projectID types.ProjectId) error
 	GetProject(ctx context.Context, projectID types.ProjectId) (*models.Project, error)
 	DeleteProject(ctx context.Context, projectID types.ProjectId) error
+
 	// Catalog
 	CreateCatalog(ctx context.Context, catalog *models.Catalog) apperrors.Error
 	GetCatalogIDByName(ctx context.Context, catalogName string) (uuid.UUID, apperrors.Error)
@@ -66,6 +67,14 @@ type MetadataManager interface {
 	UpdateNamespace(ctx context.Context, ns *models.Namespace) apperrors.Error
 	DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) apperrors.Error
 	ListNamespacesByVariant(ctx context.Context, variantID uuid.UUID) ([]*models.Namespace, apperrors.Error)
+
+	// View
+	CreateView(ctx context.Context, view *models.View) apperrors.Error
+	GetView(ctx context.Context, viewID uuid.UUID) (*models.View, apperrors.Error)
+	GetViewByLabel(ctx context.Context, label string, catalogID uuid.UUID) (*models.View, apperrors.Error)
+	UpdateView(ctx context.Context, view *models.View) apperrors.Error
+	DeleteView(ctx context.Context, viewID uuid.UUID) apperrors.Error
+	ListViewsByCatalog(ctx context.Context, catalogID uuid.UUID) ([]*models.View, apperrors.Error)
 }
 
 type ObjectManager interface {

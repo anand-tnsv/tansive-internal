@@ -281,6 +281,27 @@ CREATE TABLE IF NOT EXISTS namespaces (
   CHECK (name ~ '^[A-Za-z0-9_-]+$') -- CHECK constraint to allow only alphanumeric and underscore in name
 );
 
+CREATE TABLE IF NOT EXISTS views (
+  view_id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  label VARCHAR(128),
+  description VARCHAR(1024),
+  info JSONB,
+  rules JSONB NOT NULL,
+  catalog_id UUID NOT NULL,
+  tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (label, catalog_id, tenant_id),
+  PRIMARY KEY (view_id, tenant_id),
+  FOREIGN KEY (catalog_id, tenant_id) REFERENCES catalogs(catalog_id, tenant_id) ON DELETE CASCADE,
+  CHECK (label IS NULL OR label ~ '^[A-Za-z0-9_-]+$')  -- CHECK constraint to allow only alphanumeric and underscore in label
+);
+
+CREATE TRIGGER update_views_updated_at
+BEFORE UPDATE ON views
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
 CREATE OR REPLACE FUNCTION create_version(
   in_label VARCHAR,
   in_description VARCHAR,
@@ -601,5 +622,6 @@ GRANT ALL PRIVILEGES ON TABLE
   collections_directory,
   parameters_directory,
   values_directory,
-  namespaces
+  namespaces,
+  views
 TO catalogrw;

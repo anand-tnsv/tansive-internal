@@ -60,3 +60,60 @@ func TestNoSpacesValidator(t *testing.T) {
 		}
 	}
 }
+
+// resourceURIs are of the format "res://<location>/resource/path/to/resource"
+// <location> is /catalog/some-catalog-name or /catalog/some-catalog-name/variant/some-variant-name or
+// /catalog/some-catalog-name/variant/some-variant-name/namespace/some-namespace-name/workspace/some-workspace-name
+// the hierarchy is always catalog/variant/namespace/workspace and it could be a combination of some of them
+// if there is a variant, then there must be a catalog. If there is a namespace, then there must be a variant.
+// if there is a workspace, there need or need not be a namespace, but there must be a variant.
+// there must always be a location before resource
+
+func TestResourceURIValidator(t *testing.T) {
+	validate := validator.New()
+	validate.RegisterValidation("resourceURI", resourceURIValidator)
+
+	tests := []struct {
+		input   string
+		isValid bool
+	}{
+		// Valid cases
+		{"res://catalog/my-catalog", true},
+		{"res://catalog/my-catalog/variant/my-variant", true},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace", true},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my-workspace", true},
+		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace", true},
+		{"res://catalog/my-catalog/variant/my-variant/resource/path", true},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/resource/path/to/res-ource", true},
+
+		// Invalid cases - missing required components
+		{"res://", false},
+		{"res://variant/my-variant", false},     // missing catalog
+		{"res://namespace/my-namespace", false}, // missing catalog and variant
+		{"res://workspace/my-workspace", false}, // missing catalog and variant
+
+		// Invalid cases - wrong order
+		{"res://variant/my-variant/catalog/my-catalog", false},
+		{"res://namespace/my-namespace/variant/my-variant", false},
+		{"res://workspace/my-workspace/namespace/my-namespace", false},
+
+		// Invalid cases - invalid characters
+		{"res://catalog/my@catalog", false},
+		{"res://catalog/my catalog", false},
+		{"res://catalog/my-catalog/variant/my@variant", false},
+		{"res://catalog/my-catalog/variant/my variant", false},
+
+		// Invalid cases - invalid format
+		{"res://invalid-uri", false},
+		{"res://invalid-uri/", false},
+		{"res://invalid-uri/with-spaces", false},
+		{"res://invalid-uri/with@chars", false},
+	}
+
+	for _, test := range tests {
+		err := validate.Var(test.input, "resourceURI")
+		if (err == nil) != test.isValid {
+			t.Errorf("Expected %v for input '%s', but got %v", test.isValid, test.input, err == nil)
+		}
+	}
+}
