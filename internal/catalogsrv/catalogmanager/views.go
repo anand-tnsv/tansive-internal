@@ -130,7 +130,7 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 func parseAndValidateView(resourceJSON []byte, catalog string) (*viewSchema, apperrors.Error) {
 	view := &viewSchema{}
 	if err := json.Unmarshal(resourceJSON, view); err != nil {
-		return nil, ErrInvalidView.New("failed to parse view spec: " + err.Error())
+		return nil, ErrInvalidView.Msg("failed to parse view spec")
 	}
 
 	if catalog != "" {

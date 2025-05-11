@@ -318,7 +318,11 @@ func TestUpdateView(t *testing.T) {
 			"description": "Should fail"
 		},
 		"spec": {
-			"rules": []
+			"rules": [{
+					"Effect": "Allow",
+					"Action": "Write",
+					"Resource": ["res://catalog/test-catalog"]
+				}]
 		}
 	}`
 
