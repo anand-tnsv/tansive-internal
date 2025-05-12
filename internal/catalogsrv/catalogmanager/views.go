@@ -6,7 +6,6 @@ import (
 	"errors"
 	"reflect"
 	"slices"
-	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -31,18 +30,63 @@ const (
 
 type ViewRuleAction string
 
+var validActions = []ViewRuleAction{
+	ActionCatalogAdmin,
+	ActionCatalogList,
+	ActionVariantAdmin,
+	ActionVariantClone,
+	ActionVariantCreateView,
+	ActionVariantList,
+	ActionNamespaceCreate,
+	ActionNamespaceEdit,
+	ActionNamespaceList,
+	ActionNamespaceAdmin,
+	ActionSchemaCreate,
+	ActionSchemaRead,
+	ActionSchemaEdit,
+	ActionSchemaDelete,
+	ActionSchemaAssign,
+	ActionCollectionCreate,
+	ActionCollectionRead,
+	ActionCollectionWrite,
+	ActionCollectionRun,
+	ActionWorkspaceAdmin,
+	ActionWorkspaceList,
+	ActionWorkspaceCreate,
+}
+
 const (
-	ViewRuleActionRead    ViewRuleAction = "Read"
-	ViewRuleActionWrite   ViewRuleAction = "Write"
-	ViewRuleActionExecute ViewRuleAction = "Execute"
+	ActionCatalogAdmin      ViewRuleAction = "catalog.admin"
+	ActionCatalogList       ViewRuleAction = "catalog.list"
+	ActionVariantAdmin      ViewRuleAction = "variant.admin"
+	ActionVariantClone      ViewRuleAction = "variant.clone"
+	ActionVariantCreateView ViewRuleAction = "variant.createView"
+	ActionVariantList       ViewRuleAction = "variant.list"
+	ActionNamespaceCreate   ViewRuleAction = "namespace.create"
+	ActionNamespaceEdit     ViewRuleAction = "namespace.edit"
+	ActionNamespaceList     ViewRuleAction = "namespace.list"
+	ActionNamespaceAdmin    ViewRuleAction = "namespace.admin"
+	ActionSchemaCreate      ViewRuleAction = "schema.create"
+	ActionSchemaRead        ViewRuleAction = "schema.read"
+	ActionSchemaEdit        ViewRuleAction = "schema.edit"
+	ActionSchemaDelete      ViewRuleAction = "schema.delete"
+	ActionSchemaAssign      ViewRuleAction = "schema.assign"
+	ActionCollectionCreate  ViewRuleAction = "collection.create"
+	ActionCollectionRead    ViewRuleAction = "collection.read"
+	ActionCollectionWrite   ViewRuleAction = "collection.write"
+	ActionCollectionRun     ViewRuleAction = "collection.run"
+	ActionWorkspaceAdmin    ViewRuleAction = "workspace.admin"
+	ActionWorkspaceList     ViewRuleAction = "workspace.list"
+	ActionWorkspaceCreate   ViewRuleAction = "workspace.create"
 )
 
 type ViewRule struct {
 	Effect   ViewRuleEffect   `json:"Effect" validate:"required,viewRuleEffectValidator"`
 	Action   []ViewRuleAction `json:"Action" validate:"required,dive,viewRuleActionValidator"`
-	Resource []string         `json:"Resource" validate:"required,dive,resourceURIValidator"`
+	Resource []RuleResource   `json:"Resource" validate:"required,dive,resourceURIValidator"`
 }
 
+type RuleResource string
 type ViewRuleSet []ViewRule
 
 // RulesFromJSON unmarshals a ViewRuleSet from a JSON byte slice.
@@ -279,24 +323,6 @@ func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catal
 	return v, nil
 }
 
-// viewRuleEffectValidator validates that the effect is one of the allowed values.
-func viewRuleEffectValidator(fl validator.FieldLevel) bool {
-	effect := ViewRuleEffect(fl.Field().String())
-	return effect == ViewRuleEffectAllow || effect == ViewRuleEffectDeny
-}
-
-// viewRuleActionValidator validates that the action is one of the allowed values.
-func viewRuleActionValidator(fl validator.FieldLevel) bool {
-	action := ViewRuleAction(fl.Field().String())
-	return action == ViewRuleActionRead || action == ViewRuleActionWrite || action == ViewRuleActionExecute
-}
-
-func init() {
-	validate := schemavalidator.V()
-	validate.RegisterValidation("viewRuleEffectValidator", viewRuleEffectValidator)
-	validate.RegisterValidation("viewRuleActionValidator", viewRuleActionValidator)
-}
-
 type viewResource struct {
 	reqCtx RequestContext
 	view   *models.View
@@ -416,33 +442,24 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 // IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
 // It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
 func (ruleSet ViewRuleSet) IsActionAllowed(action ViewRuleAction, resource string) bool {
-	var allowMatch bool
-
+	allowMatch := false
+	// check if there is an admin match
+	if ruleSet.matchesAdmin(action, resource) {
+		allowMatch = true
+	}
+	// check if there is a match for the action
 	for _, rule := range ruleSet {
-		if !slices.Contains(rule.Action, action) {
-			continue
-		}
-		for _, res := range rule.Resource {
-			if matchesResource(res, resource) {
-				if rule.Effect == "Deny" {
-					return false // Explicit deny always wins
-				}
-				if rule.Effect == "Allow" {
-					allowMatch = true
+		if slices.Contains(rule.Action, action) {
+			for _, res := range rule.Resource {
+				if res.matches(RuleResource(resource)) {
+					if rule.Effect == ViewRuleEffectAllow {
+						allowMatch = true
+					} else if rule.Effect == ViewRuleEffectDeny {
+						allowMatch = false
+					}
 				}
 			}
 		}
 	}
-
 	return allowMatch
-}
-
-// matchesResource checks if an actual resource matches a rule resource pattern.
-// It supports exact matches and wildcard patterns (ending with *).
-func matchesResource(ruleRes, actualRes string) bool {
-	if strings.HasSuffix(ruleRes, "*") {
-		prefix := strings.TrimSuffix(ruleRes, "*")
-		return strings.HasPrefix(actualRes, prefix)
-	}
-	return ruleRes == actualRes
 }

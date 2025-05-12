@@ -97,7 +97,7 @@ func TestViewCrud(t *testing.T) {
 			"spec": {
 				"rules": [{
 					"Effect": "Allow",
-					"Action": ["Read"],
+					"Action": ["catalog.list"],
 					"Resource": ["res://catalog/valid-catalog", "res://catalog/valid-catalog/variant/valid-variant"]
 				}]
 			}
@@ -142,7 +142,7 @@ func TestViewCrud(t *testing.T) {
 			"spec": {
 				"rules": [{
 					"Effect": "Allow",
-					"Action": ["Read"],
+					"Action": ["catalog.list"],
 					"Resource": ["res://catalog/valid-catalog", "res://catalog/valid-catalog/variant/valid-variant"]
 				}]
 			}
