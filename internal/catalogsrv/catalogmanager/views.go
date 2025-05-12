@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"slices"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -78,6 +80,7 @@ type viewSpec struct {
 	Rules ViewRuleSet `json:"rules" validate:"required,dive"`
 }
 
+// Validate performs validation on the view schema and returns any validation errors.
 func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
 	if v.Kind != types.ViewKind {
@@ -127,7 +130,7 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 	return validationErrors
 }
 
-// parseAndValidateView parses and validates a view from JSON bytes
+// parseAndValidateView parses and validates a view from JSON bytes, optionally overriding the name and catalog.
 func parseAndValidateView(resourceJSON []byte, viewName string, catalog string) (*viewSchema, apperrors.Error) {
 	view := &viewSchema{}
 	if err := json.Unmarshal(resourceJSON, view); err != nil {
@@ -149,7 +152,7 @@ func parseAndValidateView(resourceJSON []byte, viewName string, catalog string) 
 	return view, nil
 }
 
-// resolveCatalogID resolves the catalog ID from context or by name
+// resolveCatalogID resolves the catalog ID from context or by name.
 func resolveCatalogID(ctx context.Context, catalogName string) (uuid.UUID, apperrors.Error) {
 	catalogID := common.GetCatalogIdFromContext(ctx)
 	if catalogID == uuid.Nil {
@@ -166,7 +169,7 @@ func resolveCatalogID(ctx context.Context, catalogName string) (uuid.UUID, apper
 	return catalogID, nil
 }
 
-// createViewModel creates a view model from a view schema and catalog ID
+// createViewModel creates a view model from a view schema and catalog ID.
 func createViewModel(view *viewSchema, catalogID uuid.UUID) (*models.View, apperrors.Error) {
 	rulesJSON, err := view.Spec.Rules.ToJSON()
 	if err != nil {
@@ -182,7 +185,7 @@ func createViewModel(view *viewSchema, catalogID uuid.UUID) (*models.View, apper
 	}, nil
 }
 
-// removeDuplicates removes duplicate values from a slice of any comparable type
+// removeDuplicates removes duplicate values from a slice of any comparable type.
 func removeDuplicates[T comparable](slice []T) []T {
 	seen := make(map[T]bool)
 	var unique []T
@@ -195,7 +198,7 @@ func removeDuplicates[T comparable](slice []T) []T {
 	return unique
 }
 
-// deduplicateRules removes duplicates from both actions and resources in a ViewRuleSet
+// deduplicateRules removes duplicates from both actions and resources in a ViewRuleSet.
 func deduplicateRules(rules ViewRuleSet) ViewRuleSet {
 	for i := range rules {
 		rules[i].Action = removeDuplicates(rules[i].Action)
@@ -204,7 +207,7 @@ func deduplicateRules(rules ViewRuleSet) ViewRuleSet {
 	return rules
 }
 
-// CreateView creates a new view in the database
+// CreateView creates a new view in the database.
 func CreateView(ctx context.Context, resourceJSON []byte, catalog string) (*models.View, apperrors.Error) {
 	projectID := common.ProjectIdFromContext(ctx)
 	if projectID == "" {
@@ -240,7 +243,7 @@ func CreateView(ctx context.Context, resourceJSON []byte, catalog string) (*mode
 	return v, nil
 }
 
-// UpdateView updates an existing view in the database
+// UpdateView updates an existing view in the database.
 func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catalog string) (*models.View, apperrors.Error) {
 	projectID := common.ProjectIdFromContext(ctx)
 	if projectID == "" {
@@ -276,13 +279,13 @@ func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catal
 	return v, nil
 }
 
-// viewRuleEffectValidator validates that the effect is one of the allowed values
+// viewRuleEffectValidator validates that the effect is one of the allowed values.
 func viewRuleEffectValidator(fl validator.FieldLevel) bool {
 	effect := ViewRuleEffect(fl.Field().String())
 	return effect == ViewRuleEffectAllow || effect == ViewRuleEffectDeny
 }
 
-// viewRuleActionValidator validates that the action is one of the allowed values
+// viewRuleActionValidator validates that the action is one of the allowed values.
 func viewRuleActionValidator(fl validator.FieldLevel) bool {
 	action := ViewRuleAction(fl.Field().String())
 	return action == ViewRuleActionRead || action == ViewRuleActionWrite || action == ViewRuleActionExecute
@@ -299,14 +302,17 @@ type viewResource struct {
 	view   *models.View
 }
 
+// Name returns the name of the view resource.
 func (vr *viewResource) Name() string {
 	return vr.reqCtx.ObjectName
 }
 
+// Location returns the location path of the view resource.
 func (vr *viewResource) Location() string {
 	return "/views/" + vr.view.Label
 }
 
+// Create creates a new view resource.
 func (vr *viewResource) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
 	v, err := CreateView(ctx, resourceJSON, vr.reqCtx.Catalog)
 	if err != nil {
@@ -316,6 +322,7 @@ func (vr *viewResource) Create(ctx context.Context, resourceJSON []byte) (string
 	return vr.Location(), nil
 }
 
+// Get retrieves a view resource by its name.
 func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	if vr.reqCtx.CatalogID == uuid.Nil || vr.reqCtx.ObjectName == "" {
 		return nil, ErrInvalidView
@@ -360,6 +367,7 @@ func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	return jsonData, nil
 }
 
+// Delete removes a view resource.
 func (vr *viewResource) Delete(ctx context.Context) apperrors.Error {
 	if vr.reqCtx.CatalogID == uuid.Nil || vr.reqCtx.ObjectName == "" {
 		return ErrInvalidView
@@ -385,6 +393,7 @@ func (vr *viewResource) Delete(ctx context.Context) apperrors.Error {
 	return nil
 }
 
+// Update modifies an existing view resource.
 func (vr *viewResource) Update(ctx context.Context, resourceJSON []byte) apperrors.Error {
 	v, err := UpdateView(ctx, resourceJSON, vr.reqCtx.ObjectName, vr.reqCtx.Catalog)
 	if err != nil {
@@ -394,6 +403,7 @@ func (vr *viewResource) Update(ctx context.Context, resourceJSON []byte) apperro
 	return nil
 }
 
+// NewViewResource creates a new view resource manager.
 func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
@@ -401,4 +411,38 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 	return &viewResource{
 		reqCtx: reqCtx,
 	}, nil
+}
+
+// IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
+// It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
+func (ruleSet ViewRuleSet) IsActionAllowed(action ViewRuleAction, resource string) bool {
+	var allowMatch bool
+
+	for _, rule := range ruleSet {
+		if !slices.Contains(rule.Action, action) {
+			continue
+		}
+		for _, res := range rule.Resource {
+			if matchesResource(res, resource) {
+				if rule.Effect == "Deny" {
+					return false // Explicit deny always wins
+				}
+				if rule.Effect == "Allow" {
+					allowMatch = true
+				}
+			}
+		}
+	}
+
+	return allowMatch
+}
+
+// matchesResource checks if an actual resource matches a rule resource pattern.
+// It supports exact matches and wildcard patterns (ending with *).
+func matchesResource(ruleRes, actualRes string) bool {
+	if strings.HasSuffix(ruleRes, "*") {
+		prefix := strings.TrimSuffix(ruleRes, "*")
+		return strings.HasPrefix(actualRes, prefix)
+	}
+	return ruleRes == actualRes
 }

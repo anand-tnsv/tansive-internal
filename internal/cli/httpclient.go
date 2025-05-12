@@ -26,7 +26,7 @@ type HTTPError struct {
 }
 
 func (e *HTTPError) Error() string {
-	return fmt.Sprintf("HTTP error %d: %s", e.StatusCode, e.Message)
+	return e.Message
 }
 
 // HTTPClient represents a client for making HTTP requests to the catalog server
@@ -52,11 +52,11 @@ type RequestOptions struct {
 }
 
 // DoRequest makes an HTTP request with the given options
-func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, error) {
+func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 	// Build the URL with query parameters
 	u, err := url.Parse(c.config.GetServerURL())
 	if err != nil {
-		return nil, fmt.Errorf("invalid server URL: %v", err)
+		return nil, "", fmt.Errorf("invalid server URL: %v", err)
 	}
 	u.Path = path.Join(u.Path, opts.Path)
 
@@ -70,7 +70,7 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, error) {
 	// Create the request
 	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
+		return nil, "", fmt.Errorf("failed to create request: %v", err)
 	}
 
 	// Set headers
@@ -82,36 +82,36 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, error) {
 	// Make the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %v", err)
+		return nil, "", fmt.Errorf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
+		return nil, "", fmt.Errorf("failed to read response body: %v", err)
 	}
 
 	// Check for error status codes
 	if resp.StatusCode >= 400 {
 		var serverErr ServerError
 		if err := json.Unmarshal(body, &serverErr); err == nil && serverErr.Error != "" {
-			return nil, &HTTPError{
+			return nil, "", &HTTPError{
 				StatusCode: resp.StatusCode,
 				Message:    serverErr.Error,
 			}
 		}
-		return nil, &HTTPError{
+		return nil, "", &HTTPError{
 			StatusCode: resp.StatusCode,
 			Message:    string(body),
 		}
 	}
 
-	return body, nil
+	return body, resp.Header.Get("Location"), nil
 }
 
 // CreateResource creates a new resource using the given JSON data
-func (c *HTTPClient) CreateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, error) {
+func (c *HTTPClient) CreateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, string, error) {
 	opts := RequestOptions{
 		Method:      http.MethodPost,
 		Path:        resourceType,
@@ -135,7 +135,8 @@ func (c *HTTPClient) GetResource(resourceType string, resourceName string, query
 		Path:        path,
 		QueryParams: queryParams,
 	}
-	return c.DoRequest(opts)
+	body, _, err := c.DoRequest(opts)
+	return body, err
 }
 
 // DeleteResource deletes a resource using the given resource name
@@ -150,7 +151,7 @@ func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, qu
 		Path:        path,
 		QueryParams: queryParams,
 	}
-	_, err := c.DoRequest(opts)
+	_, _, err := c.DoRequest(opts)
 	return err
 }
 
@@ -175,5 +176,6 @@ func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParam
 		QueryParams: queryParams,
 		Body:        data,
 	}
-	return c.DoRequest(opts)
+	body, _, err := c.DoRequest(opts)
+	return body, err
 }

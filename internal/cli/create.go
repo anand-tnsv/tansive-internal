@@ -24,6 +24,7 @@ Supported resource types include:
   - Variant
   - Namespace
   - Workspace
+  - View
   - CollectionSchema
   - ParameterSchema
   - Collection
@@ -69,19 +70,21 @@ func createResource(cmd *cobra.Command, args []string) error {
 		queryParams["workspace"] = createWorkspace
 	}
 
-	_, err = client.CreateResource(resourceType, jsonData, queryParams)
+	_, location, err := client.CreateResource(resourceType, jsonData, queryParams)
 	if err != nil {
 		return err
 	}
 
 	if jsonOutput {
 		kv := map[string]any{
-			"kind":    resource.Kind,
-			"created": true,
+			"kind":     resource.Kind,
+			"created":  true,
+			"location": location,
 		}
 		printJSON(kv)
 	} else {
 		fmt.Printf("Successfully created %s\n", resource.Kind)
+		fmt.Printf("Location: %s\n", location)
 	}
 	return nil
 }

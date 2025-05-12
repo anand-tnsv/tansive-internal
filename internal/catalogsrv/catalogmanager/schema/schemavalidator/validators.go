@@ -1,6 +1,7 @@
 package schemavalidator
 
 import (
+	"errors"
 	"regexp"
 	"strconv"
 	"strings"
@@ -80,7 +81,7 @@ func resourceNameValidator(fl validator.FieldLevel) bool {
 // - May have additional path segments after the location
 // - All names must:
 //   * Start and end with alphanumeric
-//   * Contain only alphanumeric, hyphens, and underscores
+//   * Contain only alphanumeric and hyphens
 //   * Follow DNS label rules (max 63 chars, no uppercase)
 //
 // Examples:
@@ -89,13 +90,59 @@ func resourceNameValidator(fl validator.FieldLevel) bool {
 //   res://catalog/my-catalog/variant/my-variant/namespace/my-namespace
 //   res://catalog/my-catalog/variant/my-variant/workspace/my-workspace
 //   res://catalog/my-catalog/variant/my-variant/resource/path
+//   res://catalog/my-catalog/variant/my-variant/resource/path/*
 
-const resourceURIRegex = `^res://(catalog/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/variant/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/namespace/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/workspace/[a-z0-9]([-a-z0-9]*[a-z0-9])?)?)?)?)(/[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+// const resourceURIBaseRegex = `^res://(catalog/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/variant/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/namespace/[a-z0-9]([-a-z0-9]*[a-z0-9])?(/workspace/[a-z0-9]([-a-z0-9]*[a-z0-9])?)?)?)?)`
 
-// resourceURIValidator checks if the given URI is a valid resource URI.
-func resourceURIValidator(fl validator.FieldLevel) bool {
-	return regexp.MustCompile(resourceURIRegex).MatchString(fl.Field().String())
-}
+// const resourcePathRegex = `(/resource(/[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)?$`
+
+// const resourcePathWithWildcardRegex = `(/resource(/[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/\*)?$`
+
+// // resourceURIValidator checks if the given URI is a valid resource URI.
+// func resourceURIValidator(fl validator.FieldLevel) bool {
+// 	uri := fl.Field().String()
+
+// 	// First check if the base URI is valid
+// 	if !regexp.MustCompile(resourceURIBaseRegex).MatchString(uri) {
+// 		return false
+// 	}
+
+// 	// Split the URI into segments and validate each one
+// 	segments := strings.Split(uri, "/")
+// 	foundResource := false
+// 	wildcardFound := false
+// 	for i, segment := range segments {
+// 		// Skip empty segments and the protocol part
+// 		if segment == "" || segment == "res:" {
+// 			continue
+// 		}
+// 		// Skip the protocol part
+// 		if strings.HasPrefix(segment, "res:") {
+// 			continue
+// 		}
+// 		// Check if we've found the resource segment
+// 		if segment == "resource" {
+// 			foundResource = true
+// 			continue
+// 		}
+// 		// Handle wildcard
+// 		if segment == "*" {
+// 			// Only allow wildcard after resource and at the end
+// 			if !foundResource || i != len(segments)-1 || wildcardFound {
+// 				return false
+// 			}
+// 			wildcardFound = true
+// 			continue
+// 		}
+// 		// Validate each segment against DNS label rules
+// 		if !regexp.MustCompile(resourceNameRegex).MatchString(segment) {
+// 			return false
+// 		}
+// 	}
+
+// 	// Then check if the resource path is valid (either with or without wildcard)
+// 	return regexp.MustCompile(resourcePathRegex).MatchString(uri) || regexp.MustCompile(resourcePathWithWildcardRegex).MatchString(uri)
+// }
 
 // notNull checks if a nullable value is not null
 func notNull(fl validator.FieldLevel) bool {
@@ -164,6 +211,117 @@ func ValidateSchemaName(name string) bool {
 
 func ValidateSchemaKind(kind string) bool {
 	return slices.Contains(validKinds, kind)
+}
+
+func resourceURIValidator(fl validator.FieldLevel) bool {
+	uri := fl.Field().String()
+	segments, err := extractSegments(uri)
+	if err != nil {
+		return false
+	}
+
+	if len(segments) == 0 || isValidStructuredPath(segments[0]) != nil {
+		return false
+	}
+
+	if len(segments) > 1 {
+		prefix, hasWildcard := extractPrefixIfWildcard(segments[1])
+		if hasWildcard && prefix == "" {
+			return true
+		}
+		return V().Var(prefix, "resourcePathValidator") == nil
+	}
+
+	return true
+}
+
+func extractSegments(s string) ([]string, error) {
+	const prefix = "res://"
+	if !strings.HasPrefix(s, prefix) {
+		return nil, errors.New("invalid resource string: missing res:// prefix")
+	}
+
+	rest := strings.TrimPrefix(s, prefix)
+	parts := strings.SplitN(rest, "/resource/", 2)
+	segments := []string{}
+
+	segments = append(segments, parts[0])
+
+	if len(parts) == 2 {
+		if parts[1] != "" {
+			parts[1] = "/" + parts[1]
+		}
+		segments = append(segments, parts[1])
+	}
+
+	return segments, nil
+}
+
+func isValidStructuredPath(path string) error {
+	if path == "" {
+		return errors.New("invalid path: empty")
+	}
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(segments)%2 != 0 {
+		return errors.New("invalid path: missing kv pair")
+	}
+	found := make(map[string]int)
+	pos := 0
+	for i := 0; i < len(segments) && i+1 < len(segments); i++ {
+		key := segments[i]
+		value := segments[i+1]
+		if key == "" || value == "" {
+			return errors.New("invalid path: missing key or value")
+		}
+		if _, ok := found[key]; ok {
+			return errors.New("invalid path: duplicate key")
+		}
+		if V().Var(value, "resourceNameValidator") != nil {
+			return errors.New("invalid path: invalid value")
+		}
+		found[key] = pos
+		pos++
+		i++
+	}
+	for key, pos := range found {
+		switch key {
+		case "catalog":
+			if pos != 0 {
+				return errors.New("catalog must be the first segment")
+			}
+		case "variant":
+			if pos != 1 {
+				return errors.New("variant must be the second segment")
+			}
+		case "namespace":
+			if pos != 2 {
+				return errors.New("namespace must be the third segment")
+			}
+		case "workspace":
+			if _, ok := found["namespace"]; !ok {
+				if pos != 2 {
+					return errors.New("workspace must be the third segment")
+				}
+			} else {
+				if pos != 3 {
+					return errors.New("workspace must be the fourth segment")
+				}
+			}
+		default:
+			return errors.New("invalid path: unknown key")
+		}
+	}
+
+	return nil
+}
+
+func extractPrefixIfWildcard(path string) (string, bool) {
+	const suffix = "/*"
+	if strings.HasSuffix(path, suffix) {
+		prefix := strings.TrimSuffix(path, suffix)
+		return prefix, true
+	}
+	return path, false
 }
 
 func init() {

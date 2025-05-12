@@ -64,6 +64,8 @@ func GetResourceType(kind string) (string, error) {
 		return "namespaces", nil
 	case "Workspace":
 		return "workspaces", nil
+	case "View":
+		return "views", nil
 	case "CollectionSchema":
 		return "collectionschemas", nil
 	case "ParameterSchema":
@@ -86,6 +88,8 @@ func MapResourceTypeToURL(resourceType string) (string, error) {
 		return "namespaces", nil
 	case "workspace", "ws":
 		return "workspaces", nil
+	case "view", "v":
+		return "views", nil
 	case "collectionschema", "cs":
 		return "collectionschemas", nil
 	case "parameterschema", "ps":

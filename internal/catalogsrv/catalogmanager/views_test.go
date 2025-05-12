@@ -1,6 +1,7 @@
 package catalogmanager
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -227,6 +228,27 @@ func TestCreateView(t *testing.T) {
 }`,
 			expected: ErrInvalidSchema,
 		},
+		{
+			name: "deduplication of actions and resources",
+			jsonData: `
+{
+    "version": "v1",
+    "kind": "View",
+    "metadata": {
+        "name": "dedup-test-view",
+        "catalog": "validcatalog",
+        "description": "Test view for deduplication"
+    },
+    "spec": {
+        "rules": [{
+            "Effect": "Allow",
+            "Action": ["Read", "Write", "Read", "Execute", "Write", "Execute"],
+            "Resource": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
+        }]
+    }
+}`,
+			expected: nil,
+		},
 	}
 
 	// Initialize context with logger and database connection
@@ -416,4 +438,204 @@ func TestUpdateView(t *testing.T) {
 	_, err = UpdateView(ctx, []byte(invalidSchemaView), "", "test-catalog")
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrInvalidSchema))
+
+	// Test deduplication in update
+	updateViewWithDuplicates := `{
+		"version": "v1",
+		"kind": "View",
+		"metadata": {
+			"name": "test-view",
+			"catalog": "test-catalog",
+			"description": "Updated description with duplicates"
+		},
+		"spec": {
+			"rules": [
+				{
+					"Effect": "Allow",
+					"Action": ["Read", "Write", "Read", "Execute", "Write"],
+					"Resource": ["res://catalog/test-catalog", "res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"]
+				}
+			]
+		}
+	}`
+
+	_, err = UpdateView(ctx, []byte(updateViewWithDuplicates), "test-view", "test-catalog")
+	require.NoError(t, err)
+
+	// Verify the deduplication
+	retrieved, err = db.DB(ctx).GetViewByLabel(ctx, "test-view", catalogID)
+	require.NoError(t, err)
+
+	var rules ViewRuleSet
+	jsonErr := json.Unmarshal(retrieved.Rules, &rules)
+	require.NoError(t, jsonErr)
+
+	// Check that duplicates were removed
+	assert.Equal(t, 1, len(rules))
+	assert.Equal(t, 3, len(rules[0].Action))   // Should have Read, Write, Execute
+	assert.Equal(t, 2, len(rules[0].Resource)) // Should have two unique resources
+
+	// Verify the order and content of deduplicated arrays
+	expectedActions := []ViewRuleAction{ViewRuleActionRead, ViewRuleActionWrite, ViewRuleActionExecute}
+	assert.ElementsMatch(t, expectedActions, rules[0].Action)
+
+	expectedResources := []string{"res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"}
+	assert.ElementsMatch(t, expectedResources, rules[0].Resource)
+}
+
+func TestIsActionAllowed(t *testing.T) {
+	tests := []struct {
+		name           string
+		rules          ViewRuleSet
+		action         ViewRuleAction
+		resource       string
+		expectedResult bool
+	}{
+		{
+			name: "simple allow rule",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test"},
+				},
+			},
+			action:         ViewRuleActionRead,
+			resource:       "res://catalog/test",
+			expectedResult: true,
+		},
+		{
+			name: "simple deny rule",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectDeny,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test"},
+				},
+			},
+			action:         ViewRuleActionRead,
+			resource:       "res://catalog/test",
+			expectedResult: false,
+		},
+		{
+			name: "deny overrides allow",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test"},
+				},
+				{
+					Effect:   ViewRuleEffectDeny,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test"},
+				},
+			},
+			action:         ViewRuleActionRead,
+			resource:       "res://catalog/test",
+			expectedResult: false,
+		},
+		{
+			name: "wildcard resource matching",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test/*"},
+				},
+			},
+			action:         ViewRuleActionRead,
+			resource:       "res://catalog/test/variant1",
+			expectedResult: true,
+		},
+		{
+			name: "multiple actions in rule",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead, ViewRuleActionWrite},
+					Resource: []string{"res://catalog/test"},
+				},
+			},
+			action:         ViewRuleActionWrite,
+			resource:       "res://catalog/test",
+			expectedResult: true,
+		},
+		{
+			name: "action not in rule",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test"},
+				},
+			},
+			action:         ViewRuleActionWrite,
+			resource:       "res://catalog/test",
+			expectedResult: false,
+		},
+		{
+			name: "resource not in rule",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test"},
+				},
+			},
+			action:         ViewRuleActionRead,
+			resource:       "res://catalog/other",
+			expectedResult: false,
+		},
+		{
+			name: "multiple rules with different resources",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test1"},
+				},
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test2"},
+				},
+			},
+			action:         ViewRuleActionRead,
+			resource:       "res://catalog/test2",
+			expectedResult: true,
+		},
+		{
+			name: "wildcard resource with deny rule",
+			rules: ViewRuleSet{
+				{
+					Effect:   ViewRuleEffectAllow,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test/*"},
+				},
+				{
+					Effect:   ViewRuleEffectDeny,
+					Action:   []ViewRuleAction{ViewRuleActionRead},
+					Resource: []string{"res://catalog/test/specific"},
+				},
+			},
+			action:         ViewRuleActionRead,
+			resource:       "res://catalog/test/specific",
+			expectedResult: false,
+		},
+		{
+			name:           "empty ruleset",
+			rules:          ViewRuleSet{},
+			action:         ViewRuleActionRead,
+			resource:       "res://catalog/test",
+			expectedResult: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.rules.IsActionAllowed(tt.action, tt.resource)
+			assert.Equal(t, tt.expectedResult, result, "IsActionAllowed(%v, %v) = %v, want %v", tt.action, tt.resource, result, tt.expectedResult)
+		})
+	}
 }

@@ -71,6 +71,8 @@ func TestNoSpacesValidator(t *testing.T) {
 
 func TestResourceURIValidator(t *testing.T) {
 	validate := validator.New()
+	validate.RegisterValidation("resourcePathValidator", resourcePathValidator)
+	validate.RegisterValidation("resourceNameValidator", resourceNameValidator)
 	validate.RegisterValidation("resourceURI", resourceURIValidator)
 
 	tests := []struct {
@@ -85,25 +87,41 @@ func TestResourceURIValidator(t *testing.T) {
 		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace", true},
 		{"res://catalog/my-catalog/variant/my-variant/resource/path", true},
 		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/resource/path/to/res-ource", true},
+		{"res://catalog/my-catalog/variant/my-variant/resource/path/*", true},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/resource/path/*", true},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my-workspace/resource/path/*", true},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my-workspace/resource/*", true},
 
-		// Invalid cases - missing required components
+		// // Invalid cases - missing required components
 		{"res://", false},
+		{"res://catalog/test-catalog/varian/test-variant", false},
 		{"res://variant/my-variant", false},     // missing catalog
 		{"res://namespace/my-namespace", false}, // missing catalog and variant
 		{"res://workspace/my-workspace", false}, // missing catalog and variant
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my-workspace/resource/*/path/*", false},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my-workspace/*/resource/path", false},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace//resource/path", false},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my-workspace/resource", false},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/*", false},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/*", false},
+		{"res://catalog/*", false},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/*", false},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my*", false},
+		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my-workspace/resource/*/", false},
 
-		// Invalid cases - wrong order
+		// // Invalid cases - wrong order
 		{"res://variant/my-variant/catalog/my-catalog", false},
 		{"res://namespace/my-namespace/variant/my-variant", false},
 		{"res://workspace/my-workspace/namespace/my-namespace", false},
 
-		// Invalid cases - invalid characters
+		// // Invalid cases - invalid characters
 		{"res://catalog/my@catalog", false},
 		{"res://catalog/my catalog", false},
 		{"res://catalog/my-catalog/variant/my@variant", false},
 		{"res://catalog/my-catalog/variant/my variant", false},
+		{"res://catalog/my-catalog/variant/my_variant", false},
 
-		// Invalid cases - invalid format
+		// // Invalid cases - invalid format
 		{"res://invalid-uri", false},
 		{"res://invalid-uri/", false},
 		{"res://invalid-uri/with-spaces", false},

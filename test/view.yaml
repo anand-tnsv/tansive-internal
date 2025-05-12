@@ -1,0 +1,16 @@
+version: v1
+kind: View
+metadata:
+  name: some-view
+  catalog: test-catalog
+  description: Should not fail
+spec:
+  rules:
+    - Effect: Allow
+      Action:
+        - Write
+        - Execute
+        - Read
+        - Execute
+      Resource:
+        - res://catalog/test-catalog/variant/test-variant
