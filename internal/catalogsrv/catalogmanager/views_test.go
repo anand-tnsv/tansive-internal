@@ -35,9 +35,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["catalog.list"],
-            "Resource": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+            "Intent": "Allow",
+            "Operation": ["catalog.list"],
+            "Target": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
         }]
     }
 }`,
@@ -73,9 +73,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["catalog.list"],
-            "Resource": ["res://catalog/validcatalog"]
+            "Intent": "Allow",
+            "Operation": ["catalog.list"],
+            "Target": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -94,9 +94,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["catalog.list"],
-            "Resource": ["res://catalog/validcatalog"]
+            "Intent": "Allow",
+            "Operation": ["catalog.list"],
+            "Target": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -115,9 +115,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["catalog.list"],
-            "Resource": ["res://catalog/validcatalog"]
+            "Intent": "Allow",
+            "Operation": ["catalog.list"],
+            "Target": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -136,9 +136,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Invalid",
-            "Action": ["catalog.list"],
-            "Resource": ["res://catalog/validcatalog"]
+            "Intent": "Invalid",
+            "Operation": ["catalog.list"],
+            "Target": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -157,9 +157,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["Invalid"],
-            "Resource": ["res://catalog/validcatalog"]
+            "Intent": "Allow",
+            "Operation": ["Invalid"],
+            "Target": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -178,9 +178,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["catalog.list"],
-            "Resource": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
+            "Intent": "Allow",
+            "Operation": ["catalog.list"],
+            "Target": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
         }]
     }
 }`,
@@ -199,9 +199,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["catalog.list", "variant.list", "namespace.list"],
-            "Resource": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+            "Intent": "Allow",
+            "Operation": ["catalog.list", "variant.list", "namespace.list"],
+            "Target": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
         }]
     }
 }`,
@@ -220,9 +220,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["catalog.list", "InvalidAction", "variant.list"],
-            "Resource": ["res://catalog/validcatalog"]
+            "Intent": "Allow",
+            "Operation": ["catalog.list", "InvalidAction", "variant.list"],
+            "Target": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -241,9 +241,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Effect": "Allow",
-            "Action": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-            "Resource": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
+            "Intent": "Allow",
+            "Operation": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+            "Target": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
         }]
     }
 }`,
@@ -333,9 +333,9 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [
 				{
-					"Effect": "Allow",
-					"Action": ["catalog.list"],
-					"Resource": ["res://catalog/test-catalog"]
+					"Intent": "Allow",
+					"Operation": ["catalog.list"],
+					"Target": ["res://catalog/test-catalog"]
 				}
 			]
 		}
@@ -356,9 +356,9 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [
 				{
-					"Effect": "Allow",
-					"Action": ["catalog.list", "variant.list", "namespace.list"],
-					"Resource": ["res://catalog/test-catalog"]
+					"Intent": "Allow",
+					"Operation": ["catalog.list", "variant.list", "namespace.list"],
+					"Target": ["res://catalog/test-catalog"]
 				}
 			]
 		}
@@ -383,9 +383,9 @@ func TestUpdateView(t *testing.T) {
 		},
 		"spec": {
 			"rules": [{
-					"Effect": "Allow",
-					"Action": ["variant.list"],
-					"Resource": ["res://catalog/test-catalog"]
+					"Intent": "Allow",
+					"Operation": ["variant.list"],
+					"Target": ["res://catalog/test-catalog"]
 				}]
 		}
 	}`
@@ -427,9 +427,9 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [
 				{
-					"Effect": "InvalidEffect",
-					"Action": ["catalog.list"],
-					"Resource": ["test/resource"]
+					"Intent": "InvalidEffect",
+					"Operation": ["catalog.list"],
+					"Target": ["test/resource"]
 				}
 			]
 		}
@@ -451,9 +451,9 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [
 				{
-					"Effect": "Allow",
-					"Action": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
-					"Resource": ["res://catalog/test-catalog", "res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"]
+					"Intent": "Allow",
+					"Operation": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
+					"Target": ["res://catalog/test-catalog", "res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"]
 				}
 			]
 		}
@@ -466,336 +466,336 @@ func TestUpdateView(t *testing.T) {
 	retrieved, err = db.DB(ctx).GetViewByLabel(ctx, "test-view", catalogID)
 	require.NoError(t, err)
 
-	var rules ViewRuleSet
+	var rules AccessRuleSet
 	jsonErr := json.Unmarshal(retrieved.Rules, &rules)
 	require.NoError(t, jsonErr)
 
 	// Check that duplicates were removed
 	assert.Equal(t, 1, len(rules))
-	assert.Equal(t, 3, len(rules[0].Action))   // Should have catalog.list, variant.list, namespace.list
-	assert.Equal(t, 2, len(rules[0].Resource)) // Should have two unique resources
+	assert.Equal(t, 3, len(rules[0].Operation)) // Should have catalog.list, variant.list, namespace.list
+	assert.Equal(t, 2, len(rules[0].Target))    // Should have two unique resources
 
 	// Verify the order and content of deduplicated arrays
-	expectedActions := []ViewRuleAction{ActionCatalogList, ActionVariantList, ActionNamespaceList}
-	assert.ElementsMatch(t, expectedActions, rules[0].Action)
+	expectedOperations := []Operation{OpCatalogList, OpVariantList, OpNamespaceList}
+	assert.ElementsMatch(t, expectedOperations, rules[0].Operation)
 
-	expectedResources := []RuleResource{"res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"}
-	assert.ElementsMatch(t, expectedResources, rules[0].Resource)
+	expectedTargets := []TargetResource{"res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"}
+	assert.ElementsMatch(t, expectedTargets, rules[0].Target)
 }
 
 func TestIsActionAllowed(t *testing.T) {
 	tests := []struct {
 		name           string
-		rules          ViewRuleSet
-		action         ViewRuleAction
+		rules          AccessRuleSet
+		action         Operation
 		resource       string
 		expectedResult bool
 	}{
 
 		{
 			name: "admin action",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogAdmin},
-					Resource: []RuleResource{"res://catalog/*"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogAdmin},
+					Target:    []TargetResource{"res://catalog/*"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test2",
 			expectedResult: true,
 		},
 		{
 			name: "admin action with specific resource",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogAdmin},
-					Resource: []RuleResource{"res://catalog/test1"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogAdmin},
+					Target:    []TargetResource{"res://catalog/test1"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test2",
 			expectedResult: false,
 		},
 
 		{
 			name: "incorrectadmin action with specific resource",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogAdmin},
-					Resource: []RuleResource{"res://catalog/test1/variant/test2"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogAdmin},
+					Target:    []TargetResource{"res://catalog/test1/variant/test2"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test1",
 			expectedResult: false,
 		},
 		{
 			name: "incorrectadmin action with specific resource",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect: ViewRuleEffectAllow,
-					Action: []ViewRuleAction{ActionCatalogAdmin},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogAdmin},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2",
 						"res://catalog/*",
 					},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test1",
 			expectedResult: true,
 		},
 		{
 			name: "allow namespace with admin action",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect: ViewRuleEffectAllow,
-					Action: []ViewRuleAction{ActionNamespaceAdmin},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpNamespaceAdmin},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/*",
 					},
 				},
 			},
-			action:         ActionNamespaceList,
+			action:         OpNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/namespace/test3",
 			expectedResult: true,
 		},
 		{
 			name: "allow namespace with admin action and deny rule",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect: ViewRuleEffectAllow,
-					Action: []ViewRuleAction{ActionNamespaceAdmin},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpNamespaceAdmin},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/*",
 					},
 				},
 				{
-					Effect: ViewRuleEffectDeny,
-					Action: []ViewRuleAction{ActionNamespaceList},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectDeny,
+					Operation: []Operation{OpNamespaceList},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/test3",
 					},
 				},
 			},
-			action:         ActionNamespaceList,
+			action:         OpNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/namespace/test3",
 			expectedResult: false,
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect: ViewRuleEffectAllow,
-					Action: []ViewRuleAction{ActionWorkspaceAdmin},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpWorkspaceAdmin},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/test3/workspace/*",
 					},
 				},
 			},
-			action:         ActionNamespaceList,
+			action:         OpNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/namespace/test3/workspace/test4",
 			expectedResult: false,
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect: ViewRuleEffectAllow,
-					Action: []ViewRuleAction{ActionWorkspaceAdmin},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpWorkspaceAdmin},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2/workspace/*",
 					},
 				},
 			},
-			action:         ActionNamespaceList,
+			action:         OpNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/workspace/test4",
 			expectedResult: true,
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect: ViewRuleEffectAllow,
-					Action: []ViewRuleAction{ActionWorkspaceAdmin},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpWorkspaceAdmin},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2/workspace/*",
 					},
 				},
 			},
-			action:         ActionNamespaceList,
+			action:         OpNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/namespace/test3/workspace/test4",
 			expectedResult: false,
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect: ViewRuleEffectAllow,
-					Action: []ViewRuleAction{ActionWorkspaceAdmin},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpWorkspaceAdmin},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2/workspace/*",
 					},
 				},
 				{
-					Effect: ViewRuleEffectAllow,
-					Action: []ViewRuleAction{ActionNamespaceAdmin},
-					Resource: []RuleResource{
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpNamespaceAdmin},
+					Target: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/*",
 					},
 				},
 			},
-			action:         ActionNamespaceList,
+			action:         OpNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/workspace/test4/namespace/test5",
 			expectedResult: true,
 		},
 
 		{
 			name: "simple allow rule",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: true,
 		},
 
 		{
 			name: "simple deny rule",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectDeny,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test"},
+					Intent:    ViewRuleEffectDeny,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
 		},
 
 		{
 			name: "deny overrides allow",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test"},
 				},
 				{
-					Effect:   ViewRuleEffectDeny,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test"},
+					Intent:    ViewRuleEffectDeny,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
 		},
 
 		{
 			name: "wildcard resource matching",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test/variant/*"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test/variant/*"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test/variant/variant1",
 			expectedResult: true,
 		},
 
 		{
 			name: "multiple actions in rule",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList, ActionVariantList},
-					Resource: []RuleResource{"res://catalog/test"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList, OpVariantList},
+					Target:    []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         ActionVariantList,
+			action:         OpVariantList,
 			resource:       "res://catalog/test",
 			expectedResult: true,
 		},
 		{
 			name: "action not in rule",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         ActionVariantList,
+			action:         OpVariantList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
 		},
 
 		{
 			name: "resource not in rule",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/other",
 			expectedResult: false,
 		},
 
 		{
 			name: "multiple rules with different resources",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test1"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test1"},
 				},
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test2"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test2"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test2",
 			expectedResult: true,
 		},
 
 		{
 			name: "wildcard resource with deny rule",
-			rules: ViewRuleSet{
+			rules: AccessRuleSet{
 				{
-					Effect:   ViewRuleEffectAllow,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test/*"},
+					Intent:    ViewRuleEffectAllow,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test/*"},
 				},
 				{
-					Effect:   ViewRuleEffectDeny,
-					Action:   []ViewRuleAction{ActionCatalogList},
-					Resource: []RuleResource{"res://catalog/test/specific"},
+					Intent:    ViewRuleEffectDeny,
+					Operation: []Operation{OpCatalogList},
+					Target:    []TargetResource{"res://catalog/test/specific"},
 				},
 			},
-			action:         ActionCatalogList,
+			action:         OpCatalogList,
 			resource:       "res://catalog/test/specific",
 			expectedResult: false,
 		},
 		{
 			name:           "empty ruleset",
-			rules:          ViewRuleSet{},
-			action:         ActionCatalogList,
+			rules:          AccessRuleSet{},
+			action:         OpCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
 		},

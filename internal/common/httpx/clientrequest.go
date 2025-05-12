@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -13,17 +14,27 @@ import (
 	log "github.com/rs/zerolog/log"
 )
 
+type HTTPError struct {
+	StatusCode int
+	Status     string
+	Message    string
+}
+
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("HTTP %d: %s - %s", e.StatusCode, e.Status, e.Message)
+}
+
 func postRequest(url string, reqObj Requester, respObj interface{}, timeout time.Duration, overrideTransport ...http.RoundTripper) error {
 	// Convert the request struct to JSON
 	reqBody, err := json.Marshal(reqObj)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
 	// Retrieve the URL path from the request object
 	request, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 	request.Header.Set("Content-Type", "application/json")
 
@@ -44,19 +55,31 @@ func postRequest(url string, reqObj Requester, respObj interface{}, timeout time
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send request: %w", err)
 	}
 	if response.Body == nil {
-		log.Error().Err(err).Msg("response body is nil")
-		return fmt.Errorf("%s", response.Status)
+		return &HTTPError{
+			StatusCode: response.StatusCode,
+			Status:     response.Status,
+			Message:    "empty response body",
+		}
 	}
 	defer response.Body.Close()
+
+	// Check for non-200 status codes
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		body, _ := io.ReadAll(response.Body)
+		return &HTTPError{
+			StatusCode: response.StatusCode,
+			Status:     response.Status,
+			Message:    string(body),
+		}
+	}
 
 	// Decode the JSON response into the response struct
 	err = json.NewDecoder(response.Body).Decode(respObj)
 	if err != nil {
-		log.Error().Err(err).Msg("unable to decode response")
-		return fmt.Errorf("%s", response.Status)
+		return fmt.Errorf("failed to decode response: %w", err)
 	}
 	return nil
 }

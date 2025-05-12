@@ -21,77 +21,77 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-type ViewRuleEffect string
+type Intent string
 
 const (
-	ViewRuleEffectAllow ViewRuleEffect = "Allow"
-	ViewRuleEffectDeny  ViewRuleEffect = "Deny"
+	ViewRuleEffectAllow Intent = "Allow"
+	ViewRuleEffectDeny  Intent = "Deny"
 )
 
-type ViewRuleAction string
+type Operation string
 
-var validActions = []ViewRuleAction{
-	ActionCatalogAdmin,
-	ActionCatalogList,
-	ActionVariantAdmin,
-	ActionVariantClone,
-	ActionVariantCreateView,
-	ActionVariantList,
-	ActionNamespaceCreate,
-	ActionNamespaceEdit,
-	ActionNamespaceList,
-	ActionNamespaceAdmin,
-	ActionSchemaCreate,
-	ActionSchemaRead,
-	ActionSchemaEdit,
-	ActionSchemaDelete,
-	ActionSchemaAssign,
-	ActionCollectionCreate,
-	ActionCollectionRead,
-	ActionCollectionWrite,
-	ActionCollectionRun,
-	ActionWorkspaceAdmin,
-	ActionWorkspaceList,
-	ActionWorkspaceCreate,
+var validOperations = []Operation{
+	OpCatalogAdmin,
+	OpCatalogList,
+	OpVariantAdmin,
+	OpVariantClone,
+	OpVariantCreateView,
+	OpVariantList,
+	OpNamespaceCreate,
+	OpNamespaceEdit,
+	OpNamespaceList,
+	OpNamespaceAdmin,
+	OpSchemaCreate,
+	OpSchemaRead,
+	OpSchemaEdit,
+	OpSchemaDelete,
+	OpSchemaAssign,
+	OpCollectionCreate,
+	OpCollectionRead,
+	OpCollectionWrite,
+	OpCollectionRun,
+	OpWorkspaceAdmin,
+	OpWorkspaceList,
+	OpWorkspaceCreate,
 }
 
 const (
-	ActionCatalogAdmin      ViewRuleAction = "catalog.admin"
-	ActionCatalogList       ViewRuleAction = "catalog.list"
-	ActionVariantAdmin      ViewRuleAction = "variant.admin"
-	ActionVariantClone      ViewRuleAction = "variant.clone"
-	ActionVariantCreateView ViewRuleAction = "variant.createView"
-	ActionVariantList       ViewRuleAction = "variant.list"
-	ActionNamespaceCreate   ViewRuleAction = "namespace.create"
-	ActionNamespaceEdit     ViewRuleAction = "namespace.edit"
-	ActionNamespaceList     ViewRuleAction = "namespace.list"
-	ActionNamespaceAdmin    ViewRuleAction = "namespace.admin"
-	ActionSchemaCreate      ViewRuleAction = "schema.create"
-	ActionSchemaRead        ViewRuleAction = "schema.read"
-	ActionSchemaEdit        ViewRuleAction = "schema.edit"
-	ActionSchemaDelete      ViewRuleAction = "schema.delete"
-	ActionSchemaAssign      ViewRuleAction = "schema.assign"
-	ActionCollectionCreate  ViewRuleAction = "collection.create"
-	ActionCollectionRead    ViewRuleAction = "collection.read"
-	ActionCollectionWrite   ViewRuleAction = "collection.write"
-	ActionCollectionRun     ViewRuleAction = "collection.run"
-	ActionWorkspaceAdmin    ViewRuleAction = "workspace.admin"
-	ActionWorkspaceList     ViewRuleAction = "workspace.list"
-	ActionWorkspaceCreate   ViewRuleAction = "workspace.create"
+	OpCatalogAdmin      Operation = "catalog.admin"
+	OpCatalogList       Operation = "catalog.list"
+	OpVariantAdmin      Operation = "variant.admin"
+	OpVariantClone      Operation = "variant.clone"
+	OpVariantCreateView Operation = "variant.createView"
+	OpVariantList       Operation = "variant.list"
+	OpNamespaceCreate   Operation = "namespace.create"
+	OpNamespaceEdit     Operation = "namespace.edit"
+	OpNamespaceList     Operation = "namespace.list"
+	OpNamespaceAdmin    Operation = "namespace.admin"
+	OpSchemaCreate      Operation = "schema.create"
+	OpSchemaRead        Operation = "schema.read"
+	OpSchemaEdit        Operation = "schema.edit"
+	OpSchemaDelete      Operation = "schema.delete"
+	OpSchemaAssign      Operation = "schema.assign"
+	OpCollectionCreate  Operation = "collection.create"
+	OpCollectionRead    Operation = "collection.read"
+	OpCollectionWrite   Operation = "collection.write"
+	OpCollectionRun     Operation = "collection.run"
+	OpWorkspaceAdmin    Operation = "workspace.admin"
+	OpWorkspaceList     Operation = "workspace.list"
+	OpWorkspaceCreate   Operation = "workspace.create"
 )
 
-type ViewRule struct {
-	Effect   ViewRuleEffect   `json:"Effect" validate:"required,viewRuleEffectValidator"`
-	Action   []ViewRuleAction `json:"Action" validate:"required,dive,viewRuleActionValidator"`
-	Resource []RuleResource   `json:"Resource" validate:"required,dive,resourceURIValidator"`
+type AccessRule struct {
+	Intent    Intent           `json:"Intent" validate:"required,viewRuleEffectValidator"`
+	Operation []Operation      `json:"Operation" validate:"required,dive,viewRuleActionValidator"`
+	Target    []TargetResource `json:"Target" validate:"required,dive,resourceURIValidator"`
 }
 
-type RuleResource string
-type ViewRuleSet []ViewRule
+type TargetResource string
+type AccessRuleSet []AccessRule
 
 // RulesFromJSON unmarshals a ViewRuleSet from a JSON byte slice.
-func RulesFromJSON(data []byte) (ViewRuleSet, apperrors.Error) {
-	var rules ViewRuleSet
+func RulesFromJSON(data []byte) (AccessRuleSet, apperrors.Error) {
+	var rules AccessRuleSet
 	err := json.Unmarshal(data, &rules)
 	if err != nil {
 		return nil, ErrInvalidView.New("invalid ruleset")
@@ -100,7 +100,7 @@ func RulesFromJSON(data []byte) (ViewRuleSet, apperrors.Error) {
 }
 
 // ToJSON converts a ViewRuleSet to a JSON byte slice.
-func (v ViewRuleSet) ToJSON() ([]byte, error) {
+func (v AccessRuleSet) ToJSON() ([]byte, error) {
 	return json.Marshal(v)
 }
 
@@ -121,7 +121,7 @@ type viewMetadata struct {
 
 // viewSpec contains the spec of a view
 type viewSpec struct {
-	Rules ViewRuleSet `json:"rules" validate:"required,dive"`
+	Rules AccessRuleSet `json:"rules" validate:"required,dive"`
 }
 
 // Validate performs validation on the view schema and returns any validation errors.
@@ -230,25 +230,49 @@ func createViewModel(view *viewSchema, catalogID uuid.UUID) (*models.View, apper
 }
 
 // removeDuplicates removes duplicate values from a slice of any comparable type.
+// It preserves the original order of elements while efficiently removing duplicates.
 func removeDuplicates[T comparable](slice []T) []T {
-	seen := make(map[T]bool)
-	var unique []T
+	if len(slice) == 0 {
+		return slice
+	}
+
+	// Pre-allocate the map with the expected size
+	seen := make(map[T]struct{}, len(slice))
+	// Pre-allocate the result slice with the maximum possible size
+	unique := make([]T, 0, len(slice))
+
+	// Use struct{} instead of bool for minimal memory usage
 	for _, v := range slice {
-		if !seen[v] {
-			seen[v] = true
+		if _, exists := seen[v]; !exists {
+			seen[v] = struct{}{}
 			unique = append(unique, v)
 		}
 	}
+
+	// If no duplicates were found, return the original slice
+	if len(unique) == len(slice) {
+		return slice
+	}
+
 	return unique
 }
 
 // deduplicateRules removes duplicates from both actions and resources in a ViewRuleSet.
-func deduplicateRules(rules ViewRuleSet) ViewRuleSet {
-	for i := range rules {
-		rules[i].Action = removeDuplicates(rules[i].Action)
-		rules[i].Resource = removeDuplicates(rules[i].Resource)
+// It returns a new ViewRuleSet with duplicates removed.
+func deduplicateRules(rules AccessRuleSet) AccessRuleSet {
+	if len(rules) == 0 {
+		return rules
 	}
-	return rules
+
+	result := make(AccessRuleSet, len(rules))
+	for i, rule := range rules {
+		result[i] = AccessRule{
+			Intent:    rule.Intent,
+			Operation: removeDuplicates(rule.Operation),
+			Target:    removeDuplicates(rule.Target),
+		}
+	}
+	return result
 }
 
 // CreateView creates a new view in the database.
@@ -377,7 +401,7 @@ func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	}
 
 	// Parse the rules from the view model
-	var rules ViewRuleSet
+	var rules AccessRuleSet
 	if err := json.Unmarshal(view.Rules, &rules); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal view rules")
 		return nil, ErrUnableToLoadObject.Msg("unable to unmarshal view rules")
@@ -441,7 +465,7 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 
 // IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
 // It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet ViewRuleSet) IsActionAllowed(action ViewRuleAction, resource string) bool {
+func (ruleSet AccessRuleSet) IsActionAllowed(action Operation, resource string) bool {
 	allowMatch := false
 	// check if there is an admin match
 	if ruleSet.matchesAdmin(resource) {
@@ -449,12 +473,12 @@ func (ruleSet ViewRuleSet) IsActionAllowed(action ViewRuleAction, resource strin
 	}
 	// check if there is a match for the action
 	for _, rule := range ruleSet {
-		if slices.Contains(rule.Action, action) {
-			for _, res := range rule.Resource {
-				if res.matches(RuleResource(resource)) {
-					if rule.Effect == ViewRuleEffectAllow {
+		if slices.Contains(rule.Operation, action) {
+			for _, res := range rule.Target {
+				if res.matches(TargetResource(resource)) {
+					if rule.Intent == ViewRuleEffectAllow {
 						allowMatch = true
-					} else if rule.Effect == ViewRuleEffectDeny {
+					} else if rule.Intent == ViewRuleEffectDeny {
 						allowMatch = false
 					}
 				}
