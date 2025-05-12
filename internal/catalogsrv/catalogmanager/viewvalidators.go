@@ -2,6 +2,7 @@ package catalogmanager
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -9,44 +10,43 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 )
 
-// viewRuleEffectValidator validates that the effect is one of the allowed values.
-func viewRuleEffectValidator(fl validator.FieldLevel) bool {
+// Constants for resource types
+const (
+	resourceTypeCatalog   = "catalog"
+	resourceTypeVariant   = "variant"
+	resourceTypeWorkspace = "workspace"
+	resourceTypeNamespace = "namespace"
+)
+
+// adminActionMap represents a set of admin actions
+type adminActionMap map[ViewRuleAction]bool
+
+// buildAdminActionMap creates a map of admin actions from a slice of actions
+func buildAdminActionMap(actions []ViewRuleAction) adminActionMap {
+	adminActions := make(adminActionMap)
+	for _, action := range actions {
+		switch action {
+		case ActionCatalogAdmin, ActionVariantAdmin, ActionNamespaceAdmin, ActionWorkspaceAdmin:
+			adminActions[action] = true
+		}
+	}
+	return adminActions
+}
+
+// validateViewRuleEffect checks if the effect is one of the allowed values.
+func validateViewRuleEffect(fl validator.FieldLevel) bool {
 	effect := ViewRuleEffect(fl.Field().String())
 	return effect == ViewRuleEffectAllow || effect == ViewRuleEffectDeny
 }
 
-// viewRuleActionValidator validates that the action is one of the allowed values.
-func viewRuleActionValidator(fl validator.FieldLevel) bool {
+// validateViewRuleAction checks if the action is one of the allowed values.
+func validateViewRuleAction(fl validator.FieldLevel) bool {
 	action := ViewRuleAction(fl.Field().String())
 	return slices.Contains(validActions, action)
 }
 
-func init() {
-
-}
-
-// resourceURIValidator validates resource URIs with the following structure:
-// - Must start with "res://"
-// - Must have a location component that follows the hierarchy:
-//   * catalog/<name> (required)
-//   * /variant/<name> (optional, requires catalog)
-//   * /namespace/<name> (optional, requires variant)
-//   * /workspace/<name> (optional, requires variant)
-// - May have additional path segments after the location
-// - All names must:
-//   * Start and end with alphanumeric
-//   * Contain only alphanumeric and hyphens
-//   * Follow DNS label rules (max 63 chars, no uppercase)
-//
-// Examples:
-//   res://catalog/my-catalog
-//   res://catalog/my-catalog/variant/my-variant
-//   res://catalog/my-catalog/variant/my-variant/namespace/my-namespace
-//   res://catalog/my-catalog/variant/my-variant/workspace/my-workspace
-//   res://catalog/my-catalog/variant/my-variant/resource/path
-//   res://catalog/my-catalog/variant/my-variant/resource/path/*
-
-func resourceURIValidator(fl validator.FieldLevel) bool {
+// validateResourceURI checks if the resource URI follows the required structure.
+func validateResourceURI(fl validator.FieldLevel) bool {
 	uri := fl.Field().String()
 	segments, err := extractSegments(uri)
 	if err != nil {
@@ -71,7 +71,7 @@ func resourceURIValidator(fl validator.FieldLevel) bool {
 func extractSegments(s string) ([]string, error) {
 	const prefix = "res://"
 	if !strings.HasPrefix(s, prefix) {
-		return nil, errors.New("invalid resource string: missing res:// prefix")
+		return nil, fmt.Errorf("invalid resource string: missing %s prefix", prefix)
 	}
 
 	rest := strings.TrimPrefix(s, prefix)
@@ -92,56 +92,58 @@ func extractSegments(s string) ([]string, error) {
 
 func isValidStructuredPath(path string) error {
 	if path == "" {
-		return errors.New("invalid path: empty")
+		return fmt.Errorf("invalid path: empty")
 	}
+
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	if len(segments)%2 != 0 {
-		return errors.New("invalid path: missing kv pair")
+		return fmt.Errorf("invalid path: missing key-value pair")
 	}
+
 	found := make(map[string]int)
-	pos := 0
-	for i := 0; i < len(segments) && i+1 < len(segments); i++ {
+	for i := 0; i < len(segments)-1; i += 2 {
 		key := segments[i]
 		value := segments[i+1]
+
 		if key == "" || value == "" {
-			return errors.New("invalid path: missing key or value")
+			return fmt.Errorf("invalid path: empty key or value at position %d", i)
 		}
+
 		if _, ok := found[key]; ok {
-			return errors.New("invalid path: duplicate key")
+			return fmt.Errorf("invalid path: duplicate key '%s'", key)
 		}
+
 		if value != "*" && schemavalidator.V().Var(value, "resourceNameValidator") != nil {
-			return errors.New("invalid path: invalid value")
+			return fmt.Errorf("invalid path: invalid value '%s' for key '%s'", value, key)
 		}
-		found[key] = pos
-		pos++
-		i++
+
+		found[key] = i / 2
 	}
+
+	// Validate segment order
+	expectedOrder := map[string]int{
+		resourceTypeCatalog:   0,
+		resourceTypeVariant:   1,
+		resourceTypeWorkspace: 2,
+		resourceTypeNamespace: -1, // Special case, handled below
+	}
+
 	for key, pos := range found {
-		switch key {
-		case "catalog":
-			if pos != 0 {
-				return errors.New("catalog must be the first segment")
-			}
-		case "variant":
-			if pos != 1 {
-				return errors.New("variant must be the second segment")
-			}
-		case "workspace":
-			if pos != 2 {
-				return errors.New("workspace must be the third segment")
-			}
-		case "namespace":
-			if _, ok := found["workspace"]; !ok {
-				if pos != 2 {
-					return errors.New("namespace must be the third segment")
-				}
+		expectedPos, exists := expectedOrder[key]
+		if !exists {
+			return fmt.Errorf("invalid path: unknown key '%s'", key)
+		}
+
+		if key == resourceTypeNamespace {
+			if _, hasWorkspace := found[resourceTypeWorkspace]; hasWorkspace {
+				expectedPos = 3
 			} else {
-				if pos != 3 {
-					return errors.New("namespace must be the fourth segment")
-				}
+				expectedPos = 2
 			}
-		default:
-			return errors.New("invalid path: unknown key")
+		}
+
+		if pos != expectedPos {
+			return fmt.Errorf("invalid path: '%s' must be at position %d, found at %d", key, expectedPos, pos)
 		}
 	}
 
@@ -157,92 +159,103 @@ func extractPrefixIfWildcard(path string) (string, bool) {
 	return path, false
 }
 
-func (r ViewRuleSet) matchesAdmin(inputAction ViewRuleAction, resource string) bool {
+// validateResourceSegments validates the basic structure of resource segments
+func validateResourceSegments(resource string) (map[string]resourceMetadataValue, error) {
 	if resource == "" {
-		return false
+		return nil, fmt.Errorf("empty resource")
 	}
-	resourceSegments, err := extractSegments(resource)
-	if err != nil {
-		return false
-	}
-	if len(resourceSegments) == 0 {
-		return false
-	}
-	resourceMetadata, err := extractMetadata(resourceSegments[0])
-	if err != nil {
-		return false
-	}
-	for _, rule := range r {
-		if rule.Effect == ViewRuleEffectAllow {
-			var adminActions = make(map[ViewRuleAction]bool)
-			for _, action := range rule.Action {
-				switch action {
-				case ActionCatalogAdmin:
-					adminActions[action] = true
-				case ActionVariantAdmin:
-					adminActions[action] = true
-				case ActionNamespaceAdmin:
-					adminActions[action] = true
-				case ActionWorkspaceAdmin:
-					adminActions[action] = true
-				}
-			}
-			if len(adminActions) == 0 {
-				return false
-			}
-			// first get the matching rules from ruleset
-			for _, res := range rule.Resource {
-				segments, err := extractSegments(string(res))
-				if err != nil {
-					continue
-				}
-				if len(segments) != 1 {
-					continue
-				}
-				m, err := extractMetadata(segments[0])
-				if err != nil {
-					continue
-				}
-				// validation must be in order
-				if adminActions[ActionCatalogAdmin] {
-					if m["catalog"].pos == resourceMetadata["catalog"].pos && (m["catalog"].value == "*" || (m["catalog"].value == resourceMetadata["catalog"].value)) {
-						if len(m) == 1 && matchParentResource("catalog", m, resourceMetadata) {
-							return true
-						}
-					}
-				}
-				if adminActions[ActionVariantAdmin] {
-					if m["variant"].pos == resourceMetadata["variant"].pos && (m["variant"].value == "*" || (m["variant"].value == resourceMetadata["variant"].value)) {
-						if len(m) == 2 && matchParentResource("variant", m, resourceMetadata) {
-							return true
-						}
-					}
-				}
-				if adminActions[ActionWorkspaceAdmin] {
-					if m["workspace"].pos == resourceMetadata["workspace"].pos && (m["workspace"].value == "*" || (m["workspace"].value == resourceMetadata["workspace"].value)) {
-						if len(m) == 3 && matchParentResource("workspace", m, resourceMetadata) {
-							return true
-						}
-					}
-				}
-				if adminActions[ActionNamespaceAdmin] {
-					if m["namespace"].pos == resourceMetadata["namespace"].pos && (m["namespace"].value == "*" || (m["namespace"].value == resourceMetadata["namespace"].value)) {
-						if _, ok := m["workspace"]; !ok {
-							if len(m) == 3 && matchParentResource("namespace", m, resourceMetadata) {
-								return true
-							}
-						} else {
-							if len(m) == 4 && matchParentResource("namespace", m, resourceMetadata) {
-								return true
-							}
-						}
-					}
-				}
-			}
 
+	segments, err := extractSegments(resource)
+	if err != nil || len(segments) == 0 {
+		return nil, fmt.Errorf("invalid segments: %v", err)
+	}
+
+	metadata, err := extractMetadata(segments[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid metadata: %v", err)
+	}
+
+	return metadata, nil
+}
+
+// checkAdminMatch checks if the admin rule matches for a specific resource type
+func checkAdminMatch(resourceType string, m, resourceMetadata map[string]resourceMetadataValue) bool {
+	metaValue, exists := m[resourceType]
+	if !exists {
+		return false
+	}
+
+	resourceValue, exists := resourceMetadata[resourceType]
+	if !exists {
+		return false
+	}
+
+	if metaValue.pos != resourceValue.pos {
+		return false
+	}
+
+	if metaValue.value != "*" && metaValue.value != resourceValue.value {
+		return false
+	}
+
+	expectedLen := map[string]int{
+		resourceTypeCatalog:   1,
+		resourceTypeVariant:   2,
+		resourceTypeWorkspace: 3,
+		resourceTypeNamespace: 3, // or 4 with workspace
+	}
+
+	if resourceType == resourceTypeNamespace {
+		if _, hasWorkspace := m["workspace"]; hasWorkspace {
+			expectedLen[resourceTypeNamespace] = 4
 		}
 	}
 
+	return len(m) == expectedLen[resourceType] && matchParentResource(resourceType, m, resourceMetadata)
+}
+
+func (r ViewRuleSet) matchesAdmin(resource string) bool {
+	metadata, err := validateResourceSegments(resource)
+	if err != nil {
+		return false
+	}
+
+	for _, rule := range r {
+		if rule.Effect != ViewRuleEffectAllow {
+			continue
+		}
+
+		adminActions := buildAdminActionMap(rule.Action)
+		if len(adminActions) == 0 {
+			continue
+		}
+
+		for _, res := range rule.Resource {
+			ruleSegments, err := extractSegments(string(res))
+			if err != nil || len(ruleSegments) != 1 {
+				continue
+			}
+
+			m, err := extractMetadata(ruleSegments[0])
+			if err != nil {
+				continue
+			}
+
+			// Check each admin action type
+			if adminActions[ActionCatalogAdmin] && checkAdminMatch(resourceTypeCatalog, m, metadata) {
+				return true
+			}
+			if adminActions[ActionVariantAdmin] && checkAdminMatch(resourceTypeVariant, m, metadata) {
+				return true
+			}
+			if adminActions[ActionWorkspaceAdmin] && checkAdminMatch(resourceTypeWorkspace, m, metadata) {
+				return true
+			}
+			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(resourceTypeNamespace, m, metadata) {
+				return true
+			}
+		}
+	}
 	return false
 }
 
@@ -348,7 +361,7 @@ func matchParentResource(resType string, ruleRes, actualRes map[string]resourceM
 
 func init() {
 	validate := schemavalidator.V()
-	validate.RegisterValidation("viewRuleEffectValidator", viewRuleEffectValidator)
-	validate.RegisterValidation("viewRuleActionValidator", viewRuleActionValidator)
-	validate.RegisterValidation("resourceURIValidator", resourceURIValidator)
+	validate.RegisterValidation("viewRuleEffectValidator", validateViewRuleEffect)
+	validate.RegisterValidation("viewRuleActionValidator", validateViewRuleAction)
+	validate.RegisterValidation("resourceURIValidator", validateResourceURI)
 }

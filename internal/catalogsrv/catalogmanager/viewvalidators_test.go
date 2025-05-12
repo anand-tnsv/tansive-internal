@@ -8,7 +8,7 @@ import (
 
 func TestResourceURIValidator(t *testing.T) {
 	validate := schemavalidator.V()
-	validate.RegisterValidation("resourceURI", resourceURIValidator)
+	validate.RegisterValidation("resourceURI", validateResourceURI)
 
 	tests := []struct {
 		input   string

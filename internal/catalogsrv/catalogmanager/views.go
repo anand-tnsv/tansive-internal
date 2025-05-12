@@ -444,7 +444,7 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 func (ruleSet ViewRuleSet) IsActionAllowed(action ViewRuleAction, resource string) bool {
 	allowMatch := false
 	// check if there is an admin match
-	if ruleSet.matchesAdmin(action, resource) {
+	if ruleSet.matchesAdmin(resource) {
 		allowMatch = true
 	}
 	// check if there is a match for the action
