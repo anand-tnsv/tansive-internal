@@ -183,67 +183,18 @@ func extractPrefixIfWildcard(path string) (string, bool) {
 	return path, false
 }
 
-// validateResourceSegments validates the basic structure of resource segments
-func validateResourceSegments(resource string) (map[string]resourceMetadataValue, error) {
-	if resource == "" {
-		return nil, fmt.Errorf("empty resource")
-	}
-
-	segments, err := extractSegments(resource)
-	if err != nil || len(segments) == 0 {
-		return nil, fmt.Errorf("invalid segments: %v", err)
-	}
-
-	metadata, err := extractMetadata(segments[0])
-	if err != nil {
-		return nil, fmt.Errorf("invalid metadata: %v", err)
-	}
-
-	return metadata, nil
-}
-
-// checkAdminMatch checks if the admin rule matches for a specific resource type
-func checkAdminMatch(resourceType string, m, resourceMetadata map[string]resourceMetadataValue) bool {
-	metaValue, exists := m[resourceType]
-	if !exists {
+func checkAdminMatch(resourceType string, ruleSegments []string) bool {
+	lenRule := len(ruleSegments)
+	if lenRule < 2 {
 		return false
 	}
-
-	resourceValue, exists := resourceMetadata[resourceType]
-	if !exists {
-		return false
+	if ruleSegments[lenRule-2] == resourceType {
+		return true
 	}
-
-	if metaValue.pos != resourceValue.pos {
-		return false
-	}
-
-	if metaValue.value != "*" && metaValue.value != resourceValue.value {
-		return false
-	}
-
-	expectedLen := map[string]int{
-		resourceTypeCatalog:   1,
-		resourceTypeVariant:   2,
-		resourceTypeWorkspace: 3,
-		resourceTypeNamespace: 3, // or 4 with workspace
-	}
-
-	if resourceType == resourceTypeNamespace {
-		if _, hasWorkspace := m["workspace"]; hasWorkspace {
-			expectedLen[resourceTypeNamespace] = 4
-		}
-	}
-
-	return len(m) == expectedLen[resourceType] && matchParentResource(resourceType, m, resourceMetadata)
+	return false
 }
 
 func (r ViewRuleSet) matchesAdmin(resource string) bool {
-	metadata, err := validateResourceSegments(resource)
-	if err != nil {
-		return false
-	}
-
 	for _, rule := range r {
 		if rule.Intent != IntentAllow {
 			continue
@@ -255,27 +206,25 @@ func (r ViewRuleSet) matchesAdmin(resource string) bool {
 		}
 
 		for _, res := range rule.Targets {
-			ruleSegments, err := extractSegments(string(res))
-			if err != nil || len(ruleSegments) != 1 {
+			ruleSegments := strings.Split(string(res), "/")
+			lenRule := len(ruleSegments)
+			if lenRule < 2 {
 				continue
 			}
-
-			m, err := extractMetadata(ruleSegments[0])
-			if err != nil {
-				continue
+			isMatch := false
+			if adminActions[ActionCatalogAdmin] && checkAdminMatch(resourceTypeCatalog, ruleSegments) {
+				isMatch = true
 			}
-
-			// Check each admin action type
-			if adminActions[ActionCatalogAdmin] && checkAdminMatch(resourceTypeCatalog, m, metadata) {
-				return true
+			if adminActions[ActionVariantAdmin] && checkAdminMatch(resourceTypeVariant, ruleSegments) {
+				isMatch = true
 			}
-			if adminActions[ActionVariantAdmin] && checkAdminMatch(resourceTypeVariant, m, metadata) {
-				return true
+			if adminActions[ActionWorkspaceAdmin] && checkAdminMatch(resourceTypeWorkspace, ruleSegments) {
+				isMatch = true
 			}
-			if adminActions[ActionWorkspaceAdmin] && checkAdminMatch(resourceTypeWorkspace, m, metadata) {
-				return true
+			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(resourceTypeNamespace, ruleSegments) {
+				isMatch = true
 			}
-			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(resourceTypeNamespace, m, metadata) {
+			if isMatch && res.matches(resource) {
 				return true
 			}
 		}
@@ -283,47 +232,35 @@ func (r ViewRuleSet) matchesAdmin(resource string) bool {
 	return false
 }
 
-func (r TargetResource) matches(actualRes TargetResource) bool {
-	ruleSegments, err := extractSegments(string(r))
-	if err != nil {
+func (r TargetResource) matches(actualRes string) bool {
+	ruleSegments := strings.Split(string(r), "/")
+	actualSegments := strings.Split(actualRes, "/")
+	ruleLen := len(ruleSegments)
+	actualLen := len(actualSegments)
+
+	if ruleLen > actualLen {
 		return false
 	}
-	actualSegments, err := extractSegments(string(actualRes))
-	if err != nil {
-		return false
-	}
-	if len(actualSegments) > 0 && len(ruleSegments) > 0 {
-		if !matchesMetadata(ruleSegments[0], actualSegments[0]) {
-			return false
-		}
-	}
-	if len(actualSegments) > 1 {
-		if len(ruleSegments) > 1 {
-			if !matchesResource(ruleSegments[1], actualSegments[1]) {
-				return false
-			}
-		} else {
+
+	if ruleLen < actualLen {
+		if ruleSegments[ruleLen-1] != "*" {
 			return false
 		}
 	}
 
-	return true
-}
-
-func matchesMetadata(ruleMeta, actualMeta string) bool {
-	ruleMetaSegments, err := extractMetadata(ruleMeta)
-	if err != nil {
-		return false
-	}
-	actualMetaSegments, err := extractMetadata(actualMeta)
-	if err != nil {
-		return false
-	}
-	for key, value := range actualMetaSegments {
-		if val, ok := ruleMetaSegments[key]; !ok || (val.value != "*" && val.value != value.value) || (val.pos != value.pos) {
+	for i := 0; i < ruleLen; i++ {
+		if i >= actualLen {
 			return false
 		}
+		if actualSegments[i] == "*" {
+			return false
+		}
+		if ruleSegments[i] == "*" || ruleSegments[i] == actualSegments[i] {
+			continue
+		}
+		return false
 	}
+
 	return true
 }
 
@@ -350,37 +287,6 @@ func extractMetadata(m string) (map[string]resourceMetadataValue, error) {
 		i++
 	}
 	return metadata, nil
-}
-
-// matchesResource checks if an actual resource matches a rule resource pattern.
-// It supports exact matches and wildcard patterns (ending with *).
-func matchesResource(ruleRes, actualRes string) bool {
-	if strings.HasSuffix(ruleRes, "*") {
-		prefix := strings.TrimSuffix(ruleRes, "*")
-		return strings.HasPrefix(actualRes, prefix)
-	}
-	return ruleRes == actualRes
-}
-
-func matchParentResource(resType string, ruleRes, actualRes map[string]resourceMetadataValue) bool {
-	switch resType {
-	case "catalog":
-		return ruleRes["catalog"].value == "*" || ruleRes["catalog"].value == actualRes["catalog"].value
-
-	case "variant":
-		return matchParentResource("catalog", ruleRes, actualRes) && (ruleRes["variant"].value == "*" || ruleRes["variant"].value == actualRes["variant"].value)
-
-	case "workspace":
-		return matchParentResource("variant", ruleRes, actualRes) && (ruleRes["workspace"].value == "*" || ruleRes["workspace"].value == actualRes["workspace"].value)
-
-	case "namespace":
-		if _, ok := actualRes["workspace"]; !ok {
-			return matchParentResource("variant", ruleRes, actualRes) && (ruleRes["namespace"].value == "*" || ruleRes["namespace"].value == actualRes["namespace"].value)
-		} else {
-			return matchParentResource("workspace", ruleRes, actualRes) && (ruleRes["namespace"].value == "*" || ruleRes["namespace"].value == actualRes["namespace"].value)
-		}
-	}
-	return false
 }
 
 func init() {

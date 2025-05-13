@@ -738,13 +738,13 @@ func TestIsActionAllowed(t *testing.T) {
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/namespace/test3/workspace/*",
+						"res://catalog/test1/variant/test2/workspace/*",
 					},
 				},
 			},
 			action:         ActionNamespaceList,
-			resource:       "res://catalog/test1/variant/test2/namespace/test3/workspace/test4",
-			expectedResult: false,
+			resource:       "res://catalog/test1/variant/test2/workspace/test4/namespace/test3",
+			expectedResult: true,
 		},
 		{
 			name: "allow workspace with admin action",
@@ -773,7 +773,7 @@ func TestIsActionAllowed(t *testing.T) {
 				},
 			},
 			action:         ActionNamespaceList,
-			resource:       "res://catalog/test1/variant/test2/namespace/test3/workspace/test4",
+			resource:       "res://catalog/test1/variant/test3/workspace/test4",
 			expectedResult: false,
 		},
 		{
@@ -946,7 +946,7 @@ func TestIsActionAllowed(t *testing.T) {
 			expectedResult: false,
 		},
 		{
-			name: "ambiguous match",
+			name: "mismatched action",
 			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
@@ -957,6 +957,109 @@ func TestIsActionAllowed(t *testing.T) {
 			action:         ActionCatalogList,
 			resource:       "res://catalog/test2",
 			expectedResult: true,
+		},
+		{
+			name: "varying length of resource",
+			rules: ViewRuleSet{
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/my-namespace/collectionschemas/some-schema",
+						"res://catalog/test2"},
+				},
+			},
+			action:         ActionCatalogList,
+			resource:       "res://catalog/my-catalog/variant/*/namespace/my-namespace",
+			expectedResult: false,
+		},
+		{
+			name: "varying length of resource",
+			rules: ViewRuleSet{
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/my-namespace/collectionschemas/some-schema",
+						"res://catalog/test2"},
+				},
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/my-namespace"},
+				},
+			},
+			action:         ActionCatalogList,
+			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace",
+			expectedResult: true,
+		},
+		{
+			name: "varying length of resource2",
+			rules: ViewRuleSet{
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/my-namespace",
+						"res://catalog/test2"},
+				},
+			},
+			action:         ActionCatalogList,
+			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			expectedResult: false,
+		},
+		{
+			name: "varying length of resource3",
+			rules: ViewRuleSet{
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceList},
+					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/*",
+						"res://catalog/test2"},
+				},
+			},
+			action:         ActionCatalogList,
+			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			expectedResult: false,
+		},
+		{
+			name: "varying length of resource3",
+			rules: ViewRuleSet{
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/*",
+						"res://catalog/test2"},
+				},
+			},
+			action:         ActionCatalogList,
+			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			expectedResult: true,
+		},
+		{
+			name: "varying length of resource3",
+			rules: ViewRuleSet{
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/*",
+						"res://catalog/test2"},
+				},
+			},
+			action:         ActionCatalogList,
+			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			expectedResult: true,
+		},
+		{
+			name: "varying length of resource3",
+			rules: ViewRuleSet{
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionVariantAdmin},
+					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/*",
+						"res://catalog/test2"},
+				},
+			},
+			action:         ActionCatalogList,
+			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			expectedResult: false,
 		},
 	}
 

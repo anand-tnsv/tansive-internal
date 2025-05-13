@@ -256,7 +256,6 @@ func removeDuplicates[T comparable](slice []T) []T {
 	// Pre-allocate the result slice with the maximum possible size
 	unique := make([]T, 0, len(slice))
 
-	// Use struct{} instead of bool for minimal memory usage
 	for _, v := range slice {
 		if _, exists := seen[v]; !exists {
 			seen[v] = struct{}{}
@@ -490,7 +489,7 @@ func (ruleSet ViewRuleSet) IsActionAllowed(action Action, resource string) bool 
 	for _, rule := range ruleSet {
 		if slices.Contains(rule.Actions, action) {
 			for _, res := range rule.Targets {
-				if res.matches(TargetResource(resource)) {
+				if res.matches(resource) {
 					if rule.Intent == IntentAllow {
 						allowMatch = true
 					} else if rule.Intent == IntentDeny {
