@@ -91,6 +91,8 @@ func extractSegmentsAndResourceName(s string) ([]string, string, error) {
 			break
 		}
 		if strings.HasPrefix(parts[0], separator) {
+			parts[0] = strings.TrimPrefix(parts[0], separator)
+			parts[0] = strings.TrimPrefix(parts[0], "/")
 			parts = []string{"", parts[0]}
 			resourceName = separator
 			break

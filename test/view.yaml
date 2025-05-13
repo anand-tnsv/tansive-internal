@@ -5,9 +5,12 @@ metadata:
   catalog: test-catalog
   description: Should not fail
 spec:
-  rules:
-    - intent: Allow
-      actions:
-        - "variant.list"
-      targets:
-        - res://catalog/test-catalog/variant/test-variant
+  definition:
+    scope:
+      catalog: test-catalog
+    rules:
+      - intent: Allow
+        actions:
+          - "variant.list"
+        targets:
+          - res:///variant/test-variant

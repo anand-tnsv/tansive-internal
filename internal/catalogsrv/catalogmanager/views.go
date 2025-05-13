@@ -506,8 +506,17 @@ func (ruleSet ViewRuleSet) IsActionAllowed(action Action, resource string) bool 
 }
 
 func morphResource(scope ViewScope, resource string) string {
-	resource = strings.TrimPrefix(resource, "res://")
-	resourceKV := extractKV(resource)
+	segments, resourceName, err := extractSegmentsAndResourceName(resource)
+	if err != nil && len(resource) > 0 {
+		return ""
+	}
+
+	var metadata string
+	if len(segments) > 0 {
+		metadata = segments[0]
+	}
+
+	resourceKV := extractKV(metadata)
 
 	var morphedMetadata = make(map[string]resourceMetadataValue)
 
@@ -528,6 +537,8 @@ func morphResource(scope ViewScope, resource string) string {
 		s.WriteString("/" + resourceTypeNamespace + "/" + morphedMetadata[resourceTypeNamespace].value)
 	}
 
+	// write remaining segments in metadata in sorted order. Usually this will end up as erroneous segments
+	// but, this will be caught by the validator and result in a meaningful error message.
 	type kv struct {
 		key   string
 		value resourceMetadataValue
@@ -548,6 +559,15 @@ func morphResource(scope ViewScope, resource string) string {
 		} else {
 			s.WriteString("/" + v.key + "/" + v.value.value)
 		}
+	}
+
+	if resourceName != "" {
+		resourceName = strings.TrimPrefix(resourceName, "/")
+		s.WriteString("/" + resourceName)
+	}
+	if len(segments) > 1 {
+		segments[1] = strings.TrimPrefix(segments[1], "/")
+		s.WriteString("/" + segments[1])
 	}
 
 	return "res://" + s.String()
