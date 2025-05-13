@@ -48,6 +48,16 @@ const (
 	ResourceNameViews             = "views"
 )
 
+func ResourceURIs() []string {
+	return []string{
+		ResourceNameParameterSchemas,
+		ResourceNameCollectionSchemas,
+		ResourceNameCollections,
+		ResourceNameAttributes,
+		ResourceNameViews,
+	}
+}
+
 func Kind(t CatalogObjectType) string {
 	switch t {
 	case CatalogObjectTypeParameterSchema:

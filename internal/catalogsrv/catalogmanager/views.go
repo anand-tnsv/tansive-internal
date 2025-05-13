@@ -6,6 +6,7 @@ import (
 	"errors"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -80,27 +81,27 @@ const (
 	ActionWorkspaceCreate   Action = "workspace.create"
 )
 
-type AccessRule struct {
+type ViewRule struct {
 	Intent  Intent           `json:"intent" validate:"required,viewRuleIntentValidator"`
 	Actions []Action         `json:"actions" validate:"required,dive,viewRuleActionValidator"`
-	Targets []TargetResource `json:"targets" validate:"required,dive,resourceURIValidator"`
+	Targets []TargetResource `json:"targets" validate:"-"`
 }
 
 type TargetResource string
-type AccessRuleSet []AccessRule
-
-// RulesFromJSON unmarshals a ViewRuleSet from a JSON byte slice.
-func RulesFromJSON(data []byte) (AccessRuleSet, apperrors.Error) {
-	var rules AccessRuleSet
-	err := json.Unmarshal(data, &rules)
-	if err != nil {
-		return nil, ErrInvalidView.New("invalid ruleset")
-	}
-	return rules, nil
+type ViewRuleSet []ViewRule
+type ViewScope struct {
+	Catalog   string `json:"catalog" validate:"required,resourceNameValidator"`
+	Variant   string `json:"variant,omitempty" validate:"omitempty,resourceNameValidator"`
+	Workspace string `json:"workspace,omitempty" validate:"omitempty,workspaceNameValidator"`
+	Namespace string `json:"namespace,omitempty" validate:"omitempty,resourceNameValidator"`
+}
+type ViewDefinition struct {
+	Scope ViewScope   `json:"scope" validate:"required"`
+	Rules ViewRuleSet `json:"rules" validate:"required,dive"`
 }
 
 // ToJSON converts a ViewRuleSet to a JSON byte slice.
-func (v AccessRuleSet) ToJSON() ([]byte, error) {
+func (v ViewDefinition) ToJSON() ([]byte, error) {
 	return json.Marshal(v)
 }
 
@@ -121,7 +122,7 @@ type viewMetadata struct {
 
 // viewSpec contains the spec of a view
 type viewSpec struct {
-	Rules AccessRuleSet `json:"rules" validate:"required,dive"`
+	Definition ViewDefinition `json:"definition" validate:"required"`
 }
 
 // Validate performs validation on the view schema and returns any validation errors.
@@ -133,8 +134,22 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 	err := schemavalidator.V().Struct(v)
 	if err == nil {
 		// Check for empty rules after struct validation
-		if len(v.Spec.Rules) == 0 {
+		if len(v.Spec.Definition.Rules) == 0 {
 			validationErrors = append(validationErrors, schemaerr.ErrMissingRequiredAttribute("spec.rules"))
+		}
+		for _, rule := range v.Spec.Definition.Rules {
+			if len(rule.Targets) == 0 {
+				m := morphResource(v.Spec.Definition.Scope, "")
+				if m == "" || schemavalidator.V().Var(m, "resourceURIValidator") != nil {
+					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI("null"))
+				}
+			}
+			for _, res := range rule.Targets {
+				m := morphResource(v.Spec.Definition.Scope, string(res))
+				if m == "" || schemavalidator.V().Var(m, "resourceURIValidator") != nil {
+					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI(string(res)))
+				}
+			}
 		}
 		return validationErrors
 	}
@@ -215,7 +230,7 @@ func resolveCatalogID(ctx context.Context, catalogName string) (uuid.UUID, apper
 
 // createViewModel creates a view model from a view schema and catalog ID.
 func createViewModel(view *viewSchema, catalogID uuid.UUID) (*models.View, apperrors.Error) {
-	rulesJSON, err := view.Spec.Rules.ToJSON()
+	rulesJSON, err := view.Spec.Definition.ToJSON()
 	if err != nil {
 		return nil, ErrInvalidView.New("failed to marshal rules: " + err.Error())
 	}
@@ -259,14 +274,14 @@ func removeDuplicates[T comparable](slice []T) []T {
 
 // deduplicateRules removes duplicates from both actions and resources in a ViewRuleSet.
 // It returns a new ViewRuleSet with duplicates removed.
-func deduplicateRules(rules AccessRuleSet) AccessRuleSet {
+func deduplicateRules(rules ViewRuleSet) ViewRuleSet {
 	if len(rules) == 0 {
 		return rules
 	}
 
-	result := make(AccessRuleSet, len(rules))
+	result := make(ViewRuleSet, len(rules))
 	for i, rule := range rules {
-		result[i] = AccessRule{
+		result[i] = ViewRule{
 			Intent:  rule.Intent,
 			Actions: removeDuplicates(rule.Actions),
 			Targets: removeDuplicates(rule.Targets),
@@ -288,7 +303,7 @@ func CreateView(ctx context.Context, resourceJSON []byte, catalog string) (*mode
 	}
 
 	// Remove duplicates from rules
-	view.Spec.Rules = deduplicateRules(view.Spec.Rules)
+	view.Spec.Definition.Rules = deduplicateRules(view.Spec.Definition.Rules)
 
 	catalogID, err := resolveCatalogID(ctx, view.Metadata.Catalog)
 	if err != nil {
@@ -324,7 +339,7 @@ func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catal
 	}
 
 	// Remove duplicates from rules
-	view.Spec.Rules = deduplicateRules(view.Spec.Rules)
+	view.Spec.Definition.Rules = deduplicateRules(view.Spec.Definition.Rules)
 
 	catalogID, err := resolveCatalogID(ctx, view.Metadata.Catalog)
 	if err != nil {
@@ -401,12 +416,12 @@ func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	}
 
 	// Parse the rules from the view model
-	var rules AccessRuleSet
-	if err := json.Unmarshal(view.Rules, &rules); err != nil {
+	var definition ViewDefinition
+	if err := json.Unmarshal(view.Rules, &definition); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal view rules")
 		return nil, ErrUnableToLoadObject.Msg("unable to unmarshal view rules")
 	}
-	viewSchema.Spec.Rules = rules
+	viewSchema.Spec.Definition = definition
 
 	jsonData, e := json.Marshal(viewSchema)
 	if e != nil {
@@ -465,7 +480,7 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 
 // IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
 // It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet AccessRuleSet) IsActionAllowed(action Action, resource string) bool {
+func (ruleSet ViewRuleSet) IsActionAllowed(action Action, resource string) bool {
 	allowMatch := false
 	// check if there is an admin match
 	if ruleSet.matchesAdmin(resource) {
@@ -486,4 +501,61 @@ func (ruleSet AccessRuleSet) IsActionAllowed(action Action, resource string) boo
 		}
 	}
 	return allowMatch
+}
+
+func morphResource(scope ViewScope, resource string) string {
+	segments, resourceName, err := extractSegmentsAndResourceName(resource)
+	if err != nil && resource != "" {
+		return resource
+	}
+
+	resourceMetadata := make(map[string]resourceMetadataValue)
+	if len(segments) > 0 && segments[0] != "" {
+		resourceMetadata, err = extractMetadata(segments[0])
+		if err != nil {
+			return resource
+		}
+	}
+
+	var morphedMetadata = make(map[string]resourceMetadataValue)
+
+	morphedMetadata[resourceTypeCatalog] = morphMetadata(scope.Catalog, 0, resourceTypeCatalog, resourceMetadata)
+	morphedMetadata[resourceTypeVariant] = morphMetadata(scope.Variant, 1, resourceTypeVariant, resourceMetadata)
+	morphedMetadata[resourceTypeWorkspace] = morphMetadata(scope.Workspace, 2, resourceTypeWorkspace, resourceMetadata)
+	morphedMetadata[resourceTypeNamespace] = morphMetadata(scope.Namespace, 3, resourceTypeNamespace, resourceMetadata)
+
+	s := strings.Builder{}
+	s.WriteString("catalog/" + morphedMetadata[resourceTypeCatalog].value)
+	if morphedMetadata[resourceTypeVariant].value != "" {
+		s.WriteString("/variant/" + morphedMetadata[resourceTypeVariant].value)
+	}
+	if morphedMetadata[resourceTypeWorkspace].value != "" {
+		s.WriteString("/workspace/" + morphedMetadata[resourceTypeWorkspace].value)
+	}
+	if morphedMetadata[resourceTypeNamespace].value != "" {
+		s.WriteString("/namespace/" + morphedMetadata[resourceTypeNamespace].value)
+	}
+
+	if len(segments) > 1 {
+		if segments[0] != "" {
+			s.WriteString("/" + resourceName + segments[1])
+		} else {
+			s.WriteString(segments[1])
+		}
+	}
+
+	return "res://" + s.String()
+}
+
+func morphMetadata(scopeName string, pos int, resourceType string, resourceMetadata map[string]resourceMetadataValue) resourceMetadataValue {
+	m := resourceMetadataValue{}
+	m.pos = pos
+	if scopeName == "" {
+		if v, ok := resourceMetadata[resourceType]; ok {
+			m.value = v.value
+		}
+	} else {
+		m.value = scopeName
+	}
+	return m
 }

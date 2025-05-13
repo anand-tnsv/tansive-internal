@@ -95,11 +95,16 @@ func TestViewCrud(t *testing.T) {
 				"description": "This is a valid view"
 			},
 			"spec": {
-				"rules": [{
-					"intent": "Allow",
-					"actions": ["catalog.list"],
-					"targets": ["res://catalog/valid-catalog", "res://catalog/valid-catalog/variant/valid-variant"]
-				}]
+				"definition": {
+					"scope": {
+						"catalog": "valid-catalog"
+					},
+					"rules": [{
+						"intent": "Allow",
+						"actions": ["catalog.list"],
+						"targets": ["res://catalog/valid-catalog", "res://catalog/valid-catalog/variant/valid-variant"]
+					}]
+				}
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
@@ -140,11 +145,16 @@ func TestViewCrud(t *testing.T) {
 				"description": "This is a new description"
 			},
 			"spec": {
-				"rules": [{
-					"intent": "Allow",
-					"actions": ["catalog.list"],
-					"targets": ["res://catalog/valid-catalog", "res://catalog/valid-catalog/variant/valid-variant"]
-				}]
+				"definition": {
+					"scope": {
+						"catalog": "valid-catalog"
+					},
+					"rules": [{
+						"intent": "Allow",
+						"actions": ["catalog.list"],
+						"targets": ["res://catalog/valid-catalog", "res://catalog/valid-catalog/variant/valid-variant"]
+					}]
+				}
 			}
 		}`
 	httpReq, _ = http.NewRequest("PUT", "/views/valid-view", nil)

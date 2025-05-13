@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
+	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // Constants for resource types
@@ -69,13 +70,35 @@ func validateResourceURI(fl validator.FieldLevel) bool {
 }
 
 func extractSegments(s string) ([]string, error) {
+	segments, _, err := extractSegmentsAndResourceName(s)
+	return segments, err
+}
+
+func extractSegmentsAndResourceName(s string) ([]string, string, error) {
 	const prefix = "res://"
 	if !strings.HasPrefix(s, prefix) {
-		return nil, fmt.Errorf("invalid resource string: missing %s prefix", prefix)
+		return nil, "", fmt.Errorf("invalid resource string: missing %s prefix", prefix)
 	}
 
+	separators := types.ResourceURIs()
+	separators = append(separators, "resource")
+
 	rest := strings.TrimPrefix(s, prefix)
-	parts := strings.SplitN(rest, "/resource/", 2)
+	var parts = []string{rest}
+	resourceName := ""
+	for _, separator := range separators {
+		parts = strings.SplitN(rest, "/"+separator+"/", 2)
+		if len(parts) == 2 {
+			resourceName = separator
+			break
+		}
+		if strings.HasPrefix(parts[0], separator) {
+			parts = []string{"", parts[0]}
+			resourceName = separator
+			break
+		}
+	}
+
 	segments := []string{}
 
 	segments = append(segments, parts[0])
@@ -87,7 +110,8 @@ func extractSegments(s string) ([]string, error) {
 		segments = append(segments, parts[1])
 	}
 
-	return segments, nil
+	return segments, resourceName, nil
+
 }
 
 func isValidStructuredPath(path string) error {
@@ -214,7 +238,7 @@ func checkAdminMatch(resourceType string, m, resourceMetadata map[string]resourc
 	return len(m) == expectedLen[resourceType] && matchParentResource(resourceType, m, resourceMetadata)
 }
 
-func (r AccessRuleSet) matchesAdmin(resource string) bool {
+func (r ViewRuleSet) matchesAdmin(resource string) bool {
 	metadata, err := validateResourceSegments(resource)
 	if err != nil {
 		return false

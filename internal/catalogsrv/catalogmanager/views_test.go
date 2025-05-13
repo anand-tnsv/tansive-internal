@@ -25,228 +25,344 @@ func TestCreateView(t *testing.T) {
 		{
 			name: "valid view",
 			jsonData: `
-{
-    "version": "v1", 
-    "kind": "View",
-    "metadata": {
-        "name": "valid-view",
-        "catalog": "validcatalog",
-        "description": "This is a valid view"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["catalog.list"],
-            "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
-        }]
-    }
-}`,
+		{
+		    "version": "v1",
+		    "kind": "View",
+		    "metadata": {
+		        "name": "valid-view",
+		        "catalog": "validcatalog",
+		        "description": "This is a valid view"
+		    },
+		    "spec": {
+		        "definition": {
+		            "scope": {
+		                "catalog": "validcatalog"
+		            },
+		            "rules": [{
+		                "intent": "Allow",
+		                "actions": ["catalog.list"],
+		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+		            }]
+		        }
+		    }
+		}`,
 			expected: nil,
 		},
 		{
 			name: "empty rules",
 			jsonData: `
-{
-    "version": "v1",
-    "kind": "View",
-    "metadata": {
-        "name": "empty-rules-view",
-        "catalog": "validcatalog",
-        "description": "View with empty rules"
-    },
-    "spec": {
-        "rules": []
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "empty-rules-view",
+				        "catalog": "validcatalog",
+				        "description": "View with empty rules"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": []
+				        }
+				    }
+				}`,
 			expected: ErrInvalidSchema,
 		},
 		{
 			name: "invalid version",
 			jsonData: `
-{
-    "version": "v2",
-    "kind": "View",
-    "metadata": {
-        "name": "invalid-version-view",
-        "catalog": "validcatalog",
-        "description": "Invalid version in view"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["catalog.list"],
-            "targets": ["res://catalog/validcatalog"]
-        }]
-    }
-}`,
+				{
+				    "version": "v2",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "invalid-version-view",
+				        "catalog": "validcatalog",
+				        "description": "Invalid version in view"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Allow",
+				                "actions": ["catalog.list"],
+				                "targets": ["res://catalog/validcatalog"]
+				            }]
+				        }
+				    }
+				}`,
 			expected: ErrInvalidSchema,
 		},
 		{
 			name: "invalid kind",
 			jsonData: `
-{
-    "version": "v1",
-    "kind": "InvalidKind",
-    "metadata": {
-        "name": "invalid-kind-view",
-        "catalog": "validcatalog",
-        "description": "Invalid kind in view"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["catalog.list"],
-            "targets": ["res://catalog/validcatalog"]
-        }]
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "InvalidKind",
+				    "metadata": {
+				        "name": "invalid-kind-view",
+				        "catalog": "validcatalog",
+				        "description": "Invalid kind in view"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Allow",
+				                "actions": ["catalog.list"],
+				                "targets": ["res://catalog/validcatalog"]
+				            }]
+				        }
+				    }
+				}`,
 			expected: ErrInvalidSchema,
 		},
 		{
 			name: "invalid name format",
 			jsonData: `
-{
-    "version": "v1",
-    "kind": "View",
-    "metadata": {
-        "name": "invalid name format",
-        "catalog": "validcatalog",
-        "description": "Invalid name format in view"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["catalog.list"],
-            "targets": ["res://catalog/validcatalog"]
-        }]
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "invalid name format",
+				        "catalog": "validcatalog",
+				        "description": "Invalid name format in view"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Allow",
+				                "actions": ["catalog.list"],
+				                "targets": ["res://catalog/validcatalog"]
+				            }]
+				        }
+				    }
+				}`,
 			expected: ErrInvalidSchema,
 		},
 		{
 			name: "invalid rule effect",
 			jsonData: `
-{
-    "version": "v1",
-    "kind": "View",
-    "metadata": {
-        "name": "invalid-rule-effect",
-        "catalog": "validcatalog",
-        "description": "Invalid rule effect in view"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Invalid",
-            "actions": ["catalog.list"],
-            "targets": ["res://catalog/validcatalog"]
-        }]
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "invalid-rule-effect",
+				        "catalog": "validcatalog",
+				        "description": "Invalid rule effect in view"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Invalid",
+				                "actions": ["catalog.list"],
+				                "targets": ["res://catalog/validcatalog"]
+				            }]
+				        }
+				    }
+				}`,
 			expected: ErrInvalidSchema,
 		},
 		{
 			name: "invalid rule action",
 			jsonData: `
-{
-    "version": "v1",
-    "kind": "View",
-    "metadata": {
-        "name": "invalid-rule-action",
-        "catalog": "validcatalog",
-        "description": "Invalid rule action in view"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["Invalid"],
-            "targets": ["res://catalog/validcatalog"]
-        }]
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "invalid-rule-action",
+				        "catalog": "validcatalog",
+				        "description": "Invalid rule action in view"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Allow",
+				                "actions": ["Invalid"],
+				                "targets": ["res://catalog/validcatalog"]
+				            }]
+				        }
+				    }
+				}`,
 			expected: ErrInvalidSchema,
 		},
 		{
 			name: "invalid resource URI",
 			jsonData: `
-{
-    "version": "v1",
-    "kind": "View",
-    "metadata": {
-        "name": "invalid-resource-uri",
-        "catalog": "validcatalog",
-        "description": "Invalid resource URI in view"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["catalog.list"],
-            "targets": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
-        }]
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "invalid-resource-uri",
+				        "catalog": "validcatalog",
+				        "description": "Invalid resource URI in view"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Allow",
+				                "actions": ["catalog.list"],
+				                "targets": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
+				            }]
+				        }
+				    }
+				}`,
 			expected: ErrInvalidSchema,
 		},
 		{
 			name: "valid view with multiple actions",
 			jsonData: `
-{
-    "version": "v1", 
-    "kind": "View",
-    "metadata": {
-        "name": "valid-view-multi-action",
-        "catalog": "validcatalog",
-        "description": "This is a valid view with multiple actions"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["catalog.list", "variant.list", "namespace.list"],
-            "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
-        }]
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "valid-view-multi-action",
+				        "catalog": "validcatalog",
+				        "description": "This is a valid view with multiple actions"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Allow",
+				                "actions": ["catalog.list", "variant.list", "namespace.list"],
+				                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+				            }]
+				        }
+				    }
+				}`,
 			expected: nil,
 		},
 		{
 			name: "invalid rule action with mixed valid and invalid",
 			jsonData: `
-{
-    "version": "v1",
-    "kind": "View",
-    "metadata": {
-        "name": "invalid-mixed-actions",
-        "catalog": "validcatalog",
-        "description": "View with mixed valid and invalid actions"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["catalog.list", "InvalidAction", "variant.list"],
-            "targets": ["res://catalog/validcatalog"]
-        }]
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "invalid-mixed-actions",
+				        "catalog": "validcatalog",
+				        "description": "View with mixed valid and invalid actions"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Allow",
+				                "actions": ["catalog.list", "InvalidAction", "variant.list"],
+				                "targets": ["res://catalog/validcatalog"]
+				            }]
+				        }
+				    }
+				}`,
 			expected: ErrInvalidSchema,
 		},
 		{
 			name: "deduplication of actions and resources",
 			jsonData: `
-{
-    "version": "v1",
-    "kind": "View",
-    "metadata": {
-        "name": "dedup-test-view",
-        "catalog": "validcatalog",
-        "description": "Test view for deduplication"
-    },
-    "spec": {
-        "rules": [{
-            "intent": "Allow",
-            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-            "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
-        }]
-    }
-}`,
+				{
+				    "version": "v1",
+				    "kind": "View",
+				    "metadata": {
+				        "name": "dedup-test-view",
+				        "catalog": "validcatalog",
+				        "description": "Test view for deduplication"
+				    },
+				    "spec": {
+				        "definition": {
+				            "scope": {
+				                "catalog": "validcatalog"
+				            },
+				            "rules": [{
+				                "intent": "Allow",
+				                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+				                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
+				            }]
+				        }
+				    }
+				}`,
+			expected: nil,
+		},
+		{
+			name: "test with scopes",
+			jsonData: `
+		{
+		    "version": "v1",
+		    "kind": "View",
+		    "metadata": {
+		        "name": "scope-override-test",
+		        "catalog": "validcatalog",
+		        "description": "Test view for deduplication"
+		    },
+		    "spec": {
+		        "definition": {
+		            "scope": {
+		                "catalog": "validcatalog1",
+						"variant": "validvariant1",
+						"namespace": "validnamespace1"
+		            },
+		            "rules": [{
+		                "intent": "Allow",
+		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant/workspace/my-workspace"]
+		            }]
+		        }
+		    }
+		}`,
+			expected: nil,
+		},
+		{
+			name: "test with resource URI",
+			jsonData: `
+		{
+		    "version": "v1",
+		    "kind": "View",
+		    "metadata": {
+		        "name": "test-with-resource-uri",
+		        "catalog": "validcatalog",
+		        "description": "Test view for deduplication"
+		    },
+		    "spec": {
+		        "definition": {
+		            "scope": {
+		                "catalog": "validcatalog1",
+						"variant": "validvariant1",
+						"namespace": "validnamespace1"
+		            },
+		            "rules": [{
+		                "intent": "Allow",
+		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		                "targets": ["res://collectionschemas/my-collection", "res://namespaces/*/collections/a/b/c/d"]
+		            },
+					{
+		                "intent": "Allow",
+		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		                "targets": []
+		            }]
+		        }
+		    }
+		}`,
 			expected: nil,
 		},
 	}
@@ -331,13 +447,18 @@ func TestUpdateView(t *testing.T) {
 			"description": "Initial description"
 		},
 		"spec": {
-			"rules": [
-				{
-					"intent": "Allow",
-					"actions": ["catalog.list"],
-					"targets": ["res://catalog/test-catalog"]
-				}
-			]
+			"definition": {
+				"scope": {
+					"catalog": "test-catalog"
+				},
+				"rules": [
+					{
+						"intent": "Allow",
+						"actions": ["catalog.list"],
+						"targets": ["res://catalog/test-catalog"]
+					}
+				]
+			}
 		}
 	}`
 
@@ -354,13 +475,18 @@ func TestUpdateView(t *testing.T) {
 			"description": "Updated description"
 		},
 		"spec": {
-			"rules": [
-				{
-					"intent": "Allow",
-					"actions": ["catalog.list", "variant.list", "namespace.list"],
-					"targets": ["res://catalog/test-catalog"]
-				}
-			]
+			"definition": {
+				"scope": {
+					"catalog": "test-catalog"
+				},
+				"rules": [
+					{
+						"intent": "Allow",
+						"actions": ["catalog.list", "variant.list", "namespace.list"],
+						"targets": ["res://catalog/test-catalog"]
+					}
+				]
+			}
 		}
 	}`
 
@@ -382,11 +508,16 @@ func TestUpdateView(t *testing.T) {
 			"description": "Should fail"
 		},
 		"spec": {
-			"rules": [{
-					"intent": "Allow",
-					"actions": ["variant.list"],
-					"targets": ["res://catalog/test-catalog"]
-				}]
+			"definition": {
+				"scope": {
+					"catalog": "test-catalog"
+				},
+				"rules": [{
+						"intent": "Allow",
+						"actions": ["variant.list"],
+						"targets": ["res://catalog/test-catalog"]
+					}]
+			}
 		}
 	}`
 
@@ -404,7 +535,12 @@ func TestUpdateView(t *testing.T) {
 			"description": "Should fail"
 		},
 		"spec": {
-			"rules": []
+			"definition": {
+				"scope": {
+					"catalog": "non-existent-catalog"
+				},
+				"rules": []
+			}
 		}
 	}`
 
@@ -425,13 +561,18 @@ func TestUpdateView(t *testing.T) {
 			"catalog": "test-catalog"
 		},
 		"spec": {
-			"rules": [
-				{
-					"intent": "InvalidEffect",
-					"actions": ["catalog.list"],
-					"targets": ["test/resource"]
-				}
-			]
+			"definition": {
+				"scope": {
+					"catalog": "test-catalog"
+				},
+				"rules": [
+					{
+						"intent": "InvalidEffect",
+						"actions": ["catalog.list"],
+						"targets": ["res://catalog/test-catalog"]
+					}
+				]
+			}
 		}
 	}`
 
@@ -449,13 +590,18 @@ func TestUpdateView(t *testing.T) {
 			"description": "Updated description with duplicates"
 		},
 		"spec": {
-			"rules": [
-				{
-					"intent": "Allow",
-					"actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
-					"targets": ["res://catalog/test-catalog", "res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"]
-				}
-			]
+			"definition": {
+				"scope": {
+					"catalog": "test-catalog"
+				},
+				"rules": [
+					{
+						"intent": "Allow",
+						"actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
+						"targets": ["res://catalog/test-catalog", "res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"]
+					}
+				]
+			}
 		}
 	}`
 
@@ -466,27 +612,27 @@ func TestUpdateView(t *testing.T) {
 	retrieved, err = db.DB(ctx).GetViewByLabel(ctx, "test-view", catalogID)
 	require.NoError(t, err)
 
-	var rules AccessRuleSet
-	jsonErr := json.Unmarshal(retrieved.Rules, &rules)
+	var definition ViewDefinition
+	jsonErr := json.Unmarshal(retrieved.Rules, &definition)
 	require.NoError(t, jsonErr)
 
 	// Check that duplicates were removed
-	assert.Equal(t, 1, len(rules))
-	assert.Equal(t, 3, len(rules[0].Actions)) // Should have catalog.list, variant.list, namespace.list
-	assert.Equal(t, 2, len(rules[0].Targets)) // Should have two unique resources
+	assert.Equal(t, 1, len(definition.Rules))
+	assert.Equal(t, 3, len(definition.Rules[0].Actions)) // Should have catalog.list, variant.list, namespace.list
+	assert.Equal(t, 2, len(definition.Rules[0].Targets)) // Should have two unique resources
 
 	// Verify the order and content of deduplicated arrays
 	expectedOperations := []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList}
-	assert.ElementsMatch(t, expectedOperations, rules[0].Actions)
+	assert.ElementsMatch(t, expectedOperations, definition.Rules[0].Actions)
 
 	expectedTargets := []TargetResource{"res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"}
-	assert.ElementsMatch(t, expectedTargets, rules[0].Targets)
+	assert.ElementsMatch(t, expectedTargets, definition.Rules[0].Targets)
 }
 
 func TestIsActionAllowed(t *testing.T) {
 	tests := []struct {
 		name           string
-		rules          AccessRuleSet
+		rules          ViewRuleSet
 		action         Action
 		resource       string
 		expectedResult bool
@@ -494,7 +640,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "admin action",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
@@ -507,7 +653,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "admin action with specific resource",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
@@ -521,7 +667,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "incorrectadmin action with specific resource",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
@@ -534,7 +680,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "incorrectadmin action with specific resource",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
@@ -550,7 +696,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow namespace with admin action",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
@@ -565,7 +711,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow namespace with admin action and deny rule",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
@@ -587,7 +733,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
@@ -602,7 +748,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
@@ -617,7 +763,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
@@ -632,7 +778,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
@@ -655,7 +801,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "simple allow rule",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -669,7 +815,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "simple deny rule",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentDeny,
 					Actions: []Action{ActionCatalogList},
@@ -683,7 +829,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "deny overrides allow",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -702,7 +848,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "wildcard resource matching",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -716,7 +862,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "multiple actions in rule",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -729,7 +875,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "action not in rule",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -743,7 +889,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "resource not in rule",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -757,7 +903,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "multiple rules with different resources",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -776,7 +922,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "wildcard resource with deny rule",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -794,14 +940,14 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name:           "empty ruleset",
-			rules:          AccessRuleSet{},
+			rules:          ViewRuleSet{},
 			action:         ActionCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
 		},
 		{
 			name: "ambiguous match",
-			rules: AccessRuleSet{
+			rules: ViewRuleSet{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},

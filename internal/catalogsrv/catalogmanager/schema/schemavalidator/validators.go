@@ -125,6 +125,15 @@ func catalogVersionValidator(fl validator.FieldLevel) bool {
 	return false
 }
 
+func workspaceNameValidator(fl validator.FieldLevel) bool {
+	name := fl.Field().String()
+	_, err := uuid.Parse(name)
+	if err == nil {
+		return true
+	}
+	return resourceNameValidator(fl)
+}
+
 func requireVersionV1(fl validator.FieldLevel) bool {
 	version := fl.Field().String()
 	return version == types.VersionV1
@@ -148,4 +157,5 @@ func init() {
 	V().RegisterValidation("catalogVersionValidator", catalogVersionValidator)
 	V().RegisterValidation("notNull", notNull)
 	V().RegisterValidation("requireVersionV1", requireVersionV1)
+	V().RegisterValidation("workspaceNameValidator", workspaceNameValidator)
 }
