@@ -6,11 +6,8 @@ metadata:
   description: Should not fail
 spec:
   rules:
-    - Effect: Allow
-      Action:
-        - Write
-        - Execute
-        - Read
-        - Execute
-      Resource:
+    - intent: Allow
+      actions:
+        - "variant.list"
+      targets:
         - res://catalog/test-catalog/variant/test-variant

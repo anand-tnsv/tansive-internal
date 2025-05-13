@@ -35,9 +35,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["catalog.list"],
-            "Target": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+            "intent": "Allow",
+            "actions": ["catalog.list"],
+            "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
         }]
     }
 }`,
@@ -73,9 +73,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["catalog.list"],
-            "Target": ["res://catalog/validcatalog"]
+            "intent": "Allow",
+            "actions": ["catalog.list"],
+            "targets": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -94,9 +94,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["catalog.list"],
-            "Target": ["res://catalog/validcatalog"]
+            "intent": "Allow",
+            "actions": ["catalog.list"],
+            "targets": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -115,9 +115,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["catalog.list"],
-            "Target": ["res://catalog/validcatalog"]
+            "intent": "Allow",
+            "actions": ["catalog.list"],
+            "targets": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -136,9 +136,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Invalid",
-            "Operation": ["catalog.list"],
-            "Target": ["res://catalog/validcatalog"]
+            "intent": "Invalid",
+            "actions": ["catalog.list"],
+            "targets": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -157,9 +157,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["Invalid"],
-            "Target": ["res://catalog/validcatalog"]
+            "intent": "Allow",
+            "actions": ["Invalid"],
+            "targets": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -178,9 +178,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["catalog.list"],
-            "Target": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
+            "intent": "Allow",
+            "actions": ["catalog.list"],
+            "targets": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
         }]
     }
 }`,
@@ -199,9 +199,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["catalog.list", "variant.list", "namespace.list"],
-            "Target": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+            "intent": "Allow",
+            "actions": ["catalog.list", "variant.list", "namespace.list"],
+            "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
         }]
     }
 }`,
@@ -220,9 +220,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["catalog.list", "InvalidAction", "variant.list"],
-            "Target": ["res://catalog/validcatalog"]
+            "intent": "Allow",
+            "actions": ["catalog.list", "InvalidAction", "variant.list"],
+            "targets": ["res://catalog/validcatalog"]
         }]
     }
 }`,
@@ -241,9 +241,9 @@ func TestCreateView(t *testing.T) {
     },
     "spec": {
         "rules": [{
-            "Intent": "Allow",
-            "Operation": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-            "Target": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
+            "intent": "Allow",
+            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+            "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
         }]
     }
 }`,
@@ -333,9 +333,9 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [
 				{
-					"Intent": "Allow",
-					"Operation": ["catalog.list"],
-					"Target": ["res://catalog/test-catalog"]
+					"intent": "Allow",
+					"actions": ["catalog.list"],
+					"targets": ["res://catalog/test-catalog"]
 				}
 			]
 		}
@@ -356,9 +356,9 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [
 				{
-					"Intent": "Allow",
-					"Operation": ["catalog.list", "variant.list", "namespace.list"],
-					"Target": ["res://catalog/test-catalog"]
+					"intent": "Allow",
+					"actions": ["catalog.list", "variant.list", "namespace.list"],
+					"targets": ["res://catalog/test-catalog"]
 				}
 			]
 		}
@@ -383,9 +383,9 @@ func TestUpdateView(t *testing.T) {
 		},
 		"spec": {
 			"rules": [{
-					"Intent": "Allow",
-					"Operation": ["variant.list"],
-					"Target": ["res://catalog/test-catalog"]
+					"intent": "Allow",
+					"actions": ["variant.list"],
+					"targets": ["res://catalog/test-catalog"]
 				}]
 		}
 	}`
@@ -427,9 +427,9 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [
 				{
-					"Intent": "InvalidEffect",
-					"Operation": ["catalog.list"],
-					"Target": ["test/resource"]
+					"intent": "InvalidEffect",
+					"actions": ["catalog.list"],
+					"targets": ["test/resource"]
 				}
 			]
 		}
@@ -451,9 +451,9 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [
 				{
-					"Intent": "Allow",
-					"Operation": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
-					"Target": ["res://catalog/test-catalog", "res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"]
+					"intent": "Allow",
+					"actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
+					"targets": ["res://catalog/test-catalog", "res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"]
 				}
 			]
 		}
@@ -472,22 +472,22 @@ func TestUpdateView(t *testing.T) {
 
 	// Check that duplicates were removed
 	assert.Equal(t, 1, len(rules))
-	assert.Equal(t, 3, len(rules[0].Operation)) // Should have catalog.list, variant.list, namespace.list
-	assert.Equal(t, 2, len(rules[0].Target))    // Should have two unique resources
+	assert.Equal(t, 3, len(rules[0].Actions)) // Should have catalog.list, variant.list, namespace.list
+	assert.Equal(t, 2, len(rules[0].Targets)) // Should have two unique resources
 
 	// Verify the order and content of deduplicated arrays
-	expectedOperations := []Operation{OpCatalogList, OpVariantList, OpNamespaceList}
-	assert.ElementsMatch(t, expectedOperations, rules[0].Operation)
+	expectedOperations := []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList}
+	assert.ElementsMatch(t, expectedOperations, rules[0].Actions)
 
 	expectedTargets := []TargetResource{"res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"}
-	assert.ElementsMatch(t, expectedTargets, rules[0].Target)
+	assert.ElementsMatch(t, expectedTargets, rules[0].Targets)
 }
 
 func TestIsActionAllowed(t *testing.T) {
 	tests := []struct {
 		name           string
 		rules          AccessRuleSet
-		action         Operation
+		action         Action
 		resource       string
 		expectedResult bool
 	}{
@@ -496,12 +496,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "admin action",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogAdmin},
-					Target:    []TargetResource{"res://catalog/*"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogAdmin},
+					Targets: []TargetResource{"res://catalog/*"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test2",
 			expectedResult: true,
 		},
@@ -509,12 +509,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "admin action with specific resource",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogAdmin},
-					Target:    []TargetResource{"res://catalog/test1"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogAdmin},
+					Targets: []TargetResource{"res://catalog/test1"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test2",
 			expectedResult: false,
 		},
@@ -523,12 +523,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "incorrectadmin action with specific resource",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogAdmin},
-					Target:    []TargetResource{"res://catalog/test1/variant/test2"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogAdmin},
+					Targets: []TargetResource{"res://catalog/test1/variant/test2"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test1",
 			expectedResult: false,
 		},
@@ -536,15 +536,15 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "incorrectadmin action with specific resource",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogAdmin},
-					Target: []TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogAdmin},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2",
 						"res://catalog/*",
 					},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test1",
 			expectedResult: true,
 		},
@@ -552,14 +552,14 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "allow namespace with admin action",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpNamespaceAdmin},
-					Target: []TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/*",
 					},
 				},
 			},
-			action:         OpNamespaceList,
+			action:         ActionNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/namespace/test3",
 			expectedResult: true,
 		},
@@ -567,21 +567,21 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "allow namespace with admin action and deny rule",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpNamespaceAdmin},
-					Target: []TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/*",
 					},
 				},
 				{
-					Intent:    ViewRuleEffectDeny,
-					Operation: []Operation{OpNamespaceList},
-					Target: []TargetResource{
+					Intent:  IntentDeny,
+					Actions: []Action{ActionNamespaceList},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/test3",
 					},
 				},
 			},
-			action:         OpNamespaceList,
+			action:         ActionNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/namespace/test3",
 			expectedResult: false,
 		},
@@ -589,14 +589,14 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "allow workspace with admin action",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpWorkspaceAdmin},
-					Target: []TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionWorkspaceAdmin},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/test3/workspace/*",
 					},
 				},
 			},
-			action:         OpNamespaceList,
+			action:         ActionNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/namespace/test3/workspace/test4",
 			expectedResult: false,
 		},
@@ -604,14 +604,14 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "allow workspace with admin action",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpWorkspaceAdmin},
-					Target: []TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionWorkspaceAdmin},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2/workspace/*",
 					},
 				},
 			},
-			action:         OpNamespaceList,
+			action:         ActionNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/workspace/test4",
 			expectedResult: true,
 		},
@@ -619,14 +619,14 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "allow workspace with admin action",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpWorkspaceAdmin},
-					Target: []TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionWorkspaceAdmin},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2/workspace/*",
 					},
 				},
 			},
-			action:         OpNamespaceList,
+			action:         ActionNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/namespace/test3/workspace/test4",
 			expectedResult: false,
 		},
@@ -634,21 +634,21 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "allow workspace with admin action",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpWorkspaceAdmin},
-					Target: []TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionWorkspaceAdmin},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2/workspace/*",
 					},
 				},
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpNamespaceAdmin},
-					Target: []TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{
 						"res://catalog/test1/variant/test2/namespace/*",
 					},
 				},
 			},
-			action:         OpNamespaceList,
+			action:         ActionNamespaceList,
 			resource:       "res://catalog/test1/variant/test2/workspace/test4/namespace/test5",
 			expectedResult: true,
 		},
@@ -657,12 +657,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "simple allow rule",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: true,
 		},
@@ -671,12 +671,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "simple deny rule",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectDeny,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test"},
+					Intent:  IntentDeny,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
 		},
@@ -685,17 +685,17 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "deny overrides allow",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test"},
 				},
 				{
-					Intent:    ViewRuleEffectDeny,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test"},
+					Intent:  IntentDeny,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
 		},
@@ -704,12 +704,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "wildcard resource matching",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test/variant/*"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test/variant/*"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test/variant/variant1",
 			expectedResult: true,
 		},
@@ -718,12 +718,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "multiple actions in rule",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList, OpVariantList},
-					Target:    []TargetResource{"res://catalog/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList, ActionVariantList},
+					Targets: []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         OpVariantList,
+			action:         ActionVariantList,
 			resource:       "res://catalog/test",
 			expectedResult: true,
 		},
@@ -731,12 +731,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "action not in rule",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         OpVariantList,
+			action:         ActionVariantList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
 		},
@@ -745,12 +745,12 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "resource not in rule",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/other",
 			expectedResult: false,
 		},
@@ -759,17 +759,17 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "multiple rules with different resources",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test1"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test1"},
 				},
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test2"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test2"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test2",
 			expectedResult: true,
 		},
@@ -778,26 +778,39 @@ func TestIsActionAllowed(t *testing.T) {
 			name: "wildcard resource with deny rule",
 			rules: AccessRuleSet{
 				{
-					Intent:    ViewRuleEffectAllow,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test/*"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test/*"},
 				},
 				{
-					Intent:    ViewRuleEffectDeny,
-					Operation: []Operation{OpCatalogList},
-					Target:    []TargetResource{"res://catalog/test/specific"},
+					Intent:  IntentDeny,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/test/specific"},
 				},
 			},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test/specific",
 			expectedResult: false,
 		},
 		{
 			name:           "empty ruleset",
 			rules:          AccessRuleSet{},
-			action:         OpCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalog/test",
 			expectedResult: false,
+		},
+		{
+			name: "ambiguous match",
+			rules: AccessRuleSet{
+				{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalog/*", "res://catalog/test2"},
+				},
+			},
+			action:         ActionCatalogList,
+			resource:       "res://catalog/test2",
+			expectedResult: true,
 		},
 	}
 

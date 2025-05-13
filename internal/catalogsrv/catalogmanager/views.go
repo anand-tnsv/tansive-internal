@@ -24,66 +24,66 @@ import (
 type Intent string
 
 const (
-	ViewRuleEffectAllow Intent = "Allow"
-	ViewRuleEffectDeny  Intent = "Deny"
+	IntentAllow Intent = "Allow"
+	IntentDeny  Intent = "Deny"
 )
 
-type Operation string
+type Action string
 
-var validOperations = []Operation{
-	OpCatalogAdmin,
-	OpCatalogList,
-	OpVariantAdmin,
-	OpVariantClone,
-	OpVariantCreateView,
-	OpVariantList,
-	OpNamespaceCreate,
-	OpNamespaceEdit,
-	OpNamespaceList,
-	OpNamespaceAdmin,
-	OpSchemaCreate,
-	OpSchemaRead,
-	OpSchemaEdit,
-	OpSchemaDelete,
-	OpSchemaAssign,
-	OpCollectionCreate,
-	OpCollectionRead,
-	OpCollectionWrite,
-	OpCollectionRun,
-	OpWorkspaceAdmin,
-	OpWorkspaceList,
-	OpWorkspaceCreate,
+var validActions = []Action{
+	ActionCatalogAdmin,
+	ActionCatalogList,
+	ActionVariantAdmin,
+	ActionVariantClone,
+	ActionVariantCreateView,
+	ActionVariantList,
+	ActionNamespaceCreate,
+	ActionNamespaceEdit,
+	ActionNamespaceList,
+	ActionNamespaceAdmin,
+	ActionSchemaCreate,
+	ActionSchemaRead,
+	ActionSchemaEdit,
+	ActionSchemaDelete,
+	ActionSchemaAssign,
+	ActionCollectionCreate,
+	ActionCollectionRead,
+	ActionCollectionWrite,
+	ActionCollectionRun,
+	ActionWorkspaceAdmin,
+	ActionWorkspaceList,
+	ActionWorkspaceCreate,
 }
 
 const (
-	OpCatalogAdmin      Operation = "catalog.admin"
-	OpCatalogList       Operation = "catalog.list"
-	OpVariantAdmin      Operation = "variant.admin"
-	OpVariantClone      Operation = "variant.clone"
-	OpVariantCreateView Operation = "variant.createView"
-	OpVariantList       Operation = "variant.list"
-	OpNamespaceCreate   Operation = "namespace.create"
-	OpNamespaceEdit     Operation = "namespace.edit"
-	OpNamespaceList     Operation = "namespace.list"
-	OpNamespaceAdmin    Operation = "namespace.admin"
-	OpSchemaCreate      Operation = "schema.create"
-	OpSchemaRead        Operation = "schema.read"
-	OpSchemaEdit        Operation = "schema.edit"
-	OpSchemaDelete      Operation = "schema.delete"
-	OpSchemaAssign      Operation = "schema.assign"
-	OpCollectionCreate  Operation = "collection.create"
-	OpCollectionRead    Operation = "collection.read"
-	OpCollectionWrite   Operation = "collection.write"
-	OpCollectionRun     Operation = "collection.run"
-	OpWorkspaceAdmin    Operation = "workspace.admin"
-	OpWorkspaceList     Operation = "workspace.list"
-	OpWorkspaceCreate   Operation = "workspace.create"
+	ActionCatalogAdmin      Action = "catalog.admin"
+	ActionCatalogList       Action = "catalog.list"
+	ActionVariantAdmin      Action = "variant.admin"
+	ActionVariantClone      Action = "variant.clone"
+	ActionVariantCreateView Action = "variant.createView"
+	ActionVariantList       Action = "variant.list"
+	ActionNamespaceCreate   Action = "namespace.create"
+	ActionNamespaceEdit     Action = "namespace.edit"
+	ActionNamespaceList     Action = "namespace.list"
+	ActionNamespaceAdmin    Action = "namespace.admin"
+	ActionSchemaCreate      Action = "schema.create"
+	ActionSchemaRead        Action = "schema.read"
+	ActionSchemaEdit        Action = "schema.edit"
+	ActionSchemaDelete      Action = "schema.delete"
+	ActionSchemaAssign      Action = "schema.assign"
+	ActionCollectionCreate  Action = "collection.create"
+	ActionCollectionRead    Action = "collection.read"
+	ActionCollectionWrite   Action = "collection.write"
+	ActionCollectionRun     Action = "collection.run"
+	ActionWorkspaceAdmin    Action = "workspace.admin"
+	ActionWorkspaceList     Action = "workspace.list"
+	ActionWorkspaceCreate   Action = "workspace.create"
 )
 
 type AccessRule struct {
-	Intent    Intent           `json:"Intent" validate:"required,viewRuleEffectValidator"`
-	Operation []Operation      `json:"Operation" validate:"required,dive,viewRuleActionValidator"`
-	Target    []TargetResource `json:"Target" validate:"required,dive,resourceURIValidator"`
+	Intent  Intent           `json:"intent" validate:"required,viewRuleIntentValidator"`
+	Actions []Action         `json:"actions" validate:"required,dive,viewRuleActionValidator"`
+	Targets []TargetResource `json:"targets" validate:"required,dive,resourceURIValidator"`
 }
 
 type TargetResource string
@@ -162,10 +162,10 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidVersion(jsonFieldName))
 		case "resourceURIValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI(jsonFieldName))
-		case "viewRuleEffectValidator":
-			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleEffect(jsonFieldName))
-		case "viewRuleActionValidator":
-			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleAction(jsonFieldName))
+		case "viewRuleIntentValidator":
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleIntent(jsonFieldName))
+		case "viewRuleOperationValidator":
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleOperation(jsonFieldName))
 		default:
 			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
 		}
@@ -267,9 +267,9 @@ func deduplicateRules(rules AccessRuleSet) AccessRuleSet {
 	result := make(AccessRuleSet, len(rules))
 	for i, rule := range rules {
 		result[i] = AccessRule{
-			Intent:    rule.Intent,
-			Operation: removeDuplicates(rule.Operation),
-			Target:    removeDuplicates(rule.Target),
+			Intent:  rule.Intent,
+			Actions: removeDuplicates(rule.Actions),
+			Targets: removeDuplicates(rule.Targets),
 		}
 	}
 	return result
@@ -465,7 +465,7 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 
 // IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
 // It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet AccessRuleSet) IsActionAllowed(action Operation, resource string) bool {
+func (ruleSet AccessRuleSet) IsActionAllowed(action Action, resource string) bool {
 	allowMatch := false
 	// check if there is an admin match
 	if ruleSet.matchesAdmin(resource) {
@@ -473,12 +473,12 @@ func (ruleSet AccessRuleSet) IsActionAllowed(action Operation, resource string) 
 	}
 	// check if there is a match for the action
 	for _, rule := range ruleSet {
-		if slices.Contains(rule.Operation, action) {
-			for _, res := range rule.Target {
+		if slices.Contains(rule.Actions, action) {
+			for _, res := range rule.Targets {
 				if res.matches(TargetResource(resource)) {
-					if rule.Intent == ViewRuleEffectAllow {
+					if rule.Intent == IntentAllow {
 						allowMatch = true
-					} else if rule.Intent == ViewRuleEffectDeny {
+					} else if rule.Intent == IntentDeny {
 						allowMatch = false
 					}
 				}

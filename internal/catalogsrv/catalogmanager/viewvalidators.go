@@ -19,30 +19,30 @@ const (
 )
 
 // adminActionMap represents a set of admin actions
-type adminActionMap map[Operation]bool
+type adminActionMap map[Action]bool
 
 // buildAdminActionMap creates a map of admin actions from a slice of actions
-func buildAdminActionMap(actions []Operation) adminActionMap {
+func buildAdminActionMap(actions []Action) adminActionMap {
 	adminActions := make(adminActionMap)
 	for _, action := range actions {
 		switch action {
-		case OpCatalogAdmin, OpVariantAdmin, OpNamespaceAdmin, OpWorkspaceAdmin:
+		case ActionCatalogAdmin, ActionVariantAdmin, ActionNamespaceAdmin, ActionWorkspaceAdmin:
 			adminActions[action] = true
 		}
 	}
 	return adminActions
 }
 
-// validateViewRuleEffect checks if the effect is one of the allowed values.
-func validateViewRuleEffect(fl validator.FieldLevel) bool {
+// validateViewRuleIntent checks if the effect is one of the allowed values.
+func validateViewRuleIntent(fl validator.FieldLevel) bool {
 	effect := Intent(fl.Field().String())
-	return effect == ViewRuleEffectAllow || effect == ViewRuleEffectDeny
+	return effect == IntentAllow || effect == IntentDeny
 }
 
 // validateViewRuleAction checks if the action is one of the allowed values.
 func validateViewRuleAction(fl validator.FieldLevel) bool {
-	action := Operation(fl.Field().String())
-	return slices.Contains(validOperations, action)
+	action := Action(fl.Field().String())
+	return slices.Contains(validActions, action)
 }
 
 // validateResourceURI checks if the resource URI follows the required structure.
@@ -221,16 +221,16 @@ func (r AccessRuleSet) matchesAdmin(resource string) bool {
 	}
 
 	for _, rule := range r {
-		if rule.Intent != ViewRuleEffectAllow {
+		if rule.Intent != IntentAllow {
 			continue
 		}
 
-		adminActions := buildAdminActionMap(rule.Operation)
+		adminActions := buildAdminActionMap(rule.Actions)
 		if len(adminActions) == 0 {
 			continue
 		}
 
-		for _, res := range rule.Target {
+		for _, res := range rule.Targets {
 			ruleSegments, err := extractSegments(string(res))
 			if err != nil || len(ruleSegments) != 1 {
 				continue
@@ -242,16 +242,16 @@ func (r AccessRuleSet) matchesAdmin(resource string) bool {
 			}
 
 			// Check each admin action type
-			if adminActions[OpCatalogAdmin] && checkAdminMatch(resourceTypeCatalog, m, metadata) {
+			if adminActions[ActionCatalogAdmin] && checkAdminMatch(resourceTypeCatalog, m, metadata) {
 				return true
 			}
-			if adminActions[OpVariantAdmin] && checkAdminMatch(resourceTypeVariant, m, metadata) {
+			if adminActions[ActionVariantAdmin] && checkAdminMatch(resourceTypeVariant, m, metadata) {
 				return true
 			}
-			if adminActions[OpWorkspaceAdmin] && checkAdminMatch(resourceTypeWorkspace, m, metadata) {
+			if adminActions[ActionWorkspaceAdmin] && checkAdminMatch(resourceTypeWorkspace, m, metadata) {
 				return true
 			}
-			if adminActions[OpNamespaceAdmin] && checkAdminMatch(resourceTypeNamespace, m, metadata) {
+			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(resourceTypeNamespace, m, metadata) {
 				return true
 			}
 		}
@@ -361,7 +361,7 @@ func matchParentResource(resType string, ruleRes, actualRes map[string]resourceM
 
 func init() {
 	validate := schemavalidator.V()
-	validate.RegisterValidation("viewRuleEffectValidator", validateViewRuleEffect)
+	validate.RegisterValidation("viewRuleIntentValidator", validateViewRuleIntent)
 	validate.RegisterValidation("viewRuleActionValidator", validateViewRuleAction)
 	validate.RegisterValidation("resourceURIValidator", validateResourceURI)
 }

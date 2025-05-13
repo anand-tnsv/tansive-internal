@@ -102,19 +102,19 @@ func ErrInvalidResourceURI(attr string, value ...any) ValidationError {
 	}
 }
 
-func ErrInvalidViewRuleEffect(attr string, value ...any) ValidationError {
+func ErrInvalidViewRuleIntent(attr string, value ...any) ValidationError {
 	return ValidationError{
 		Field:  attr,
 		Value:  value,
-		ErrStr: "invalid view rule effect",
+		ErrStr: "invalid view rule intent",
 	}
 }
 
-func ErrInvalidViewRuleAction(attr string, value ...any) ValidationError {
+func ErrInvalidViewRuleOperation(attr string, value ...any) ValidationError {
 	return ValidationError{
 		Field:  attr,
 		Value:  value,
-		ErrStr: "invalid view rule action",
+		ErrStr: "invalid view rule operation",
 	}
 }
 

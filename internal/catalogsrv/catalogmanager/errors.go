@@ -43,4 +43,5 @@ var (
 	ErrInvalidRequest                         apperrors.Error = ErrCatalogError.New("invalid request").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidView                            apperrors.Error = ErrCatalogError.New("invalid view").SetStatusCode(http.StatusBadRequest)
 	ErrViewNotFound                           apperrors.Error = ErrCatalogError.New("view not found").SetStatusCode(http.StatusNotFound)
+	ErrAmbiguousMatch                         apperrors.Error = ErrCatalogError.New("ambiguous resource match").SetStatusCode(http.StatusBadRequest)
 )
