@@ -1,7 +1,6 @@
 package catalogmanager
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -81,7 +80,6 @@ func extractSegmentsAndResourceName(s string) ([]string, string, error) {
 	}
 
 	separators := types.ResourceURIs()
-	separators = append(separators, "resource")
 
 	rest := strings.TrimPrefix(s, prefix)
 	var parts = []string{rest}
@@ -269,24 +267,22 @@ type resourceMetadataValue struct {
 	pos   int
 }
 
-func extractMetadata(m string) (map[string]resourceMetadataValue, error) {
+func extractKV(m string) map[string]resourceMetadataValue {
 	segments := strings.Split(strings.Trim(m, "/"), "/")
 	metadata := make(map[string]resourceMetadataValue)
-	if len(segments)%2 != 0 {
-		return nil, errors.New("invalid metadata: missing key or value")
-	}
 	pos := 0
-	for i := 0; i < len(segments) && i+1 < len(segments); i++ {
+	segmentLen := len(segments)
+	for i := 0; i < segmentLen; i++ {
 		key := segments[i]
-		value := segments[i+1]
-		if key == "" || value == "" {
-			return nil, errors.New("invalid metadata: missing key or value")
+		value := ""
+		i++
+		if i < segmentLen {
+			value = segments[i]
 		}
 		metadata[key] = resourceMetadataValue{value: value, pos: pos}
 		pos++
-		i++
 	}
-	return metadata, nil
+	return metadata
 }
 
 func init() {

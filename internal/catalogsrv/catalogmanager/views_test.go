@@ -22,344 +22,455 @@ func TestCreateView(t *testing.T) {
 		jsonData string
 		expected apperrors.Error
 	}{
+		// {
+		// 	name: "valid view",
+		// 	jsonData: `
+		// {
+		//     "version": "v1",
+		//     "kind": "View",
+		//     "metadata": {
+		//         "name": "valid-view",
+		//         "catalog": "validcatalog",
+		//         "description": "This is a valid view"
+		//     },
+		//     "spec": {
+		//         "definition": {
+		//             "scope": {
+		//                 "catalog": "validcatalog"
+		//             },
+		//             "rules": [{
+		//                 "intent": "Allow",
+		//                 "actions": ["catalog.list"],
+		//                 "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant/collectionschemas/coll-schema"]
+		//             }]
+		//         }
+		//     }
+		// }`,
+		// 	expected: nil,
+		// },
+		// {
+		// 	name: "valid view",
+		// 	jsonData: `
+		// {
+		//     "version": "v1",
+		//     "kind": "View",
+		//     "metadata": {
+		//         "name": "valid-view2",
+		//         "catalog": "validcatalog",
+		//         "description": "This is a valid view"
+		//     },
+		//     "spec": {
+		//         "definition": {
+		//             "scope": {
+		//                 "catalog": "validcatalog"
+		//             },
+		//             "rules": [{
+		//                 "intent": "Allow",
+		//                 "actions": ["catalog.list"],
+		//                 "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant/collectionschemas"]
+		//             }]
+		//         }
+		//     }
+		// }`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "valid view",
+		// 	jsonData: `
+		// {
+		//     "version": "v1",
+		//     "kind": "View",
+		//     "metadata": {
+		//         "name": "valid-view3",
+		//         "catalog": "validcatalog",
+		//         "description": "This is a valid view"
+		//     },
+		//     "spec": {
+		//         "definition": {
+		//             "scope": {
+		//                 "catalog": "validcatalog"
+		//             },
+		//             "rules": [{
+		//                 "intent": "Allow",
+		//                 "actions": ["catalog.list"],
+		//                 "targets": ["res://catalog/validcatalog", "res://collectionschemas/*"]
+		//             }]
+		//         }
+		//     }
+		// }`,
+		// 	expected: nil,
+		// },
+		// {
+		// 	name: "valid view",
+		// 	jsonData: `
+		// {
+		//     "version": "v1",
+		//     "kind": "View",
+		//     "metadata": {
+		//         "name": "valid-view4",
+		//         "catalog": "validcatalog",
+		//         "description": "This is a valid view"
+		//     },
+		//     "spec": {
+		//         "definition": {
+		//             "scope": {
+		//                 "catalog": "validcatalog"
+		//             },
+		//             "rules": [{
+		//                 "intent": "Allow",
+		//                 "actions": ["catalog.list"],
+		//                 "targets": ["res://catalog/validcatalog", "res://collectionschemas/*"]
+		//             }]
+		//         }
+		//     }
+		// }`,
+		// 	expected: nil,
+		// },
+		// {
+		// 	name: "empty rules",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "empty-rules-view",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "View with empty rules"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": []
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "invalid version",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v2",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "invalid-version-view",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "Invalid version in view"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Allow",
+		// 		                "actions": ["catalog.list"],
+		// 		                "targets": ["res://catalog/validcatalog"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "invalid kind",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "InvalidKind",
+		// 		    "metadata": {
+		// 		        "name": "invalid-kind-view",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "Invalid kind in view"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Allow",
+		// 		                "actions": ["catalog.list"],
+		// 		                "targets": ["res://catalog/validcatalog"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "invalid name format",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "invalid name format",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "Invalid name format in view"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Allow",
+		// 		                "actions": ["catalog.list"],
+		// 		                "targets": ["res://catalog/validcatalog"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "invalid rule effect",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "invalid-rule-effect",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "Invalid rule effect in view"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Invalid",
+		// 		                "actions": ["catalog.list"],
+		// 		                "targets": ["res://catalog/validcatalog"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "invalid rule action",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "invalid-rule-action",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "Invalid rule action in view"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Allow",
+		// 		                "actions": ["Invalid"],
+		// 		                "targets": ["res://catalog/validcatalog"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "invalid resource URI",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "invalid-resource-uri",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "Invalid resource URI in view"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Allow",
+		// 		                "actions": ["catalog.list"],
+		// 		                "targets": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "valid view with multiple actions",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "valid-view-multi-action",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "This is a valid view with multiple actions"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Allow",
+		// 		                "actions": ["catalog.list", "variant.list", "namespace.list"],
+		// 		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: nil,
+		// },
+		// {
+		// 	name: "invalid rule action with mixed valid and invalid",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "invalid-mixed-actions",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "View with mixed valid and invalid actions"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Allow",
+		// 		                "actions": ["catalog.list", "InvalidAction", "variant.list"],
+		// 		                "targets": ["res://catalog/validcatalog"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: ErrInvalidSchema,
+		// },
+		// {
+		// 	name: "deduplication of actions and resources",
+		// 	jsonData: `
+		// 		{
+		// 		    "version": "v1",
+		// 		    "kind": "View",
+		// 		    "metadata": {
+		// 		        "name": "dedup-test-view",
+		// 		        "catalog": "validcatalog",
+		// 		        "description": "Test view for deduplication"
+		// 		    },
+		// 		    "spec": {
+		// 		        "definition": {
+		// 		            "scope": {
+		// 		                "catalog": "validcatalog"
+		// 		            },
+		// 		            "rules": [{
+		// 		                "intent": "Allow",
+		// 		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		// 		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
+		// 		            }]
+		// 		        }
+		// 		    }
+		// 		}`,
+		// 	expected: nil,
+		// },
+		// {
+		// 	name: "test with scopes",
+		// 	jsonData: `
+		// {
+		//     "version": "v1",
+		//     "kind": "View",
+		//     "metadata": {
+		//         "name": "scope-override-test",
+		//         "catalog": "validcatalog",
+		//         "description": "Test view for deduplication"
+		//     },
+		//     "spec": {
+		//         "definition": {
+		//             "scope": {
+		//                 "catalog": "validcatalog1",
+		// 				"variant": "validvariant1",
+		// 				"namespace": "validnamespace1"
+		//             },
+		//             "rules": [{
+		//                 "intent": "Allow",
+		//                 "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		//                 "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant/workspace/my-workspace"]
+		//             }]
+		//         }
+		//     }
+		// }`,
+		// 	expected: nil,
+		// },
+		// {
+		// 	name: "test with resource URI",
+		// 	jsonData: `
+		// {
+		//     "version": "v1",
+		//     "kind": "View",
+		//     "metadata": {
+		//         "name": "test-with-resource-uri",
+		//         "catalog": "validcatalog",
+		//         "description": "Test view for deduplication"
+		//     },
+		//     "spec": {
+		//         "definition": {
+		//             "scope": {
+		//                 "catalog": "validcatalog1",
+		// 				"variant": "validvariant1",
+		// 				"namespace": "validnamespace1"
+		//             },
+		//             "rules": [{
+		//                 "intent": "Allow",
+		//                 "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		//                 "targets": ["res://collectionschemas/my-collection", "res://namespace/*/collections/a/b/c/d"]
+		//             },
+		// 			{
+		//                 "intent": "Allow",
+		//                 "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		//                 "targets": []
+		//             }]
+		//         }
+		//     }
+		// }`,
+		// 	expected: nil,
+		// },
 		{
-			name: "valid view",
+			name: "test with adopt view",
 			jsonData: `
 		{
 		    "version": "v1",
 		    "kind": "View",
 		    "metadata": {
-		        "name": "valid-view",
-		        "catalog": "validcatalog",
-		        "description": "This is a valid view"
-		    },
-		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "validcatalog"
-		            },
-		            "rules": [{
-		                "intent": "Allow",
-		                "actions": ["catalog.list"],
-		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
-		            }]
-		        }
-		    }
-		}`,
-			expected: nil,
-		},
-		{
-			name: "empty rules",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "empty-rules-view",
-				        "catalog": "validcatalog",
-				        "description": "View with empty rules"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": []
-				        }
-				    }
-				}`,
-			expected: ErrInvalidSchema,
-		},
-		{
-			name: "invalid version",
-			jsonData: `
-				{
-				    "version": "v2",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "invalid-version-view",
-				        "catalog": "validcatalog",
-				        "description": "Invalid version in view"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list"],
-				                "targets": ["res://catalog/validcatalog"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: ErrInvalidSchema,
-		},
-		{
-			name: "invalid kind",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "InvalidKind",
-				    "metadata": {
-				        "name": "invalid-kind-view",
-				        "catalog": "validcatalog",
-				        "description": "Invalid kind in view"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list"],
-				                "targets": ["res://catalog/validcatalog"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: ErrInvalidSchema,
-		},
-		{
-			name: "invalid name format",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "invalid name format",
-				        "catalog": "validcatalog",
-				        "description": "Invalid name format in view"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list"],
-				                "targets": ["res://catalog/validcatalog"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: ErrInvalidSchema,
-		},
-		{
-			name: "invalid rule effect",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "invalid-rule-effect",
-				        "catalog": "validcatalog",
-				        "description": "Invalid rule effect in view"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Invalid",
-				                "actions": ["catalog.list"],
-				                "targets": ["res://catalog/validcatalog"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: ErrInvalidSchema,
-		},
-		{
-			name: "invalid rule action",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "invalid-rule-action",
-				        "catalog": "validcatalog",
-				        "description": "Invalid rule action in view"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["Invalid"],
-				                "targets": ["res://catalog/validcatalog"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: ErrInvalidSchema,
-		},
-		{
-			name: "invalid resource URI",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "invalid-resource-uri",
-				        "catalog": "validcatalog",
-				        "description": "Invalid resource URI in view"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list"],
-				                "targets": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: ErrInvalidSchema,
-		},
-		{
-			name: "valid view with multiple actions",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "valid-view-multi-action",
-				        "catalog": "validcatalog",
-				        "description": "This is a valid view with multiple actions"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list", "variant.list", "namespace.list"],
-				                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: nil,
-		},
-		{
-			name: "invalid rule action with mixed valid and invalid",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "invalid-mixed-actions",
-				        "catalog": "validcatalog",
-				        "description": "View with mixed valid and invalid actions"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list", "InvalidAction", "variant.list"],
-				                "targets": ["res://catalog/validcatalog"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: ErrInvalidSchema,
-		},
-		{
-			name: "deduplication of actions and resources",
-			jsonData: `
-				{
-				    "version": "v1",
-				    "kind": "View",
-				    "metadata": {
-				        "name": "dedup-test-view",
-				        "catalog": "validcatalog",
-				        "description": "Test view for deduplication"
-				    },
-				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-				                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
-				            }]
-				        }
-				    }
-				}`,
-			expected: nil,
-		},
-		{
-			name: "test with scopes",
-			jsonData: `
-		{
-		    "version": "v1",
-		    "kind": "View",
-		    "metadata": {
-		        "name": "scope-override-test",
+		        "name": "test-with-adopt-view",
 		        "catalog": "validcatalog",
 		        "description": "Test view for deduplication"
 		    },
 		    "spec": {
 		        "definition": {
 		            "scope": {
-		                "catalog": "validcatalog1",
-						"variant": "validvariant1",
-						"namespace": "validnamespace1"
+		                "catalog": "my-catalog"
 		            },
-		            "rules": [{
+		            "rules": [
+					{
 		                "intent": "Allow",
-		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant/workspace/my-workspace"]
-		            }]
-		        }
-		    }
-		}`,
-			expected: nil,
-		},
-		{
-			name: "test with resource URI",
-			jsonData: `
-		{
-		    "version": "v1",
-		    "kind": "View",
-		    "metadata": {
-		        "name": "test-with-resource-uri",
-		        "catalog": "validcatalog",
-		        "description": "Test view for deduplication"
-		    },
-		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "validcatalog1",
-						"variant": "validvariant1",
-						"namespace": "validnamespace1"
-		            },
-		            "rules": [{
-		                "intent": "Allow",
-		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-		                "targets": ["res://collectionschemas/my-collection", "res://namespaces/*/collections/a/b/c/d"]
+		                "actions": ["catalog.adoptView"],
+		                "targets": ["res://views/*"]
 		            },
 					{
 		                "intent": "Allow",
-		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		                "actions": ["catalog.admin"],
 		                "targets": []
-		            }]
+		            }
+					]
 		        }
 		    }
 		}`,

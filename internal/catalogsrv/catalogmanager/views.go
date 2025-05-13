@@ -6,6 +6,7 @@ import (
 	"errors"
 	"reflect"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -34,6 +35,7 @@ type Action string
 var validActions = []Action{
 	ActionCatalogAdmin,
 	ActionCatalogList,
+	ActionCatalogAdoptView,
 	ActionVariantAdmin,
 	ActionVariantClone,
 	ActionVariantCreateView,
@@ -59,6 +61,7 @@ var validActions = []Action{
 const (
 	ActionCatalogAdmin      Action = "catalog.admin"
 	ActionCatalogList       Action = "catalog.list"
+	ActionCatalogAdoptView  Action = "catalog.adoptView"
 	ActionVariantAdmin      Action = "variant.admin"
 	ActionVariantClone      Action = "variant.clone"
 	ActionVariantCreateView Action = "variant.createView"
@@ -503,43 +506,47 @@ func (ruleSet ViewRuleSet) IsActionAllowed(action Action, resource string) bool 
 }
 
 func morphResource(scope ViewScope, resource string) string {
-	segments, resourceName, err := extractSegmentsAndResourceName(resource)
-	if err != nil && resource != "" {
-		return resource
-	}
-
-	resourceMetadata := make(map[string]resourceMetadataValue)
-	if len(segments) > 0 && segments[0] != "" {
-		resourceMetadata, err = extractMetadata(segments[0])
-		if err != nil {
-			return resource
-		}
-	}
+	resource = strings.TrimPrefix(resource, "res://")
+	resourceKV := extractKV(resource)
 
 	var morphedMetadata = make(map[string]resourceMetadataValue)
 
-	morphedMetadata[resourceTypeCatalog] = morphMetadata(scope.Catalog, 0, resourceTypeCatalog, resourceMetadata)
-	morphedMetadata[resourceTypeVariant] = morphMetadata(scope.Variant, 1, resourceTypeVariant, resourceMetadata)
-	morphedMetadata[resourceTypeWorkspace] = morphMetadata(scope.Workspace, 2, resourceTypeWorkspace, resourceMetadata)
-	morphedMetadata[resourceTypeNamespace] = morphMetadata(scope.Namespace, 3, resourceTypeNamespace, resourceMetadata)
+	morphedMetadata[resourceTypeCatalog] = morphMetadata(scope.Catalog, 0, resourceTypeCatalog, resourceKV)
+	morphedMetadata[resourceTypeVariant] = morphMetadata(scope.Variant, 1, resourceTypeVariant, resourceKV)
+	morphedMetadata[resourceTypeWorkspace] = morphMetadata(scope.Workspace, 2, resourceTypeWorkspace, resourceKV)
+	morphedMetadata[resourceTypeNamespace] = morphMetadata(scope.Namespace, 3, resourceTypeNamespace, resourceKV)
 
 	s := strings.Builder{}
-	s.WriteString("catalog/" + morphedMetadata[resourceTypeCatalog].value)
+	s.WriteString(resourceTypeCatalog + "/" + morphedMetadata[resourceTypeCatalog].value)
 	if morphedMetadata[resourceTypeVariant].value != "" {
-		s.WriteString("/variant/" + morphedMetadata[resourceTypeVariant].value)
+		s.WriteString("/" + resourceTypeVariant + "/" + morphedMetadata[resourceTypeVariant].value)
 	}
 	if morphedMetadata[resourceTypeWorkspace].value != "" {
-		s.WriteString("/workspace/" + morphedMetadata[resourceTypeWorkspace].value)
+		s.WriteString("/" + resourceTypeWorkspace + "/" + morphedMetadata[resourceTypeWorkspace].value)
 	}
 	if morphedMetadata[resourceTypeNamespace].value != "" {
-		s.WriteString("/namespace/" + morphedMetadata[resourceTypeNamespace].value)
+		s.WriteString("/" + resourceTypeNamespace + "/" + morphedMetadata[resourceTypeNamespace].value)
 	}
 
-	if len(segments) > 1 {
-		if segments[0] != "" {
-			s.WriteString("/" + resourceName + segments[1])
+	type kv struct {
+		key   string
+		value resourceMetadataValue
+	}
+	var sorted []kv = make([]kv, len(resourceKV))
+	for k, v := range resourceKV {
+		sorted = append(sorted, kv{k, v})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].value.pos < sorted[j].value.pos
+	})
+	for _, v := range sorted {
+		if v.key == "" {
+			continue
+		}
+		if v.value.value == "" {
+			s.WriteString("/" + v.key)
 		} else {
-			s.WriteString(segments[1])
+			s.WriteString("/" + v.key + "/" + v.value.value)
 		}
 	}
 
@@ -556,5 +563,6 @@ func morphMetadata(scopeName string, pos int, resourceType string, resourceMetad
 	} else {
 		m.value = scopeName
 	}
+	delete(resourceMetadata, resourceType)
 	return m
 }
