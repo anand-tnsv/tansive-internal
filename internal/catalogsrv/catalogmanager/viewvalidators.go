@@ -10,14 +10,6 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-// Constants for resource types
-const (
-	resourceTypeCatalog   = "catalog"
-	resourceTypeVariant   = "variant"
-	resourceTypeWorkspace = "workspace"
-	resourceTypeNamespace = "namespace"
-)
-
 // adminActionMap represents a set of admin actions
 type adminActionMap map[Action]bool
 
@@ -146,10 +138,10 @@ func isValidStructuredPath(path string) error {
 
 	// Validate segment order
 	expectedOrder := map[string]int{
-		resourceTypeCatalog:   0,
-		resourceTypeVariant:   1,
-		resourceTypeWorkspace: 2,
-		resourceTypeNamespace: -1, // Special case, handled below
+		types.ResourceNameCatalogs:   0,
+		types.ResourceNameVariants:   1,
+		types.ResourceNameWorkspaces: 2,
+		types.ResourceNameNamespaces: -1, // Special case, handled below
 	}
 
 	for key, pos := range found {
@@ -158,8 +150,8 @@ func isValidStructuredPath(path string) error {
 			return fmt.Errorf("invalid path: unknown key '%s'", key)
 		}
 
-		if key == resourceTypeNamespace {
-			if _, hasWorkspace := found[resourceTypeWorkspace]; hasWorkspace {
+		if key == types.ResourceNameNamespaces {
+			if _, hasWorkspace := found[types.ResourceNameWorkspaces]; hasWorkspace {
 				expectedPos = 3
 			} else {
 				expectedPos = 2
@@ -212,16 +204,16 @@ func (r ViewRuleSet) matchesAdmin(resource string) bool {
 				continue
 			}
 			isMatch := false
-			if adminActions[ActionCatalogAdmin] && checkAdminMatch(resourceTypeCatalog, ruleSegments) {
+			if adminActions[ActionCatalogAdmin] && checkAdminMatch(types.ResourceNameCatalogs, ruleSegments) {
 				isMatch = true
 			}
-			if adminActions[ActionVariantAdmin] && checkAdminMatch(resourceTypeVariant, ruleSegments) {
+			if adminActions[ActionVariantAdmin] && checkAdminMatch(types.ResourceNameVariants, ruleSegments) {
 				isMatch = true
 			}
-			if adminActions[ActionWorkspaceAdmin] && checkAdminMatch(resourceTypeWorkspace, ruleSegments) {
+			if adminActions[ActionWorkspaceAdmin] && checkAdminMatch(types.ResourceNameWorkspaces, ruleSegments) {
 				isMatch = true
 			}
-			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(resourceTypeNamespace, ruleSegments) {
+			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(types.ResourceNameNamespaces, ruleSegments) {
 				isMatch = true
 			}
 			if isMatch && res.matches(resource) {

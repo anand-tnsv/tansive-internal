@@ -15,47 +15,47 @@ func TestResourceURIValidator(t *testing.T) {
 		isValid bool
 	}{
 		// Valid cases
-		{"res://catalog/my-catalog", true},
-		{"res://catalog/my-catalog/variant/my-variant", true},
-		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace", true},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace/namespace/my-namespace", true},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace", true},
-		{"res://catalog/my-catalog/variant/my-variant/collections/path", true},
-		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collections/path/to/res-ource", true},
-		{"res://catalog/my-catalog/variant/my-variant/collections/path/*", true},
-		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collections/path/*", true},
-		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/workspace/my-workspace/collections/path/*", false},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace/namespace/my-namespace/collections/*", true},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/*", true},
-		{"res://catalog/*", true},
-		{"res://catalog/my-catalog/variant/my-variant/namespace/*", true},
-		{"res://catalog/*/variant/my-variant", true},
+		{"res://catalogs/my-catalog", true},
+		{"res://catalogs/my-catalog/variants/my-variant", true},
+		{"res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace", true},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/my-workspace/namespaces/my-namespace", true},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/my-workspace", true},
+		{"res://catalogs/my-catalog/variants/my-variant/collections/path", true},
+		{"res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/collections/path/to/res-ource", true},
+		{"res://catalogs/my-catalog/variants/my-variant/collections/path/*", true},
+		{"res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/collections/path/*", true},
+		{"res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/workspaces/my-workspace/collections/path/*", false},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/my-workspace/namespaces/my-namespace/collections/*", true},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/*", true},
+		{"res://catalogs/*", true},
+		{"res://catalogs/my-catalog/variants/my-variant/namespaces/*", true},
+		{"res://catalogs/*/variants/my-variant", true},
 
 		// Invalid cases - missing required components
 		{"res://", false},
-		{"res://catalog/test-catalog/varian/test-variant", false},
-		{"res://variant/my-variant", false},     // missing catalog
-		{"res://namespace/my-namespace", false}, // missing catalog and variant
-		{"res://workspace/my-workspace", false}, // missing catalog and variant
-		{"res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/*", false},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace/namespace/my-namespace/collections/*/path/*", false},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace/namespace/my-namespace/*/collections/path", false},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/namespace/my-namespace//collections/path", false},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace/namespace/my-namespace/resource", false},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/my*", false},
-		{"res://catalog/my-catalog/variant/my-variant/workspace/my-workspace/namespace/my-namespace/collections/*/", false},
+		{"res://catalogs/test-catalog/varian/test-variant", false},
+		{"res://variants/my-variant", false},     // missing catalog
+		{"res://namespaces/my-namespace", false}, // missing catalog and variant
+		{"res://workspaces/my-workspace", false}, // missing catalog and variant
+		{"res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/*", false},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/my-workspace/namespaces/my-namespace/collections/*/path/*", false},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/my-workspace/namespaces/my-namespace/*/collections/path", false},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/namespaces/my-namespace//collections/path", false},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/my-workspace/namespaces/my-namespace/resource", false},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/my*", false},
+		{"res://catalogs/my-catalog/variants/my-variant/workspaces/my-workspace/namespaces/my-namespace/collections/*/", false},
 
 		// Invalid cases - wrong order
-		{"res://variant/my-variant/catalog/my-catalog", false},
-		{"res://namespace/my-namespace/variant/my-variant", false},
-		{"res://workspace/my-workspace/namespace/my-namespace", false},
+		{"res://variants/my-variant/catalogs/my-catalog", false},
+		{"res://namespaces/my-namespace/variants/my-variant", false},
+		{"res://workspaces/my-workspace/namespaces/my-namespace", false},
 
 		// Invalid cases - invalid characters
-		{"res://catalog/my@catalog", false},
-		{"res://catalog/my catalog", false},
-		{"res://catalog/my-catalog/variant/my@variant", false},
-		{"res://catalog/my-catalog/variant/my variant", false},
-		{"res://catalog/my-catalog/variant/my_variant", false},
+		{"res://catalogs/my@catalog", false},
+		{"res://catalogs/my catalog", false},
+		{"res://catalogs/my-catalog/variants/my@variant", false},
+		{"res://catalogs/my-catalog/variants/my variant", false},
+		{"res://catalogs/my-catalog/variants/my_variant", false},
 
 		// Invalid cases - invalid format
 		{"res://invalid-uri", false},

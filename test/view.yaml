@@ -13,4 +13,4 @@ spec:
         actions:
           - "variant.list"
         targets:
-          - res:///variant/test-variant
+          - res://variants/test-variant

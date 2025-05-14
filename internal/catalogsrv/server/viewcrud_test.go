@@ -102,7 +102,7 @@ func TestViewCrud(t *testing.T) {
 					"rules": [{
 						"intent": "Allow",
 						"actions": ["catalog.list"],
-						"targets": ["res://catalog/valid-catalog", "res://catalog/valid-catalog/variant/valid-variant"]
+						"targets": ["res://catalogs/valid-catalog", "res://catalogs/valid-catalog/variants/valid-variant"]
 					}]
 				}
 			}
@@ -152,7 +152,7 @@ func TestViewCrud(t *testing.T) {
 					"rules": [{
 						"intent": "Allow",
 						"actions": ["catalog.list"],
-						"targets": ["res://catalog/valid-catalog", "res://catalog/valid-catalog/variant/valid-variant"]
+						"targets": ["res://catalogs/valid-catalog", "res://catalogs/valid-catalog/variants/valid-variant"]
 					}]
 				}
 			}

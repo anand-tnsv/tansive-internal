@@ -520,21 +520,21 @@ func morphResource(scope ViewScope, resource string) string {
 
 	var morphedMetadata = make(map[string]resourceMetadataValue)
 
-	morphedMetadata[resourceTypeCatalog] = morphMetadata(scope.Catalog, 0, resourceTypeCatalog, resourceKV)
-	morphedMetadata[resourceTypeVariant] = morphMetadata(scope.Variant, 1, resourceTypeVariant, resourceKV)
-	morphedMetadata[resourceTypeWorkspace] = morphMetadata(scope.Workspace, 2, resourceTypeWorkspace, resourceKV)
-	morphedMetadata[resourceTypeNamespace] = morphMetadata(scope.Namespace, 3, resourceTypeNamespace, resourceKV)
+	morphedMetadata[types.ResourceNameCatalogs] = morphMetadata(scope.Catalog, 0, types.ResourceNameCatalogs, resourceKV)
+	morphedMetadata[types.ResourceNameVariants] = morphMetadata(scope.Variant, 1, types.ResourceNameVariants, resourceKV)
+	morphedMetadata[types.ResourceNameWorkspaces] = morphMetadata(scope.Workspace, 2, types.ResourceNameWorkspaces, resourceKV)
+	morphedMetadata[types.ResourceNameNamespaces] = morphMetadata(scope.Namespace, 3, types.ResourceNameNamespaces, resourceKV)
 
 	s := strings.Builder{}
-	s.WriteString(resourceTypeCatalog + "/" + morphedMetadata[resourceTypeCatalog].value)
-	if morphedMetadata[resourceTypeVariant].value != "" {
-		s.WriteString("/" + resourceTypeVariant + "/" + morphedMetadata[resourceTypeVariant].value)
+	s.WriteString(types.ResourceNameCatalogs + "/" + morphedMetadata[types.ResourceNameCatalogs].value)
+	if morphedMetadata[types.ResourceNameVariants].value != "" {
+		s.WriteString("/" + types.ResourceNameVariants + "/" + morphedMetadata[types.ResourceNameVariants].value)
 	}
-	if morphedMetadata[resourceTypeWorkspace].value != "" {
-		s.WriteString("/" + resourceTypeWorkspace + "/" + morphedMetadata[resourceTypeWorkspace].value)
+	if morphedMetadata[types.ResourceNameWorkspaces].value != "" {
+		s.WriteString("/" + types.ResourceNameWorkspaces + "/" + morphedMetadata[types.ResourceNameWorkspaces].value)
 	}
-	if morphedMetadata[resourceTypeNamespace].value != "" {
-		s.WriteString("/" + resourceTypeNamespace + "/" + morphedMetadata[resourceTypeNamespace].value)
+	if morphedMetadata[types.ResourceNameNamespaces].value != "" {
+		s.WriteString("/" + types.ResourceNameNamespaces + "/" + morphedMetadata[types.ResourceNameNamespaces].value)
 	}
 
 	// write remaining segments in metadata in sorted order. Usually this will end up as erroneous segments

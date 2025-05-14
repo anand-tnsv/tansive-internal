@@ -41,7 +41,7 @@ func TestCreateView(t *testing.T) {
 		            "rules": [{
 		                "intent": "Allow",
 		                "actions": ["catalog.list"],
-		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant/collectionschemas/coll-schema"]
+		                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant/collectionschemas/coll-schema"]
 		            }]
 		        }
 		    }
@@ -67,7 +67,7 @@ func TestCreateView(t *testing.T) {
 		            "rules": [{
 		                "intent": "Allow",
 		                "actions": ["catalog.list"],
-		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant/collectionschemas"]
+		                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant/collectionschemas"]
 		            }]
 		        }
 		    }
@@ -93,7 +93,7 @@ func TestCreateView(t *testing.T) {
 		            "rules": [{
 		                "intent": "Allow",
 		                "actions": ["catalog.list"],
-		                "targets": ["res://catalog/validcatalog", "res://collectionschemas/*"]
+		                "targets": ["res://catalogs/validcatalog", "res://collectionschemas/*"]
 		            }]
 		        }
 		    }
@@ -119,7 +119,7 @@ func TestCreateView(t *testing.T) {
 		            "rules": [{
 		                "intent": "Allow",
 		                "actions": ["catalog.list"],
-		                "targets": ["res://catalog/validcatalog", "res://collectionschemas/*"]
+		                "targets": ["res://catalogs/validcatalog", "res://collectionschemas/*"]
 		            }]
 		        }
 		    }
@@ -167,7 +167,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Allow",
 				                "actions": ["catalog.list"],
-				                "targets": ["res://catalog/validcatalog"]
+				                "targets": ["res://catalogs/validcatalog"]
 				            }]
 				        }
 				    }
@@ -193,7 +193,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Allow",
 				                "actions": ["catalog.list"],
-				                "targets": ["res://catalog/validcatalog"]
+				                "targets": ["res://catalogs/validcatalog"]
 				            }]
 				        }
 				    }
@@ -219,7 +219,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Allow",
 				                "actions": ["catalog.list"],
-				                "targets": ["res://catalog/validcatalog"]
+				                "targets": ["res://catalogs/validcatalog"]
 				            }]
 				        }
 				    }
@@ -245,7 +245,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Invalid",
 				                "actions": ["catalog.list"],
-				                "targets": ["res://catalog/validcatalog"]
+				                "targets": ["res://catalogs/validcatalog"]
 				            }]
 				        }
 				    }
@@ -271,7 +271,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Allow",
 				                "actions": ["Invalid"],
-				                "targets": ["res://catalog/validcatalog"]
+				                "targets": ["res://catalogs/validcatalog"]
 				            }]
 				        }
 				    }
@@ -297,7 +297,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Allow",
 				                "actions": ["catalog.list"],
-				                "targets": ["invalid-uri", "res://invalid-format", "res://catalog/InvalidCase"]
+				                "targets": ["invalid-uri", "res://invalid-format", "res://catalogs/InvalidCase"]
 				            }]
 				        }
 				    }
@@ -323,7 +323,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Allow",
 				                "actions": ["catalog.list", "variant.list", "namespace.list"],
-				                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant"]
+				                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant"]
 				            }]
 				        }
 				    }
@@ -349,7 +349,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Allow",
 				                "actions": ["catalog.list", "InvalidAction", "variant.list"],
-				                "targets": ["res://catalog/validcatalog"]
+				                "targets": ["res://catalogs/validcatalog"]
 				            }]
 				        }
 				    }
@@ -375,7 +375,7 @@ func TestCreateView(t *testing.T) {
 				            "rules": [{
 				                "intent": "Allow",
 				                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-				                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant"]
+				                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant", "res://catalogs/validcatalog/variants/my-variant"]
 				            }]
 				        }
 				    }
@@ -403,7 +403,7 @@ func TestCreateView(t *testing.T) {
 		            "rules": [{
 		                "intent": "Allow",
 		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-		                "targets": ["res://catalog/validcatalog", "res://catalog/validcatalog", "res://catalog/validcatalog/variant/my-variant", "res://catalog/validcatalog/variant/my-variant/workspace/my-workspace"]
+		                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant", "res://catalogs/validcatalog/variants/my-variant/workspaces/my-workspace"]
 		            }]
 		        }
 		    }
@@ -431,7 +431,7 @@ func TestCreateView(t *testing.T) {
 		            "rules": [{
 		                "intent": "Allow",
 		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-		                "targets": ["res://collectionschemas/my-collection", "res://namespace/*/collections/a/b/c/d"]
+		                "targets": ["res://collectionschemas/my-collection", "res://namespaces/*/collections/a/b/c/d"]
 		            },
 					{
 		                "intent": "Allow",
@@ -463,7 +463,7 @@ func TestCreateView(t *testing.T) {
 					{
 		                "intent": "Allow",
 		                "actions": ["catalog.adoptView"],
-		                "targets": ["res://views/some-view/variant/test-variant"]
+		                "targets": ["res://views/some-view/variants/test-variant"]
 		            },
 					{
 		                "intent": "Allow",
@@ -566,7 +566,7 @@ func TestUpdateView(t *testing.T) {
 					{
 						"intent": "Allow",
 						"actions": ["catalog.list"],
-						"targets": ["res://catalog/test-catalog"]
+						"targets": ["res://catalogs/test-catalog"]
 					}
 				]
 			}
@@ -594,7 +594,7 @@ func TestUpdateView(t *testing.T) {
 					{
 						"intent": "Allow",
 						"actions": ["catalog.list", "variant.list", "namespace.list"],
-						"targets": ["res://catalog/test-catalog"]
+						"targets": ["res://catalogs/test-catalog"]
 					}
 				]
 			}
@@ -626,7 +626,7 @@ func TestUpdateView(t *testing.T) {
 				"rules": [{
 						"intent": "Allow",
 						"actions": ["variant.list"],
-						"targets": ["res://catalog/test-catalog"]
+						"targets": ["res://catalogs/test-catalog"]
 					}]
 			}
 		}
@@ -680,7 +680,7 @@ func TestUpdateView(t *testing.T) {
 					{
 						"intent": "InvalidEffect",
 						"actions": ["catalog.list"],
-						"targets": ["res://catalog/test-catalog"]
+						"targets": ["res://catalogs/test-catalog"]
 					}
 				]
 			}
@@ -709,7 +709,7 @@ func TestUpdateView(t *testing.T) {
 					{
 						"intent": "Allow",
 						"actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
-						"targets": ["res://catalog/test-catalog", "res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"]
+						"targets": ["res://catalogs/test-catalog", "res://catalogs/test-catalog", "res://catalogs/test-catalog/variants/valid-variant"]
 					}
 				]
 			}
@@ -736,7 +736,7 @@ func TestUpdateView(t *testing.T) {
 	expectedOperations := []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList}
 	assert.ElementsMatch(t, expectedOperations, definition.Rules[0].Actions)
 
-	expectedTargets := []TargetResource{"res://catalog/test-catalog", "res://catalog/test-catalog/variant/valid-variant"}
+	expectedTargets := []TargetResource{"res://catalogs/test-catalog", "res://catalogs/test-catalog/variants/valid-variant"}
 	assert.ElementsMatch(t, expectedTargets, definition.Rules[0].Targets)
 }
 
@@ -755,11 +755,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
-					Targets: []TargetResource{"res://catalog/*"},
+					Targets: []TargetResource{"res://catalogs/*"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test2",
+			resource:       "res://catalogs/test2",
 			expectedResult: true,
 		},
 		{
@@ -768,11 +768,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
-					Targets: []TargetResource{"res://catalog/test1"},
+					Targets: []TargetResource{"res://catalogs/test1"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test2",
+			resource:       "res://catalogs/test2",
 			expectedResult: false,
 		},
 
@@ -782,11 +782,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
-					Targets: []TargetResource{"res://catalog/test1/variant/test2"},
+					Targets: []TargetResource{"res://catalogs/test1/variants/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test1",
+			resource:       "res://catalogs/test1",
 			expectedResult: false,
 		},
 		{
@@ -796,13 +796,13 @@ func TestIsActionAllowed(t *testing.T) {
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2",
-						"res://catalog/*",
+						"res://catalogs/test1/variants/test2",
+						"res://catalogs/*",
 					},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test1",
+			resource:       "res://catalogs/test1",
 			expectedResult: true,
 		},
 		{
@@ -812,12 +812,12 @@ func TestIsActionAllowed(t *testing.T) {
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/namespace/*",
+						"res://catalogs/test1/variants/test2/namespaces/*",
 					},
 				},
 			},
 			action:         ActionNamespaceList,
-			resource:       "res://catalog/test1/variant/test2/namespace/test3",
+			resource:       "res://catalogs/test1/variants/test2/namespaces/test3",
 			expectedResult: true,
 		},
 		{
@@ -827,19 +827,19 @@ func TestIsActionAllowed(t *testing.T) {
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/namespace/*",
+						"res://catalogs/test1/variants/test2/namespaces/*",
 					},
 				},
 				{
 					Intent:  IntentDeny,
 					Actions: []Action{ActionNamespaceList},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/namespace/test3",
+						"res://catalogs/test1/variants/test2/namespaces/test3",
 					},
 				},
 			},
 			action:         ActionNamespaceList,
-			resource:       "res://catalog/test1/variant/test2/namespace/test3",
+			resource:       "res://catalogs/test1/variants/test2/namespaces/test3",
 			expectedResult: false,
 		},
 		{
@@ -849,12 +849,12 @@ func TestIsActionAllowed(t *testing.T) {
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/workspace/*",
+						"res://catalogs/test1/variants/test2/workspaces/*",
 					},
 				},
 			},
 			action:         ActionNamespaceList,
-			resource:       "res://catalog/test1/variant/test2/workspace/test4/namespace/test3",
+			resource:       "res://catalogs/test1/variants/test2/workspaces/test4/namespaces/test3",
 			expectedResult: true,
 		},
 		{
@@ -864,12 +864,12 @@ func TestIsActionAllowed(t *testing.T) {
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/workspace/*",
+						"res://catalogs/test1/variants/test2/workspaces/*",
 					},
 				},
 			},
 			action:         ActionNamespaceList,
-			resource:       "res://catalog/test1/variant/test2/workspace/test4",
+			resource:       "res://catalogs/test1/variants/test2/workspaces/test4",
 			expectedResult: true,
 		},
 		{
@@ -879,12 +879,12 @@ func TestIsActionAllowed(t *testing.T) {
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/workspace/*",
+						"res://catalogs/test1/variants/test2/workspaces/*",
 					},
 				},
 			},
 			action:         ActionNamespaceList,
-			resource:       "res://catalog/test1/variant/test3/workspace/test4",
+			resource:       "res://catalogs/test1/variants/test3/workspaces/test4",
 			expectedResult: false,
 		},
 		{
@@ -894,19 +894,19 @@ func TestIsActionAllowed(t *testing.T) {
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/workspace/*",
+						"res://catalogs/test1/variants/test2/workspaces/*",
 					},
 				},
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
 					Targets: []TargetResource{
-						"res://catalog/test1/variant/test2/namespace/*",
+						"res://catalogs/test1/variants/test2/namespaces/*",
 					},
 				},
 			},
 			action:         ActionNamespaceList,
-			resource:       "res://catalog/test1/variant/test2/workspace/test4/namespace/test5",
+			resource:       "res://catalogs/test1/variants/test2/workspaces/test4/namespaces/test5",
 			expectedResult: true,
 		},
 
@@ -916,11 +916,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test"},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test",
+			resource:       "res://catalogs/test",
 			expectedResult: true,
 		},
 
@@ -930,11 +930,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentDeny,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test"},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test",
+			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 
@@ -944,16 +944,16 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test"},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 				{
 					Intent:  IntentDeny,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test"},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test",
+			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 
@@ -963,11 +963,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test/variant/*"},
+					Targets: []TargetResource{"res://catalogs/test/variants/*"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test/variant/variant1",
+			resource:       "res://catalogs/test/variants/variant1",
 			expectedResult: true,
 		},
 
@@ -977,11 +977,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList, ActionVariantList},
-					Targets: []TargetResource{"res://catalog/test"},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
 			action:         ActionVariantList,
-			resource:       "res://catalog/test",
+			resource:       "res://catalogs/test",
 			expectedResult: true,
 		},
 		{
@@ -990,11 +990,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test"},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
 			action:         ActionVariantList,
-			resource:       "res://catalog/test",
+			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 
@@ -1004,11 +1004,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test"},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/other",
+			resource:       "res://catalogs/other",
 			expectedResult: false,
 		},
 
@@ -1018,16 +1018,16 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test1"},
+					Targets: []TargetResource{"res://catalogs/test1"},
 				},
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test2",
+			resource:       "res://catalogs/test2",
 			expectedResult: true,
 		},
 
@@ -1037,23 +1037,23 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test/*"},
+					Targets: []TargetResource{"res://catalogs/test/*"},
 				},
 				{
 					Intent:  IntentDeny,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/test/specific"},
+					Targets: []TargetResource{"res://catalogs/test/specific"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test/specific",
+			resource:       "res://catalogs/test/specific",
 			expectedResult: false,
 		},
 		{
 			name:           "empty ruleset",
 			rules:          ViewRuleSet{},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test",
+			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 		{
@@ -1062,11 +1062,11 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/*", "res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/*", "res://catalogs/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/test2",
+			resource:       "res://catalogs/test2",
 			expectedResult: true,
 		},
 		{
@@ -1075,12 +1075,12 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/my-namespace/collectionschemas/some-schema",
-						"res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace/collectionschemas/some-schema",
+						"res://catalogs/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/my-catalog/variant/*/namespace/my-namespace",
+			resource:       "res://catalogs/my-catalog/variants/*/namespaces/my-namespace",
 			expectedResult: false,
 		},
 		{
@@ -1089,17 +1089,17 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/my-namespace/collectionschemas/some-schema",
-						"res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace/collectionschemas/some-schema",
+						"res://catalogs/test2"},
 				},
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
-					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/my-namespace"},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace",
+			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace",
 			expectedResult: true,
 		},
 		{
@@ -1108,12 +1108,12 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/my-namespace",
-						"res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace",
+						"res://catalogs/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/collectionschemas/some-schema",
 			expectedResult: false,
 		},
 		{
@@ -1122,12 +1122,12 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceList},
-					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/*",
-						"res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
+						"res://catalogs/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/collectionschemas/some-schema",
 			expectedResult: false,
 		},
 		{
@@ -1136,12 +1136,12 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/*",
-						"res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
+						"res://catalogs/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/collectionschemas/some-schema",
 			expectedResult: true,
 		},
 		{
@@ -1150,12 +1150,12 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
-					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/*",
-						"res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
+						"res://catalogs/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/collectionschemas/some-schema",
 			expectedResult: true,
 		},
 		{
@@ -1164,12 +1164,12 @@ func TestIsActionAllowed(t *testing.T) {
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionVariantAdmin},
-					Targets: []TargetResource{"res://catalog/my-catalog/variant/*/namespace/*",
-						"res://catalog/test2"},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
+						"res://catalogs/test2"},
 				},
 			},
 			action:         ActionCatalogList,
-			resource:       "res://catalog/my-catalog/variant/my-variant/namespace/my-namespace/collectionschemas/some-schema",
+			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/collectionschemas/some-schema",
 			expectedResult: false,
 		},
 	}
