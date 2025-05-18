@@ -244,9 +244,9 @@ func (r TargetResource) matches(actualRes string) bool {
 		if i >= actualLen {
 			return false
 		}
-		if actualSegments[i] == "*" {
-			return false
-		}
+		// if actualSegments[i] == "*" {
+		// 	return false
+		// }
 		if ruleSegments[i] == "*" || ruleSegments[i] == actualSegments[i] {
 			continue
 		}

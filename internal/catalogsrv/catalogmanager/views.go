@@ -98,6 +98,14 @@ type ViewScope struct {
 	Workspace string `json:"workspace,omitempty" validate:"omitempty,workspaceNameValidator"`
 	Namespace string `json:"namespace,omitempty" validate:"omitempty,resourceNameValidator"`
 }
+
+func (v ViewScope) Equals(other ViewScope) bool {
+	return v.Catalog == other.Catalog &&
+		v.Variant == other.Variant &&
+		v.Workspace == other.Workspace &&
+		v.Namespace == other.Namespace
+}
+
 type ViewDefinition struct {
 	Scope ViewScope   `json:"scope" validate:"required"`
 	Rules ViewRuleSet `json:"rules" validate:"required,dive"`
@@ -192,7 +200,9 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 	return validationErrors
 }
 
-// parseAndValidateView parses and validates a view from JSON bytes, optionally overriding the name and catalog.
+// parseAndValidateView parses a JSON byte slice into a viewSchema, validates it,
+// and optionally overrides the name and catalog fields.
+// Returns an error if the JSON is invalid or the schema validation fails.
 func parseAndValidateView(resourceJSON []byte, viewName string, catalog string) (*viewSchema, apperrors.Error) {
 	view := &viewSchema{}
 	if err := json.Unmarshal(resourceJSON, view); err != nil {
@@ -247,16 +257,14 @@ func createViewModel(view *viewSchema, catalogID uuid.UUID) (*models.View, apper
 	}, nil
 }
 
-// removeDuplicates removes duplicate values from a slice of any comparable type.
-// It preserves the original order of elements while efficiently removing duplicates.
+// removeDuplicates removes duplicate elements from a slice while preserving order.
+// Returns a new slice containing only unique elements in their original order.
 func removeDuplicates[T comparable](slice []T) []T {
 	if len(slice) == 0 {
 		return slice
 	}
 
-	// Pre-allocate the map with the expected size
 	seen := make(map[T]struct{}, len(slice))
-	// Pre-allocate the result slice with the maximum possible size
 	unique := make([]T, 0, len(slice))
 
 	for _, v := range slice {
@@ -274,8 +282,8 @@ func removeDuplicates[T comparable](slice []T) []T {
 	return unique
 }
 
-// deduplicateRules removes duplicates from both actions and resources in a ViewRuleSet.
-// It returns a new ViewRuleSet with duplicates removed.
+// deduplicateRules removes duplicate actions and targets from each rule in the ViewRuleSet.
+// Returns a new ViewRuleSet with all duplicates removed while preserving the original order.
 func deduplicateRules(rules ViewRuleSet) ViewRuleSet {
 	if len(rules) == 0 {
 		return rules
@@ -440,19 +448,11 @@ func (vr *viewResource) Delete(ctx context.Context) apperrors.Error {
 		return ErrInvalidView
 	}
 
-	// First get the view to get its ID
-	view, err := db.DB(ctx).GetViewByLabel(ctx, vr.reqCtx.ObjectName, vr.reqCtx.CatalogID)
+	err := db.DB(ctx).DeleteViewByLabel(ctx, vr.reqCtx.ObjectName, vr.reqCtx.CatalogID)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return nil
 		}
-		log.Ctx(ctx).Error().Err(err).Msg("failed to load view")
-		return ErrUnableToLoadObject.Msg("unable to load view")
-	}
-
-	// Delete using the view ID
-	err = db.DB(ctx).DeleteView(ctx, view.ViewID)
-	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to delete view")
 		return ErrUnableToDeleteObject.Msg("unable to delete view")
 	}
@@ -482,20 +482,23 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 
 // IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
 // It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet ViewRuleSet) IsActionAllowed(action Action, resource string) bool {
+func (ruleSet ViewRuleSet) IsActionAllowed(action Action, target TargetResource) bool {
 	allowMatch := false
 	// check if there is an admin match
-	if ruleSet.matchesAdmin(resource) {
+	if ruleSet.matchesAdmin(string(target)) {
 		allowMatch = true
 	}
 	// check if there is a match for the action
 	for _, rule := range ruleSet {
 		if slices.Contains(rule.Actions, action) {
 			for _, res := range rule.Targets {
-				if res.matches(resource) {
-					if rule.Intent == IntentAllow {
+				if rule.Intent == IntentAllow {
+					if res.matches(string(target)) {
 						allowMatch = true
-					} else if rule.Intent == IntentDeny {
+					}
+				} else if rule.Intent == IntentDeny {
+					if res.matches(string(target)) || // target is allowed by the rule
+						target.matches(string(res)) { // target is more permissive than the rule when we evaluate rule subsets
 						allowMatch = false
 					}
 				}
@@ -505,6 +508,24 @@ func (ruleSet ViewRuleSet) IsActionAllowed(action Action, resource string) bool 
 	return allowMatch
 }
 
+// IsSubsetOf checks if this ViewRuleSet is a subset of another ViewRuleSet.
+// Returns true if every action and target in this set is permissible by the other set.
+func (ruleSet ViewRuleSet) IsSubsetOf(other ViewRuleSet) bool {
+	for _, rule := range ruleSet {
+		for _, action := range rule.Actions {
+			for _, target := range rule.Targets {
+				if rule.Intent == IntentAllow && !other.IsActionAllowed(action, target) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// morphResource transforms a resource string based on the provided scope.
+// It handles the conversion of resource paths and ensures proper formatting
+// of catalog, variant, workspace, and namespace components.
 func morphResource(scope ViewScope, resource string) string {
 	segments, resourceName, err := extractSegmentsAndResourceName(resource)
 	if err != nil && len(resource) > 0 {
@@ -573,6 +594,8 @@ func morphResource(scope ViewScope, resource string) string {
 	return "res://" + s.String()
 }
 
+// morphMetadata processes a single metadata field based on scope name and resource type.
+// Returns a resourceMetadataValue with the appropriate position and value.
 func morphMetadata(scopeName string, pos int, resourceType string, resourceMetadata map[string]resourceMetadataValue) resourceMetadataValue {
 	m := resourceMetadataValue{}
 	m.pos = pos
@@ -585,4 +608,23 @@ func morphMetadata(scopeName string, pos int, resourceType string, resourceMetad
 	}
 	delete(resourceMetadata, resourceType)
 	return m
+}
+
+// ValidateDerivedView checks if a derived view is valid by comparing its scope and rules with the parent view.
+// It ensures that the derived view's scope is the same as the parent's and that all rules in the derived view
+// are permissible by the parent view.
+func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *ViewDefinition) apperrors.Error {
+	if parent == nil || child == nil {
+		return ErrInvalidView
+	}
+	// Catalog, Variant, Workspace, and Namespace scopes cannot be changed
+	if !parent.Scope.Equals(child.Scope) {
+		return ErrInvalidView.New("derived view scope cannot be changed")
+	}
+
+	if !child.Rules.IsSubsetOf(parent.Rules) {
+		return ErrInvalidView.New("child view rules cannot grant more permissions than parent view")
+	}
+
+	return nil
 }

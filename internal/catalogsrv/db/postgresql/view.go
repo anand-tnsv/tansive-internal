@@ -243,6 +243,45 @@ func (mm *metadataManager) DeleteView(ctx context.Context, viewID uuid.UUID) app
 	return nil
 }
 
+func (mm *metadataManager) DeleteViewByLabel(ctx context.Context, label string, catalogID uuid.UUID) apperrors.Error {
+	tenantID := common.TenantIdFromContext(ctx)
+	if tenantID == "" {
+		return dberror.ErrMissingTenantID
+	}
+
+	if label == "" {
+		return dberror.ErrInvalidInput.Msg("label cannot be empty")
+	}
+
+	if catalogID == uuid.Nil {
+		return dberror.ErrInvalidInput.Msg("catalog ID cannot be empty")
+	}
+
+	query := `
+		DELETE FROM views
+		WHERE label = $1 AND catalog_id = $2 AND tenant_id = $3
+	`
+
+	result, err := mm.conn().ExecContext(ctx, query, label, catalogID, tenantID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to delete view")
+		return dberror.ErrDatabase.Err(err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to retrieve result information")
+		return dberror.ErrDatabase.Err(err)
+	}
+
+	if rowsAffected == 0 {
+		log.Ctx(ctx).Info().Str("label", label).Str("catalog_id", catalogID.String()).Str("tenant_id", string(tenantID)).Msg("view not found")
+		return dberror.ErrNotFound.Msg("view not found")
+	}
+
+	return nil
+}
+
 func (mm *metadataManager) ListViewsByCatalog(ctx context.Context, catalogID uuid.UUID) ([]*models.View, apperrors.Error) {
 	tenantID := common.TenantIdFromContext(ctx)
 	if tenantID == "" {

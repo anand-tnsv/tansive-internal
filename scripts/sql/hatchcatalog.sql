@@ -610,6 +610,41 @@ BEGIN
 END;
 $$;
 
+CREATE TABLE IF NOT EXISTS view_tokens (
+  token_id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  view_id UUID NOT NULL,
+  tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  expire_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (token_id, tenant_id)
+);
+
+CREATE TRIGGER update_view_tokens_updated_at
+BEFORE UPDATE ON view_tokens
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS signing_keys (
+  key_id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  public_key BYTEA NOT NULL,
+  private_key BYTEA NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT false,
+  tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (key_id, tenant_id)
+);
+
+CREATE TRIGGER update_signing_keys_updated_at
+BEFORE UPDATE ON signing_keys
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE UNIQUE INDEX idx_active_signing_key_per_tenant
+ON signing_keys (tenant_id)
+WHERE is_active = true;
+
 GRANT ALL PRIVILEGES ON TABLE
 	tenants,
 	projects,
@@ -623,5 +658,7 @@ GRANT ALL PRIVILEGES ON TABLE
   parameters_directory,
   values_directory,
   namespaces,
-  views
+  views,
+  view_tokens,
+  signing_keys
 TO catalogrw;

@@ -1,8 +1,10 @@
 package catalogmanager
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -11,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -745,7 +748,7 @@ func TestIsActionAllowed(t *testing.T) {
 		name           string
 		rules          ViewRuleSet
 		action         Action
-		resource       string
+		resource       TargetResource
 		expectedResult bool
 	}{
 
@@ -1180,4 +1183,608 @@ func TestIsActionAllowed(t *testing.T) {
 			assert.Equal(t, tt.expectedResult, result, "IsActionAllowed(%v, %v) = %v, want %v", tt.action, tt.resource, result, tt.expectedResult)
 		})
 	}
+}
+
+func TestValidateDerivedView(t *testing.T) {
+	tests := []struct {
+		name        string
+		parent      ViewDefinition
+		child       ViewDefinition
+		expectError bool
+	}{
+		{
+			name: "valid derivation - exact match",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid derivation - subset of actions",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid derivation - child has more actions",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "valid derivation - parent with wildcard",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/*"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid derivation - child with wildcard, parent specific",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/*"},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "valid derivation - parent with admin permission",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogAdmin},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid derivation - with deny rules",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid derivation - child doesn't need parent's deny rule",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid derivation - child allows denied resource",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/restricted"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "valid derivation - child respects parent's deny with specific allow",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/restricted"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/allowed"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid derivation - parent denies specific action in wildcard",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceAdmin},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceEdit},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList, ActionNamespaceCreate},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/allowed"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid derivation - child allows denied action in wildcard",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceAdmin},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceEdit},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceEdit},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "valid derivation - parent denies subset of allowed actions",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCollectionRead, ActionCollectionWrite, ActionCollectionRun},
+						Targets: []TargetResource{"res://catalogs/test-catalog/collections/*"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionCollectionWrite, ActionCollectionRun},
+						Targets: []TargetResource{"res://catalogs/test-catalog/collections/sensitive/*"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCollectionRead},
+						Targets: []TargetResource{"res://catalogs/test-catalog/collections/*"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid derivation - child allows action denied for specific resource pattern",
+			parent: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCollectionRead, ActionCollectionWrite, ActionCollectionRun},
+						Targets: []TargetResource{"res://catalogs/test-catalog/collections/*"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionCollectionWrite, ActionCollectionRun},
+						Targets: []TargetResource{"res://catalogs/test-catalog/collections/sensitive/*"},
+					},
+				},
+			},
+			child: ViewDefinition{
+				Scope: ViewScope{
+					Catalog: "test-catalog",
+				},
+				Rules: ViewRuleSet{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCollectionRead, ActionCollectionWrite},
+						Targets: []TargetResource{"res://catalogs/test-catalog/collections/*"},
+					},
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	ctx := context.Background()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateDerivedView(ctx, &tt.parent, &tt.child)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestDeleteView(t *testing.T) {
+	ctx := newDb()
+	defer db.DB(ctx).Close(ctx)
+
+	tenantID := types.TenantId("TABCDE")
+	projectID := types.ProjectId("P12345")
+	ctx = common.SetTenantIdInContext(ctx, tenantID)
+	ctx = common.SetProjectIdInContext(ctx, projectID)
+
+	require.NoError(t, db.DB(ctx).CreateTenant(ctx, tenantID))
+	defer db.DB(ctx).DeleteTenant(ctx, tenantID)
+
+	require.NoError(t, db.DB(ctx).CreateProject(ctx, projectID))
+	defer db.DB(ctx).DeleteProject(ctx, projectID)
+
+	// Create a catalog first
+	catalogID := uuid.New()
+	err := db.DB(ctx).CreateCatalog(ctx, &models.Catalog{
+		CatalogID:   catalogID,
+		Name:        "test-catalog",
+		Description: "Test catalog",
+		ProjectID:   projectID,
+		Info:        pgtype.JSONB{Status: pgtype.Null},
+	})
+	require.NoError(t, err)
+
+	// Create test views
+	testViews := []struct {
+		name        string
+		label       string
+		description string
+	}{
+		{
+			name:        "view1",
+			label:       "test-view-1",
+			description: "Test view 1",
+		},
+		{
+			name:        "view2",
+			label:       "test-view-2",
+			description: "Test view 2",
+		},
+	}
+
+	for _, tv := range testViews {
+		view := `{
+			"version": "v1",
+			"kind": "View",
+			"metadata": {
+				"name": "%s",
+				"catalog": "test-catalog",
+				"description": "%s"
+			},
+			"spec": {
+				"definition": {
+					"scope": {
+						"catalog": "test-catalog"
+					},
+					"rules": [
+						{
+							"intent": "Allow",
+							"actions": ["catalog.list"],
+							"targets": ["res://catalogs/test-catalog"]
+						}
+					]
+				}
+			}
+		}`
+		viewJSON := fmt.Sprintf(view, tv.label, tv.description)
+		_, err = CreateView(ctx, []byte(viewJSON), "")
+		require.NoError(t, err)
+	}
+
+	t.Run("delete by label - success", func(t *testing.T) {
+		// Delete first view by label
+		reqCtx := RequestContext{
+			CatalogID:  catalogID,
+			Catalog:    "test-catalog",
+			ObjectName: "test-view-1",
+		}
+		vr, err := NewViewResource(ctx, reqCtx)
+		require.NoError(t, err)
+
+		err = vr.Delete(ctx)
+		assert.NoError(t, err)
+
+		// Verify view is deleted
+		_, err = db.DB(ctx).GetViewByLabel(ctx, "test-view-1", catalogID)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, dberror.ErrNotFound))
+	})
+
+	t.Run("delete by label - non-existent view", func(t *testing.T) {
+		reqCtx := RequestContext{
+			CatalogID:  catalogID,
+			Catalog:    "test-catalog",
+			ObjectName: "non-existent-view",
+		}
+		vr, err := NewViewResource(ctx, reqCtx)
+		require.NoError(t, err)
+
+		err = vr.Delete(ctx)
+		assert.NoError(t, err) // Should return nil for non-existent view
+	})
+
+	t.Run("delete by label - invalid catalog ID", func(t *testing.T) {
+		reqCtx := RequestContext{
+			CatalogID:  uuid.Nil,
+			Catalog:    "test-catalog",
+			ObjectName: "test-view-2",
+		}
+		_, err := NewViewResource(ctx, reqCtx)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrInvalidCatalog))
+	})
+
+	t.Run("delete by label - empty label", func(t *testing.T) {
+		reqCtx := RequestContext{
+			CatalogID:  catalogID,
+			Catalog:    "test-catalog",
+			ObjectName: "",
+		}
+		vr, err := NewViewResource(ctx, reqCtx)
+		require.NoError(t, err)
+
+		err = vr.Delete(ctx)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrInvalidView))
+	})
+
+	t.Run("delete by label - wrong catalog ID", func(t *testing.T) {
+		wrongCatalogID := uuid.New()
+		reqCtx := RequestContext{
+			CatalogID:  wrongCatalogID,
+			Catalog:    "test-catalog",
+			ObjectName: "test-view-2",
+		}
+		vr, err := NewViewResource(ctx, reqCtx)
+		require.NoError(t, err)
+
+		err = vr.Delete(ctx)
+		assert.NoError(t, err) // Should return nil as the view doesn't exist in this catalog
+	})
 }

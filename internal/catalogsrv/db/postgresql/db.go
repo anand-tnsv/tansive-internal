@@ -41,3 +41,15 @@ func getTenantAndProjectFromContext(ctx context.Context) (types.TenantId, types.
 
 	return tenantID, projectID, nil
 }
+
+// getTenantIdFromContext extracts only the tenant ID from the context
+func getTenantIdFromContext(ctx context.Context) (types.TenantId, apperrors.Error) {
+	tenantID := common.TenantIdFromContext(ctx)
+
+	// Validate tenantID to ensure it is not empty
+	if tenantID == "" {
+		return "", dberror.ErrMissingTenantID.Err(dberror.ErrInvalidInput)
+	}
+
+	return tenantID, nil
+}

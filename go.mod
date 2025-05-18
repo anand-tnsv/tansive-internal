@@ -6,10 +6,12 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/anand-gl/jsoncanonicalizer v0.1.0
 	github.com/creack/pty v1.1.24
+	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator/v10 v10.22.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang/snappy v0.0.4
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3

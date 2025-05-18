@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -74,7 +75,21 @@ type MetadataManager interface {
 	GetViewByLabel(ctx context.Context, label string, catalogID uuid.UUID) (*models.View, apperrors.Error)
 	UpdateView(ctx context.Context, view *models.View) apperrors.Error
 	DeleteView(ctx context.Context, viewID uuid.UUID) apperrors.Error
+	DeleteViewByLabel(ctx context.Context, label string, catalogID uuid.UUID) apperrors.Error
 	ListViewsByCatalog(ctx context.Context, catalogID uuid.UUID) ([]*models.View, apperrors.Error)
+
+	// ViewToken
+	CreateViewToken(ctx context.Context, token *models.ViewToken) apperrors.Error
+	GetViewToken(ctx context.Context, tokenID uuid.UUID) (*models.ViewToken, apperrors.Error)
+	UpdateViewTokenExpiry(ctx context.Context, tokenID uuid.UUID, expireAt time.Time) apperrors.Error
+	DeleteViewToken(ctx context.Context, tokenID uuid.UUID) apperrors.Error
+
+	// SigningKey
+	CreateSigningKey(ctx context.Context, key *models.SigningKey) apperrors.Error
+	GetSigningKey(ctx context.Context, keyID uuid.UUID) (*models.SigningKey, apperrors.Error)
+	GetActiveSigningKey(ctx context.Context) (*models.SigningKey, apperrors.Error)
+	UpdateSigningKeyActive(ctx context.Context, keyID uuid.UUID, isActive bool) apperrors.Error
+	DeleteSigningKey(ctx context.Context, keyID uuid.UUID) apperrors.Error
 }
 
 type ObjectManager interface {
