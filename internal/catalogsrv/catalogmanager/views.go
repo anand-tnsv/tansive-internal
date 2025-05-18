@@ -84,22 +84,22 @@ const (
 	ActionWorkspaceCreate   Action = "workspace.create"
 )
 
-type ViewRule struct {
+type Rule struct {
 	Intent  Intent           `json:"intent" validate:"required,viewRuleIntentValidator"`
 	Actions []Action         `json:"actions" validate:"required,dive,viewRuleActionValidator"`
 	Targets []TargetResource `json:"targets" validate:"-"`
 }
 
 type TargetResource string
-type ViewRuleSet []ViewRule
-type ViewScope struct {
+type Rules []Rule
+type Scope struct {
 	Catalog   string `json:"catalog" validate:"required,resourceNameValidator"`
 	Variant   string `json:"variant,omitempty" validate:"omitempty,resourceNameValidator"`
 	Workspace string `json:"workspace,omitempty" validate:"omitempty,workspaceNameValidator"`
 	Namespace string `json:"namespace,omitempty" validate:"omitempty,resourceNameValidator"`
 }
 
-func (v ViewScope) Equals(other ViewScope) bool {
+func (v Scope) Equals(other Scope) bool {
 	return v.Catalog == other.Catalog &&
 		v.Variant == other.Variant &&
 		v.Workspace == other.Workspace &&
@@ -107,8 +107,8 @@ func (v ViewScope) Equals(other ViewScope) bool {
 }
 
 type ViewDefinition struct {
-	Scope ViewScope   `json:"scope" validate:"required"`
-	Rules ViewRuleSet `json:"rules" validate:"required,dive"`
+	Scope Scope `json:"scope" validate:"required"`
+	Rules Rules `json:"rules" validate:"required,dive"`
 }
 
 // ToJSON converts a ViewRuleSet to a JSON byte slice.
@@ -284,14 +284,14 @@ func removeDuplicates[T comparable](slice []T) []T {
 
 // deduplicateRules removes duplicate actions and targets from each rule in the ViewRuleSet.
 // Returns a new ViewRuleSet with all duplicates removed while preserving the original order.
-func deduplicateRules(rules ViewRuleSet) ViewRuleSet {
+func deduplicateRules(rules Rules) Rules {
 	if len(rules) == 0 {
 		return rules
 	}
 
-	result := make(ViewRuleSet, len(rules))
+	result := make(Rules, len(rules))
 	for i, rule := range rules {
-		result[i] = ViewRule{
+		result[i] = Rule{
 			Intent:  rule.Intent,
 			Actions: removeDuplicates(rule.Actions),
 			Targets: removeDuplicates(rule.Targets),
@@ -482,7 +482,7 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 
 // IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
 // It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet ViewRuleSet) IsActionAllowed(action Action, target TargetResource) bool {
+func (ruleSet Rules) IsActionAllowed(action Action, target TargetResource) bool {
 	allowMatch := false
 	// check if there is an admin match
 	if ruleSet.matchesAdmin(string(target)) {
@@ -510,7 +510,7 @@ func (ruleSet ViewRuleSet) IsActionAllowed(action Action, target TargetResource)
 
 // IsSubsetOf checks if this ViewRuleSet is a subset of another ViewRuleSet.
 // Returns true if every action and target in this set is permissible by the other set.
-func (ruleSet ViewRuleSet) IsSubsetOf(other ViewRuleSet) bool {
+func (ruleSet Rules) IsSubsetOf(other Rules) bool {
 	for _, rule := range ruleSet {
 		for _, action := range rule.Actions {
 			for _, target := range rule.Targets {
@@ -526,7 +526,7 @@ func (ruleSet ViewRuleSet) IsSubsetOf(other ViewRuleSet) bool {
 // morphResource transforms a resource string based on the provided scope.
 // It handles the conversion of resource paths and ensures proper formatting
 // of catalog, variant, workspace, and namespace components.
-func morphResource(scope ViewScope, resource string) string {
+func morphResource(scope Scope, resource string) string {
 	segments, resourceName, err := extractSegmentsAndResourceName(resource)
 	if err != nil && len(resource) > 0 {
 		return ""

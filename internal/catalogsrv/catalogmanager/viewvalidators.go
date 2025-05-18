@@ -186,7 +186,7 @@ func checkAdminMatch(resourceType string, ruleSegments []string) bool {
 	return false
 }
 
-func (r ViewRuleSet) matchesAdmin(resource string) bool {
+func (r Rules) matchesAdmin(resource string) bool {
 	for _, rule := range r {
 		if rule.Intent != IntentAllow {
 			continue

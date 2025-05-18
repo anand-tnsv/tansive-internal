@@ -72,10 +72,10 @@ func setupTest(t *testing.T) (context.Context, types.TenantId, types.ProjectId, 
 
 	// Create parent view
 	parentView := &ViewDefinition{
-		Scope: ViewScope{
+		Scope: Scope{
 			Catalog: "test-catalog",
 		},
-		Rules: ViewRuleSet{
+		Rules: Rules{
 			{
 				Intent:  IntentAllow,
 				Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -129,10 +129,10 @@ func TestCreateToken(t *testing.T) {
 
 	t.Run("successful token creation", func(t *testing.T) {
 		derivedView := &ViewDefinition{
-			Scope: ViewScope{
+			Scope: Scope{
 				Catalog: "test-catalog",
 			},
-			Rules: ViewRuleSet{
+			Rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},

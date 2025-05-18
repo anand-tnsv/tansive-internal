@@ -746,7 +746,7 @@ func TestUpdateView(t *testing.T) {
 func TestIsActionAllowed(t *testing.T) {
 	tests := []struct {
 		name           string
-		rules          ViewRuleSet
+		rules          Rules
 		action         Action
 		resource       TargetResource
 		expectedResult bool
@@ -754,7 +754,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "admin action",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
@@ -767,7 +767,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "admin action with specific resource",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
@@ -781,7 +781,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "incorrectadmin action with specific resource",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
@@ -794,7 +794,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "incorrectadmin action with specific resource",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogAdmin},
@@ -810,7 +810,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow namespace with admin action",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
@@ -825,7 +825,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow namespace with admin action and deny rule",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
@@ -847,7 +847,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
@@ -862,7 +862,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
@@ -877,7 +877,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
@@ -892,7 +892,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "allow workspace with admin action",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionWorkspaceAdmin},
@@ -915,7 +915,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "simple allow rule",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -929,7 +929,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "simple deny rule",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentDeny,
 					Actions: []Action{ActionCatalogList},
@@ -943,7 +943,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "deny overrides allow",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -962,7 +962,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "wildcard resource matching",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -976,7 +976,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "multiple actions in rule",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -989,7 +989,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "action not in rule",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1003,7 +1003,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "resource not in rule",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1017,7 +1017,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "multiple rules with different resources",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1036,7 +1036,7 @@ func TestIsActionAllowed(t *testing.T) {
 
 		{
 			name: "wildcard resource with deny rule",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1054,14 +1054,14 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name:           "empty ruleset",
-			rules:          ViewRuleSet{},
+			rules:          Rules{},
 			action:         ActionCatalogList,
 			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 		{
 			name: "mismatched action",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1074,7 +1074,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "varying length of resource",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1088,7 +1088,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "varying length of resource",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1107,7 +1107,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "varying length of resource2",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1121,7 +1121,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "varying length of resource3",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceList},
@@ -1135,7 +1135,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "varying length of resource3",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionCatalogList},
@@ -1149,7 +1149,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "varying length of resource3",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionNamespaceAdmin},
@@ -1163,7 +1163,7 @@ func TestIsActionAllowed(t *testing.T) {
 		},
 		{
 			name: "varying length of resource3",
-			rules: ViewRuleSet{
+			rules: Rules{
 				{
 					Intent:  IntentAllow,
 					Actions: []Action{ActionVariantAdmin},
@@ -1195,10 +1195,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - exact match",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -1207,10 +1207,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -1223,10 +1223,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - subset of actions",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList},
@@ -1235,10 +1235,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -1251,10 +1251,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "invalid derivation - child has more actions",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList},
@@ -1263,10 +1263,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -1279,10 +1279,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - parent with wildcard",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList},
@@ -1291,10 +1291,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList},
@@ -1307,10 +1307,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "invalid derivation - child with wildcard, parent specific",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList},
@@ -1319,10 +1319,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList},
@@ -1335,10 +1335,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - parent with admin permission",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogAdmin},
@@ -1347,10 +1347,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -1363,10 +1363,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - with deny rules",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -1380,10 +1380,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList},
@@ -1401,10 +1401,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - child doesn't need parent's deny rule",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList, ActionVariantList},
@@ -1418,10 +1418,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCatalogList},
@@ -1434,10 +1434,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "invalid derivation - child allows denied resource",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionNamespaceList},
@@ -1451,10 +1451,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionNamespaceList},
@@ -1467,10 +1467,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - child respects parent's deny with specific allow",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionNamespaceList},
@@ -1484,10 +1484,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionNamespaceList},
@@ -1500,10 +1500,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - parent denies specific action in wildcard",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionNamespaceAdmin},
@@ -1517,10 +1517,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionNamespaceList, ActionNamespaceCreate},
@@ -1533,10 +1533,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "invalid derivation - child allows denied action in wildcard",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionNamespaceAdmin},
@@ -1550,10 +1550,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionNamespaceEdit},
@@ -1566,10 +1566,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "valid derivation - parent denies subset of allowed actions",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCollectionRead, ActionCollectionWrite, ActionCollectionRun},
@@ -1583,10 +1583,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCollectionRead},
@@ -1599,10 +1599,10 @@ func TestValidateDerivedView(t *testing.T) {
 		{
 			name: "invalid derivation - child allows action denied for specific resource pattern",
 			parent: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCollectionRead, ActionCollectionWrite, ActionCollectionRun},
@@ -1616,10 +1616,10 @@ func TestValidateDerivedView(t *testing.T) {
 				},
 			},
 			child: ViewDefinition{
-				Scope: ViewScope{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: ViewRuleSet{
+				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionCollectionRead, ActionCollectionWrite},
