@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"sync"
 	"time"
@@ -19,15 +20,21 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
-func CreateToken(ctx context.Context, derivedView *ViewDefinition, viewId uuid.UUID) (string, apperrors.Error) {
-	// get current view from context
-	creatorView := getViewFromContext(ctx)
-	if creatorView == nil {
-		return "", ErrUnauthorizedToCreateView
+func CreateToken(ctx context.Context, derivedView *ViewDefinition, viewID uuid.UUID) (string, apperrors.Error) {
+
+	// get parent view from database
+	p, err := db.DB(ctx).GetView(ctx, viewID)
+	if err != nil {
+		return "", err
+	}
+	parentView := &ViewDefinition{}
+	if err := json.Unmarshal(p.Rules, &parentView); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal parent view")
+		return "", ErrUnableToCreateView
 	}
 
 	// check if derived view can be created from creator view
-	if err := ValidateDerivedView(ctx, creatorView, derivedView); err != nil {
+	if err := ValidateDerivedView(ctx, parentView, derivedView); err != nil {
 		return "", err
 	}
 
@@ -36,16 +43,16 @@ func CreateToken(ctx context.Context, derivedView *ViewDefinition, viewId uuid.U
 	}
 
 	// create a signed jwt token
-	tokenDuration, err := config.ParseTokenDuration(config.Config().DefaultTokenValidity)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("unable to parse token duration")
+	tokenDuration, errif := config.ParseTokenDuration(config.Config().DefaultTokenValidity)
+	if errif != nil {
+		log.Ctx(ctx).Error().Err(errif).Msg("unable to parse token duration")
 		return "", ErrUnableToParseTokenDuration
 	}
 
 	tokenExpiry := time.Now().Add(tokenDuration)
 
 	v := &models.ViewToken{
-		ViewID:   viewId,
+		ViewID:   viewID,
 		ExpireAt: tokenExpiry,
 	}
 	if err := db.DB(ctx).CreateViewToken(ctx, v); err != nil {
@@ -55,7 +62,7 @@ func CreateToken(ctx context.Context, derivedView *ViewDefinition, viewId uuid.U
 
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, viewClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   viewId.String(),
+			Subject:   viewID.String(),
 			Issuer:    config.Config().ServerHostName + ":" + config.Config().ServerPort,
 			ExpiresAt: jwt.NewNumericDate(tokenExpiry),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -70,9 +77,9 @@ func CreateToken(ctx context.Context, derivedView *ViewDefinition, viewId uuid.U
 		return "", apperr
 	}
 
-	tokenString, err := token.SignedString(signingKey.PrivateKey)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("unable to sign token")
+	tokenString, errif := token.SignedString(signingKey.PrivateKey)
+	if errif != nil {
+		log.Ctx(ctx).Error().Err(errif).Msg("unable to sign token")
 		return "", ErrUnableToGenerateToken
 	}
 
@@ -94,6 +101,9 @@ func getViewFromContext(ctx context.Context) *ViewDefinition {
 	}
 	return v
 }
+
+var _ = getViewFromContext
+var _ = addViewToContext
 
 type signingKey struct {
 	KeyID      uuid.UUID
