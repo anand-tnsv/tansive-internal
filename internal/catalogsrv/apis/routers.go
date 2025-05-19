@@ -157,11 +157,8 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 		}
 		c := common.CatalogContextFromContext(ctx)
 		if c == nil {
-			// TODO: return here, since this will be a breach of token
-			c = &common.CatalogContext{}
-			ctx = common.SetCatalogContext(ctx, c)
-			//next.ServeHTTP(w, r.WithContext(ctx))
-			//return
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
 		}
 		urlValues := r.URL.Query()
 		// Load Catalog
