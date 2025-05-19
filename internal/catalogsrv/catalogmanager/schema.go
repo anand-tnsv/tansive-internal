@@ -998,19 +998,19 @@ func (or *objectResource) Create(ctx context.Context, rsrcJSON []byte) (string, 
 	if err != nil {
 		return "", err
 	}
-
-	or.name.ObjectName = object.Metadata().Name
-	or.name.ObjectPath = object.Metadata().Path
+	om := object.Metadata()
+	or.name.ObjectName = om.Name
+	or.name.ObjectPath = om.Path
 	or.name.ObjectType = object.Type()
 	or.om = object
 	if or.name.Catalog == "" {
-		or.name.Catalog = object.Metadata().Catalog
+		or.name.Catalog = om.Catalog
 	}
 	if or.name.Variant == "" {
-		or.name.Variant = object.Metadata().Variant.String()
+		or.name.Variant = om.Variant.String()
 	}
 	if or.name.Namespace == "" {
-		or.name.Namespace = object.Metadata().Namespace.String()
+		or.name.Namespace = om.Namespace.String()
 	}
 
 	return or.Location(), nil

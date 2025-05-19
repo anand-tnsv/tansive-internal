@@ -56,6 +56,7 @@ type CatalogContext struct {
 	Namespace      string
 	Catalog        string
 	Variant        string
+	ViewDefinition any
 }
 
 // SetCatalogContext sets the catalog context in the provided context.
@@ -120,6 +121,13 @@ func SetVariantInContext(ctx context.Context, variant string) context.Context {
 	return SetCatalogContext(ctx, currContext)
 }
 
+// SetViewDefinitionInContext sets the view definition in the provided context.
+func SetViewDefinitionInContext(ctx context.Context, viewDefinition any) context.Context {
+	currContext := CatalogContextFromContext(ctx)
+	currContext.ViewDefinition = viewDefinition
+	return SetCatalogContext(ctx, currContext)
+}
+
 // GetCatalogIdFromContext retrieves the catalog ID from the provided context.
 func GetCatalogIdFromContext(ctx context.Context) uuid.UUID {
 	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
@@ -174,6 +182,14 @@ func GetVariantFromContext(ctx context.Context) string {
 		return catalogContext.Variant
 	}
 	return ""
+}
+
+// GetViewDefinitionFromContext retrieves the view definition from the provided context.
+func GetViewDefinitionFromContext(ctx context.Context) any {
+	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
+		return catalogContext.ViewDefinition
+	}
+	return nil
 }
 
 type ctxTestContextKeyType string

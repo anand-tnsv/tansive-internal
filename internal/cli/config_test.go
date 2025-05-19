@@ -158,54 +158,6 @@ func TestMorphServer(t *testing.T) {
 	}
 }
 
-func TestRoleManagement(t *testing.T) {
-	cfg := &Config{
-		Version:    "1.0",
-		ServerPort: "example.com:8080",
-		APIKey:     "test-key",
-		Roles:      []Role{},
-	}
-
-	// Test AddRole
-	err := cfg.AddRole("admin", "token1", "2024-12-31")
-	if err != nil {
-		t.Errorf("AddRole() error = %v", err)
-	}
-
-	// Test adding duplicate role
-	err = cfg.AddRole("admin", "token2", "2024-12-31")
-	if err == nil {
-		t.Error("AddRole() should return error for duplicate role")
-	}
-
-	// Test GetRole
-	role, err := cfg.GetRole("admin")
-	if err != nil {
-		t.Errorf("GetRole() error = %v", err)
-	}
-	if role.Name != "admin" {
-		t.Errorf("GetRole() got = %v, want %v", role.Name, "admin")
-	}
-
-	// Test RemoveRole
-	err = cfg.RemoveRole("admin")
-	if err != nil {
-		t.Errorf("RemoveRole() error = %v", err)
-	}
-
-	// Test removing non-existent role
-	err = cfg.RemoveRole("nonexistent")
-	if err == nil {
-		t.Error("RemoveRole() should return error for non-existent role")
-	}
-
-	// Test GetRole for removed role
-	_, err = cfg.GetRole("admin")
-	if err == nil {
-		t.Error("GetRole() should return error for removed role")
-	}
-}
-
 func TestWriteConfig(t *testing.T) {
 	// Create a temporary directory for test files
 	tmpDir, err := os.MkdirTemp("", "config_test")
@@ -218,13 +170,6 @@ func TestWriteConfig(t *testing.T) {
 		Version:    "1.0",
 		ServerPort: "example.com:8080",
 		APIKey:     "test-key",
-		Roles: []Role{
-			{
-				Name:        "admin",
-				AccessToken: "token1",
-				ValidBefore: "2024-12-31",
-			},
-		},
 	}
 
 	// Test WriteConfig

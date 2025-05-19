@@ -17,6 +17,10 @@ type ConfigParam struct {
 	HandleCORS           bool   `toml:"handle_cors"`
 	KeyEncryptionPasswd  string `toml:"key_encryption_passwd"`
 	DefaultTokenValidity string `toml:"default_token_validity"`
+	SingleUserMode       bool   `toml:"single_user_mode"`
+	DefaultTenantID      string `toml:"default_tenant_id"`
+	DefaultProjectID     string `toml:"default_project_id"`
+	FakeSingleUserToken  string `toml:"fake_single_user_token"`
 }
 
 var cfg *ConfigParam
@@ -76,6 +80,11 @@ func LoadDefaultsIfNotSet(cfg *ConfigParam) {
 		}
 		cfg.KeyEncryptionPasswd = id
 	}
+	cfg.SingleUserMode = true
+	// Default tenant and project for single user
+	cfg.DefaultTenantID = "TXYZABC"
+	cfg.DefaultProjectID = "PXYZABC"
+	cfg.FakeSingleUserToken = "single-user-fake-token"
 }
 
 func ParseTokenDuration(input string) (time.Duration, error) {

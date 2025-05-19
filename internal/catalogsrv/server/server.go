@@ -6,12 +6,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/common/httpx"
-	"github.com/tansive/tansive-internal/internal/common/logtrace"
-	hatchservicemiddleware "github.com/tansive/tansive-internal/internal/common/middleware"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/apis"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
+	"github.com/tansive/tansive-internal/internal/common/httpx"
+	"github.com/tansive/tansive-internal/internal/common/logtrace"
+	hatchservicemiddleware "github.com/tansive/tansive-internal/internal/common/middleware"
 	"github.com/tansive/tansive-internal/pkg/api"
 )
 
@@ -27,6 +27,7 @@ func CreateNewServer() (*HatchCatalogServer, error) {
 
 func (s *HatchCatalogServer) MountHandlers() {
 	s.Router.Use(hatchservicemiddleware.RequestLogger)
+	s.Router.Use(hatchservicemiddleware.PanicHandler)
 	if config.Config().HandleCORS {
 		s.Router.Use(s.HandleCORS)
 	}

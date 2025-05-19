@@ -76,7 +76,7 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	if c.config.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.config.APIKey+"-TXYSZRE")
+		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
 	}
 
 	// Make the request

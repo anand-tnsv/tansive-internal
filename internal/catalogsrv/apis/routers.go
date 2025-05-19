@@ -2,14 +2,11 @@ package apis
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/apis/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 var resourceObjectHandlers = []httpx.ResponseHandlerParam{
@@ -141,57 +138,12 @@ var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 }
 
 func Router(r chi.Router) {
-	r.Use(CreateTenantProject) // Only for testing
 	r.Use(LoadCatalogContext)
 	//TODO: Implement authentication
 	for _, handler := range resourceObjectHandlers {
 		r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
 	}
-}
-
-func CreateTenantProject(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		tenantID := common.TenantIdFromContext(ctx)
-		projectID := common.ProjectIdFromContext(ctx)
-		if tenantID != "" && projectID != "" {
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		// get the bearer token from the request
-		bearerToken := r.Header.Get("Authorization")
-		if bearerToken == "" {
-			httpx.ErrUnAuthorized().Send(w)
-			return
-		}
-		// this is only for testing.
-		tenantID = types.TenantId(bearerToken[strings.LastIndex(bearerToken, "-")+1:])
-		projectID = types.ProjectId("P" + tenantID)
-
-		// Create the tenant for testing
-		err := db.DB(ctx).CreateTenant(ctx, types.TenantId(tenantID))
-		if err == nil {
-			log.Ctx(ctx).Info().Msg("Tenant created successfully")
-		} else {
-			log.Ctx(ctx).Error().Msgf("Tenant creation failed: %v", err)
-		}
-
-		// Set the tenant ID in the context
-		ctx = common.SetTenantIdInContext(ctx, types.TenantId(tenantID))
-
-		// Create the project for testing
-		err = db.DB(ctx).CreateProject(ctx, types.ProjectId(projectID))
-		if err == nil {
-			log.Ctx(ctx).Info().Msg("Project created successfully")
-		} else {
-			log.Ctx(ctx).Error().Msgf("Project creation failed: %v", err)
-		}
-
-		ctx = common.SetProjectIdInContext(ctx, types.ProjectId(projectID))
-
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+	r.Route("/auth", auth.Router)
 }
 
 func LoadCatalogContext(next http.Handler) http.Handler {

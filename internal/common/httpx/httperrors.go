@@ -172,6 +172,13 @@ func ErrInvalidCatalog() *Error {
 	}
 }
 
+func ErrInvalidView() *Error {
+	return &Error{
+		Description: "Empty or invalid view",
+		StatusCode:  http.StatusBadRequest,
+	}
+}
+
 func ErrInvalidVariant() *Error {
 	return &Error{
 		Description: "Empty or invalid variant",

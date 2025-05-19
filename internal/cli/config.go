@@ -22,18 +22,6 @@ type Config struct {
 	ServerPort string `yaml:"server:port"`
 	// APIKey is the authentication token for the Tansive server
 	APIKey string `yaml:"api_key"`
-	// Roles contains the list of roles and their associated tokens
-	Roles []Role `yaml:"roles"`
-}
-
-// Role represents a user role with associated access token
-type Role struct {
-	// Name of the role
-	Name string `yaml:"name"`
-	// AccessToken is the token associated with this role
-	AccessToken string `yaml:"access_token"`
-	// ValidBefore is the expiration date of the token
-	ValidBefore string `yaml:"valid_before"`
 }
 
 var config *Config
@@ -119,48 +107,6 @@ func (cfg *Config) WriteConfig(file string) error {
 	return nil
 }
 
-// AddRole adds a new role to the configuration
-// Returns an error if a role with the same name already exists
-func (cfg *Config) AddRole(name, accessToken, validBefore string) error {
-	// Check if role already exists
-	for _, role := range cfg.Roles {
-		if role.Name == name {
-			return fmt.Errorf("role %s already exists", name)
-		}
-	}
-
-	cfg.Roles = append(cfg.Roles, Role{
-		Name:        name,
-		AccessToken: accessToken,
-		ValidBefore: validBefore,
-	})
-
-	return nil
-}
-
-// RemoveRole removes a role from the configuration
-// Returns an error if the role does not exist
-func (cfg *Config) RemoveRole(name string) error {
-	for i, role := range cfg.Roles {
-		if role.Name == name {
-			cfg.Roles = append(cfg.Roles[:i], cfg.Roles[i+1:]...)
-			return nil
-		}
-	}
-	return fmt.Errorf("role %s not found", name)
-}
-
-// GetRole returns a role by name
-// Returns an error if the role does not exist
-func (cfg *Config) GetRole(name string) (*Role, error) {
-	for _, role := range cfg.Roles {
-		if role.Name == name {
-			return &role, nil
-		}
-	}
-	return nil, fmt.Errorf("role %s not found", name)
-}
-
 // ValidateConfig validates the configuration
 // Checks for required fields and proper formatting
 func (cfg *Config) ValidateConfig() error {
@@ -182,11 +128,6 @@ func (cfg *Config) ValidateConfig() error {
 // Print prints the current configuration in a human-readable format
 func (cfg *Config) Print() {
 	fmt.Printf("Server: %s\n", cfg.ServerPort)
-	fmt.Printf("API Key: %s\n", cfg.APIKey)
-	fmt.Println("Roles:")
-	for _, role := range cfg.Roles {
-		fmt.Printf("  - %s (valid until: %s)\n", role.Name, role.ValidBefore)
-	}
 }
 
 // MorphServer ensures the server URL is properly formatted
