@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 )
@@ -75,7 +76,20 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	if c.config.APIKey != "" {
+
+	// Check if we have a valid current token
+	if c.config.CurrentToken != "" && c.config.TokenExpiry != "" {
+		expiry, err := time.Parse(time.RFC3339, c.config.TokenExpiry)
+		if err == nil && time.Now().Before(expiry) {
+			req.Header.Set("Authorization", "Bearer "+c.config.CurrentToken)
+		} else {
+			// Token expired or invalid, fall back to API key
+			if c.config.APIKey != "" {
+				req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+			}
+		}
+	} else if c.config.APIKey != "" {
+		// No current token, use API key
 		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
 	}
 

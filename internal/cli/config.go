@@ -22,6 +22,12 @@ type Config struct {
 	ServerPort string `yaml:"server:port"`
 	// APIKey is the authentication token for the Tansive server
 	APIKey string `yaml:"api_key"`
+	// CurrentToken is the active token for the selected catalog
+	CurrentToken string `yaml:"current_token"`
+	// TokenExpiry is when the current token expires
+	TokenExpiry string `yaml:"token_expiry"`
+	// CurrentCatalog is the currently selected catalog
+	CurrentCatalog string `yaml:"current_catalog"`
 }
 
 var config *Config

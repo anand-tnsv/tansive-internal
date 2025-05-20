@@ -18,7 +18,7 @@ import (
 
 type adoptViewRsp struct {
 	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 // adoptView adopts a view from a catalog. The parent view must be scoped to the catalog and
