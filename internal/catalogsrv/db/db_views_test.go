@@ -358,10 +358,10 @@ func TestListViewsByCatalog(t *testing.T) {
 	// List views
 	retrieved, err := DB(ctx).ListViewsByCatalog(ctx, catalog.CatalogID)
 	assert.NoError(t, err)
-	assert.Len(t, retrieved, 3)
+	require.Len(t, retrieved, 4) // there's already one default view created
 
 	// Verify order (should be alphabetical by label)
-	assert.Equal(t, "view1", retrieved[0].Label)
-	assert.Equal(t, "view2", retrieved[1].Label)
-	assert.Equal(t, "view3", retrieved[2].Label)
+	assert.Equal(t, "view1", retrieved[1].Label)
+	assert.Equal(t, "view2", retrieved[2].Label)
+	assert.Equal(t, "view3", retrieved[3].Label)
 }

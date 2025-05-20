@@ -10,31 +10,16 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-// adminActionMap represents a set of admin actions
-type adminActionMap map[Action]bool
-
-// buildAdminActionMap creates a map of admin actions from a slice of actions
-func buildAdminActionMap(actions []Action) adminActionMap {
-	adminActions := make(adminActionMap)
-	for _, action := range actions {
-		switch action {
-		case ActionCatalogAdmin, ActionVariantAdmin, ActionNamespaceAdmin, ActionWorkspaceAdmin:
-			adminActions[action] = true
-		}
-	}
-	return adminActions
-}
-
 // validateViewRuleIntent checks if the effect is one of the allowed values.
 func validateViewRuleIntent(fl validator.FieldLevel) bool {
-	effect := Intent(fl.Field().String())
-	return effect == IntentAllow || effect == IntentDeny
+	effect := types.Intent(fl.Field().String())
+	return effect == types.IntentAllow || effect == types.IntentDeny
 }
 
 // validateViewRuleAction checks if the action is one of the allowed values.
 func validateViewRuleAction(fl validator.FieldLevel) bool {
-	action := Action(fl.Field().String())
-	return slices.Contains(validActions, action)
+	action := types.Action(fl.Field().String())
+	return slices.Contains(types.ValidActions, action)
 }
 
 // validateResourceURI checks if the resource URI follows the required structure.
@@ -103,7 +88,6 @@ func extractSegmentsAndResourceName(s string) ([]string, string, error) {
 	}
 
 	return segments, resourceName, nil
-
 }
 
 func isValidStructuredPath(path string) error {
@@ -175,87 +159,6 @@ func extractPrefixIfWildcard(path string) (string, bool) {
 	return path, false
 }
 
-func checkAdminMatch(resourceType string, ruleSegments []string) bool {
-	lenRule := len(ruleSegments)
-	if lenRule < 2 {
-		return false
-	}
-	if ruleSegments[lenRule-2] == resourceType {
-		return true
-	}
-	return false
-}
-
-func (r Rules) matchesAdmin(resource string) bool {
-	for _, rule := range r {
-		if rule.Intent != IntentAllow {
-			continue
-		}
-
-		adminActions := buildAdminActionMap(rule.Actions)
-		if len(adminActions) == 0 {
-			continue
-		}
-
-		for _, res := range rule.Targets {
-			ruleSegments := strings.Split(string(res), "/")
-			lenRule := len(ruleSegments)
-			if lenRule < 2 {
-				continue
-			}
-			isMatch := false
-			if adminActions[ActionCatalogAdmin] && checkAdminMatch(types.ResourceNameCatalogs, ruleSegments) {
-				isMatch = true
-			}
-			if adminActions[ActionVariantAdmin] && checkAdminMatch(types.ResourceNameVariants, ruleSegments) {
-				isMatch = true
-			}
-			if adminActions[ActionWorkspaceAdmin] && checkAdminMatch(types.ResourceNameWorkspaces, ruleSegments) {
-				isMatch = true
-			}
-			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(types.ResourceNameNamespaces, ruleSegments) {
-				isMatch = true
-			}
-			if isMatch && res.matches(resource) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (r TargetResource) matches(actualRes string) bool {
-	ruleSegments := strings.Split(string(r), "/")
-	actualSegments := strings.Split(actualRes, "/")
-	ruleLen := len(ruleSegments)
-	actualLen := len(actualSegments)
-
-	if ruleLen > actualLen {
-		return false
-	}
-
-	if ruleLen < actualLen {
-		if ruleSegments[ruleLen-1] != "*" {
-			return false
-		}
-	}
-
-	for i := 0; i < ruleLen; i++ {
-		if i >= actualLen {
-			return false
-		}
-		// if actualSegments[i] == "*" {
-		// 	return false
-		// }
-		if ruleSegments[i] == "*" || ruleSegments[i] == actualSegments[i] {
-			continue
-		}
-		return false
-	}
-
-	return true
-}
-
 type resourceMetadataValue struct {
 	value string
 	pos   int
@@ -280,8 +183,8 @@ func extractKV(m string) map[string]resourceMetadataValue {
 }
 
 func init() {
-	validate := schemavalidator.V()
-	validate.RegisterValidation("viewRuleIntentValidator", validateViewRuleIntent)
-	validate.RegisterValidation("viewRuleActionValidator", validateViewRuleAction)
-	validate.RegisterValidation("resourceURIValidator", validateResourceURI)
+	v := schemavalidator.V()
+	v.RegisterValidation("viewRuleIntentValidator", validateViewRuleIntent)
+	v.RegisterValidation("viewRuleActionValidator", validateViewRuleAction)
+	v.RegisterValidation("resourceURIValidator", validateResourceURI)
 }

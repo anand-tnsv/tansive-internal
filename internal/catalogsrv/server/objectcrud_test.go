@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
@@ -57,6 +58,9 @@ func TestCatalogCreate(t *testing.T) {
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
 	// Set the tenant ID and project ID in the context
 	ctx = common.SetTenantIdInContext(ctx, tenantID)
 	ctx = common.SetProjectIdInContext(ctx, projectID)
@@ -91,7 +95,7 @@ func TestCatalogCreate(t *testing.T) {
 	}
 } `
 	setRequestBodyAndHeader(t, httpReq, req)
-
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 
@@ -114,6 +118,9 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
 	// Set the tenant ID and project ID in the context
 	ctx = common.SetTenantIdInContext(ctx, tenantID)
 	ctx = common.SetProjectIdInContext(ctx, projectID)
@@ -148,6 +155,7 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 	}
 } `
 	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -255,6 +263,9 @@ func TestVariantCrud(t *testing.T) {
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
 	// Set the tenant ID and project ID in the context
 	ctx = common.SetTenantIdInContext(ctx, tenantID)
 	ctx = common.SetProjectIdInContext(ctx, projectID)
@@ -290,6 +301,7 @@ func TestVariantCrud(t *testing.T) {
 			}
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -466,6 +478,9 @@ func TestNamespaceCrud(t *testing.T) {
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
 	// Set the tenant ID and project ID in the context
 	ctx = common.SetTenantIdInContext(ctx, tenantID)
 	ctx = common.SetProjectIdInContext(ctx, projectID)
@@ -501,6 +516,7 @@ func TestNamespaceCrud(t *testing.T) {
 			}
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -565,6 +581,9 @@ func TestWorkspaceCrud(t *testing.T) {
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
 	// Set the tenant ID and project ID in the context
 	ctx = common.SetTenantIdInContext(ctx, tenantID)
 	ctx = common.SetProjectIdInContext(ctx, projectID)
@@ -600,6 +619,7 @@ func TestWorkspaceCrud(t *testing.T) {
 			}
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -817,6 +837,9 @@ func TestObjectCrud(t *testing.T) {
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
 	// Set the tenant ID and project ID in the context
 	ctx = common.SetTenantIdInContext(ctx, tenantID)
 	ctx = common.SetProjectIdInContext(ctx, projectID)
@@ -852,6 +875,7 @@ func TestObjectCrud(t *testing.T) {
 			}
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -1682,6 +1706,9 @@ func createTestObjects(t *testing.T, ctx context.Context) *TestContext {
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
 	// Set the tenant ID and project ID in the context
 	ctx = common.SetTenantIdInContext(ctx, tenantID)
 	ctx = common.SetProjectIdInContext(ctx, projectID)
@@ -1715,6 +1742,7 @@ func createTestObjects(t *testing.T, ctx context.Context) *TestContext {
 			}
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code

@@ -43,6 +43,25 @@ func TestSaveSchema(t *testing.T) {
 				dataType: Integer
 				default: 1000
 	`
+	emptyCollection3Yaml := `
+	version: v1
+	kind: CollectionSchema
+	metadata:
+		name: path
+		catalog: example-catalog
+		description: An example collection
+	spec:
+		parameters:
+			maxRetries:
+				schema: integer-param-schema
+				default: 8
+			maxDelay:
+				dataType: Integer
+				default: 1000
+			maxDelay:
+				dataType: Integer
+				default: 2000
+	`
 	validParamYaml := `
 				version: v1
 				kind: ParameterSchema
@@ -127,6 +146,7 @@ func TestSaveSchema(t *testing.T) {
 
 	replaceTabsWithSpaces(&emptyCollection1Yaml)
 	replaceTabsWithSpaces(&emptyCollection2Yaml)
+	replaceTabsWithSpaces(&emptyCollection3Yaml)
 	replaceTabsWithSpaces(&validParamYaml)
 	replaceTabsWithSpaces(&invalidDataTypeYamlCollection)
 	replaceTabsWithSpaces(&validParamYamlModifiedValidation)
@@ -223,6 +243,14 @@ func TestSaveSchema(t *testing.T) {
 	require.Error(t, err)
 	err = SaveSchema(ctx, collectionSchema, WithErrorIfExists(), WithWorkspaceID(ws.WorkspaceID))
 	require.Error(t, err)
+
+	// create the same collection again with a different parameter
+	jsonData, err = yaml.YAMLToJSON([]byte(emptyCollection3Yaml))
+	require.NoError(t, err)
+	collectionSchema, err = NewSchema(ctx, jsonData, nil)
+	require.NoError(t, err)
+	err = SaveSchema(ctx, collectionSchema, WithWorkspaceID(ws.WorkspaceID))
+	require.NoError(t, err)
 
 	// Load the collection schema
 	m := collectionSchema.Metadata()

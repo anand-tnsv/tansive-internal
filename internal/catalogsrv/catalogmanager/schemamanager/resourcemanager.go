@@ -11,5 +11,6 @@ type ResourceManager interface {
 	Get(ctx context.Context) ([]byte, apperrors.Error)
 	Delete(ctx context.Context) apperrors.Error
 	Update(ctx context.Context, rsrcJson []byte) apperrors.Error
+	List(ctx context.Context) ([]byte, apperrors.Error)
 	Location() string
 }

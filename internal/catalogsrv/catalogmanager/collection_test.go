@@ -167,6 +167,7 @@ func TestCollection(t *testing.T) {
 			schema: example-collection-schema
 			values:
 				maxDelay: 500
+				nonExistingParameter: 1000
 	`
 
 	invalidCollectionValueYaml2 := `

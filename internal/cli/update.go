@@ -24,14 +24,16 @@ This command follows the Kubernetes-style apply pattern - it will create the res
 or update it if it already exists.
 
 Supported resource types include:
-  - Catalog
-  - Variant
-  - Namespace
-  - Workspace
-  - View
-  - CollectionSchema
-  - ParameterSchema
-  - Collection
+  - Catalogs
+  - Variants
+  - Namespaces
+  - Workspaces
+  - Views
+  - CollectionSchemas
+  - ParameterSchemas
+  - Collections
+  - Attributes
+  - AttributeSets
 
 Example:
   tansive apply -f catalog.yaml

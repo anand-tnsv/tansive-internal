@@ -419,6 +419,10 @@ func (wr *workspaceResource) Update(ctx context.Context, rsrcJSON []byte) apperr
 	return nil
 }
 
+func (wr *workspaceResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	return nil, nil
+}
+
 func NewWorkspaceResource(ctx context.Context, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if name.Catalog == "" || name.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog

@@ -80,23 +80,23 @@ func GetResourceType(kind string) (string, error) {
 // MapResourceTypeToURL maps a resource type string to its URL format
 func MapResourceTypeToURL(resourceType string) (string, error) {
 	switch resourceType {
-	case "catalog", "cat":
+	case "catalog", "cat", "catalogs":
 		return "catalogs", nil
-	case "variant", "var":
+	case "variant", "var", "variants":
 		return "variants", nil
-	case "namespace", "ns":
+	case "namespace", "ns", "namespaces":
 		return "namespaces", nil
-	case "workspace", "ws":
+	case "workspace", "ws", "workspaces":
 		return "workspaces", nil
-	case "view", "v":
+	case "view", "v", "views":
 		return "views", nil
-	case "collectionschema", "cs":
+	case "collectionschema", "cs", "collectionschemas":
 		return "collectionschemas", nil
-	case "parameterschema", "ps":
+	case "parameterschema", "ps", "parameterschemas":
 		return "parameterschemas", nil
-	case "collection", "col":
+	case "collection", "col", "collections":
 		return "collections", nil
-	case "attribute", "attr":
+	case "attribute", "attr", "attributes":
 		return "attributes", nil
 	case "attributeset", "attrset":
 		return "attributes", nil

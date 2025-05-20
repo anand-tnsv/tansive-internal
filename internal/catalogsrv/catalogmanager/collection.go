@@ -609,6 +609,10 @@ func (cr *collectionResource) Delete(ctx context.Context) apperrors.Error {
 	return nil
 }
 
+func (cr *collectionResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	return nil, nil
+}
+
 func NewCollectionResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog

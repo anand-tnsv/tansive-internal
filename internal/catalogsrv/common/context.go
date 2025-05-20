@@ -57,6 +57,13 @@ type CatalogContext struct {
 	Catalog        string
 	Variant        string
 	ViewDefinition any
+	UserContext    *UserContext
+}
+
+// UserContext represents the context of an authenticated user in the system.
+// It contains information about the user's identity and permissions.
+type UserContext struct {
+	UserID string
 }
 
 // SetCatalogContext sets the catalog context in the provided context.
@@ -188,6 +195,14 @@ func GetVariantFromContext(ctx context.Context) string {
 func GetViewDefinitionFromContext(ctx context.Context) any {
 	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
 		return catalogContext.ViewDefinition
+	}
+	return nil
+}
+
+// GetUserContextFromContext retrieves the user context from the provided context.
+func GetUserContextFromContext(ctx context.Context) *UserContext {
+	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
+		return catalogContext.UserContext
 	}
 	return nil
 }

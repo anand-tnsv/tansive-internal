@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/apis"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/apis/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
@@ -46,11 +47,9 @@ func (s *HatchCatalogServer) MountHandlers() {
 }
 
 func (s *HatchCatalogServer) mountResourceHandlers(r chi.Router) {
-	r.Use(
-		middleware.LoadScopedDB, // Load the scoped db connection
-		middleware.LoadContext,  // Load the context variables
-	)
-	apis.Router(r)
+	r.Use(middleware.LoadScopedDB) // Load the scoped db connection
+	r.Mount("/auth", auth.Router(r))
+	r.Mount("/", apis.Router(r))
 	r.Get("/version", s.getVersion)
 }
 

@@ -179,3 +179,14 @@ func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParam
 	body, _, err := c.DoRequest(opts)
 	return body, err
 }
+
+// ListResources lists resources of a specific type
+func (c *HTTPClient) ListResources(resourceType string, queryParams map[string]string) ([]byte, error) {
+	opts := RequestOptions{
+		Method:      http.MethodGet,
+		Path:        resourceType,
+		QueryParams: queryParams,
+	}
+	body, _, err := c.DoRequest(opts)
+	return body, err
+}

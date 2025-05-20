@@ -379,6 +379,10 @@ func (nr *namespaceResource) Update(ctx context.Context, rsrcJson []byte) apperr
 	return nil
 }
 
+func (nr *namespaceResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	return nil, nil
+}
+
 func NewNamespaceResource(ctx context.Context, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if name.Catalog == "" || name.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog

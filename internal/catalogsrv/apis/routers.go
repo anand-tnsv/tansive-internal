@@ -4,17 +4,24 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/apis/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
-var resourceObjectHandlers = []httpx.ResponseHandlerParam{
+var userSessionHandlers = []httpx.ResponseHandlerParam{
+	{
+		Method:  http.MethodGet,
+		Path:    "/views",
+		Handler: listObjects,
+	},
 	{
 		Method:  http.MethodPost,
 		Path:    "/catalogs",
 		Handler: createObject,
 	},
+}
+var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 	{
 		Method:  http.MethodGet,
 		Path:    "/catalogs/{catalogName}",
@@ -137,27 +144,44 @@ var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 	},
 }
 
-func Router(r chi.Router) {
-	r.Use(LoadCatalogContext)
-	//TODO: Implement authentication
-	for _, handler := range resourceObjectHandlers {
-		r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
-	}
-	r.Route("/auth", auth.Router)
+// Router creates and configures a new router for catalog service API endpoints.
+// It sets up middleware and registers handlers for various HTTP methods and paths.
+func Router(r chi.Router) chi.Router {
+	router := chi.NewRouter()
+	//Load the group that needs only user session/identity validation
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.UserSessionValidator)
+		r.Use(LoadCatalogContext)
+		for _, handler := range userSessionHandlers {
+			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
+		}
+	})
+	//Load the group that needs session validation and catalog context
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.LoadContext)
+		r.Use(LoadCatalogContext)
+		for _, handler := range resourceObjectHandlers {
+			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
+		}
+	})
+	return router
 }
 
+// LoadCatalogContext is a middleware that loads and validates catalog context information
+// from the request context and URL parameters. It ensures that tenant and project IDs
+// are present and loads related objects (catalog, variant, workspace, namespace).
 func LoadCatalogContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		tenantId := common.TenantIdFromContext(ctx)
-		projectId := common.ProjectIdFromContext(ctx)
-		if tenantId == "" || projectId == "" {
+		tenantID := common.TenantIdFromContext(ctx)
+		projectID := common.ProjectIdFromContext(ctx)
+		if tenantID == "" || projectID == "" {
 			httpx.ErrInvalidRequest().Send(w)
 			return
 		}
 		c := common.CatalogContextFromContext(ctx)
 		if c == nil {
-			next.ServeHTTP(w, r.WithContext(ctx))
+			httpx.ErrUnAuthorized("missing or invalid authorization token").Send(w)
 			return
 		}
 		urlValues := r.URL.Query()

@@ -172,9 +172,15 @@ func ErrInvalidCatalog() *Error {
 	}
 }
 
-func ErrInvalidView() *Error {
+func ErrInvalidView(err ...string) *Error {
+	var s string
+	if len(err) > 0 {
+		s = err[0]
+	} else {
+		s = "empty or invalid view"
+	}
 	return &Error{
-		Description: "Empty or invalid view",
+		Description: s,
 		StatusCode:  http.StatusBadRequest,
 	}
 }
@@ -211,5 +217,12 @@ func ErrInvalidUser() *Error {
 	return &Error{
 		Description: "Empty or invalid user",
 		StatusCode:  http.StatusUnauthorized,
+	}
+}
+
+func ErrUnableToServeRequest() *Error {
+	return &Error{
+		Description: "unable to serve request",
+		StatusCode:  http.StatusInternalServerError,
 	}
 }

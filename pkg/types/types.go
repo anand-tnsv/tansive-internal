@@ -14,6 +14,7 @@ type Hash string
 const DefaultVariant = "default"
 const InitialVersionLabel = "init"
 const DefaultNamespace = "--root--"
+const DefaultAdminViewLabel = "default-admin-view"
 
 func (u CatalogId) String() string {
 	return uuid.UUID(u).String()
@@ -22,6 +23,12 @@ func (u CatalogId) String() string {
 func (u CatalogId) IsNil() bool {
 	return u == CatalogId(uuid.Nil)
 }
+
+const (
+	TokenTypeIdentity = "identity"
+	TokenTypeSession  = "session"
+	TokenTypeService  = "service"
+)
 
 const (
 	CatalogKind          = "Catalog"

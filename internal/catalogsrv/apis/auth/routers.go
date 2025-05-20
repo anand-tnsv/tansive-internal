@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
@@ -13,18 +14,20 @@ var authHandlers = []httpx.ResponseHandlerParam{
 		Path:    "/adopt-view/{catalogRef}/{viewLabel}",
 		Handler: adoptView,
 	},
+	{
+		Method:  http.MethodPost,
+		Path:    "/adopt-default-view/{catalogRef}",
+		Handler: adoptDefaultCatalogView,
+	},
 }
 
-func Router(r chi.Router) {
-	r.Use(sessionValidator)
+// Router creates and configures a new router for authentication-related endpoints.
+// It sets up middleware and registers handlers for various HTTP methods and paths.
+func Router(r chi.Router) chi.Router {
+	router := chi.NewRouter()
+	router.Use(middleware.UserSessionValidator)
 	for _, handler := range authHandlers {
-		r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
+		router.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
 	}
-}
-
-func sessionValidator(next http.Handler) http.Handler {
-	// We'll validate login sessions here. For now, we'll just pass through.
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-	})
+	return router
 }

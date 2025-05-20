@@ -433,6 +433,11 @@ func (ar *AttributeResource) Delete(ctx context.Context) apperrors.Error {
 	return DeleteAttribute(ctx, metadata, attrName, WithWorkspaceID(ar.reqCtx.WorkspaceID))
 }
 
+// List returns a list of attributes for a collection
+func (ar *AttributeResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	return nil, nil
+}
+
 // Location returns the resource location
 func (ar *AttributeResource) Location() string {
 	return ""

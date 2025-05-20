@@ -20,14 +20,16 @@ var createCmd = &cobra.Command{
 	Short: "Create a resource from a file",
 	Long: `Create a resource from a file. The resource type is determined by the 'kind' field in the YAML file.
 Supported resource types include:
-  - Catalog
-  - Variant
-  - Namespace
-  - Workspace
-  - View
-  - CollectionSchema
-  - ParameterSchema
-  - Collection
+  - Catalogs
+  - Variants
+  - Namespaces
+  - Workspaces
+  - Views
+  - CollectionSchemas
+  - ParameterSchemas
+  - Collections
+  - Attributes
+  - AttributeSets
 
 Example:
   tansive create -f catalog.yaml

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
-	"slices"
 	"sort"
 	"strings"
 
@@ -22,99 +21,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
-
-type Intent string
-
-const (
-	IntentAllow Intent = "Allow"
-	IntentDeny  Intent = "Deny"
-)
-
-type Action string
-
-var validActions = []Action{
-	ActionCatalogAdmin,
-	ActionCatalogList,
-	ActionCatalogAdoptView,
-	ActionVariantAdmin,
-	ActionVariantClone,
-	ActionVariantCreateView,
-	ActionVariantList,
-	ActionNamespaceCreate,
-	ActionNamespaceEdit,
-	ActionNamespaceList,
-	ActionNamespaceAdmin,
-	ActionSchemaCreate,
-	ActionSchemaRead,
-	ActionSchemaEdit,
-	ActionSchemaDelete,
-	ActionSchemaAssign,
-	ActionCollectionCreate,
-	ActionCollectionRead,
-	ActionCollectionWrite,
-	ActionCollectionRun,
-	ActionWorkspaceAdmin,
-	ActionWorkspaceList,
-	ActionWorkspaceCreate,
-}
-
-const (
-	ActionCatalogAdmin      Action = "catalog.admin"
-	ActionCatalogList       Action = "catalog.list"
-	ActionCatalogAdoptView  Action = "catalog.adoptView"
-	ActionVariantAdmin      Action = "variant.admin"
-	ActionVariantClone      Action = "variant.clone"
-	ActionVariantCreateView Action = "variant.createView"
-	ActionVariantList       Action = "variant.list"
-	ActionNamespaceCreate   Action = "namespace.create"
-	ActionNamespaceEdit     Action = "namespace.edit"
-	ActionNamespaceList     Action = "namespace.list"
-	ActionNamespaceAdmin    Action = "namespace.admin"
-	ActionSchemaCreate      Action = "schema.create"
-	ActionSchemaRead        Action = "schema.read"
-	ActionSchemaEdit        Action = "schema.edit"
-	ActionSchemaDelete      Action = "schema.delete"
-	ActionSchemaAssign      Action = "schema.assign"
-	ActionCollectionCreate  Action = "collection.create"
-	ActionCollectionRead    Action = "collection.read"
-	ActionCollectionWrite   Action = "collection.write"
-	ActionCollectionRun     Action = "collection.run"
-	ActionWorkspaceAdmin    Action = "workspace.admin"
-	ActionWorkspaceList     Action = "workspace.list"
-	ActionWorkspaceCreate   Action = "workspace.create"
-)
-
-type Rule struct {
-	Intent  Intent           `json:"intent" validate:"required,viewRuleIntentValidator"`
-	Actions []Action         `json:"actions" validate:"required,dive,viewRuleActionValidator"`
-	Targets []TargetResource `json:"targets" validate:"-"`
-}
-
-type TargetResource string
-type Rules []Rule
-type Scope struct {
-	Catalog   string `json:"catalog" validate:"required,resourceNameValidator"`
-	Variant   string `json:"variant,omitempty" validate:"omitempty,resourceNameValidator"`
-	Workspace string `json:"workspace,omitempty" validate:"omitempty,workspaceNameValidator"`
-	Namespace string `json:"namespace,omitempty" validate:"omitempty,resourceNameValidator"`
-}
-
-func (v Scope) Equals(other Scope) bool {
-	return v.Catalog == other.Catalog &&
-		v.Variant == other.Variant &&
-		v.Workspace == other.Workspace &&
-		v.Namespace == other.Namespace
-}
-
-type ViewDefinition struct {
-	Scope Scope `json:"scope" validate:"required"`
-	Rules Rules `json:"rules" validate:"required,dive"`
-}
-
-// ToJSON converts a ViewRuleSet to a JSON byte slice.
-func (v ViewDefinition) ToJSON() ([]byte, error) {
-	return json.Marshal(v)
-}
 
 // viewSchema represents the structure of a view definition
 type viewSchema struct {
@@ -133,7 +39,7 @@ type viewMetadata struct {
 
 // viewSpec contains the spec of a view
 type viewSpec struct {
-	Definition ViewDefinition `json:"definition" validate:"required"`
+	Definition types.ViewDefinition `json:"definition" validate:"required"`
 }
 
 // Validate performs validation on the view schema and returns any validation errors.
@@ -190,8 +96,9 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI(jsonFieldName))
 		case "viewRuleIntentValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleIntent(jsonFieldName))
-		case "viewRuleOperationValidator":
-			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleOperation(jsonFieldName))
+		case "viewRuleActionValidator":
+			fieldName, _ := e.Value().(types.Action)
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleAction(string(fieldName)))
 		default:
 			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
 		}
@@ -243,6 +150,7 @@ func resolveCatalogID(ctx context.Context, catalogName string) (uuid.UUID, apper
 
 // createViewModel creates a view model from a view schema and catalog ID.
 func createViewModel(view *viewSchema, catalogID uuid.UUID) (*models.View, apperrors.Error) {
+	view.Spec.Definition.Scope.Catalog = view.Metadata.Catalog // ensure catalog in scope the same as the view
 	rulesJSON, err := view.Spec.Definition.ToJSON()
 	if err != nil {
 		return nil, ErrInvalidView.New("failed to marshal rules: " + err.Error())
@@ -284,14 +192,14 @@ func removeDuplicates[T comparable](slice []T) []T {
 
 // deduplicateRules removes duplicate actions and targets from each rule in the ViewRuleSet.
 // Returns a new ViewRuleSet with all duplicates removed while preserving the original order.
-func deduplicateRules(rules Rules) Rules {
+func deduplicateRules(rules types.Rules) types.Rules {
 	if len(rules) == 0 {
 		return rules
 	}
 
-	result := make(Rules, len(rules))
+	result := make(types.Rules, len(rules))
 	for i, rule := range rules {
-		result[i] = Rule{
+		result[i] = types.Rule{
 			Intent:  rule.Intent,
 			Actions: removeDuplicates(rule.Actions),
 			Targets: removeDuplicates(rule.Targets),
@@ -426,7 +334,7 @@ func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	}
 
 	// Parse the rules from the view model
-	var definition ViewDefinition
+	var definition types.ViewDefinition
 	if err := json.Unmarshal(view.Rules, &definition); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal view rules")
 		return nil, ErrUnableToLoadObject.Msg("unable to unmarshal view rules")
@@ -470,6 +378,48 @@ func (vr *viewResource) Update(ctx context.Context, resourceJSON []byte) apperro
 	return nil
 }
 
+func (vr *viewResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	if vr.reqCtx.CatalogID == uuid.Nil {
+		return nil, ErrInvalidCatalog
+	}
+
+	views, err := db.DB(ctx).ListViewsByCatalog(ctx, vr.reqCtx.CatalogID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to load views")
+		return nil, ErrUnableToLoadObject.Msg("unable to load view")
+	}
+
+	type viewItem struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}
+
+	type viewListRsp struct {
+		Views []viewItem `json:"views"`
+	}
+
+	viewsRsp := viewListRsp{
+		Views: make([]viewItem, len(views)),
+	}
+	for i, v := range views {
+		if strings.HasPrefix(v.Label, "_") {
+			continue
+		}
+		viewsRsp.Views[i] = viewItem{
+			Name:        v.Label,
+			Description: v.Description,
+		}
+	}
+
+	jsonData, e := json.Marshal(viewsRsp)
+	if e != nil {
+		log.Ctx(ctx).Error().Err(e).Msg("failed to marshal view list")
+		return nil, ErrUnableToLoadObject.Msg("unable to marshal view list")
+	}
+
+	return jsonData, nil
+}
+
 // NewViewResource creates a new view resource manager.
 func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
@@ -480,53 +430,29 @@ func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.
 	}, nil
 }
 
-// IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
-// It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet Rules) IsActionAllowed(action Action, target TargetResource) bool {
-	allowMatch := false
-	// check if there is an admin match
-	if ruleSet.matchesAdmin(string(target)) {
-		allowMatch = true
+// ValidateDerivedView ensures that a derived view is valid with respect to its parent view.
+// It ensures that the derived view's scope is the same as the parent's and that all rules in the derived view
+// are permissible by the parent view.
+func ValidateDerivedView(ctx context.Context, parent *types.ViewDefinition, child *types.ViewDefinition) apperrors.Error {
+	if parent == nil || child == nil {
+		return ErrInvalidView
 	}
-	// check if there is a match for the action
-	for _, rule := range ruleSet {
-		if slices.Contains(rule.Actions, action) {
-			for _, res := range rule.Targets {
-				if rule.Intent == IntentAllow {
-					if res.matches(string(target)) {
-						allowMatch = true
-					}
-				} else if rule.Intent == IntentDeny {
-					if res.matches(string(target)) || // target is allowed by the rule
-						target.matches(string(res)) { // target is more permissive than the rule when we evaluate rule subsets
-						allowMatch = false
-					}
-				}
-			}
-		}
-	}
-	return allowMatch
-}
 
-// IsSubsetOf checks if this ViewRuleSet is a subset of another ViewRuleSet.
-// Returns true if every action and target in this set is permissible by the other set.
-func (ruleSet Rules) IsSubsetOf(other Rules) bool {
-	for _, rule := range ruleSet {
-		for _, action := range rule.Actions {
-			for _, target := range rule.Targets {
-				if rule.Intent == IntentAllow && !other.IsActionAllowed(action, target) {
-					return false
-				}
-			}
-		}
+	if !parent.Scope.Equals(child.Scope) {
+		return ErrInvalidView.New("derived view scope must match parent view scope")
 	}
-	return true
+
+	if !child.Rules.IsSubsetOf(parent.Rules) {
+		return ErrInvalidView.New("derived view rules must be a subset of parent view rules")
+	}
+
+	return nil
 }
 
 // morphResource transforms a resource string based on the provided scope.
 // It handles the conversion of resource paths and ensures proper formatting
 // of catalog, variant, workspace, and namespace components.
-func morphResource(scope Scope, resource string) string {
+func morphResource(scope types.Scope, resource string) string {
 	segments, resourceName, err := extractSegmentsAndResourceName(resource)
 	if err != nil && len(resource) > 0 {
 		return ""
@@ -608,23 +534,4 @@ func morphMetadata(scopeName string, pos int, resourceType string, resourceMetad
 	}
 	delete(resourceMetadata, resourceType)
 	return m
-}
-
-// ValidateDerivedView checks if a derived view is valid by comparing its scope and rules with the parent view.
-// It ensures that the derived view's scope is the same as the parent's and that all rules in the derived view
-// are permissible by the parent view.
-func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *ViewDefinition) apperrors.Error {
-	if parent == nil || child == nil {
-		return ErrInvalidView
-	}
-	// Catalog, Variant, Workspace, and Namespace scopes cannot be changed
-	if !parent.Scope.Equals(child.Scope) {
-		return ErrInvalidView.New("derived view scope cannot be changed")
-	}
-
-	if !child.Rules.IsSubsetOf(parent.Rules) {
-		return ErrInvalidView.New("child view rules cannot grant more permissions than parent view")
-	}
-
-	return nil
 }

@@ -118,17 +118,17 @@ func getUUIDOrName(ref string) (string, uuid.UUID) {
 	return "", u
 }
 
-func validateRequest(reqJson []byte, kind string) error {
-	if !gjson.ValidBytes(reqJson) {
+func validateRequest(reqJSON []byte, kind string) error {
+	if !gjson.ValidBytes(reqJSON) {
 		return httpx.ErrInvalidRequest("unable to parse request")
 	}
 	if kind == types.AttributeKind {
-		if !gjson.GetBytes(reqJson, "value").Exists() && !gjson.GetBytes(reqJson, "values").Exists() {
+		if !gjson.GetBytes(reqJSON, "value").Exists() && !gjson.GetBytes(reqJSON, "values").Exists() {
 			return httpx.ErrInvalidRequest("invalid request")
 		}
 		return nil
 	}
-	result := gjson.GetBytes(reqJson, "kind")
+	result := gjson.GetBytes(reqJSON, "kind")
 	if !result.Exists() {
 		return httpx.ErrInvalidRequest("missing kind")
 	}

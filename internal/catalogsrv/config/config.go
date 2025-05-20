@@ -38,6 +38,7 @@ func LoadConfig(filename string) error {
 			EndpointPort: "9002",
 			HandleCORS:   true,
 		}
+		LoadDefaultsIfNotSet(cfg)
 		return nil
 	}
 	// Read the config file

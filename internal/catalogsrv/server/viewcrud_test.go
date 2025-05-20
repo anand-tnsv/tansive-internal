@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -19,6 +21,9 @@ func TestViewCrud(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
+
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
 
 	// Set the tenant ID and project ID in the context
 	ctx = common.SetTenantIdInContext(ctx, tenantID)
@@ -55,6 +60,8 @@ func TestViewCrud(t *testing.T) {
 			}
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
+	// set bearer token in header
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -76,6 +83,7 @@ func TestViewCrud(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -209,4 +217,109 @@ func TestViewCrud(t *testing.T) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
+}
+
+func TestViewList(t *testing.T) {
+	ctx := newDb()
+	t.Cleanup(func() {
+		db.DB(ctx).Close(ctx)
+	})
+
+	tenantID := types.TenantId("TABCDE")
+	projectID := types.ProjectId("PABCDE")
+
+	ctx = common.SetTenantIdInContext(ctx, tenantID)
+	ctx = common.SetProjectIdInContext(ctx, projectID)
+
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
+	err := db.DB(ctx).CreateTenant(ctx, tenantID)
+	assert.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.DB(ctx).DeleteTenant(ctx, tenantID)
+	})
+	err = db.DB(ctx).CreateProject(ctx, projectID)
+	assert.NoError(t, err)
+	defer db.DB(ctx).DeleteProject(ctx, projectID)
+
+	testContext := TestContext{
+		TenantId:       tenantID,
+		ProjectId:      projectID,
+		CatalogContext: common.CatalogContext{},
+	}
+
+	// Create a catalog
+	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
+	req := `
+		{
+			"version": "v1",
+			"kind": "Catalog",
+			"metadata": {
+				"name": "list-catalog",
+				"description": "Catalog for view list test"
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	response := executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusCreated, response.Code)
+	testContext.CatalogContext.Catalog = "list-catalog"
+
+	// Create views (two normal, one internal)
+	views := []struct {
+		Name        string
+		Description string
+	}{
+		{"view1", "First test view"},
+		{"view2", "Second test view"},
+		{"internal", "Internal view"},
+	}
+	for _, v := range views {
+		req = `
+		{
+			"version": "v1",
+			"kind": "View",
+			"metadata": {
+				"name": "` + v.Name + `",
+				"catalog": "list-catalog",
+				"description": "` + v.Description + `"
+			},
+			"spec": {
+				"definition": {
+					"scope": {
+						"catalog": "list-catalog"
+					},
+					"rules": [{
+						"intent": "Allow",
+						"actions": ["catalog.list"],
+						"targets": ["res://catalogs/list-catalog"]
+					}]
+				}
+			}
+		}`
+		httpReq, _ = http.NewRequest("POST", "/views", nil)
+		setRequestBodyAndHeader(t, httpReq, req)
+		response = executeTestRequest(t, httpReq, nil, testContext)
+		assert.Equal(t, http.StatusCreated, response.Code)
+	}
+
+	// List views
+	httpReq, _ = http.NewRequest("GET", "/views?catalog=list-catalog", nil)
+	// set bearer token in header
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	var result struct {
+		Views []struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		} `json:"views"`
+	}
+	err = json.Unmarshal(response.Body.Bytes(), &result)
+	assert.NoError(t, err)
+
+	// Only the two non-internal views should be present
+	assert.Len(t, result.Views, 4)
 }

@@ -18,84 +18,148 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-func CreateToken(ctx context.Context, derivedView *ViewDefinition, viewID uuid.UUID) (string, apperrors.Error) {
+type createTokenOptions struct {
+	parentViewId      uuid.UUID
+	parentView        *types.ViewDefinition
+	createDerivedView bool
+	additionalClaims  map[string]any
+}
 
-	// get parent view from database
-	p, err := db.DB(ctx).GetView(ctx, viewID)
-	if err != nil {
-		return "", err
+type createTokenOption func(*createTokenOptions)
+
+func WithParentViewId(id uuid.UUID) createTokenOption {
+	return func(o *createTokenOptions) {
+		o.parentViewId = id
 	}
-	parentView := &ViewDefinition{}
-	if err := json.Unmarshal(p.Rules, &parentView); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal parent view")
-		return "", ErrUnableToCreateView
+}
+
+func WithParentViewDefinition(view *types.ViewDefinition) createTokenOption {
+	return func(o *createTokenOptions) {
+		o.parentView = view
+	}
+}
+
+func WithAdditionalClaims(claims map[string]any) createTokenOption {
+	if claims == nil {
+		claims = make(map[string]any)
+	}
+	return func(o *createTokenOptions) {
+		o.additionalClaims = claims
+	}
+}
+
+func CreateDerivedView() createTokenOption {
+	return func(o *createTokenOptions) {
+		o.createDerivedView = true
+	}
+}
+
+func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTokenOption) (string, time.Time, apperrors.Error) {
+	options := &createTokenOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+	tokenExpiry := time.Time{}
+	var parentViewDef *types.ViewDefinition
+	// get parent view from database
+	if options.parentView != nil {
+		parentViewDef = options.parentView
+	} else {
+		var p *models.View
+		var err apperrors.Error
+		if options.parentViewId != uuid.Nil {
+			p, err = db.DB(ctx).GetView(ctx, options.parentViewId)
+			if err != nil {
+				return "", tokenExpiry, err
+			}
+			parentViewDef = &types.ViewDefinition{}
+			if err := json.Unmarshal(p.Rules, &parentViewDef); err != nil {
+				log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal parent view")
+				return "", tokenExpiry, ErrUnableToCreateView
+			}
+		} else {
+			return "", tokenExpiry, ErrUnableToCreateView
+		}
+	}
+
+	derivedViewDef := &types.ViewDefinition{}
+	if err := json.Unmarshal(derivedView.Rules, &derivedViewDef); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal derived view")
+		return "", tokenExpiry, ErrUnableToCreateView
 	}
 
 	// check if derived view can be created from creator view
-	if err := ValidateDerivedView(ctx, parentView, derivedView); err != nil {
-		return "", err
+	if err := ValidateDerivedView(ctx, parentViewDef, derivedViewDef); err != nil {
+		return "", tokenExpiry, err
 	}
 
-	type viewClaims struct {
-		jwt.RegisteredClaims
+	if options.createDerivedView {
+		if err := db.DB(ctx).CreateView(ctx, derivedView); err != nil {
+			return "", tokenExpiry, err
+		}
 	}
 
 	// create a signed jwt token
 	tokenDuration, errif := config.ParseTokenDuration(config.Config().DefaultTokenValidity)
 	if errif != nil {
 		log.Ctx(ctx).Error().Err(errif).Msg("unable to parse token duration")
-		return "", ErrUnableToParseTokenDuration
+		return "", tokenExpiry, ErrUnableToParseTokenDuration
 	}
 
-	tokenExpiry := time.Now().Add(tokenDuration)
+	tokenExpiry = time.Now().Add(tokenDuration)
 
 	v := &models.ViewToken{
-		ViewID:   viewID,
+		ViewID:   derivedView.ViewID,
 		ExpireAt: tokenExpiry,
 	}
 	if err := db.DB(ctx).CreateViewToken(ctx, v); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("unable to create view token")
-		return "", ErrUnableToCreateView
+		return "", tokenExpiry, ErrUnableToCreateView
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, viewClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   viewID.String(),
-			Issuer:    config.Config().ServerHostName + ":" + config.Config().ServerPort,
-			ExpiresAt: jwt.NewNumericDate(tokenExpiry),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Audience:  []string{config.Config().ServerHostName + ":" + config.Config().ServerPort},
-			ID:        v.TokenID.String(),
-		},
-	})
+	claims := jwt.MapClaims{
+		"sub": derivedView.ViewID.String(),
+		"iss": config.Config().ServerHostName + ":" + config.Config().ServerPort,
+		"exp": jwt.NewNumericDate(tokenExpiry),
+		"iat": jwt.NewNumericDate(time.Now()),
+		"aud": []string{config.Config().ServerHostName + ":" + config.Config().ServerPort},
+		"jti": v.TokenID.String(),
+	}
+
+	for k, v := range options.additionalClaims {
+		claims[k] = v
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
 
 	signingKey, apperr := getActiveSigningKey(ctx)
 	if apperr != nil {
 		log.Ctx(ctx).Error().Err(apperr).Msg("unable to get active signing key")
-		return "", apperr
+		return "", tokenExpiry, apperr
 	}
 
 	tokenString, errif := token.SignedString(signingKey.PrivateKey)
 	if errif != nil {
 		log.Ctx(ctx).Error().Err(errif).Msg("unable to sign token")
-		return "", ErrUnableToGenerateToken
+		return "", tokenExpiry, ErrUnableToGenerateToken
 	}
 
-	return tokenString, nil
+	return tokenString, tokenExpiry, nil
 }
 
 type viewKeyType string
 
 const viewKey viewKeyType = "TansiveView"
 
-func addViewToContext(ctx context.Context, viewDefinition *ViewDefinition) context.Context {
+func addViewToContext(ctx context.Context, viewDefinition *types.ViewDefinition) context.Context {
 	return context.WithValue(ctx, viewKey, viewDefinition)
 }
 
-func getViewFromContext(ctx context.Context) *ViewDefinition {
-	v, ok := ctx.Value(viewKey).(*ViewDefinition)
+func getViewFromContext(ctx context.Context) *types.ViewDefinition {
+	v, ok := ctx.Value(viewKey).(*types.ViewDefinition)
 	if !ok {
 		return nil
 	}

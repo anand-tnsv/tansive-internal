@@ -272,6 +272,11 @@ func (cr *catalogResource) Update(ctx context.Context, resourceJSON []byte) appe
 	return nil
 }
 
+// List returns a list of catalogs
+func (cr *catalogResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	return nil, nil
+}
+
 // NewCatalogResource creates a new catalog resource
 func NewCatalogResource(ctx context.Context, requestContext RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	return &catalogResource{

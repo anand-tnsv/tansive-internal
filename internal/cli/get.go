@@ -23,17 +23,17 @@ var getCmd = &cobra.Command{
 	Short: "Get a resource by type and name",
 	Long: `Get a resource by type and name. The format is <resourceType>/<resourceName>.
 Supported resource types include:
-  - catalog/<catalog-name>
-  - collectionschema/<schema-name>
-  - collection/path/to/collection
-  - attribute/path/to/attribute
-  - attributeset/path/to/collection (or attrset/path/to/collection)
+  - catalogs/<catalog-name>
+  - collectionschemas/<schema-name>
+  - collections/<path/to/collection>
+  - attributes/<path/to/attribute>
+  - attributesets/<path/to/collection> (or attrsets/<path/to/collection>)
 
 Example:
-  tansive get catalog/my-catalog
-  tansive get collectionschema/my-schema
-  tansive get collection/path/to/collection
-  tansive get attributeset/path/to/collection`,
+  tansive get catalogs/my-catalog
+  tansive get collectionschemas/my-schema
+  tansive get collections/path/to/collection
+  tansive get attributesets/path/to/collection`,
 	Args: cobra.ExactArgs(1),
 	RunE: getResource,
 }

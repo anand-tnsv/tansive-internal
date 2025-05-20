@@ -14,12 +14,6 @@ import (
 )
 
 func (mm *metadataManager) CreateView(ctx context.Context, view *models.View) (err apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
-	if tenantID == "" {
-		return dberror.ErrMissingTenantID
-	}
-
-	view.TenantID = tenantID
 
 	tx, errStd := mm.conn().BeginTx(ctx, nil)
 	if errStd != nil {
@@ -49,6 +43,13 @@ func (mm *metadataManager) CreateView(ctx context.Context, view *models.View) (e
 }
 
 func (mm *metadataManager) createViewWithTransaction(ctx context.Context, view *models.View, tx *sql.Tx) apperrors.Error {
+	tenantID := common.TenantIdFromContext(ctx)
+	if tenantID == "" {
+		return dberror.ErrMissingTenantID
+	}
+
+	view.TenantID = tenantID
+	view.ViewID = uuid.New() // Override anything already set
 	// Treat empty string as NULL
 	description := sql.NullString{String: view.Description, Valid: view.Description != ""}
 	label := sql.NullString{String: view.Label, Valid: view.Label != ""}

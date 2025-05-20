@@ -319,6 +319,10 @@ func (vr *variantResource) Update(ctx context.Context, rsrcJson []byte) apperror
 	return nil
 }
 
+func (vr *variantResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	return nil, nil
+}
+
 func NewVariantResource(ctx context.Context, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if name.Catalog == "" || name.CatalogID == uuid.Nil {
 		return nil, ErrInvalidVariant.Msg("catalog name and ID are required for variant creation")

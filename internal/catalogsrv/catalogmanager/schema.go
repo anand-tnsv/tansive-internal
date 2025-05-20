@@ -1125,6 +1125,11 @@ func (or *objectResource) Delete(ctx context.Context) apperrors.Error {
 	return nil
 }
 
+// List returns a list of schemas
+func (or *objectResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	return nil, nil
+}
+
 // NewSchemaResource creates a new schema resource
 func NewSchemaResource(ctx context.Context, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
 	if name.Catalog == "" || name.CatalogID == uuid.Nil {

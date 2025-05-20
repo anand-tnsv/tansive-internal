@@ -22,7 +22,7 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-func setupTest(t *testing.T) (context.Context, types.TenantId, types.ProjectId, uuid.UUID, *config.ConfigParam) {
+func setupTest(t *testing.T) (context.Context, types.TenantId, types.ProjectId, uuid.UUID, uuid.UUID, *config.ConfigParam) {
 	// Initialize context with logger and database connection
 	ctx := newDb()
 
@@ -71,15 +71,15 @@ func setupTest(t *testing.T) (context.Context, types.TenantId, types.ProjectId, 
 	require.NoError(t, err)
 
 	// Create parent view
-	parentView := &ViewDefinition{
-		Scope: Scope{
+	parentView := &types.ViewDefinition{
+		Scope: types.Scope{
 			Catalog: "test-catalog",
 		},
-		Rules: Rules{
+		Rules: types.Rules{
 			{
-				Intent:  IntentAllow,
-				Actions: []Action{ActionCatalogList, ActionVariantList},
-				Targets: []TargetResource{"res://catalogs/test-catalog"},
+				Intent:  types.IntentAllow,
+				Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
+				Targets: []types.TargetResource{"res://catalogs/test-catalog"},
 			},
 		},
 	}
@@ -121,29 +121,57 @@ func setupTest(t *testing.T) (context.Context, types.TenantId, types.ProjectId, 
 	err = db.DB(ctx).CreateSigningKey(ctx, signingKey)
 	require.NoError(t, err)
 
-	return ctx, tenantID, projectID, view.ViewID, cfg
+	return ctx, tenantID, projectID, view.ViewID, catalogID, cfg
 }
 
 func TestCreateToken(t *testing.T) {
-	ctx, _, _, testViewID, _ := setupTest(t)
+	ctx, _, _, testViewID, catalogID, _ := setupTest(t)
 
 	t.Run("successful token creation", func(t *testing.T) {
-		derivedView := &ViewDefinition{
-			Scope: Scope{
+		// Create and save the derived view first
+		derivedViewDef := &types.ViewDefinition{
+			Scope: types.Scope{
 				Catalog: "test-catalog",
 			},
-			Rules: Rules{
+			Rules: types.Rules{
 				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test-catalog"},
+					Intent:  types.IntentAllow,
+					Actions: []types.Action{types.ActionCatalogList},
+					Targets: []types.TargetResource{"res://catalogs/test-catalog"},
 				},
 			},
 		}
 
-		token, appErr := CreateToken(ctx, derivedView, testViewID)
+		// Convert derived view to JSON
+		derivedViewJSON, err := json.Marshal(derivedViewDef)
+		require.NoError(t, err)
+
+		// Create the derived view model
+		derivedView := &models.View{
+			Label:       "derived-view",
+			Description: "Derived view for testing",
+			Rules:       derivedViewJSON,
+			Info:        nil,
+			CatalogID:   catalogID,
+			TenantID:    types.TenantId("TABCDE"),
+		}
+
+		// Store the derived view in the database
+		err = db.DB(ctx).CreateView(ctx, derivedView)
+		require.NoError(t, err)
+
+		// Get the parent view definition
+		parentView, err := db.DB(ctx).GetView(ctx, testViewID)
+		require.NoError(t, err)
+		parentViewDef := &types.ViewDefinition{}
+		err = json.Unmarshal(parentView.Rules, &parentViewDef)
+		require.NoError(t, err)
+
+		// Create token with parent view definition option
+		token, expiry, appErr := CreateToken(ctx, derivedView, WithParentViewDefinition(parentViewDef))
 		require.NoError(t, appErr)
 		require.NotEmpty(t, token)
+		require.False(t, expiry.IsZero())
 
 		// Get the signing key from database
 		dbKey, dbErr := db.DB(ctx).GetActiveSigningKey(ctx)
@@ -171,17 +199,33 @@ func TestCreateToken(t *testing.T) {
 
 		sub, ok := claims["sub"].(string)
 		require.True(t, ok)
-		require.Equal(t, testViewID.String(), sub)
+		require.Equal(t, derivedView.ViewID.String(), sub)
 
 		// Verify token is stored in database
 		storedToken, dbErr := db.DB(ctx).GetViewToken(ctx, uuid.MustParse(jti))
 		require.NoError(t, dbErr)
-		require.Equal(t, testViewID, storedToken.ViewID)
+		require.Equal(t, derivedView.ViewID, storedToken.ViewID)
 	})
 
 	t.Run("invalid view", func(t *testing.T) {
-		token, err := CreateToken(ctx, nil, testViewID)
+		token, expiry, err := CreateToken(ctx, nil)
 		assert.Error(t, err)
 		assert.Empty(t, token)
+		assert.True(t, expiry.IsZero())
+	})
+
+	t.Run("missing parent view", func(t *testing.T) {
+		derivedView := &models.View{
+			Label:       "derived-view",
+			Description: "Derived view for testing",
+			Rules:       []byte(`{"scope":{"catalog":"test-catalog"},"rules":[{"intent":"allow","actions":["catalog:list"],"targets":["res://catalogs/test-catalog"]}]}`),
+			CatalogID:   catalogID,
+			TenantID:    types.TenantId("TABCDE"),
+		}
+
+		token, expiry, err := CreateToken(ctx, derivedView)
+		assert.Error(t, err)
+		assert.Empty(t, token)
+		assert.True(t, expiry.IsZero())
 	})
 }
