@@ -16,9 +16,9 @@ func PanicHandler(next http.Handler) http.Handler {
 
 				log.Ctx(r.Context()).Error().
 					Str("stack", string(stack)).
-					Msgf("Panic occurred: %v", err)
+					Msgf("panic occurred: %v", err)
 
-				httpx.ErrApplicationError("Unable to process request. Please try again later.").Send(w)
+				httpx.ErrApplicationError("unable to process request. please try again later.").Send(w)
 			}
 		}()
 		next.ServeHTTP(w, r)

@@ -65,35 +65,35 @@ func SendError(w http.ResponseWriter, err apperrors.Error) {
 
 func ErrPostReqNotSupported() *Error {
 	return &Error{
-		Description: "POST Request Not Supported",
+		Description: "post request not supported",
 		StatusCode:  http.StatusMethodNotAllowed,
 	}
 }
 
 func ErrGetReqNotSupported() *Error {
 	return &Error{
-		Description: "GET Request Not Supported",
+		Description: "get request not supported",
 		StatusCode:  http.StatusMethodNotAllowed,
 	}
 }
 
 func ErrReqMethodNotSupported() *Error {
 	return &Error{
-		Description: "Request Method Not Supported",
+		Description: "request method not supported",
 		StatusCode:  http.StatusMethodNotAllowed,
 	}
 }
 
 func ErrUnableToParseReqData() *Error {
 	return &Error{
-		Description: "Unable to parse request",
+		Description: "unable to parse request data",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
 
 func ErrUnableToReadRequest() *Error {
 	return &Error{
-		Description: "Unable to read request",
+		Description: "unable to read request data",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
@@ -103,7 +103,7 @@ func ErrApplicationError(err ...string) *Error {
 	if len(err) > 0 {
 		s = err[0]
 	} else {
-		s = "Unable to process request"
+		s = "unable to process request"
 	}
 	return &Error{
 		Description: s,
@@ -116,7 +116,7 @@ func ErrUnAuthorized(str ...string) *Error {
 	if len(str) > 0 {
 		s = str[0]
 	} else {
-		s = "Unable to authenticate request"
+		s = "unable to authenticate request"
 	}
 	return &Error{
 		Description: s,
@@ -126,7 +126,7 @@ func ErrUnAuthorized(str ...string) *Error {
 
 func ErrMissingKeyInRequest() *Error {
 	return &Error{
-		Description: "missing authentication information in request",
+		Description: "missing authentication key in request",
 		StatusCode:  http.StatusUnauthorized,
 	}
 }
@@ -136,7 +136,7 @@ func ErrInvalidRequest(str ...string) *Error {
 	if len(str) > 0 {
 		s = str[0]
 	} else {
-		s = "empty request values or invalid request"
+		s = "invalid request data or empty request values"
 	}
 	return &Error{
 		Description: s,
@@ -146,28 +146,28 @@ func ErrInvalidRequest(str ...string) *Error {
 
 func ErrInvalidTenantId() *Error {
 	return &Error{
-		Description: "Empty or invalid account id",
+		Description: "invalid tenant id",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
 
 func ErrInvalidProjectId() *Error {
 	return &Error{
-		Description: "Empty or invalid project id",
+		Description: "invalid project id",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
 
 func ErrInvalidNodeId() *Error {
 	return &Error{
-		Description: "Empty or invalid node id",
+		Description: "invalid node id",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
 
 func ErrInvalidCatalog() *Error {
 	return &Error{
-		Description: "Empty or invalid catalog",
+		Description: "invalid catalog",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
@@ -177,7 +177,7 @@ func ErrInvalidView(err ...string) *Error {
 	if len(err) > 0 {
 		s = err[0]
 	} else {
-		s = "empty or invalid view"
+		s = "invalid view"
 	}
 	return &Error{
 		Description: s,
@@ -187,35 +187,35 @@ func ErrInvalidView(err ...string) *Error {
 
 func ErrInvalidVariant() *Error {
 	return &Error{
-		Description: "Empty or invalid variant",
+		Description: "invalid variant",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
 
 func ErrInvalidNamespace() *Error {
 	return &Error{
-		Description: "Empty or invalid namespace",
+		Description: "invalid namespace",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
 
 func ErrInvalidWorkspace() *Error {
 	return &Error{
-		Description: "Empty or invalid workspace",
+		Description: "invalid workspace",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
 
 func ErrInvalidOnboardingKey() *Error {
 	return &Error{
-		Description: "Empty or invalid onboarding key",
+		Description: "invalid onboarding key",
 		StatusCode:  http.StatusBadRequest,
 	}
 }
 
 func ErrInvalidUser() *Error {
 	return &Error{
-		Description: "Empty or invalid user",
+		Description: "invalid user",
 		StatusCode:  http.StatusUnauthorized,
 	}
 }

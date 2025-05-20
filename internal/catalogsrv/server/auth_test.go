@@ -119,7 +119,7 @@ func TestAdoptView(t *testing.T) {
 
 	var adoptResponse struct {
 		Token     string `json:"token"`
-		ExpiresAt string `json:"expiresAt"`
+		ExpiresAt string `json:"expires_at"`
 	}
 	err = json.Unmarshal(response.Body.Bytes(), &adoptResponse)
 	assert.NoError(t, err)

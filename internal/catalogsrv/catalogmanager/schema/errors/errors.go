@@ -32,6 +32,7 @@ func ErrShouldContainSchemaOrType(attr string, value ...any) ValidationError {
 		ErrStr: "should contain either schema or dataType",
 	}
 }
+
 func ErrMaxValueLessThanMinValue(attr string, value ...any) ValidationError {
 	return ValidationError{
 		Field:  attr,
@@ -98,7 +99,7 @@ func ErrInvalidResourceURI(attr string, value ...any) ValidationError {
 	return ValidationError{
 		Field:  attr,
 		Value:  value,
-		ErrStr: "invalid resource URI",
+		ErrStr: "invalid resource uri",
 	}
 }
 
