@@ -44,8 +44,8 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 
 	// get current context
 	c := common.CatalogContextFromContext(ctx)
-	ourViewDef, ok := c.ViewDefinition.(*types.ViewDefinition)
-	if !ok || ourViewDef.Scope.Catalog != catalog.Name {
+	ourViewDef := c.ViewDefinition
+	if ourViewDef == nil || ourViewDef.Scope.Catalog != catalog.Name {
 		return nil, httpx.ErrInvalidView("current view not in catalog: " + catalog.Name)
 	}
 
@@ -106,6 +106,7 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 		catalogmanager.WithParentViewDefinition(&viewDef),
 		catalogmanager.WithAdditionalClaims(map[string]any{
 			"token_type": types.TokenTypeIdentity,
+			"sub":        common.GetUserContextFromContext(ctx).UserID,
 		}),
 	)
 	if err != nil {

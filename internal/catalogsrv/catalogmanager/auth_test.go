@@ -197,9 +197,9 @@ func TestCreateToken(t *testing.T) {
 		require.True(t, ok)
 		require.NotEmpty(t, jti)
 
-		sub, ok := claims["sub"].(string)
+		viewID, ok := claims["view_id"].(string)
 		require.True(t, ok)
-		require.Equal(t, derivedView.ViewID.String(), sub)
+		require.Equal(t, derivedView.ViewID.String(), viewID)
 
 		// Verify token is stored in database
 		storedToken, dbErr := db.DB(ctx).GetViewToken(ctx, uuid.MustParse(jti))

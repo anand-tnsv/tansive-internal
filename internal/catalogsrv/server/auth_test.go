@@ -110,6 +110,12 @@ func TestAdoptView(t *testing.T) {
 	// }
 	//testContext.CatalogContext.ViewDefinition = sourceViewDef
 
+	// Try to get Catalog
+	httpReq, _ = http.NewRequest("GET", "/catalogs/test-catalog", nil)
+	setRequestBodyAndHeader(t, httpReq, req)
+	response = executeTestRequest(t, httpReq, nil)
+	assert.Equal(t, http.StatusUnauthorized, response.Code)
+
 	// Test successful adoption
 	httpReq, _ = http.NewRequest("POST", "/auth/adopt-default-view/test-catalog", nil)
 	// set bearer token
@@ -125,6 +131,13 @@ func TestAdoptView(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, adoptResponse.Token)
 	assert.NotEmpty(t, adoptResponse.ExpiresAt)
+
+	// Try to get Catalog
+	httpReq, _ = http.NewRequest("GET", "/catalogs/test-catalog", nil)
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+adoptResponse.Token)
+	response = executeTestRequest(t, httpReq, nil)
+	assert.Equal(t, http.StatusOK, response.Code)
 
 	// // Test invalid catalog
 	// httpReq, _ = http.NewRequest("POST", "/catalogs/invalid-catalog/views/target-view/adopt", nil)

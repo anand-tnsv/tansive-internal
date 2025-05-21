@@ -14,22 +14,14 @@ import (
 func UserSessionValidator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		if config.Config().SingleUserMode {
-			tenantID := config.Config().DefaultTenantID
-			projectID := config.Config().DefaultProjectID
-			ctx = common.SetProjectIdInContext(
-				common.SetTenantIdInContext(r.Context(), types.TenantId(tenantID)),
-				types.ProjectId(projectID),
-			)
-		}
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			httpx.ErrUnAuthorized("missing or invalid authorization token").Send(w)
 			return
 		}
-
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		token = strings.TrimSpace(token) // just in case
+
 		var err error
 		ctx, err = validateToken(ctx, token)
 		if err != nil {
@@ -55,6 +47,8 @@ func UserSessionValidator(next http.Handler) http.Handler {
 }
 
 func setDefaultSingleUserContext(ctx context.Context) (context.Context, error) {
+	ctx = common.SetTenantIdInContext(ctx, types.TenantId(config.Config().DefaultTenantID))
+	ctx = common.SetProjectIdInContext(ctx, types.ProjectId(config.Config().DefaultProjectID))
 	catCtx := common.CatalogContextFromContext(ctx)
 	if catCtx == nil {
 		catCtx = &common.CatalogContext{}

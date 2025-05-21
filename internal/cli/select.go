@@ -40,7 +40,7 @@ Example:
 		// Parse the response
 		var response struct {
 			Token     string    `json:"token"`
-			ExpiresAt time.Time `json:"expiresAt"`
+			ExpiresAt time.Time `json:"expires_at"`
 		}
 		if err := json.Unmarshal(body, &response); err != nil {
 			return fmt.Errorf("failed to parse response: %v", err)

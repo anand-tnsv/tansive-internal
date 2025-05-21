@@ -56,7 +56,7 @@ type CatalogContext struct {
 	Namespace      string
 	Catalog        string
 	Variant        string
-	ViewDefinition any
+	ViewDefinition *types.ViewDefinition
 	UserContext    *UserContext
 }
 
@@ -129,7 +129,7 @@ func SetVariantInContext(ctx context.Context, variant string) context.Context {
 }
 
 // SetViewDefinitionInContext sets the view definition in the provided context.
-func SetViewDefinitionInContext(ctx context.Context, viewDefinition any) context.Context {
+func SetViewDefinitionInContext(ctx context.Context, viewDefinition *types.ViewDefinition) context.Context {
 	currContext := CatalogContextFromContext(ctx)
 	currContext.ViewDefinition = viewDefinition
 	return SetCatalogContext(ctx, currContext)

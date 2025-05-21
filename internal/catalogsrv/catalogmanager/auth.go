@@ -121,12 +121,13 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 	}
 
 	claims := jwt.MapClaims{
-		"sub": derivedView.ViewID.String(),
-		"iss": config.Config().ServerHostName + ":" + config.Config().ServerPort,
-		"exp": jwt.NewNumericDate(tokenExpiry),
-		"iat": jwt.NewNumericDate(time.Now()),
-		"aud": []string{config.Config().ServerHostName + ":" + config.Config().ServerPort},
-		"jti": v.TokenID.String(),
+		"view_id":   derivedView.ViewID.String(),
+		"tenant_id": common.TenantIdFromContext(ctx),
+		"iss":       config.Config().ServerHostName + ":" + config.Config().ServerPort,
+		"exp":       jwt.NewNumericDate(tokenExpiry),
+		"iat":       jwt.NewNumericDate(time.Now()),
+		"aud":       []string{config.Config().ServerHostName + ":" + config.Config().ServerPort},
+		"jti":       v.TokenID.String(),
 	}
 
 	for k, v := range options.additionalClaims {
