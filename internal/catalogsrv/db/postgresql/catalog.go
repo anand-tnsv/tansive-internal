@@ -87,7 +87,7 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 				types.ActionCatalogAdmin,
 			},
 			Targets: []types.TargetResource{
-				types.TargetResource("res://catalog/" + catalog.Name),
+				types.TargetResource("res://catalogs/" + catalog.Name),
 			},
 		},
 	}
