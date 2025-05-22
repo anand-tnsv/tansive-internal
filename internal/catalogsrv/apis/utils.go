@@ -17,6 +17,8 @@ import (
 func getResourceName(r *http.Request) (catalogmanager.RequestContext, error) {
 	ctx := r.Context()
 
+	var resourceName string
+
 	catalogName := chi.URLParam(r, "catalogName")
 	variantName := chi.URLParam(r, "variantName")
 	namespace := chi.URLParam(r, "namespaceName")
@@ -26,6 +28,7 @@ func getResourceName(r *http.Request) (catalogmanager.RequestContext, error) {
 	n := catalogmanager.RequestContext{}
 	catalogContext := common.CatalogContextFromContext(ctx)
 	if workspace != "" {
+		resourceName = types.ResourceNameWorkspaces
 		n.Workspace = workspace
 		n.WorkspaceLabel, n.WorkspaceID = getUUIDOrName(workspace)
 	} else if catalogContext != nil {
@@ -33,35 +36,42 @@ func getResourceName(r *http.Request) (catalogmanager.RequestContext, error) {
 		n.WorkspaceID = catalogContext.WorkspaceId
 	}
 	if variantName != "" {
+		resourceName = types.ResourceNameVariants
 		n.Variant, n.VariantID = getUUIDOrName(variantName)
 	} else if catalogContext != nil {
 		n.Variant = catalogContext.Variant
 		n.VariantID = catalogContext.VariantId
 	}
 	if catalogName != "" {
+		resourceName = types.ResourceNameCatalogs
 		n.Catalog = catalogName
 	} else if catalogContext != nil {
 		n.Catalog = catalogContext.Catalog
 		n.CatalogID = catalogContext.CatalogId
 	}
 	if namespace != "" {
+		resourceName = types.ResourceNameNamespaces
 		n.Namespace = namespace
 	} else if catalogContext != nil {
 		n.Namespace = catalogContext.Namespace
 	}
 	if viewName != "" {
+		resourceName = types.ResourceNameViews
 		n.ObjectName = viewName
 	}
 
+	n.QueryParams = r.URL.Query()
+
+	if resourceName != "" {
+		return n, nil
+	}
+
 	// parse schema and collection objects
-	resourceName := chi.URLParam(r, "objectType")
+	resourceName = getResourceNameFromPath(r)
 	resourceFqn := chi.URLParam(r, "*")
 	var objectName, objectPath string
 
 	if resourceName != "" {
-		if !types.IsValidResourceNameAndMethod(resourceName, r.Method) {
-			return n, httpx.ErrInvalidRequest("unsupported resource and/or method")
-		}
 		if resourceFqn != "" {
 			objectName = path.Base(resourceFqn)
 			if objectName == "/" || objectName == "." {
@@ -85,26 +95,29 @@ func getResourceName(r *http.Request) (catalogmanager.RequestContext, error) {
 			catObjType = types.CatalogObjectTypeCatalogCollection
 		}
 
-		n.ObjectName = objectName
-		n.ObjectPath = objectPath
-		n.ObjectType = catObjType
+		if n.ObjectName == "" {
+			n.ObjectName = objectName
+			n.ObjectPath = objectPath
+			n.ObjectType = catObjType
+		}
 
 	}
-
-	n.QueryParams = r.URL.Query()
 
 	return n, nil
 }
 
 func getResourceKind(r *http.Request) string {
-	// Trim leading and trailing slashes
+	return types.KindFromResourceName(getResourceNameFromPath(r))
+}
+
+func getResourceNameFromPath(r *http.Request) string {
 	path := strings.Trim(r.URL.Path, "/")
 	segments := strings.Split(path, "/")
 	var resourceName string
 	if len(segments) > 0 {
 		resourceName = segments[0]
 	}
-	return types.KindFromResourceName(resourceName)
+	return resourceName
 }
 
 func getUUIDOrName(ref string) (string, uuid.UUID) {

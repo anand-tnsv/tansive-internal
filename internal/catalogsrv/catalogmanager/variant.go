@@ -254,7 +254,7 @@ func (vr *variantResource) Name() string {
 }
 
 func (vr *variantResource) Location() string {
-	return "/variants/" + vr.vm.ID().String()
+	return "/variants/" + vr.vm.Name()
 }
 
 func (vr *variantResource) Manager() schemamanager.VariantManager {

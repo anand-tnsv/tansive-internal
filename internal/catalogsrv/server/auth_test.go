@@ -136,7 +136,7 @@ func TestAdoptView(t *testing.T) {
 	httpReq, _ = http.NewRequest("GET", "/catalogs/test-catalog", nil)
 	setRequestBodyAndHeader(t, httpReq, req)
 	httpReq.Header.Set("Authorization", "Bearer "+adoptResponse.Token)
-	response = executeTestRequest(t, httpReq, nil)
+	response = executeTestRequest(t, httpReq, nil, testContext)
 	assert.Equal(t, http.StatusOK, response.Code)
 
 	// // Test invalid catalog

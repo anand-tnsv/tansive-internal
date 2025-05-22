@@ -11,10 +11,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/stretchr/testify/assert"
 )
 
 type TestContext struct {
@@ -41,6 +41,19 @@ func executeTestRequest(t *testing.T, req *http.Request, apiKey *string, testCon
 		ctx = common.SetTenantIdInContext(ctx, testContext[0].TenantId)
 		ctx = common.SetProjectIdInContext(ctx, testContext[0].ProjectId)
 		catalogContext := &testContext[0].CatalogContext
+		vd := types.ViewDefinition{
+			Scope: types.Scope{
+				Catalog: testContext[0].CatalogContext.Catalog,
+			},
+			Rules: []types.Rule{
+				{
+					Intent:  types.IntentAllow,
+					Actions: []types.Action{types.ActionCatalogAdmin},
+					Targets: []types.TargetResource{types.TargetResource("res://catalogs/" + testContext[0].CatalogContext.Catalog)},
+				},
+			},
+		}
+		catalogContext.ViewDefinition = &vd
 		ctx = common.SetCatalogContext(ctx, catalogContext)
 		ctx = common.SetTestContext(ctx, true)
 		req = req.WithContext(ctx)

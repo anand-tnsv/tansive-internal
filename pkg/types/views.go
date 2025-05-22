@@ -19,19 +19,18 @@ const (
 	ActionCatalogAdmin      Action = "catalog.admin"
 	ActionCatalogList       Action = "catalog.list"
 	ActionCatalogAdoptView  Action = "catalog.adoptView"
+	ActionCatalogCreateView Action = "catalog.createView"
+	ActionViewAdmin         Action = "view.admin"
 	ActionVariantAdmin      Action = "variant.admin"
 	ActionVariantClone      Action = "variant.clone"
-	ActionVariantCreateView Action = "variant.createView"
 	ActionVariantList       Action = "variant.list"
 	ActionNamespaceCreate   Action = "namespace.create"
-	ActionNamespaceEdit     Action = "namespace.edit"
 	ActionNamespaceList     Action = "namespace.list"
 	ActionNamespaceAdmin    Action = "namespace.admin"
 	ActionSchemaCreate      Action = "schema.create"
 	ActionSchemaRead        Action = "schema.read"
 	ActionSchemaEdit        Action = "schema.edit"
-	ActionSchemaDelete      Action = "schema.delete"
-	ActionSchemaAssign      Action = "schema.assign"
+	ActionSchemaInstantiate Action = "schema.instantiate"
 	ActionCollectionCreate  Action = "collection.create"
 	ActionCollectionRead    Action = "collection.read"
 	ActionCollectionWrite   Action = "collection.write"
@@ -45,19 +44,17 @@ var ValidActions = []Action{
 	ActionCatalogAdmin,
 	ActionCatalogList,
 	ActionCatalogAdoptView,
+	ActionCatalogCreateView,
 	ActionVariantAdmin,
 	ActionVariantClone,
-	ActionVariantCreateView,
 	ActionVariantList,
 	ActionNamespaceCreate,
-	ActionNamespaceEdit,
 	ActionNamespaceList,
 	ActionNamespaceAdmin,
 	ActionSchemaCreate,
 	ActionSchemaRead,
 	ActionSchemaEdit,
-	ActionSchemaDelete,
-	ActionSchemaAssign,
+	ActionSchemaInstantiate,
 	ActionCollectionCreate,
 	ActionCollectionRead,
 	ActionCollectionWrite,
@@ -195,7 +192,7 @@ func (r Rules) matchesAdmin(resource string) bool {
 			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(ResourceNameNamespaces, ruleSegments) {
 				isMatch = true
 			}
-			if isMatch && res.matches(resource) {
+			if isMatch && (strings.HasPrefix(resource, string(res)) || res.matches(resource)) {
 				return true
 			}
 		}

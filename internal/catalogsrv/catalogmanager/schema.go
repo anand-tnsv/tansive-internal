@@ -950,21 +950,21 @@ func getSchemaRefs(ctx context.Context, t types.CatalogObjectType, dir uuid.UUID
 
 // objectResource represents a resource object
 type objectResource struct {
-	name RequestContext
-	om   schemamanager.SchemaManager
+	reqCtx RequestContext
+	om     schemamanager.SchemaManager
 }
 
 // Name returns the name of the resource
 func (or *objectResource) Name() string {
-	return or.name.ObjectName
+	return or.reqCtx.ObjectName
 }
 
 // Location returns the location of the resource
 func (or *objectResource) Location() string {
-	objName := types.ResourceNameFromObjectType(or.name.ObjectType)
+	objName := types.ResourceNameFromObjectType(or.reqCtx.ObjectType)
 	loc := path.Clean("/" + objName + or.om.FullyQualifiedName())
 	q := url.Values{}
-	if workspace := or.name.WorkspaceLabel; workspace != "" {
+	if workspace := or.reqCtx.WorkspaceLabel; workspace != "" {
 		q.Set("workspace", workspace)
 	}
 	if namespace := or.om.Metadata().Namespace.String(); namespace != "" {
@@ -985,32 +985,32 @@ func (or *objectResource) Manager() schemamanager.SchemaManager {
 // Create creates a new resource
 func (or *objectResource) Create(ctx context.Context, rsrcJSON []byte) (string, apperrors.Error) {
 	m := &schemamanager.SchemaMetadata{
-		Catalog:   or.name.Catalog,
-		Variant:   types.NullableStringFrom(or.name.Variant),
-		Namespace: types.NullableStringFrom(or.name.Namespace),
+		Catalog:   or.reqCtx.Catalog,
+		Variant:   types.NullableStringFrom(or.reqCtx.Variant),
+		Namespace: types.NullableStringFrom(or.reqCtx.Namespace),
 	}
 
 	object, err := NewSchema(ctx, rsrcJSON, m)
 	if err != nil {
 		return "", err
 	}
-	err = SaveSchema(ctx, object, WithWorkspaceID(or.name.WorkspaceID), WithErrorIfExists())
+	err = SaveSchema(ctx, object, WithWorkspaceID(or.reqCtx.WorkspaceID), WithErrorIfExists())
 	if err != nil {
 		return "", err
 	}
 	om := object.Metadata()
-	or.name.ObjectName = om.Name
-	or.name.ObjectPath = om.Path
-	or.name.ObjectType = object.Type()
+	or.reqCtx.ObjectName = om.Name
+	or.reqCtx.ObjectPath = om.Path
+	or.reqCtx.ObjectType = object.Type()
 	or.om = object
-	if or.name.Catalog == "" {
-		or.name.Catalog = om.Catalog
+	if or.reqCtx.Catalog == "" {
+		or.reqCtx.Catalog = om.Catalog
 	}
-	if or.name.Variant == "" {
-		or.name.Variant = om.Variant.String()
+	if or.reqCtx.Variant == "" {
+		or.reqCtx.Variant = om.Variant.String()
 	}
-	if or.name.Namespace == "" {
-		or.name.Namespace = om.Namespace.String()
+	if or.reqCtx.Namespace == "" {
+		or.reqCtx.Namespace = om.Namespace.String()
 	}
 
 	return or.Location(), nil
@@ -1019,20 +1019,20 @@ func (or *objectResource) Create(ctx context.Context, rsrcJSON []byte) (string, 
 // Get gets a resource
 func (or *objectResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	m := &schemamanager.SchemaMetadata{
-		Catalog:   or.name.Catalog,
-		Variant:   types.NullableStringFrom(or.name.Variant),
-		Namespace: types.NullableStringFrom(or.name.Namespace),
-		Path:      or.name.ObjectPath,
-		Name:      or.name.ObjectName,
+		Catalog:   or.reqCtx.Catalog,
+		Variant:   types.NullableStringFrom(or.reqCtx.Variant),
+		Namespace: types.NullableStringFrom(or.reqCtx.Namespace),
+		Path:      or.reqCtx.ObjectPath,
+		Name:      or.reqCtx.ObjectName,
 	}
 	ves := m.Validate()
 	if ves != nil {
 		return nil, validationerrors.ErrSchemaValidation.Msg(ves.Error())
 	}
-	m.IDS.CatalogID = or.name.CatalogID
-	m.IDS.VariantID = or.name.VariantID
+	m.IDS.CatalogID = or.reqCtx.CatalogID
+	m.IDS.VariantID = or.reqCtx.VariantID
 
-	object, err := GetSchema(ctx, or.name.ObjectType, m, WithWorkspaceID(or.name.WorkspaceID))
+	object, err := GetSchema(ctx, or.reqCtx.ObjectType, m, WithWorkspaceID(or.reqCtx.WorkspaceID))
 	if err != nil {
 		return nil, err
 	}
@@ -1041,36 +1041,36 @@ func (or *objectResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 
 // Update updates a resource
 func (or *objectResource) Update(ctx context.Context, rsrcJSON []byte) apperrors.Error {
-	if or.name.WorkspaceID == uuid.Nil && or.name.VariantID == uuid.Nil {
+	if or.reqCtx.WorkspaceID == uuid.Nil && or.reqCtx.VariantID == uuid.Nil {
 		return ErrInvalidWorkspaceOrVariant
 	}
 	var dir Directories
 	var err apperrors.Error
-	if or.name.WorkspaceID != uuid.Nil {
-		dir, err = getWorkspaceDirs(ctx, or.name.WorkspaceID)
+	if or.reqCtx.WorkspaceID != uuid.Nil {
+		dir, err = getWorkspaceDirs(ctx, or.reqCtx.WorkspaceID)
 	} else {
-		dir, err = getVariantDirs(ctx, or.name.VariantID)
+		dir, err = getVariantDirs(ctx, or.reqCtx.VariantID)
 	}
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Str("workspace_id", or.name.WorkspaceID.String()).Str("variant_id", or.name.VariantID.String()).Msg("failed to get directories")
+		log.Ctx(ctx).Error().Err(err).Str("workspace_id", or.reqCtx.WorkspaceID.String()).Str("variant_id", or.reqCtx.VariantID.String()).Msg("failed to get directories")
 		return ErrInvalidWorkspaceOrVariant
 	}
 
 	m := &schemamanager.SchemaMetadata{
-		Catalog:   or.name.Catalog,
-		Variant:   types.NullableStringFrom(or.name.Variant),
-		Path:      or.name.ObjectPath,
-		Name:      or.name.ObjectName,
-		Namespace: types.NullableStringFrom(or.name.Namespace),
+		Catalog:   or.reqCtx.Catalog,
+		Variant:   types.NullableStringFrom(or.reqCtx.Variant),
+		Path:      or.reqCtx.ObjectPath,
+		Name:      or.reqCtx.ObjectName,
+		Namespace: types.NullableStringFrom(or.reqCtx.Namespace),
 	}
 	ves := m.Validate()
 	if ves != nil {
 		return validationerrors.ErrSchemaValidation.Msg(ves.Error())
 	}
-	m.IDS.CatalogID = or.name.CatalogID
-	m.IDS.VariantID = or.name.VariantID
+	m.IDS.CatalogID = or.reqCtx.CatalogID
+	m.IDS.VariantID = or.reqCtx.VariantID
 
-	existingObj, err := GetSchema(ctx, or.name.ObjectType, m, WithDirectories(dir))
+	existingObj, err := GetSchema(ctx, or.reqCtx.ObjectType, m, WithDirectories(dir))
 	if err != nil {
 		return err
 	}
@@ -1095,29 +1095,29 @@ func (or *objectResource) Update(ctx context.Context, rsrcJSON []byte) apperrors
 
 // Delete deletes a resource
 func (or *objectResource) Delete(ctx context.Context) apperrors.Error {
-	if or.name.WorkspaceID == uuid.Nil && or.name.VariantID == uuid.Nil {
+	if or.reqCtx.WorkspaceID == uuid.Nil && or.reqCtx.VariantID == uuid.Nil {
 		return ErrInvalidWorkspace
 	}
 	var dir Directories
 	var err apperrors.Error
-	if or.name.WorkspaceID != uuid.Nil {
-		dir, err = getWorkspaceDirs(ctx, or.name.WorkspaceID)
+	if or.reqCtx.WorkspaceID != uuid.Nil {
+		dir, err = getWorkspaceDirs(ctx, or.reqCtx.WorkspaceID)
 	} else {
-		dir, err = getVariantDirs(ctx, or.name.VariantID)
+		dir, err = getVariantDirs(ctx, or.reqCtx.VariantID)
 	}
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Str("workspace_id", or.name.WorkspaceID.String()).Str("variant_id", or.name.VariantID.String()).Msg("failed to get directories")
+		log.Ctx(ctx).Error().Err(err).Str("workspace_id", or.reqCtx.WorkspaceID.String()).Str("variant_id", or.reqCtx.VariantID.String()).Msg("failed to get directories")
 		return ErrInvalidWorkspace
 	}
 	m := &schemamanager.SchemaMetadata{
-		Catalog:   or.name.Catalog,
-		Variant:   types.NullableStringFrom(or.name.Variant),
-		Path:      or.name.ObjectPath,
-		Name:      or.name.ObjectName,
-		Namespace: types.NullableStringFrom(or.name.Namespace),
+		Catalog:   or.reqCtx.Catalog,
+		Variant:   types.NullableStringFrom(or.reqCtx.Variant),
+		Path:      or.reqCtx.ObjectPath,
+		Name:      or.reqCtx.ObjectName,
+		Namespace: types.NullableStringFrom(or.reqCtx.Namespace),
 	}
-	pathWithName := path.Clean(m.GetStoragePath(or.name.ObjectType) + "/" + or.name.ObjectName)
-	err = DeleteSchema(ctx, or.name.ObjectType, m, dir)
+	pathWithName := path.Clean(m.GetStoragePath(or.reqCtx.ObjectType) + "/" + or.reqCtx.ObjectName)
+	err = DeleteSchema(ctx, or.reqCtx.ObjectType, m, dir)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Str("path", pathWithName).Msg("failed to delete object")
 		return err
@@ -1131,15 +1131,15 @@ func (or *objectResource) List(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // NewSchemaResource creates a new schema resource
-func NewSchemaResource(ctx context.Context, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
-	if name.Catalog == "" || name.CatalogID == uuid.Nil {
+func NewSchemaResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}
-	if name.Variant == "" || name.VariantID == uuid.Nil {
+	if reqCtx.Variant == "" || reqCtx.VariantID == uuid.Nil {
 		return nil, ErrInvalidVariant
 	}
 	return &objectResource{
-		name: name,
+		reqCtx: reqCtx,
 	}, nil
 }
 

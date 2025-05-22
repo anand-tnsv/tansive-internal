@@ -56,13 +56,13 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 		}
 		for _, rule := range v.Spec.Definition.Rules {
 			if len(rule.Targets) == 0 {
-				m := morphResource(v.Spec.Definition.Scope, "")
+				m := MorphResource(v.Spec.Definition.Scope, "")
 				if m == "" || schemavalidator.V().Var(m, "resourceURIValidator") != nil {
 					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI("null"))
 				}
 			}
 			for _, res := range rule.Targets {
-				m := morphResource(v.Spec.Definition.Scope, string(res))
+				m := MorphResource(v.Spec.Definition.Scope, res)
 				if m == "" || schemavalidator.V().Var(m, "resourceURIValidator") != nil {
 					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI(string(res)))
 				}
@@ -449,10 +449,10 @@ func ValidateDerivedView(ctx context.Context, parent *types.ViewDefinition, chil
 	return nil
 }
 
-// morphResource transforms a resource string based on the provided scope.
+// MorphResource transforms a resource string based on the provided scope.
 // It handles the conversion of resource paths and ensures proper formatting
 // of catalog, variant, workspace, and namespace components.
-func morphResource(scope types.Scope, resource string) string {
+func MorphResource(scope types.Scope, resource types.TargetResource) types.TargetResource {
 	segments, resourceName, err := extractSegmentsAndResourceName(resource)
 	if err != nil && len(resource) > 0 {
 		return ""
@@ -460,7 +460,7 @@ func morphResource(scope types.Scope, resource string) string {
 
 	var metadata string
 	if len(segments) > 0 {
-		metadata = segments[0]
+		metadata = string(segments[0])
 	}
 
 	resourceKV := extractKV(metadata)
@@ -513,11 +513,12 @@ func morphResource(scope types.Scope, resource string) string {
 		s.WriteString("/" + resourceName)
 	}
 	if len(segments) > 1 {
-		segments[1] = strings.TrimPrefix(segments[1], "/")
-		s.WriteString("/" + segments[1])
+		path := strings.TrimPrefix(string(segments[1]), "/")
+		segments[1] = types.TargetResource(path)
+		s.WriteString("/" + path)
 	}
 
-	return "res://" + s.String()
+	return types.TargetResource("res://" + s.String())
 }
 
 // morphMetadata processes a single metadata field based on scope name and resource type.
@@ -528,10 +529,26 @@ func morphMetadata(scopeName string, pos int, resourceType string, resourceMetad
 	if scopeName == "" {
 		if v, ok := resourceMetadata[resourceType]; ok {
 			m.value = v.value
+			if v.value == "" {
+				return m
+			}
 		}
 	} else {
 		m.value = scopeName
 	}
 	delete(resourceMetadata, resourceType)
 	return m
+}
+
+// morph all targets in the view definition to its scope
+func MorphViewDefinition(vd *types.ViewDefinition) *types.ViewDefinition {
+	if vd == nil {
+		return nil
+	}
+	for i, rule := range vd.Rules {
+		for j, target := range rule.Targets {
+			vd.Rules[i].Targets[j] = types.TargetResource(MorphResource(vd.Scope, target))
+		}
+	}
+	return vd
 }

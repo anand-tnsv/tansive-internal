@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
@@ -157,4 +158,63 @@ func MorphServer(server string) string {
 // GetServerURL returns the properly formatted server URL
 func (cfg *Config) GetServerURL() string {
 	return MorphServer(cfg.ServerPort)
+}
+
+// configCmd represents the config command
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "Manage CLI configuration",
+	Long:  `Manage CLI configuration settings like server connection and authentication.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
+}
+
+// configClearCmd represents the config clear command
+var configClearCmd = &cobra.Command{
+	Use:   "clear",
+	Short: "Clear the current token and catalog configuration",
+	Long: `Clear the current token and catalog configuration. This will remove:
+1. The current authentication token
+2. The token expiry time
+3. The current catalog selection
+
+This is useful when you want to reset your configuration or switch to a different catalog.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Get the current config
+		cfg := GetConfig()
+		if cfg == nil {
+			// Create a new config if none exists
+			cfg = &Config{}
+		}
+
+		// Clear the token-related fields
+		cfg.CurrentToken = ""
+		cfg.TokenExpiry = ""
+		cfg.CurrentCatalog = ""
+
+		// Save the config
+		configFile, err := GetDefaultConfigPath()
+		if err != nil {
+			return fmt.Errorf("failed to get config path: %v", err)
+		}
+		if err := cfg.WriteConfig(configFile); err != nil {
+			return fmt.Errorf("failed to save config: %v", err)
+		}
+
+		if jsonOutput {
+			printJSON(map[string]int{"result": 1})
+		} else {
+			fmt.Println("Configuration cleared successfully")
+		}
+
+		return nil
+	},
+}
+
+func init() {
+	// First add the clear command to the config command
+	configCmd.AddCommand(configClearCmd)
+	// Add the config command to the root command
+	rootCmd.AddCommand(configCmd)
 }

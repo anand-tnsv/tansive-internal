@@ -630,10 +630,9 @@ CREATE TABLE IF NOT EXISTS signing_keys (
   public_key BYTEA NOT NULL,
   private_key BYTEA NOT NULL,
   is_active BOOLEAN NOT NULL DEFAULT false,
-  tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (key_id, tenant_id)
+  PRIMARY KEY (key_id)
 );
 
 CREATE TRIGGER update_signing_keys_updated_at
@@ -641,8 +640,8 @@ BEFORE UPDATE ON signing_keys
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
-CREATE UNIQUE INDEX idx_active_signing_key_per_tenant
-ON signing_keys (tenant_id)
+CREATE UNIQUE INDEX idx_active_signing_key
+ON signing_keys (is_active)
 WHERE is_active = true;
 
 GRANT ALL PRIVILEGES ON TABLE

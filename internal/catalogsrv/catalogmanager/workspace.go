@@ -37,7 +37,7 @@ type workspaceMetadata struct {
 	Variant     string `json:"variant" validate:"omitempty,resourceNameValidator"`
 	BaseVersion int    `json:"-"`
 	Description string `json:"description"`
-	Label       string `json:"name" validate:"omitempty,resourceNameValidator"`
+	Label       string `json:"name" validate:"required,resourceNameValidator"`
 }
 
 type workspaceManager struct {
@@ -305,7 +305,7 @@ func (wr *workspaceResource) ID() uuid.UUID {
 }
 
 func (wr *workspaceResource) Location() string {
-	return "/workspaces/" + wr.name.WorkspaceID.String()
+	return "/workspaces/" + wr.name.WorkspaceLabel
 }
 
 func (wr *workspaceResource) Manager() schemamanager.WorkspaceManager {

@@ -22,6 +22,9 @@ var rootCmd = &cobra.Command{
 It allows you to create, read, update, and delete resources using YAML files.
 The CLI supports various resource types including catalogs, variants, namespaces, and workspaces.`,
 	PersistentPreRun: preRunHandlePersistents,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
 }
 
 func init() {

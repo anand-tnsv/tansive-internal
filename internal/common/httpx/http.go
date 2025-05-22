@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func GetRequestData(r *http.Request, data any) error {
@@ -72,7 +73,8 @@ func WrapHttpRsp(handler RequestHandler) http.HandlerFunc {
 }
 
 type ResponseHandlerParam struct {
-	Method  string
-	Path    string
-	Handler RequestHandler
+	Method       string
+	Path         string
+	Handler      RequestHandler
+	PolicyAction types.Action
 }

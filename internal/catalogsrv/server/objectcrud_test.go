@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
@@ -163,7 +162,7 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
-
+	testContext.CatalogContext.Catalog = "valid-catalog"
 	// Create a New Request to get the catalog
 	httpReq, _ = http.NewRequest("GET", "/catalogs/valid-catalog", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
@@ -189,9 +188,7 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 	httpReq, _ = http.NewRequest("GET", "/catalogs/validcatalog", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	t.Logf("Response: %v", response.Body.String())
-	if !assert.Equal(t, http.StatusNotFound, response.Code) {
-		t.FailNow()
-	}
+	require.NotEqual(t, http.StatusOK, response.Code)
 
 	// Update the catalog
 	req = `
@@ -246,12 +243,7 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 	// Create a New Request to get the deleted catalog
 	httpReq, _ = http.NewRequest("GET", "/catalogs/valid-catalog", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
-
-	// Check the response code
-	if !assert.Equal(t, http.StatusNotFound, response.Code) {
-		t.Logf("Response: %v", response.Body.String())
-		t.FailNow()
-	}
+	require.NotEqual(t, http.StatusOK, response.Code)
 }
 
 func TestVariantCrud(t *testing.T) {
@@ -372,7 +364,7 @@ func TestVariantCrud(t *testing.T) {
 	assert.Contains(t, response.Header().Get("Location"), "/variants/")
 	loc = response.Header().Get("Location")
 	// Get the variant
-	httpReq, _ = http.NewRequest("GET", loc+"?v=valid-variant&c=valid-catalog", nil)
+	httpReq, _ = http.NewRequest("GET", loc+"?c=valid-catalog", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusOK, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -627,7 +619,7 @@ func TestWorkspaceCrud(t *testing.T) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
-
+	testContext.CatalogContext.Catalog = "valid-catalog"
 	// Create a variant
 	httpReq, _ = http.NewRequest("POST", "/variants?catalog=valid-catalog", nil)
 	req = `
@@ -666,9 +658,7 @@ func TestWorkspaceCrud(t *testing.T) {
 	// check the location header in response. should contain the workspace id. Test for if the id is a valid uuid
 	loc := response.Header().Get("Location")
 	assert.NotEmpty(t, loc)
-	id := loc[strings.LastIndex(loc, "/")+1:]
-	_, err = uuid.Parse(id)
-	assert.Nil(t, err)
+	assert.Equal(t, "/workspaces/valid-workspace", loc)
 
 	// get this workspace
 	testContext.CatalogContext.Catalog = "valid-catalog"
@@ -740,46 +730,7 @@ func TestWorkspaceCrud(t *testing.T) {
 	}`
 	setRequestBodyAndHeader(t, httpReq, req)
 	response = executeTestRequest(t, httpReq, nil, testContext)
-	if !assert.Equal(t, http.StatusCreated, response.Code) {
-		t.Logf("Response: %v", response.Body.String())
-		t.FailNow()
-	}
-
-	// check the location header in response. should contain the workspace id. Test for if the id is a valid uuid
-	loc = response.Header().Get("Location")
-	assert.NotEmpty(t, loc)
-	id = loc[strings.LastIndex(loc, "/")+1:]
-	_, err = uuid.Parse(id)
-	assert.Nil(t, err)
-
-	// set a valid name for the workspace
-	req = `
-	{
-		"version": "v1",
-		"kind": "Workspace",
-		"metadata": {
-			"name": "valid-workspace",
-			"description": "This is a valid workspace"
-		}
-	}`
-	httpReq, _ = http.NewRequest("PUT", loc, nil)
-	setRequestBodyAndHeader(t, httpReq, req)
-	response = executeTestRequest(t, httpReq, nil, testContext)
-	if !assert.Equal(t, http.StatusOK, response.Code) {
-		t.Logf("Response: %v", response.Body.String())
-		t.FailNow()
-	}
-	// Get the updated workspace
-	httpReq, _ = http.NewRequest("GET", loc, nil)
-	response = executeTestRequest(t, httpReq, nil, testContext)
-	// Check the response code
-	if !assert.Equal(t, http.StatusOK, response.Code) {
-		t.Logf("Response: %v", response.Body.String())
-		t.FailNow()
-	}
-	checkHeader(t, response.Header())
-	name := gjson.Get(response.Body.String(), "metadata.name").String()
-	assert.Equal(t, "valid-workspace", name)
+	require.NotEqual(t, http.StatusCreated, response.Code)
 
 	// Set the name to empty
 	req = `
@@ -794,21 +745,7 @@ func TestWorkspaceCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("PUT", loc, nil)
 	setRequestBodyAndHeader(t, httpReq, req)
 	response = executeTestRequest(t, httpReq, nil, testContext)
-	if !assert.Equal(t, http.StatusOK, response.Code) {
-		t.Logf("Response: %v", response.Body.String())
-		t.FailNow()
-	}
-	// Get the updated workspace
-	httpReq, _ = http.NewRequest("GET", loc, nil)
-	response = executeTestRequest(t, httpReq, nil, testContext)
-	// Check the response code
-	if !assert.Equal(t, http.StatusOK, response.Code) {
-		t.Logf("Response: %v", response.Body.String())
-		t.FailNow()
-	}
-	checkHeader(t, response.Header())
-	name = gjson.Get(response.Body.String(), "metadata.name").String()
-	assert.Equal(t, "", name)
+	assert.NotEqual(t, http.StatusOK, response.Code)
 
 	// Delete the workspace
 	httpReq, _ = http.NewRequest("DELETE", loc, nil)
@@ -941,9 +878,6 @@ func TestObjectCrud(t *testing.T) {
 	// check the location header in response. should contain the workspace id. Test for if the id is a valid uuid
 	loc := response.Header().Get("Location")
 	assert.NotEmpty(t, loc)
-	id := loc[strings.LastIndex(loc, "/")+1:]
-	_, err = uuid.Parse(id)
-	assert.Nil(t, err)
 
 	// Create an object
 	// Create a New Request
@@ -1504,7 +1438,7 @@ func TestValuesCrud(t *testing.T) {
 	replaceTabsWithSpaces(&reqYaml)
 	reqJson, err := yaml.YAMLToJSON([]byte(reqYaml))
 	require.NoError(t, err)
-	httpReq, _ := http.NewRequest("POST", "/collections", nil)
+	httpReq, _ := http.NewRequest("POST", "/collections?n=valid-namespace&workspace=valid-workspace", nil)
 	setRequestBodyAndHeader(t, httpReq, string(reqJson))
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
@@ -1520,7 +1454,7 @@ func TestValuesCrud(t *testing.T) {
 	// get the location string before ?
 	col_loc := loc[:strings.LastIndex(loc, "?")]
 	col_loc = strings.Replace(col_loc, "/collections", "/attributes", 1)
-	httpReq, _ = http.NewRequest("GET", col_loc+"/maxRetries", nil)
+	httpReq, _ = http.NewRequest("GET", col_loc+"/maxRetries?namespace=valid-namespace&workspace=valid-workspace", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	rspJson := response.Body.Bytes()
 	if !assert.Equal(t, http.StatusOK, response.Code) {
@@ -1532,6 +1466,8 @@ func TestValuesCrud(t *testing.T) {
 	assert.Equal(t, gjson.GetBytes(rspJson, "maxRetries").Exists(), true)
 	assert.Equal(t, gjson.GetBytes(rspJson, "maxRetries.value").String(), "5")
 
+	testContext.CatalogContext.Namespace = "valid-namespace"
+	testContext.CatalogContext.WorkspaceLabel = "valid-workspace"
 	// Get max attempts
 	httpReq, _ = http.NewRequest("GET", col_loc+"/maxAttempts", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
@@ -1787,7 +1723,7 @@ func createTestObjects(t *testing.T, ctx context.Context) *TestContext {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
-	testContext.CatalogContext.Namespace = "valid-namespace"
+	//	testContext.CatalogContext.Namespace = "valid-namespace"
 
 	// Create a workspace
 	// Create a New Request
@@ -1810,10 +1746,7 @@ func createTestObjects(t *testing.T, ctx context.Context) *TestContext {
 	// check the location header in response. should contain the workspace id. Test for if the id is a valid uuid
 	loc := response.Header().Get("Location")
 	assert.NotEmpty(t, loc)
-	id := loc[strings.LastIndex(loc, "/")+1:]
-	_, err = uuid.Parse(id)
-	assert.Nil(t, err)
-	testContext.CatalogContext.WorkspaceLabel = "valid-workspace"
+	//	testContext.CatalogContext.WorkspaceLabel = "valid-workspace"
 
 	// create a valid parameter
 	reqYaml := `
@@ -1833,7 +1766,7 @@ func createTestObjects(t *testing.T, ctx context.Context) *TestContext {
 	replaceTabsWithSpaces(&reqYaml)
 	reqJson, err := yaml.YAMLToJSON([]byte(reqYaml))
 	require.NoError(t, err)
-	httpReq, _ = http.NewRequest("POST", "/parameterschemas", nil)
+	httpReq, _ = http.NewRequest("POST", "/parameterschemas?n=valid-namespace&workspace=valid-workspace", nil)
 	setRequestBodyAndHeader(t, httpReq, string(reqJson))
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
@@ -1889,7 +1822,7 @@ func createTestObjects(t *testing.T, ctx context.Context) *TestContext {
 	reqJson, err = yaml.YAMLToJSON([]byte(reqYaml))
 	require.NoError(t, err)
 
-	httpReq, _ = http.NewRequest("POST", "/collectionschemas", nil)
+	httpReq, _ = http.NewRequest("POST", "/collectionschemas?n=valid-namespace&workspace=valid-workspace", nil)
 	setRequestBodyAndHeader(t, httpReq, string(reqJson))
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {

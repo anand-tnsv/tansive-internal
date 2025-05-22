@@ -5,11 +5,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
+	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewWorkspaceManager(t *testing.T) {
@@ -25,6 +25,7 @@ func TestNewWorkspaceManager(t *testing.T) {
     "version": "v1",
     "kind": "Workspace",
     "metadata": {
+		"name": "valid-workspace",
         "catalog": "valid-catalog",
         "variant": "valid-variant",
         "description": "This is a valid workspace"
@@ -40,6 +41,7 @@ func TestNewWorkspaceManager(t *testing.T) {
 		       "version": "v2",
 		       "kind": "Workspace",
 		       "metadata": {
+				   "name": "valid-workspace2",
 		           "catalog": "valid-catalog",
 		           "variant": "valid-variant",
 		           "description": "Invalid version in workspace"
@@ -55,6 +57,7 @@ func TestNewWorkspaceManager(t *testing.T) {
 			       "version": "v1",
 			       "kind": "InvalidKind",
 			       "metadata": {
+					   "name": "valid-workspace3",
 			           "catalog": "valid-catalog",
 			           "variant": "valid-variant",
 			           "description": "Invalid kind in workspace"

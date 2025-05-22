@@ -49,4 +49,5 @@ var (
 	ErrUnableToParseTokenDuration             apperrors.Error = ErrCatalogError.New("unable to parse token duration").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToGenerateToken                  apperrors.Error = ErrCatalogError.New("unable to generate token").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToCreateView                     apperrors.Error = ErrCatalogError.New("unable to create view").SetStatusCode(http.StatusInternalServerError)
+	ErrDisallowedByPolicy                     apperrors.Error = ErrCatalogError.New("disallowed by policy").SetStatusCode(http.StatusForbidden)
 )

@@ -25,17 +25,17 @@ func validateViewRuleAction(fl validator.FieldLevel) bool {
 // validateResourceURI checks if the resource URI follows the required structure.
 func validateResourceURI(fl validator.FieldLevel) bool {
 	uri := fl.Field().String()
-	segments, err := extractSegments(uri)
+	segments, err := extractSegments(types.TargetResource(uri))
 	if err != nil {
 		return false
 	}
 
-	if len(segments) == 0 || isValidStructuredPath(segments[0]) != nil {
+	if len(segments) == 0 || isValidStructuredPath(string(segments[0])) != nil {
 		return false
 	}
 
 	if len(segments) > 1 {
-		prefix, hasWildcard := extractPrefixIfWildcard(segments[1])
+		prefix, hasWildcard := extractPrefixIfWildcard(string(segments[1]))
 		if hasWildcard && prefix == "" {
 			return true
 		}
@@ -45,13 +45,14 @@ func validateResourceURI(fl validator.FieldLevel) bool {
 	return true
 }
 
-func extractSegments(s string) ([]string, error) {
-	segments, _, err := extractSegmentsAndResourceName(s)
+func extractSegments(t types.TargetResource) ([]types.TargetResource, error) {
+	segments, _, err := extractSegmentsAndResourceName(t)
 	return segments, err
 }
 
-func extractSegmentsAndResourceName(s string) ([]string, string, error) {
+func extractSegmentsAndResourceName(t types.TargetResource) ([]types.TargetResource, string, error) {
 	const prefix = "res://"
+	s := string(t)
 	if !strings.HasPrefix(s, prefix) {
 		return nil, "", fmt.Errorf("invalid resource string: missing %s prefix", prefix)
 	}
@@ -76,15 +77,17 @@ func extractSegmentsAndResourceName(s string) ([]string, string, error) {
 		}
 	}
 
-	segments := []string{}
+	segments := []types.TargetResource{}
 
-	segments = append(segments, parts[0])
+	if len(parts) > 0 {
+		segments = append(segments, types.TargetResource(parts[0]))
+	}
 
 	if len(parts) == 2 {
 		if parts[1] != "" {
 			parts[1] = "/" + parts[1]
+			segments = append(segments, types.TargetResource(parts[1]))
 		}
-		segments = append(segments, parts[1])
 	}
 
 	return segments, resourceName, nil

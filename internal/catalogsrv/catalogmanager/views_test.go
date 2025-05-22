@@ -1568,7 +1568,7 @@ func TestValidateDerivedView(t *testing.T) {
 					},
 					{
 						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceEdit},
+						Actions: []types.Action{types.ActionNamespaceList},
 						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
 					},
 				},
@@ -1601,7 +1601,7 @@ func TestValidateDerivedView(t *testing.T) {
 					},
 					{
 						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceEdit},
+						Actions: []types.Action{types.ActionNamespaceList},
 						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
 					},
 				},
@@ -1613,7 +1613,7 @@ func TestValidateDerivedView(t *testing.T) {
 				Rules: types.Rules{
 					{
 						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceEdit},
+						Actions: []types.Action{types.ActionNamespaceList},
 						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
 					},
 				},
@@ -1844,4 +1844,35 @@ func TestDeleteView(t *testing.T) {
 		err = vr.Delete(ctx)
 		assert.NoError(t, err) // Should return nil as the view doesn't exist in this catalog
 	})
+}
+
+func TestMorphViewDefinition(t *testing.T) {
+	vdjson := `
+		{
+			"scope": {
+				"catalog": "validcatalog"
+			},
+			"rules": [{
+				"intent": "Allow",
+				"actions": ["catalog.list"],
+				"targets": ["res://catalogs/*", "res://variants/my-variant/collectionschemas/coll-schema"]
+			}]
+		}`
+	vd := &types.ViewDefinition{}
+	err := json.Unmarshal([]byte(vdjson), &vd)
+	require.NoError(t, err)
+
+	vd = MorphViewDefinition(vd)
+	assert.Equal(t, &types.ViewDefinition{
+		Scope: types.Scope{
+			Catalog: "validcatalog",
+		},
+		Rules: types.Rules{
+			{
+				Intent:  types.IntentAllow,
+				Actions: []types.Action{types.ActionCatalogList},
+				Targets: []types.TargetResource{"res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant/collectionschemas/coll-schema"},
+			},
+		},
+	}, vd)
 }
