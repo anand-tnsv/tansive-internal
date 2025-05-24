@@ -41,6 +41,7 @@ const (
 	ParameterSchemaKind  = "ParameterSchema"
 	CollectionSchemaKind = "CollectionSchema"
 	CollectionKind       = "Collection"
+	ResourceGroupKind    = "ResourceGroup"
 	AttributeKind        = "Attribute"
 	ViewKind             = "View"
 	InvalidKind          = "InvalidKind"
@@ -56,6 +57,7 @@ const (
 	ResourceNameCollections       = "collections"
 	ResourceNameAttributes        = "attributes"
 	ResourceNameViews             = "views"
+	ResourceNameResourceGroups    = "resourcegroups"
 )
 
 func ResourceURIs() []string {
@@ -65,6 +67,7 @@ func ResourceURIs() []string {
 		ResourceNameCollections,
 		ResourceNameAttributes,
 		ResourceNameViews,
+		ResourceNameResourceGroups,
 	}
 }
 
@@ -76,6 +79,8 @@ func Kind(t CatalogObjectType) string {
 		return CollectionSchemaKind
 	case CatalogObjectTypeCatalogCollection:
 		return CollectionKind
+	case CatalogObjectTypeResourceGroup:
+		return ResourceGroupKind
 	default:
 		return ""
 	}
@@ -101,6 +106,8 @@ func KindFromResourceName(uri string) string {
 		return AttributeKind
 	case ResourceNameViews:
 		return ViewKind
+	case ResourceNameResourceGroups:
+		return ResourceGroupKind
 	default:
 		return InvalidKind
 	}
@@ -114,6 +121,8 @@ func ResourceNameFromObjectType(t CatalogObjectType) string {
 		return "collectionschemas"
 	case CatalogObjectTypeCatalogCollection:
 		return "collections"
+	case CatalogObjectTypeResourceGroup:
+		return "resourcegroups"
 	default:
 		return ""
 	}
@@ -148,6 +157,7 @@ const (
 	CatalogObjectTypeParameterSchema   CatalogObjectType = "parameter_schema"
 	CatalogObjectTypeCollectionSchema  CatalogObjectType = "collection_schema"
 	CatalogObjectTypeCatalogCollection CatalogObjectType = "collection"
+	CatalogObjectTypeResourceGroup     CatalogObjectType = "resource_group"
 )
 
 func CatalogObjectTypeFromKind(k string) CatalogObjectType {
@@ -158,6 +168,8 @@ func CatalogObjectTypeFromKind(k string) CatalogObjectType {
 		return CatalogObjectTypeCollectionSchema
 	case CollectionKind:
 		return CatalogObjectTypeCatalogCollection
+	case ResourceGroupKind:
+		return CatalogObjectTypeResourceGroup
 	default:
 		return CatalogObjectTypeInvalid
 	}

@@ -2,18 +2,17 @@ package db
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
+	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSchemaDirectory(t *testing.T) {
@@ -56,18 +55,8 @@ func TestSchemaDirectory(t *testing.T) {
 	variant, err := DB(ctx).GetVariant(ctx, catalog.CatalogID, uuid.Nil, types.DefaultVariant)
 	assert.NoError(t, err)
 
-	// create a workspace
-	workspace := models.Workspace{
-		Description: "A test workspace",
-		VariantID:   variant.VariantID,
-		Info:        pgtype.JSONB{Status: pgtype.Null},
-		BaseVersion: 1,
-	}
-	err = DB(ctx).CreateWorkspace(ctx, &workspace)
-	assert.NoError(t, err)
-
 	// get the parameter directory
-	pd := workspace.ParametersDir
+	rg := variant.ResourceGroupsDirectoryID
 
 	dirJson := `
 	{
@@ -129,10 +118,10 @@ func TestSchemaDirectory(t *testing.T) {
 	`
 	dir, err := models.JSONToDirectory([]byte(dirJson))
 	assert.NoError(t, err)
-	err = DB(ctx).SetDirectory(ctx, types.CatalogObjectTypeParameterSchema, pd, []byte(dirJson))
+	err = DB(ctx).SetDirectory(ctx, types.CatalogObjectTypeResourceGroup, rg, []byte(dirJson))
 	assert.NoError(t, err)
 	// get the directory
-	dirRetJson, err := DB(ctx).GetDirectory(ctx, types.CatalogObjectTypeParameterSchema, pd)
+	dirRetJson, err := DB(ctx).GetDirectory(ctx, types.CatalogObjectTypeResourceGroup, rg)
 	assert.NoError(t, err)
 	dirRet, err := models.JSONToDirectory(dirRetJson)
 	assert.NoError(t, err)
@@ -140,22 +129,22 @@ func TestSchemaDirectory(t *testing.T) {
 	assert.Equal(t, dirRet["/a2/b3"], dir["/a2/b3"])
 
 	// Test the GetObjectByPath function
-	object, err := DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	object, err := DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.Equal(t, object.Hash, dir["/a/b3/c/d/e/f"].Hash)
 
 	// Non existing path
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/non/existing/path")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/non/existing/path")
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
 	assert.Nil(t, object)
 
 	// Does path exist
-	exists, err := DB(ctx).PathExists(ctx, types.CatalogObjectTypeParameterSchema, pd, "/x/y2/z/a/b")
+	exists, err := DB(ctx).PathExists(ctx, types.CatalogObjectTypeResourceGroup, rg, "/x/y2/z/a/b")
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
 	// Non existing path
-	exists, err = DB(ctx).PathExists(ctx, types.CatalogObjectTypeParameterSchema, pd, "/non/existing/path")
+	exists, err = DB(ctx).PathExists(ctx, types.CatalogObjectTypeResourceGroup, rg, "/non/existing/path")
 	assert.NoError(t, err)
 	assert.False(t, exists)
 
@@ -163,246 +152,119 @@ func TestSchemaDirectory(t *testing.T) {
 	updateObj := models.ObjectRef{
 		Hash: "new_hash_value",
 	}
-	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", updateObj)
+	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", updateObj)
 	assert.NoError(t, err)
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.Equal(t, object.Hash, updateObj.Hash)
 
 	// Update non existing path
-	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/non/existing/path", updateObj)
+	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/non/existing/path", updateObj)
 	// this should have added a new entry
 	assert.NoError(t, err)
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/non/existing/path")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/non/existing/path")
 	assert.NoError(t, err)
 	assert.Equal(t, object.Hash, updateObj.Hash)
 
 	// Add a reference
-	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref1"}, {Name: "ref2"}})
+	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref1"}, {Name: "ref2"}})
 	assert.NoError(t, err)
 
 	// Add more references with a duplicate
-	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref2"}, {Name: "ref4"}})
+	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref2"}, {Name: "ref4"}})
 	assert.NoError(t, err)
 	// Get the references
-	references, err := DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	references, err := DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}, {Name: "ref2"}, {Name: "ref4"}})
 
 	// Update a reference
-	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref2"}})
+	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref2"}})
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}, {Name: "ref2"}, {Name: "ref4"}})
 
 	// Delete one of the references
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", "ref2")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", "ref2")
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}, {Name: "ref4"}})
 
 	// Delete non-existing reference
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", "ref2")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", "ref2")
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}, {Name: "ref4"}})
 
 	// Delete all references
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", "ref1")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", "ref1")
 	assert.NoError(t, err)
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", "ref3")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", "ref3")
 	assert.NoError(t, err)
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", "ref4")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", "ref4")
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{})
 	// Delete non-existing reference
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", "ref1")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", "ref1")
 	assert.NoError(t, err)
 
 	// Now add a reference
-	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref1"}})
+	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref1"}})
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}})
 
 	// Delete object by path
-	hash, err := DB(ctx).DeleteObjectByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	hash, err := DB(ctx).DeleteObjectByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, hash)
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/a/b3/c/d/e/f")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/a/b3/c/d/e/f")
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
 	assert.Nil(t, object)
 
 	// Test FindClosestObject function
-	closestPath, closestObj, err := DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "c", "/a/b3/c/d/e/f")
+	closestPath, closestObj, err := DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "c", "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.Equal(t, closestPath, "/a/b3/c")
 	assert.Equal(t, closestObj.Hash, dir["/a/b3/c"].Hash)
 
 	// Test FindClosestObject function with non-existing path
-	closestPath, closestObj, err = DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "s", "/p/q/roger")
+	closestPath, closestObj, err = DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "s", "/p/q/roger")
 	assert.NoError(t, err)
 	assert.Equal(t, "", closestPath)
 	assert.Nil(t, closestObj)
 
 	// Test FindClosestObject function with non-existing path
-	closestPath, closestObj, err = DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeParameterSchema, pd, "s", "/m/n/p/t/k")
+	closestPath, closestObj, err = DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeResourceGroup, rg, "s", "/m/n/p/t/k")
 	assert.NoError(t, err)
 	assert.Equal(t, "/m/n/p/s", closestPath)
 	assert.Equal(t, closestObj.Hash, dir["/m/n/p/s"].Hash)
 
-	// add some new objects
-	cd := workspace.CollectionsDir
-	// add a new object
-	paths := []string{"/col/a/b", "/col/a/b/c", "/col/a/b/c/d/e/f", "/col/a/b/c/d", "/col/a/b/d/e", "/col/a/c", "/col/a/c/e/f"}
-	refsP := models.References{
-		{Name: "/par/a/b"}, {Name: "/par/a/b/c"}, {Name: "/par/a/b/c/d/c"}, {Name: "/par/a/b/c/d"}, {Name: "/par/a/b/d/e"}, {Name: "/par/a/c"}, {Name: "/par/a/c/e/f"},
-	}
-	for _, path := range paths {
-		err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, path, models.ObjectRef{Hash: "hash", References: refsP})
-		assert.NoError(t, err)
-	}
-
-	paths = []string{"/par/a/b", "/par/a/b/c", "/par/a/b/c/d/c", "/par/a/b/c/d", "/par/a/b/d/e", "/par/a/c", "/par/a/c/e/f"}
+	paths := []string{"/par/a/b", "/par/a/b/c", "/par/a/b/c/d/c", "/par/a/b/c/d", "/par/a/b/d/e", "/par/a/c", "/par/a/c/e/f"}
 	refsC := models.References{
 		{Name: "/col/a/b"}, {Name: "/col/a/b/c"}, {Name: "/col/a/b/c/d/e/f"}, {Name: "/col/a/b/c/d"}, {Name: "/col/a/b/d/e"}, {Name: "/col/a/c"}, {Name: "/col/a/c/e/f"},
 	}
 	for _, path := range paths {
-		err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, path, models.ObjectRef{Hash: "hash", References: refsC})
+		err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, path, models.ObjectRef{Hash: "hash", References: refsC})
 		assert.NoError(t, err)
 	}
 
 	// create a parameter with no references
-	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/par/a/b/c/d/c/g", models.ObjectRef{Hash: "hash"})
+	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/par/a/b/c/d/c/g", models.ObjectRef{Hash: "hash"})
 	require.NoError(t, err)
 	// get it
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/par/a/b/c/d/c/g")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResourceGroup, rg, "/par/a/b/c/d/c/g")
 	require.NoError(t, err)
 	require.Equal(t, object.Hash, "hash")
-
-	// get an object
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, "/col/a/b/c/d/e/f")
-	require.NoError(t, err)
-	require.Equal(t, object.Hash, "hash")
-	// get object at root
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, "/col/a/b")
-	require.NoError(t, err)
-	require.Equal(t, object.Hash, "hash")
-	// get object at root
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, "/col/a/c")
-	require.NoError(t, err)
-	require.Equal(t, object.Hash, "hash")
-
-	// delete a parameter at /par/a/b/c/d/c/f
-	deletePath := "/par/a/b/c/d/c"
-	dirIds := models.DirectoryIDs{
-		{ID: cd, Type: types.CatalogObjectTypeCollectionSchema},
-		{ID: pd, Type: types.CatalogObjectTypeParameterSchema},
-	}
-	objHash, err := DB(ctx).DeleteObjectWithReferences(ctx, types.CatalogObjectTypeParameterSchema, dirIds, deletePath)
-	require.NoError(t, err)
-	require.Equal(t, "", objHash)
-	// get the object again
-	_, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, deletePath)
-	require.NoError(t, err)
-	// delete the parameter with no ref
-	objHash, err = DB(ctx).DeleteObjectWithReferences(ctx, types.CatalogObjectTypeParameterSchema, dirIds, "/par/a/b/c/d/c/g")
-	require.NoError(t, err)
-	require.Equal(t, "hash", objHash)
-	// get the object again
-	_, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/par/a/b/c/d/c/g")
-	require.Error(t, err, dberror.ErrNotFound)
-
-	//delete the param at deletePath with replaceReferences option
-	objHash, err = DB(ctx).DeleteObjectWithReferences(ctx, types.CatalogObjectTypeParameterSchema, dirIds, deletePath, models.ReplaceReferencesWithAncestor(true))
-	require.NoError(t, err)
-	require.Equal(t, "hash", objHash)
-	// get the object again
-	_, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, deletePath)
-	require.Error(t, err, dberror.ErrNotFound)
-	// get a collection and see if the ref is replaced
-	obj, err := DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, "/col/a/b/c/d/e/f")
-	require.NoError(t, err)
-	require.Equal(t, obj.Hash, "hash")
-	newRefsP := models.References{}
-	for _, ref := range refsP {
-		if ref.Name != deletePath {
-			newRefsP = append(newRefsP, ref)
-		}
-	}
-	require.Equal(t, newRefsP, obj.References)
-
-	// delete a param with replaceReferences option for /par/a/c
-	deletePath = "/par/a/c"
-	_, err = DB(ctx).DeleteObjectWithReferences(ctx, types.CatalogObjectTypeParameterSchema, dirIds, deletePath, models.ReplaceReferencesWithAncestor(true))
-	require.ErrorIs(t, err, dberror.ErrNoAncestorReferencesFound)
-	objHash, err = DB(ctx).DeleteObjectWithReferences(ctx, types.CatalogObjectTypeParameterSchema, dirIds, deletePath, models.DeleteReferences(true))
-	require.NoError(t, err)
-	require.Equal(t, "hash", objHash)
-	// get a collection and see if the ref is replaced
-	obj, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, "/col/a/b/c/d/e/f")
-	require.NoError(t, err)
-	require.Equal(t, obj.Hash, "hash")
-	newRefsP1 := models.References{}
-	for _, ref := range newRefsP {
-		if ref.Name != deletePath {
-			newRefsP1 = append(newRefsP1, ref)
-		}
-	}
-	newRefsP = newRefsP1
-	require.Equal(t, newRefsP, obj.References)
-	_, err = DB(ctx).DeleteObjectWithReferences(ctx, types.CatalogObjectTypeParameterSchema, dirIds, "/invalid/path")
-	require.ErrorIs(t, err, dberror.ErrNotFound)
-
-	// delete the tree at /a/b
-	deletePath = "/col/a/b"
-	objs, err := DB(ctx).DeleteTree(ctx, dirIds, deletePath)
-	require.NoError(t, err)
-	require.Equal(t, 5, len(objs))
-	// get the object again
-	_, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, "/col/a/b/c/d/e/f")
-	require.Error(t, err, dberror.ErrNotFound)
-	_, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, "/col/a/b")
-	require.Error(t, err, dberror.ErrNotFound)
-	obj, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, cd, "/col/a/c")
-	require.NoError(t, err)
-	require.Equal(t, obj.Hash, "hash")
-	require.Equal(t, newRefsP, obj.References)
-	// retrieve a parameter
-	obj, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/par/a/b/d/e")
-	require.NoError(t, err)
-	require.Equal(t, obj.Hash, "hash")
-	newRefsC := models.References{}
-	for _, ref := range refsC {
-		if !strings.HasPrefix(ref.Name, deletePath) {
-			newRefsC = append(newRefsC, ref)
-		}
-	}
-	require.Equal(t, newRefsC, obj.References)
-
-	// let's update the hash of this parameter
-	err = DB(ctx).UpdateObjectHashForPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/par/a/b/d/e", "newhash")
-	require.NoError(t, err)
-	// get the object again
-	obj, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, pd, "/par/a/b/d/e")
-	require.NoError(t, err)
-	require.Equal(t, obj.Hash, "newhash")
-
-	// delete tree with invalid root
-	_, err = DB(ctx).DeleteTree(ctx, models.DirectoryIDs{
-		{ID: cd, Type: types.CatalogObjectTypeCollectionSchema},
-		{ID: pd, Type: types.CatalogObjectTypeParameterSchema},
-	}, "/col/x/y")
-	require.NoError(t, err)
 }

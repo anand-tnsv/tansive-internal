@@ -9,9 +9,10 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
-// preventing undefined use warnings
 var _ = canonicalizeMetadata
 var _ = getMetadata
 
@@ -20,16 +21,24 @@ func getMetadata(ctx context.Context, resourceJSON []byte) (*schemamanager.Schem
 		return nil, validationerrors.ErrEmptySchema
 	}
 
-	var resource struct {
-		VersionHeader
-		Metadata schemamanager.SchemaMetadata `json:"metadata"`
-	}
-	if err := json.Unmarshal(resourceJSON, &resource); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal resource schema")
+	if !gjson.ValidBytes(resourceJSON) {
+		log.Ctx(ctx).Error().Msg("invalid JSON")
 		return nil, validationerrors.ErrSchemaValidation
 	}
 
-	return &resource.Metadata, nil
+	metadata := gjson.GetBytes(resourceJSON, "metadata")
+	if !metadata.Exists() {
+		log.Ctx(ctx).Error().Msg("metadata field not found")
+		return nil, validationerrors.ErrSchemaValidation
+	}
+
+	var schemaMetadata schemamanager.SchemaMetadata
+	if err := json.Unmarshal([]byte(metadata.Raw), &schemaMetadata); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal metadata")
+		return nil, validationerrors.ErrSchemaValidation
+	}
+
+	return &schemaMetadata, nil
 }
 
 func canonicalizeMetadata(resourceJSON []byte, kind string, metadata *schemamanager.SchemaMetadata) ([]byte, *schemamanager.SchemaMetadata, apperrors.Error) {
@@ -37,24 +46,21 @@ func canonicalizeMetadata(resourceJSON []byte, kind string, metadata *schemamana
 		return nil, nil, validationerrors.ErrEmptySchema
 	}
 
-	var resourceMap map[string]json.RawMessage // parse only the first level elements
-	if err := json.Unmarshal(resourceJSON, &resourceMap); err != nil {
-		return nil, nil, validationerrors.ErrSchemaValidation.Msg("failed to unmarshal resource schema")
+	if !gjson.ValidBytes(resourceJSON) {
+		return nil, nil, validationerrors.ErrSchemaValidation.Msg("invalid JSON")
 	}
 
-	rawMetadata, ok := resourceMap["metadata"]
-	if !ok {
+	metadataResult := gjson.GetBytes(resourceJSON, "metadata")
+	if !metadataResult.Exists() {
 		return nil, nil, validationerrors.ErrSchemaValidation.Msg("missing metadata in resource schema")
 	}
 
-	// get metadata in resource json
 	var resourceMetadata schemamanager.SchemaMetadata
-	if err := json.Unmarshal(rawMetadata, &resourceMetadata); err != nil {
+	if err := json.Unmarshal([]byte(metadataResult.Raw), &resourceMetadata); err != nil {
 		return nil, nil, validationerrors.ErrSchemaValidation.Msg("failed to unmarshal metadata")
 	}
 
 	if metadata != nil {
-		// update metadata fields with new values
 		if metadata.Name != "" {
 			resourceMetadata.Name = metadata.Name
 		}
@@ -79,17 +85,10 @@ func canonicalizeMetadata(resourceJSON []byte, kind string, metadata *schemamana
 		resourceMetadata.Variant = types.NullableStringFrom(types.DefaultVariant) // set default variant if nil
 	}
 
-	// marshal updated metadata back to json
-	metadataJSON, err := json.Marshal(resourceMetadata)
+	updatedJSON, err := sjson.SetBytes(resourceJSON, "metadata", resourceMetadata)
 	if err != nil {
-		return nil, nil, validationerrors.ErrSchemaValidation.Msg("failed to marshal metadata")
-	}
-	resourceMap["metadata"] = metadataJSON
-
-	updatedResourceJSON, err := json.Marshal(resourceMap)
-	if err != nil {
-		return nil, nil, validationerrors.ErrSchemaValidation.Msg("failed to marshal resource schema")
+		return nil, nil, validationerrors.ErrSchemaValidation.Msg("failed to update metadata")
 	}
 
-	return updatedResourceJSON, &resourceMetadata, nil
+	return updatedJSON, &resourceMetadata, nil
 }

@@ -1,4 +1,4 @@
-package integer
+package string
 
 import (
 	"testing"
@@ -17,23 +17,23 @@ func TestSpec_ValidateSpec(t *testing.T) {
 		{
 			name: "valid spec",
 			spec: &Spec{
-				DataType: "Integer",
-				Value:    mustNullableAny(42),
+				DataType: "String",
+				Value:    mustNullableAny("test"),
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid data type",
 			spec: &Spec{
-				DataType: "String",
-				Value:    mustNullableAny(42),
+				DataType: "Integer",
+				Value:    mustNullableAny("test"),
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing data type",
 			spec: &Spec{
-				Value: mustNullableAny(42),
+				Value: mustNullableAny("test"),
 			},
 			wantErr: true,
 		},
@@ -58,17 +58,17 @@ func TestSpec_GetValue(t *testing.T) {
 		expected any
 	}{
 		{
-			name: "valid integer value",
+			name: "valid string value",
 			spec: &Spec{
-				DataType: "Integer",
-				Value:    mustNullableAny(42),
+				DataType: "String",
+				Value:    mustNullableAny("test"),
 			},
-			expected: int64(42),
+			expected: "test",
 		},
 		{
 			name: "nil value",
 			spec: &Spec{
-				DataType: "Integer",
+				DataType: "String",
 				Value:    types.NullableAny{},
 			},
 			expected: nil,
@@ -91,52 +91,20 @@ func TestSpec_ValidateValue(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid integer",
+			name: "valid string",
 			spec: &Spec{
-				DataType: "Integer",
+				DataType: "String",
 			},
-			value:   mustNullableAny(42),
+			value:   mustNullableAny("test"),
 			wantErr: false,
 		},
 		{
 			name: "invalid type",
 			spec: &Spec{
-				DataType: "Integer",
+				DataType: "String",
 			},
-			value:   mustNullableAny("not an integer"),
+			value:   mustNullableAny(42),
 			wantErr: true,
-		},
-		{
-			name: "large integer",
-			spec: &Spec{
-				DataType: "Integer",
-			},
-			value:   mustNullableAny(int64(9007199254740991)), // 2^53 - 1
-			wantErr: false,
-		},
-		{
-			name: "very large integer",
-			spec: &Spec{
-				DataType: "Integer",
-			},
-			value:   mustNullableAny(int64(9007199254740992)), // 2^53
-			wantErr: false,
-		},
-		{
-			name: "max int64",
-			spec: &Spec{
-				DataType: "Integer",
-			},
-			value:   mustNullableAny(int64(9223372036854775807)), // max int64
-			wantErr: false,
-		},
-		{
-			name: "min int64",
-			spec: &Spec{
-				DataType: "Integer",
-			},
-			value:   mustNullableAny(int64(-9223372036854775808)), // min int64
-			wantErr: false,
 		},
 	}
 
@@ -154,15 +122,15 @@ func TestSpec_ValidateValue(t *testing.T) {
 	}
 }
 
-func TestLoadIntegerSpec(t *testing.T) {
+func TestLoadStringSpec(t *testing.T) {
 	tests := []struct {
 		name    string
 		data    []byte
 		wantErr bool
 	}{
 		{
-			name:    "valid integer spec",
-			data:    []byte(`{"dataType": "Integer", "value": 42}`),
+			name:    "valid string spec",
+			data:    []byte(`{"dataType": "String", "value": "test"}`),
 			wantErr: false,
 		},
 		{
@@ -172,34 +140,14 @@ func TestLoadIntegerSpec(t *testing.T) {
 		},
 		{
 			name:    "invalid value type",
-			data:    []byte(`{"dataType": "Integer", "value": "not an integer"}`),
+			data:    []byte(`{"dataType": "String", "value": 42}`),
 			wantErr: true,
-		},
-		{
-			name:    "large integer",
-			data:    []byte(`{"dataType": "Integer", "value": 9007199254740991}`), // 2^53 - 1
-			wantErr: false,
-		},
-		{
-			name:    "very large integer",
-			data:    []byte(`{"dataType": "Integer", "value": 9007199254740992}`), // 2^53
-			wantErr: false,
-		},
-		{
-			name:    "max int64",
-			data:    []byte(`{"dataType": "Integer", "value": 9223372036854775807}`), // max int64
-			wantErr: false,
-		},
-		{
-			name:    "min int64",
-			data:    []byte(`{"dataType": "Integer", "value": -9223372036854775808}`), // min int64
-			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := LoadIntegerSpec(tt.data)
+			got, err := LoadStringSpec(tt.data)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, got)
@@ -208,7 +156,7 @@ func TestLoadIntegerSpec(t *testing.T) {
 				assert.NotNil(t, got)
 				spec, ok := got.(*Spec)
 				assert.True(t, ok)
-				assert.Equal(t, "Integer", spec.DataType)
+				assert.Equal(t, "String", spec.DataType)
 			}
 		})
 	}

@@ -1,11 +1,11 @@
 package datatyperegistry
 
 import (
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
-type Loader func([]byte) (schemamanager.Parameter, apperrors.Error)
+type Loader func([]byte) (schemamanager.DataType, apperrors.Error)
 
 var registry = make(map[schemamanager.ParamDataType]Loader)
 

@@ -6,12 +6,12 @@ import (
 
 	log "github.com/rs/zerolog/log"
 
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/collection"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/parameter"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/api/schemastore"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -64,7 +64,7 @@ func LoadV1SchemaManager(ctx context.Context, s *schemastore.SchemaStorageRepres
 		return nil, validationerrors.ErrSchemaValidation.Msg(ves.Error())
 	}
 	var opts []schemamanager.Options
-	if s.Values != nil && len(s.Values) > 0 && json.Valid(s.Values) {
+	if len(s.Values) > 0 && json.Valid(s.Values) {
 		opts = append(opts, schemamanager.WithParamValues(s.Values))
 	}
 

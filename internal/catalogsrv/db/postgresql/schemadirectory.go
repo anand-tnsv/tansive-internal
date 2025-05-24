@@ -119,25 +119,14 @@ func (om *objectManager) createSchemaDirectoryWithTransaction(ctx context.Contex
 	if dir.DirectoryID == uuid.Nil {
 		dir.DirectoryID = uuid.New()
 	}
-	var refName string
-	var refId any
-	if dir.WorkspaceID != uuid.Nil {
-		refName = "workspace_id"
-		refId = dir.WorkspaceID
-	} else if dir.VersionNum != 0 {
-		refName = "version_num"
-		refId = dir.VersionNum
-	} else {
-		return dberror.ErrInvalidInput.Msg("either workspace_id or version_num must be set")
-	}
 
 	// Insert the schema directory into the database and get created uuid
-	query := ` INSERT INTO ` + tableName + ` (directory_id, ` + refName + `, variant_id, tenant_id, directory)
-		VALUES ($1, $2, $3, $4, $5)
+	query := ` INSERT INTO ` + tableName + ` (directory_id, variant_id, tenant_id, directory)
+		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (directory_id, tenant_id) DO NOTHING RETURNING directory_id;`
 
 	var directoryID uuid.UUID
-	err := tx.QueryRowContext(ctx, query, dir.DirectoryID, refId, dir.VariantID, dir.TenantID, dir.Directory).Scan(&directoryID)
+	err := tx.QueryRowContext(ctx, query, dir.DirectoryID, dir.VariantID, dir.TenantID, dir.Directory).Scan(&directoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return dberror.ErrAlreadyExists.Msg("schema directory already exists")
@@ -1036,6 +1025,8 @@ func getSchemaDirectoryTableName(t types.CatalogObjectType) string {
 		return "parameters_directory"
 	case types.CatalogObjectTypeCatalogCollection:
 		return "values_directory"
+	case types.CatalogObjectTypeResourceGroup:
+		return "resourcegroups_directory"
 	default:
 		return ""
 	}

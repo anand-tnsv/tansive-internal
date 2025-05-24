@@ -4,20 +4,20 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager/datatyperegistry"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/api/schemastore"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 type V1ParameterSchemaManager struct {
 	version         string
 	parameterSchema ParameterSchema
-	parameter       schemamanager.Parameter
+	parameter       schemamanager.DataType
 }
 
 var _ schemamanager.ParameterSchemaManager = &V1ParameterSchemaManager{} // Ensure V1ParameterSchemaManager implements schemamanager.ParameterSchemaManager
@@ -81,7 +81,7 @@ func (pm *V1ParameterSchemaManager) DataType() schemamanager.ParamDataType {
 }
 
 func (pm *V1ParameterSchemaManager) Default() interface{} {
-	return pm.parameter.DefaultValue()
+	return pm.parameter.GetValue()
 }
 
 func (pm *V1ParameterSchemaManager) ValidateValue(value types.NullableAny) apperrors.Error {

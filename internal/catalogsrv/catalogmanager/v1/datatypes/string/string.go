@@ -1,4 +1,4 @@
-package integer
+package string
 
 import (
 	"encoding/json"
@@ -15,21 +15,21 @@ import (
 )
 
 const (
-	dataType = "Integer"
+	dataType = "String"
 	version  = "v1"
 )
 
 type Spec struct {
-	DataType string            `json:"dataType" validate:"required,eq=Integer"`
+	DataType string            `json:"dataType" validate:"required,eq=String"`
 	Value    types.NullableAny `json:"value,omitempty" validate:"omitnil"`
 }
 
 var _ schemamanager.DataType = &Spec{}
-var _ datatyperegistry.Loader = LoadIntegerSpec // Ensure LoadIntegerSpec is a valid Loader
+var _ datatyperegistry.Loader = LoadStringSpec // Ensure LoadStringSpec is a valid Loader
 
-func (is *Spec) ValidateSpec() schemaerr.ValidationErrors {
+func (ss *Spec) ValidateSpec() schemaerr.ValidationErrors {
 	var ves schemaerr.ValidationErrors
-	err := schemavalidator.V().Struct(is)
+	err := schemavalidator.V().Struct(ss)
 	if err == nil {
 		return nil
 	}
@@ -40,7 +40,7 @@ func (is *Spec) ValidateSpec() schemaerr.ValidationErrors {
 		return ves
 	}
 
-	value := reflect.ValueOf(is).Elem()
+	value := reflect.ValueOf(ss).Elem()
 	typeOfCS := value.Type()
 
 	for _, e := range ve {
@@ -57,10 +57,10 @@ func (is *Spec) ValidateSpec() schemaerr.ValidationErrors {
 	return ves
 }
 
-func (is *Spec) GetValue() any {
-	if !is.Value.IsNil() {
-		var v int64
-		if err := is.Value.GetAs(&v); err != nil {
+func (ss *Spec) GetValue() any {
+	if !ss.Value.IsNil() {
+		var v string
+		if err := ss.Value.GetAs(&v); err != nil {
 			return nil
 		}
 		return v
@@ -68,34 +68,34 @@ func (is *Spec) GetValue() any {
 	return nil
 }
 
-func (is *Spec) ValidateValue(v types.NullableAny) apperrors.Error {
-	var val int64
+func (ss *Spec) ValidateValue(v types.NullableAny) apperrors.Error {
+	var val string
 	if err := v.GetAs(&val); err != nil {
-		return validationerrors.ErrInvalidDataType.Msg("invalid integer value")
+		return validationerrors.ErrInvalidDataType.Msg("invalid string value")
 	}
 	return nil
 }
 
-func (is *Spec) GetMIMEType() string {
+func (ss *Spec) GetMIMEType() string {
 	return "application/json"
 }
 
-func LoadIntegerSpec(data []byte) (schemamanager.DataType, apperrors.Error) {
-	is := &Spec{}
-	err := json.Unmarshal(data, is)
+func LoadStringSpec(data []byte) (schemamanager.DataType, apperrors.Error) {
+	ss := &Spec{}
+	err := json.Unmarshal(data, ss)
 	if err != nil {
-		return nil, validationerrors.ErrSchemaValidation.Msg("failed to read integer")
+		return nil, validationerrors.ErrSchemaValidation.Msg("failed to read string")
 	}
-	var v int64
-	if err := is.Value.GetAs(&v); err != nil {
-		return nil, validationerrors.ErrSchemaValidation.Msg("failed to read integer")
+	var v string
+	if err := ss.Value.GetAs(&v); err != nil {
+		return nil, validationerrors.ErrSchemaValidation.Msg("failed to read string")
 	}
-	return is, nil
+	return ss, nil
 }
 
 func init() {
 	datatyperegistry.RegisterDataType(schemamanager.ParamDataType{
 		Type:    dataType,
 		Version: version,
-	}, LoadIntegerSpec)
+	}, LoadStringSpec)
 }

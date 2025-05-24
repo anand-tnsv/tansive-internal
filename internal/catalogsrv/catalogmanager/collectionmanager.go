@@ -62,8 +62,6 @@ func (cs *collectionSchema) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "resourcePathValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidObjectPath(jsonFieldName))
-		case "catalogVersionValidator":
-			validationErrors = append(validationErrors, schemaerr.ErrInvalidCatalogVersion(jsonFieldName))
 		default:
 			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
 		}

@@ -6,8 +6,8 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-type Parameter interface {
+type DataType interface {
 	ValidateSpec() schemaerr.ValidationErrors
 	ValidateValue(types.NullableAny) apperrors.Error
-	DefaultValue() any
+	GetValue() any
 }

@@ -6,13 +6,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
-	"github.com/jackc/pgtype"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
 )
 
 // CreateVariant creates a new variant in the database.
@@ -59,16 +58,18 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 	if variant.VariantID == uuid.Nil {
 		variantID = uuid.New()
 	}
+	rgDirID := uuid.New()
+	variant.ResourceGroupsDirectoryID = rgDirID
 	// Query to insert the variant
 	queryVariant := `
-		INSERT INTO variants (variant_id, name, description, info, catalog_id, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO variants (variant_id, name, description, info, catalog_id, resourcegroups_directory, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (name, catalog_id, tenant_id) DO NOTHING
 		RETURNING variant_id, name;
 	`
 
 	// Execute variant insertion within the transaction
-	row := tx.QueryRowContext(ctx, queryVariant, variantID, variant.Name, variant.Description, variant.Info, variant.CatalogID, tenantID)
+	row := tx.QueryRowContext(ctx, queryVariant, variantID, variant.Name, variant.Description, variant.Info, variant.CatalogID, rgDirID, tenantID)
 	var insertedVariantID uuid.UUID
 	var insertedName string
 	err := row.Scan(&insertedVariantID, &insertedName)
@@ -98,20 +99,6 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 	// Set the variant ID
 	variant.VariantID = insertedVariantID
 
-	// Create the default version for the variant
-	version := models.Version{
-		VariantID:   variant.VariantID,
-		TenantID:    tenantID,
-		Label:       types.InitialVersionLabel,
-		Description: "Initial version",
-		Info:        pgtype.JSONB{Status: pgtype.Null},
-	}
-
-	errDb := mm.createVersionWithTransaction(ctx, &version, tx)
-	if errDb != nil {
-		return errDb
-	}
-
 	// Create a default namespace for the variant
 	namespace := models.Namespace{
 		Name:        types.DefaultNamespace,
@@ -120,11 +107,40 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 		Description: "Default namespace for the variant",
 		Info:        nil, // Default info as null
 	}
-	errDb = mm.createNamespaceWithTransaction(ctx, &namespace, tx)
+	errDb := mm.createNamespaceWithTransaction(ctx, &namespace, tx)
 	if errDb != nil {
 		log.Ctx(ctx).Error().Err(errDb).Str("variant_id", variant.VariantID.String()).Msg("failed to create default namespace for variant")
 		return errDb
 	}
+
+	// Create the resourcegroups directory for the variant
+	dir := models.SchemaDirectory{
+		DirectoryID: rgDirID,
+		VariantID:   variant.VariantID,
+		TenantID:    tenantID,
+		Directory:   []byte("{}"),
+	}
+
+	tableName := getSchemaDirectoryTableName(types.CatalogObjectTypeResourceGroup)
+	if tableName == "" {
+		return dberror.ErrInvalidInput.Msg("invalid catalog object type")
+	}
+
+	// Insert the schema directory into the database and get created uuid
+	query := ` INSERT INTO ` + tableName + ` (directory_id, variant_id, tenant_id, directory)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (directory_id, tenant_id) DO NOTHING RETURNING directory_id;`
+
+	var directoryID uuid.UUID
+	err = tx.QueryRowContext(ctx, query, dir.DirectoryID, dir.VariantID, dir.TenantID, dir.Directory).Scan(&directoryID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return dberror.ErrAlreadyExists.Msg("schema directory already exists")
+		} else {
+			return dberror.ErrDatabase.Err(err)
+		}
+	}
+	dir.DirectoryID = directoryID
 
 	return nil
 }
@@ -144,14 +160,14 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 
 	if variantID != uuid.Nil {
 		query = `
-			SELECT variant_id, name, description, info, catalog_id
+			SELECT variant_id, name, description, info, catalog_id, resourcegroups_directory
 			FROM variants
 			WHERE variant_id = $1 AND tenant_id = $2;
 		`
 		row = mm.conn().QueryRowContext(ctx, query, variantID, tenantID)
 	} else if name != "" {
 		query = `
-			SELECT variant_id, name, description, info, catalog_id
+			SELECT variant_id, name, description, info, catalog_id, resourcegroups_directory
 			FROM variants
 			WHERE name = $1 AND catalog_id = $2 AND tenant_id = $3;
 		`
@@ -162,7 +178,7 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 	}
 
 	variant := &models.Variant{}
-	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID)
+	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceGroupsDirectoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Ctx(ctx).Info().Msg("variant not found")
