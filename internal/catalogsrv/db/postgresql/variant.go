@@ -123,7 +123,7 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 
 	tableName := getSchemaDirectoryTableName(types.CatalogObjectTypeResourceGroup)
 	if tableName == "" {
-		return dberror.ErrInvalidInput.Msg("invalid catalog object type")
+		return dberror.ErrInvalidInput.Msg("invalid catalog object type: resource group not supported")
 	}
 
 	// Insert the schema directory into the database and get created uuid
@@ -135,7 +135,8 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 	err = tx.QueryRowContext(ctx, query, dir.DirectoryID, dir.VariantID, dir.TenantID, dir.Directory).Scan(&directoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return dberror.ErrAlreadyExists.Msg("schema directory already exists")
+			log.Ctx(ctx).Info().Str("directory_id", dir.DirectoryID.String()).Msg("resource groups directory already exists, skipping")
+			return nil
 		} else {
 			return dberror.ErrDatabase.Err(err)
 		}

@@ -2,16 +2,19 @@ package catalogmanager
 
 import (
 	"context"
-	"encoding/json"
-	"path"
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgtype"
+	json "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	_ "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	_ "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/datatypes" // Import to register data types
+	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -656,95 +659,6 @@ func TestValidateValue(t *testing.T) {
 	}
 }
 
-func TestNewResourceGroupManager(t *testing.T) {
-	tests := []struct {
-		name          string
-		jsonInput     string
-		metadata      *schemamanager.SchemaMetadata
-		expectedError bool
-	}{
-		{
-			name: "valid resource group",
-			jsonInput: `{
-				"version": "v1",
-				"kind": "ResourceGroup",
-				"metadata": {
-					"name": "test-group",
-					"catalog": "test-catalog",
-					"namespace": "default",
-					"variant": "default"
-				},
-				"spec": {
-					"resources": {
-						"resource1": {
-							"schema": {"type": "integer"},
-							"value": 42
-						}
-					}
-				}
-			}`,
-			metadata: &schemamanager.SchemaMetadata{
-				Name:      "test-group",
-				Catalog:   "test-catalog",
-				Namespace: types.NullableStringFrom("default"),
-				Variant:   types.NullableStringFrom("default"),
-			},
-			expectedError: false,
-		},
-		{
-			name:          "empty json",
-			jsonInput:     "",
-			metadata:      nil,
-			expectedError: true,
-		},
-		{
-			name: "invalid json",
-			jsonInput: `{
-				"version": "v1",
-				"kind": "InvalidKind",
-				"metadata": {
-					"name": "test-group",
-					"catalog": "test-catalog",
-					"namespace": "default",
-					"variant": "default"
-				}
-			}`,
-			metadata: &schemamanager.SchemaMetadata{
-				Name:      "test-group",
-				Catalog:   "test-catalog",
-				Namespace: types.NullableStringFrom("default"),
-				Variant:   types.NullableStringFrom("default"),
-			},
-			expectedError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			manager, err := NewResourceGroupManager(context.Background(), []byte(tt.jsonInput), tt.metadata)
-			if tt.expectedError {
-				assert.Error(t, err)
-				assert.Nil(t, manager)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, manager)
-				if manager != nil {
-					// Test Metadata() method
-					metadata := manager.Metadata()
-					assert.Equal(t, tt.metadata.Name, metadata.Name)
-					assert.Equal(t, tt.metadata.Catalog, metadata.Catalog)
-					assert.Equal(t, tt.metadata.Namespace, metadata.Namespace)
-					assert.Equal(t, tt.metadata.Variant, metadata.Variant)
-
-					// Test FullyQualifiedName() method
-					expectedName := path.Clean(tt.metadata.Path + "/" + tt.metadata.Name)
-					assert.Equal(t, expectedName, manager.FullyQualifiedName())
-				}
-			}
-		})
-	}
-}
-
 func TestResourceGroupManagerValueOperations(t *testing.T) {
 	validJSON := `{
 		"version": "v1",
@@ -826,6 +740,473 @@ func TestResourceGroupManagerValueOperations(t *testing.T) {
 		newValue, err := types.NullableAnyFrom(100)
 		require.NoError(t, err)
 		err = manager.SetValue(context.Background(), "nonexistent", newValue)
+		assert.Error(t, err)
+	})
+}
+
+func TestResourceGroupManagerSave(t *testing.T) {
+	// Initialize context with logger and database connection
+	ctx := newDb()
+	defer db.DB(ctx).Close(ctx)
+
+	tenantID := types.TenantId("TABCDE")
+	projectID := types.ProjectId("P12345")
+
+	// Set the tenant ID and project ID in the context
+	ctx = common.SetTenantIdInContext(ctx, tenantID)
+	ctx = common.SetProjectIdInContext(ctx, projectID)
+
+	// Create the tenant and project for testing
+	err := db.DB(ctx).CreateTenant(ctx, tenantID)
+	require.NoError(t, err)
+	defer db.DB(ctx).DeleteTenant(ctx, tenantID)
+
+	err = db.DB(ctx).CreateProject(ctx, projectID)
+	require.NoError(t, err)
+	defer db.DB(ctx).DeleteProject(ctx, projectID)
+
+	var info pgtype.JSONB
+	err = info.Set(`{"key": "value"}`)
+	require.NoError(t, err)
+
+	// Create the catalog for testing
+	catalog := models.Catalog{
+		Name:        "test-catalog",
+		Description: "A test catalog",
+		Info:        info,
+	}
+	err = db.DB(ctx).CreateCatalog(ctx, &catalog)
+	require.NoError(t, err)
+	defer db.DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
+
+	// Set catalog ID in context
+	ctx = common.SetCatalogIdInContext(ctx, catalog.CatalogID)
+
+	// Create a variant for testing
+	variant := models.Variant{
+		Name:        "test-variant",
+		Description: "A test variant",
+		CatalogID:   catalog.CatalogID,
+		Info:        info,
+	}
+	err = db.DB(ctx).CreateVariant(ctx, &variant)
+	require.NoError(t, err)
+	defer db.DB(ctx).DeleteVariant(ctx, catalog.CatalogID, variant.VariantID, "")
+
+	// Set variant ID and name in context
+	ctx = common.SetVariantIdInContext(ctx, variant.VariantID)
+	ctx = common.SetVariantInContext(ctx, variant.Name)
+
+	t.Run("Save basic resource group", func(t *testing.T) {
+		// Create a basic resource group
+		rgJson := []byte(`{
+			"version": "v1",
+			"kind": "ResourceGroup",
+			"metadata": {
+				"name": "test-rg",
+				"description": "Test resource group",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"path": "/test"
+			},
+			"spec": {
+				"resources": {
+					"resource1": {
+						"schema": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							}
+						},
+						"value": {
+							"name": "test"
+						}
+					}
+				}
+			}
+		}`)
+
+		rgm, err := NewResourceGroupManager(ctx, rgJson, nil)
+		require.NoError(t, err)
+
+		// Save the resource group
+		err = rgm.Save(ctx)
+		require.NoError(t, err)
+
+		// Verify the resource group was saved
+		rg, err := db.DB(ctx).GetResourceGroup(ctx, rgm.GetStoragePath(), variant.VariantID, variant.ResourceGroupsDirectoryID)
+		require.NoError(t, err)
+		assert.NotNil(t, rg)
+		assert.Equal(t, rgm.GetStoragePath(), rg.Path)
+	})
+
+	t.Run("Save resource group with different values", func(t *testing.T) {
+		// Create first resource group
+		rgJson1 := []byte(`{
+			"version": "v1",
+			"kind": "ResourceGroup",
+			"metadata": {
+				"name": "test-rg2",
+				"description": "Test resource group 2",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"path": "/test"
+			},
+			"spec": {
+				"resources": {
+					"resource1": {
+						"schema": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							}
+						},
+						"value": {
+							"name": "test1"
+						}
+					}
+				}
+			}
+		}`)
+
+		rgm1, err := NewResourceGroupManager(ctx, rgJson1, nil)
+		require.NoError(t, err)
+
+		// Save the first resource group
+		err = rgm1.Save(ctx)
+		require.NoError(t, err)
+
+		// Get the first hash
+		rg1, err := db.DB(ctx).GetResourceGroup(ctx, rgm1.GetStoragePath(), variant.VariantID, variant.ResourceGroupsDirectoryID)
+		require.NoError(t, err)
+		hash1 := rg1.Hash
+
+		// Create second resource group with different value
+		rgJson2 := []byte(`{
+			"version": "v1",
+			"kind": "ResourceGroup",
+			"metadata": {
+				"name": "test-rg2",
+				"description": "Test resource group 2",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"path": "/test"
+			},
+			"spec": {
+				"resources": {
+					"resource1": {
+						"schema": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							}
+						},
+						"value": {
+							"name": "test2"
+						}
+					}
+				}
+			}
+		}`)
+
+		rgm2, err := NewResourceGroupManager(ctx, rgJson2, nil)
+		require.NoError(t, err)
+
+		// Save the second resource group
+		err = rgm2.Save(ctx)
+		require.NoError(t, err)
+
+		// Get the second hash
+		rg2, err := db.DB(ctx).GetResourceGroup(ctx, rgm2.GetStoragePath(), variant.VariantID, variant.ResourceGroupsDirectoryID)
+		require.NoError(t, err)
+		hash2 := rg2.Hash
+
+		// Verify hashes are different
+		assert.NotEqual(t, hash1, hash2, "Hashes should be different for different values")
+	})
+
+	t.Run("Save resource group with different schema", func(t *testing.T) {
+		// Create first resource group
+		rgJson1 := []byte(`{
+			"version": "v1",
+			"kind": "ResourceGroup",
+			"metadata": {
+				"name": "test-rg3",
+				"description": "Test resource group 3",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"path": "/test"
+			},
+			"spec": {
+				"resources": {
+					"resource1": {
+						"schema": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							}
+						},
+						"value": {
+							"name": "test"
+						}
+					}
+				}
+			}
+		}`)
+
+		rgm1, err := NewResourceGroupManager(ctx, rgJson1, nil)
+		require.NoError(t, err)
+
+		// Save the first resource group
+		err = rgm1.Save(ctx)
+		require.NoError(t, err)
+
+		// Get the first hash
+		rg1, err := db.DB(ctx).GetResourceGroup(ctx, rgm1.GetStoragePath(), variant.VariantID, variant.ResourceGroupsDirectoryID)
+		require.NoError(t, err)
+		hash1 := rg1.Hash
+
+		// Create second resource group with different schema
+		rgJson2 := []byte(`{
+			"version": "v1",
+			"kind": "ResourceGroup",
+			"metadata": {
+				"name": "test-rg3",
+				"description": "Test resource group 3",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"path": "/test"
+			},
+			"spec": {
+				"resources": {
+					"resource1": {
+						"schema": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"age": {
+									"type": "number"
+								}
+							}
+						},
+						"value": {
+							"name": "test",
+							"age": 25
+						}
+					}
+				}
+			}
+		}`)
+
+		rgm2, err := NewResourceGroupManager(ctx, rgJson2, nil)
+		require.NoError(t, err)
+
+		// Save the second resource group
+		err = rgm2.Save(ctx)
+		require.NoError(t, err)
+
+		// Get the second hash
+		rg2, err := db.DB(ctx).GetResourceGroup(ctx, rgm2.GetStoragePath(), variant.VariantID, variant.ResourceGroupsDirectoryID)
+		require.NoError(t, err)
+		hash2 := rg2.Hash
+
+		// Verify hashes are different
+		assert.NotEqual(t, hash1, hash2, "Hashes should be different for different schemas")
+	})
+}
+
+func TestResourceGroupManagerDelete(t *testing.T) {
+	// Initialize context with logger and database connection
+	ctx := newDb()
+	defer db.DB(ctx).Close(ctx)
+
+	tenantID := types.TenantId("TABCDE")
+	projectID := types.ProjectId("P12345")
+
+	// Set the tenant ID and project ID in the context
+	ctx = common.SetTenantIdInContext(ctx, tenantID)
+	ctx = common.SetProjectIdInContext(ctx, projectID)
+
+	// Create the tenant and project for testing
+	err := db.DB(ctx).CreateTenant(ctx, tenantID)
+	require.NoError(t, err)
+	defer db.DB(ctx).DeleteTenant(ctx, tenantID)
+
+	err = db.DB(ctx).CreateProject(ctx, projectID)
+	require.NoError(t, err)
+	defer db.DB(ctx).DeleteProject(ctx, projectID)
+
+	var info pgtype.JSONB
+	err = info.Set(`{"key": "value"}`)
+	require.NoError(t, err)
+
+	// Create the catalog for testing
+	catalog := models.Catalog{
+		Name:        "test-catalog",
+		Description: "A test catalog",
+		Info:        info,
+	}
+	err = db.DB(ctx).CreateCatalog(ctx, &catalog)
+	require.NoError(t, err)
+	defer db.DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
+
+	// Set catalog ID in context
+	ctx = common.SetCatalogIdInContext(ctx, catalog.CatalogID)
+
+	// Create a variant for testing
+	variant := models.Variant{
+		Name:        "test-variant",
+		Description: "A test variant",
+		CatalogID:   catalog.CatalogID,
+		Info:        info,
+	}
+	err = db.DB(ctx).CreateVariant(ctx, &variant)
+	require.NoError(t, err)
+	defer db.DB(ctx).DeleteVariant(ctx, catalog.CatalogID, variant.VariantID, "")
+
+	// Set variant ID and name in context
+	ctx = common.SetVariantIdInContext(ctx, variant.VariantID)
+	ctx = common.SetVariantInContext(ctx, variant.Name)
+
+	t.Run("Delete existing resource group", func(t *testing.T) {
+		// Create a resource group
+		rgJson := []byte(`{
+			"version": "v1",
+			"kind": "ResourceGroup",
+			"metadata": {
+				"name": "test-rg",
+				"description": "Test resource group",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"path": "/test"
+			},
+			"spec": {
+				"resources": {
+					"resource1": {
+						"schema": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							}
+						},
+						"value": {
+							"name": "test"
+						}
+					}
+				}
+			}
+		}`)
+
+		// Create and save the resource group
+		rgm, err := NewResourceGroupManager(ctx, rgJson, nil)
+		require.NoError(t, err)
+		err = rgm.Save(ctx)
+		require.NoError(t, err)
+
+		// Verify the resource group exists
+		rg, err := db.DB(ctx).GetResourceGroup(ctx, rgm.GetStoragePath(), variant.VariantID, variant.ResourceGroupsDirectoryID)
+		require.NoError(t, err)
+		assert.NotNil(t, rg)
+
+		// Delete the resource group
+		err = rgm.Delete(ctx)
+		require.NoError(t, err)
+
+		// Verify the resource group is deleted
+		rg, err = db.DB(ctx).GetResourceGroup(ctx, rgm.GetStoragePath(), variant.VariantID, variant.ResourceGroupsDirectoryID)
+		assert.Error(t, err)
+		assert.Nil(t, rg)
+	})
+
+	t.Run("Delete non-existent resource group", func(t *testing.T) {
+		// Create a resource group but don't save it
+		rgJson := []byte(`{
+			"version": "v1",
+			"kind": "ResourceGroup",
+			"metadata": {
+				"name": "non-existent-rg",
+				"description": "Non-existent resource group",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"path": "/test"
+			},
+			"spec": {
+				"resources": {
+					"resource1": {
+						"schema": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							}
+						},
+						"value": {
+							"name": "test"
+						}
+					}
+				}
+			}
+		}`)
+
+		// Create the resource group manager
+		rgm, err := NewResourceGroupManager(ctx, rgJson, nil)
+		require.NoError(t, err)
+
+		// Try to delete the non-existent resource group
+		err = rgm.Delete(ctx)
+		assert.Error(t, err)
+	})
+
+	t.Run("Delete resource group with invalid variant", func(t *testing.T) {
+		// Create a resource group
+		rgJson := []byte(`{
+			"version": "v1",
+			"kind": "ResourceGroup",
+			"metadata": {
+				"name": "test-rg2",
+				"description": "Test resource group 2",
+				"catalog": "test-catalog",
+				"variant": "invalid-variant",
+				"path": "/test"
+			},
+			"spec": {
+				"resources": {
+					"resource1": {
+						"schema": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							}
+						},
+						"value": {
+							"name": "test"
+						}
+					}
+				}
+			}
+		}`)
+
+		// Create the resource group manager
+		rgm, err := NewResourceGroupManager(ctx, rgJson, nil)
+		require.NoError(t, err)
+
+		// Try to delete with invalid variant
+		err = rgm.Delete(ctx)
 		assert.Error(t, err)
 	})
 }

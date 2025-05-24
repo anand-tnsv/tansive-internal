@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -22,19 +21,16 @@ func getMetadata(ctx context.Context, resourceJSON []byte) (*schemamanager.Schem
 	}
 
 	if !gjson.ValidBytes(resourceJSON) {
-		log.Ctx(ctx).Error().Msg("invalid JSON")
 		return nil, validationerrors.ErrSchemaValidation
 	}
 
 	metadata := gjson.GetBytes(resourceJSON, "metadata")
 	if !metadata.Exists() {
-		log.Ctx(ctx).Error().Msg("metadata field not found")
 		return nil, validationerrors.ErrSchemaValidation
 	}
 
 	var schemaMetadata schemamanager.SchemaMetadata
 	if err := json.Unmarshal([]byte(metadata.Raw), &schemaMetadata); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal metadata")
 		return nil, validationerrors.ErrSchemaValidation
 	}
 

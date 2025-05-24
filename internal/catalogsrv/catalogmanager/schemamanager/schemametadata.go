@@ -64,7 +64,7 @@ func (rs *SchemaMetadata) Validate() schemaerr.ValidationErrors {
 }
 
 func (s SchemaMetadata) MarshalJSON() ([]byte, error) {
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 
 	m["name"] = s.Name
 	m["catalog"] = s.Catalog
@@ -84,18 +84,11 @@ func (s SchemaMetadata) MarshalJSON() ([]byte, error) {
 }
 
 func (m SchemaMetadata) GetStoragePath(t types.CatalogObjectType) string {
-	if t == types.CatalogObjectTypeCatalogCollection {
-		if m.Namespace.IsNil() {
-			return path.Clean("/" + types.DefaultNamespace + "/" + m.Path)
-		} else {
-			return path.Clean("/" + types.DefaultNamespace + "/" + m.Namespace.String() + "/" + m.Path)
-		}
+	_ = t // unused
+	if m.Namespace.IsNil() {
+		return path.Clean("/" + types.DefaultNamespace + "/" + m.Path)
 	} else {
-		if m.Namespace.IsNil() {
-			return "/" + types.DefaultNamespace
-		} else {
-			return "/" + types.DefaultNamespace + "/" + m.Namespace.String()
-		}
+		return path.Clean("/" + types.DefaultNamespace + "/" + m.Namespace.String() + "/" + m.Path)
 	}
 }
 

@@ -106,6 +106,14 @@ type ObjectManager interface {
 	DeleteCollection(ctx context.Context, path string, dir uuid.UUID) (string, apperrors.Error)
 	HasReferencesToCollectionSchema(ctx context.Context, collectionSchema string, dir uuid.UUID) (bool, apperrors.Error)
 
+	// Resource Groups
+	UpsertResourceGroup(ctx context.Context, rg *models.ResourceGroup, directoryID uuid.UUID) apperrors.Error
+	GetResourceGroup(ctx context.Context, path string, variantID uuid.UUID, directoryID uuid.UUID) (*models.ResourceGroup, apperrors.Error)
+	GetResourceGroupObject(ctx context.Context, path string, directoryID uuid.UUID) (*models.CatalogObject, apperrors.Error)
+	UpdateResourceGroup(ctx context.Context, rg *models.ResourceGroup, directoryID uuid.UUID) apperrors.Error
+	DeleteResourceGroup(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error)
+	UpsertResourceGroupObject(ctx context.Context, rg *models.ResourceGroup, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error
+
 	// Schema Directory
 	CreateSchemaDirectory(ctx context.Context, t types.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error
 	SetDirectory(ctx context.Context, t types.CatalogObjectType, id uuid.UUID, dir []byte) apperrors.Error

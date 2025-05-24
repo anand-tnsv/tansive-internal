@@ -78,7 +78,7 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE IF NOT EXISTS catalog_objects (
   hash CHAR(128) NOT NULL,
-  type VARCHAR(64) NOT NULL CHECK (type IN ('parameter_schema', 'collection_schema', 'collection')),
+  type VARCHAR(64) NOT NULL CHECK (type IN ('parameter_schema', 'collection_schema', 'collection', 'resource_group')),
   version VARCHAR(16) NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   data BYTEA NOT NULL,

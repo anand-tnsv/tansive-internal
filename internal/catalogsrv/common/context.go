@@ -82,6 +82,9 @@ func CatalogContextFromContext(ctx context.Context) *CatalogContext {
 // SetCatalogIdInContext sets the catalog ID in the provided context.
 func SetCatalogIdInContext(ctx context.Context, catalogId uuid.UUID) context.Context {
 	currContext := CatalogContextFromContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
 	currContext.CatalogId = uuid.UUID(catalogId)
 	return SetCatalogContext(ctx, currContext)
 }
@@ -89,6 +92,9 @@ func SetCatalogIdInContext(ctx context.Context, catalogId uuid.UUID) context.Con
 // SetVariantIdInContext sets the variant ID in the provided context.
 func SetVariantIdInContext(ctx context.Context, variantId uuid.UUID) context.Context {
 	currContext := CatalogContextFromContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
 	currContext.VariantId = uuid.UUID(variantId)
 	return SetCatalogContext(ctx, currContext)
 }
@@ -96,6 +102,9 @@ func SetVariantIdInContext(ctx context.Context, variantId uuid.UUID) context.Con
 // SetWorkspaceIdInContext sets the workspace ID in the provided context.
 func SetWorkspaceIdInContext(ctx context.Context, workspaceId uuid.UUID) context.Context {
 	currContext := CatalogContextFromContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
 	currContext.WorkspaceId = uuid.UUID(workspaceId)
 	return SetCatalogContext(ctx, currContext)
 }
@@ -103,6 +112,9 @@ func SetWorkspaceIdInContext(ctx context.Context, workspaceId uuid.UUID) context
 // SetWorkspaceLabelInContext sets the workspace label in the provided context.
 func SetWorkspaceLabelInContext(ctx context.Context, workspaceLabel string) context.Context {
 	currContext := CatalogContextFromContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
 	currContext.WorkspaceLabel = workspaceLabel
 	return SetCatalogContext(ctx, currContext)
 }
@@ -110,6 +122,9 @@ func SetWorkspaceLabelInContext(ctx context.Context, workspaceLabel string) cont
 // SetNamespaceInContext sets the namespace in the provided context.
 func SetNamespaceInContext(ctx context.Context, namespace string) context.Context {
 	currContext := CatalogContextFromContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
 	currContext.Namespace = namespace
 	return SetCatalogContext(ctx, currContext)
 }
@@ -117,6 +132,9 @@ func SetNamespaceInContext(ctx context.Context, namespace string) context.Contex
 // SetCatalogInContext sets the catalog in the provided context.
 func SetCatalogInContext(ctx context.Context, catalog string) context.Context {
 	currContext := CatalogContextFromContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
 	currContext.Catalog = catalog
 	return SetCatalogContext(ctx, currContext)
 }
@@ -124,6 +142,9 @@ func SetCatalogInContext(ctx context.Context, catalog string) context.Context {
 // SetVariantInContext sets the variant in the provided context.
 func SetVariantInContext(ctx context.Context, variant string) context.Context {
 	currContext := CatalogContextFromContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
 	currContext.Variant = variant
 	return SetCatalogContext(ctx, currContext)
 }
@@ -131,6 +152,9 @@ func SetVariantInContext(ctx context.Context, variant string) context.Context {
 // SetViewDefinitionInContext sets the view definition in the provided context.
 func SetViewDefinitionInContext(ctx context.Context, viewDefinition *types.ViewDefinition) context.Context {
 	currContext := CatalogContextFromContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
 	currContext.ViewDefinition = viewDefinition
 	return SetCatalogContext(ctx, currContext)
 }
