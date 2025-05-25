@@ -2,6 +2,7 @@ package catalogmanager
 
 import (
 	"context"
+	"net/url"
 	"path"
 
 	"github.com/google/uuid"
@@ -47,6 +48,7 @@ func NewResourceGroupManager(ctx context.Context, rsrcJson []byte, m *schemamana
 	return &resourceGroupManager{resourceGroup: rg}, nil
 }
 
+// LoadResourceGroupManagerByPath loads a resource group manager from the database by path.
 func LoadResourceGroupManagerByPath(ctx context.Context, m *schemamanager.SchemaMetadata) (schemamanager.ResourceGroupManager, apperrors.Error) {
 	if m == nil {
 		return nil, ErrInvalidObject.Msg("unable to infer object metadata")
@@ -105,4 +107,155 @@ func resourceGroupManagerFromObject(ctx context.Context, obj *models.CatalogObje
 	rgm.resourceGroup.Metadata = *m
 
 	return rgm, nil
+}
+
+type resourceGroupResource struct {
+	req RequestContext
+	rgm schemamanager.ResourceGroupManager
+}
+
+func (r *resourceGroupResource) Name() string {
+	return r.req.ObjectName
+}
+
+func (r *resourceGroupResource) Location() string {
+	objName := types.ResourceNameFromObjectType(r.req.ObjectType)
+	loc := path.Clean("/" + objName + r.rgm.FullyQualifiedName())
+	q := url.Values{}
+	if namespace := r.rgm.Metadata().Namespace.String(); namespace != "" {
+		q.Set("namespace", namespace)
+	}
+	qStr := q.Encode()
+	if qStr != "" {
+		loc += "?" + qStr
+	}
+	return loc
+}
+
+func (r *resourceGroupResource) Manager() schemamanager.ResourceGroupManager {
+	return r.rgm
+}
+
+func (r *resourceGroupResource) Create(ctx context.Context, rsrcJson []byte) (string, apperrors.Error) {
+	m := &schemamanager.SchemaMetadata{
+		Catalog:   r.req.Catalog,
+		Variant:   types.NullableStringFrom(r.req.Variant),
+		Namespace: types.NullableStringFrom(r.req.Namespace),
+	}
+
+	resourceGroup, err := NewResourceGroupManager(ctx, rsrcJson, m)
+	if err != nil {
+		return "", err
+	}
+	err = resourceGroup.Save(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	r.req.ObjectName = resourceGroup.Metadata().Name
+	r.req.ObjectPath = resourceGroup.Metadata().Path
+	r.req.ObjectType = types.CatalogObjectTypeResourceGroup
+	r.rgm = resourceGroup
+
+	if r.req.Catalog == "" {
+		r.req.Catalog = resourceGroup.Metadata().Catalog
+	}
+	if r.req.Variant == "" {
+		r.req.Variant = resourceGroup.Metadata().Variant.String()
+	}
+	if r.req.Namespace == "" {
+		r.req.Namespace = resourceGroup.Metadata().Namespace.String()
+	}
+
+	return r.Location(), nil
+}
+
+// Get returns the resource group as JSON
+func (r *resourceGroupResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
+	m := &schemamanager.SchemaMetadata{
+		Catalog:   r.req.Catalog,
+		Variant:   types.NullableStringFrom(r.req.Variant),
+		Namespace: types.NullableStringFrom(r.req.Namespace),
+		Path:      r.req.ObjectPath,
+		Name:      r.req.ObjectName,
+	}
+	verr := m.Validate()
+	if verr != nil {
+		return nil, validationerrors.ErrSchemaValidation.Msg(verr.Error())
+	}
+
+	rgm, err := LoadResourceGroupManagerByPath(ctx, m)
+	if err != nil {
+		return nil, err
+	}
+
+	return rgm.JSON(ctx)
+}
+
+func (r *resourceGroupResource) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {
+	m := &schemamanager.SchemaMetadata{
+		Catalog:   r.req.Catalog,
+		Variant:   types.NullableStringFrom(r.req.Variant),
+		Path:      r.req.ObjectPath,
+		Name:      r.req.ObjectName,
+		Namespace: types.NullableStringFrom(r.req.Namespace),
+	}
+	ves := m.Validate()
+	if ves != nil {
+		return validationerrors.ErrSchemaValidation.Msg(ves.Error())
+	}
+
+	// Load the existing object
+	existing, err := LoadResourceGroupManagerByPath(ctx, m)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrObjectNotFound
+	}
+
+	rgm, err := NewResourceGroupManager(ctx, rsrcJson, m)
+	if err != nil {
+		return err
+	}
+	err = rgm.Save(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rg *resourceGroupResource) Delete(ctx context.Context) apperrors.Error {
+	m := &schemamanager.SchemaMetadata{
+		Catalog:   rg.req.Catalog,
+		Variant:   types.NullableStringFrom(rg.req.Variant),
+		Path:      rg.req.ObjectPath,
+		Name:      rg.req.ObjectName,
+		Namespace: types.NullableStringFrom(rg.req.Namespace),
+	}
+
+	err := DeleteResourceGroup(ctx, m)
+	if err != nil {
+		pathWithName := path.Clean(m.GetStoragePath(rg.req.ObjectType) + "/" + rg.req.ObjectName)
+		log.Ctx(ctx).Error().Err(err).Str("path", pathWithName).Msg("failed to delete object")
+		return err
+	}
+	return nil
+}
+
+func (rg *resourceGroupResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+	return nil, nil
+}
+
+func NewResourceGroupResource(ctx context.Context, req RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+	if req.Catalog == "" {
+		return nil, ErrInvalidCatalog
+	}
+	if req.Variant == "" {
+		return nil, ErrInvalidVariant
+	}
+	return &resourceGroupResource{
+		req: req,
+	}, nil
 }

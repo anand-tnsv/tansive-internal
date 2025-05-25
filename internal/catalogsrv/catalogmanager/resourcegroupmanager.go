@@ -53,6 +53,15 @@ type ResourceProvider struct {
 	_ any `json:"-"`
 }
 
+func (r *Resource) JSON(ctx context.Context) ([]byte, apperrors.Error) {
+	j, err := json.Marshal(r)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal object schema")
+		return j, ErrUnableToLoadObject
+	}
+	return j, nil
+}
+
 func (rg *ResourceGroup) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
 	if rg.Kind != types.ResourceGroupKind {
@@ -224,9 +233,14 @@ func (rgm *resourceGroupManager) StorageRepresentation() *objectstore.ObjectStor
 }
 
 func (rgm *resourceGroupManager) GetStoragePath() string {
+	m := rgm.Metadata()
+	return getResourceGroupStoragePath(&m)
+}
+
+func getResourceGroupStoragePath(m *schemamanager.SchemaMetadata) string {
 	t := types.CatalogObjectTypeResourceGroup
-	rsrcPath := rgm.Metadata().GetStoragePath(t)
-	pathWithName := path.Clean(rsrcPath + "/" + rgm.Metadata().Name)
+	rsrcPath := m.GetStoragePath(t)
+	pathWithName := path.Clean(rsrcPath + "/" + m.Name)
 	return pathWithName
 }
 
@@ -288,13 +302,12 @@ func (rgm *resourceGroupManager) Save(ctx context.Context) apperrors.Error {
 	return nil
 }
 
-func (rgm *resourceGroupManager) Delete(ctx context.Context) apperrors.Error {
-	if rgm == nil {
-		return validationerrors.ErrEmptySchema
+func DeleteResourceGroup(ctx context.Context, m *schemamanager.SchemaMetadata) apperrors.Error {
+	if m == nil {
+		return ErrEmptyMetadata
 	}
 
-	m := rgm.Metadata()
-
+	storagePath := getResourceGroupStoragePath(m)
 	// Get the directory ID for the resource group
 	catalogID := common.GetCatalogIdFromContext(ctx)
 	var err apperrors.Error
@@ -311,8 +324,6 @@ func (rgm *resourceGroupManager) Delete(ctx context.Context) apperrors.Error {
 		log.Ctx(ctx).Error().Err(err).Str("catalogID", catalogID.String()).Str("name", m.Name).Msg("Failed to get variant")
 		return err
 	}
-
-	storagePath := rgm.GetStoragePath()
 
 	hash, err := db.DB(ctx).DeleteResourceGroup(ctx, storagePath, v.ResourceGroupsDirectoryID)
 	if err != nil {
@@ -333,4 +344,13 @@ func (rgm *resourceGroupManager) Delete(ctx context.Context) apperrors.Error {
 	}
 
 	return nil
+}
+
+func (rgm *resourceGroupManager) JSON(ctx context.Context) ([]byte, apperrors.Error) {
+	j, err := json.Marshal(rgm.resourceGroup)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal object schema")
+		return j, ErrUnableToLoadObject
+	}
+	return j, nil
 }

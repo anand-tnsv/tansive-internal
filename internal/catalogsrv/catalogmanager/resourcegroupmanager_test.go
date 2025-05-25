@@ -1121,7 +1121,8 @@ func TestResourceGroupManagerDelete(t *testing.T) {
 		assert.NotNil(t, rg)
 
 		// Delete the resource group
-		err = rgm.Delete(ctx)
+		metadata := rgm.Metadata()
+		err = DeleteResourceGroup(ctx, &metadata)
 		require.NoError(t, err)
 
 		// Verify the resource group is deleted
@@ -1166,7 +1167,8 @@ func TestResourceGroupManagerDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to delete the non-existent resource group
-		err = rgm.Delete(ctx)
+		metadata := rgm.Metadata()
+		err = DeleteResourceGroup(ctx, &metadata)
 		assert.Error(t, err)
 	})
 
@@ -1206,7 +1208,8 @@ func TestResourceGroupManagerDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to delete with invalid variant
-		err = rgm.Delete(ctx)
+		metadata := rgm.Metadata()
+		err = DeleteResourceGroup(ctx, &metadata)
 		assert.Error(t, err)
 	})
 }

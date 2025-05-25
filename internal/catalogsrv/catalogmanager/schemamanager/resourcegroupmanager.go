@@ -17,5 +17,5 @@ type ResourceGroupManager interface {
 	StorageRepresentation() *objectstore.ObjectStorageRepresentation
 	Save(ctx context.Context) apperrors.Error
 	GetStoragePath() string
-	Delete(ctx context.Context) apperrors.Error
+	JSON(ctx context.Context) ([]byte, apperrors.Error)
 }
