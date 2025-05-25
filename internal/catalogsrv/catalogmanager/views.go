@@ -421,7 +421,7 @@ func (vr *viewResource) List(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // NewViewResource creates a new view resource manager.
-func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}

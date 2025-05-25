@@ -16,7 +16,7 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-func TestResourceGroupOperations(t *testing.T) {
+func TestResourceOperations(t *testing.T) {
 	// Initialize context with logger and database connection
 	ctx := log.Logger.WithContext(context.Background())
 	ctx = newDb(ctx)
@@ -49,7 +49,7 @@ func TestResourceGroupOperations(t *testing.T) {
 		Info:        info,
 	}
 	err = DB(ctx).CreateCatalog(ctx, &catalog)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
 
 	// Create a variant for testing
@@ -63,9 +63,9 @@ func TestResourceGroupOperations(t *testing.T) {
 	assert.NoError(t, err)
 	defer DB(ctx).DeleteVariant(ctx, catalog.CatalogID, variant.VariantID, "")
 
-	// Create a mock resource group
-	rg := &models.ResourceGroup{
-		Path:      "/test/resourcegroup",
+	// Create a mock resource
+	rg := &models.Resource{
+		Path:      "/test/resource",
 		Hash:      "test_hash_123",
 		VariantID: variant.VariantID,
 	}
@@ -73,62 +73,62 @@ func TestResourceGroupOperations(t *testing.T) {
 	// Create a mock catalog object
 	obj := &models.CatalogObject{
 		Hash:     rg.Hash,
-		Type:     types.CatalogObjectTypeResourceGroup,
+		Type:     types.CatalogObjectTypeResource,
 		Version:  "v1",
 		TenantID: tenantID,
 		Data:     []byte(`{"key": "value"}`),
 	}
 
-	// Test UpsertResourceGroupObject
-	err = DB(ctx).UpsertResourceGroupObject(ctx, rg, obj, variant.ResourceGroupsDirectoryID)
+	// Test UpsertResourceObject
+	err = DB(ctx).UpsertResourceObject(ctx, rg, obj, variant.ResourceDirectoryID)
 	require.NoError(t, err)
 
-	// Test GetResourceGroup
-	retrievedRG, err := DB(ctx).GetResourceGroup(ctx, rg.Path, variant.VariantID, variant.ResourceGroupsDirectoryID)
+	// Test GetResource
+	retrievedRG, err := DB(ctx).GetResource(ctx, rg.Path, variant.VariantID, variant.ResourceDirectoryID)
 	assert.NoError(t, err)
 	assert.NotNil(t, retrievedRG)
 	assert.Equal(t, rg.Path, retrievedRG.Path)
 	assert.Equal(t, rg.Hash, strings.TrimSpace(retrievedRG.Hash))
 	assert.Equal(t, rg.VariantID, retrievedRG.VariantID)
 
-	// Test GetResourceGroupObject
-	retrievedObj, err := DB(ctx).GetResourceGroupObject(ctx, rg.Path, variant.ResourceGroupsDirectoryID)
+	// Test GetResourceObject
+	retrievedObj, err := DB(ctx).GetResourceObject(ctx, rg.Path, variant.ResourceDirectoryID)
 	assert.NoError(t, err)
 	assert.NotNil(t, retrievedObj)
 	assert.Equal(t, obj.Hash, strings.TrimSpace(retrievedObj.Hash))
 	assert.Equal(t, obj.Type, retrievedObj.Type)
 	assert.Equal(t, obj.Version, retrievedObj.Version)
 
-	// Test UpdateResourceGroup
+	// Test UpdateResource
 	rg.Hash = "updated_hash_456"
-	err = DB(ctx).UpdateResourceGroup(ctx, rg, variant.ResourceGroupsDirectoryID)
+	err = DB(ctx).UpdateResource(ctx, rg, variant.ResourceDirectoryID)
 	assert.NoError(t, err)
 
 	// Verify update
-	updatedRG, err := DB(ctx).GetResourceGroup(ctx, rg.Path, variant.VariantID, variant.ResourceGroupsDirectoryID)
+	updatedRG, err := DB(ctx).GetResource(ctx, rg.Path, variant.VariantID, variant.ResourceDirectoryID)
 	assert.NoError(t, err)
 	assert.NotNil(t, updatedRG)
 	assert.Equal(t, rg.Hash, strings.TrimSpace(updatedRG.Hash))
 
-	// Test DeleteResourceGroup
-	deletedHash, err := DB(ctx).DeleteResourceGroup(ctx, rg.Path, variant.ResourceGroupsDirectoryID)
+	// Test DeleteResource
+	deletedHash, err := DB(ctx).DeleteResource(ctx, rg.Path, variant.ResourceDirectoryID)
 	assert.NoError(t, err)
 	assert.Equal(t, rg.Hash, deletedHash)
 
 	// Verify deletion
-	_, err = DB(ctx).GetResourceGroup(ctx, rg.Path, variant.VariantID, variant.ResourceGroupsDirectoryID)
+	_, err = DB(ctx).GetResource(ctx, rg.Path, variant.VariantID, variant.ResourceDirectoryID)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
 
 	// Test error cases
 	// Test with invalid directory ID
-	_, err = DB(ctx).GetResourceGroup(ctx, rg.Path, variant.VariantID, uuid.Nil)
+	_, err = DB(ctx).GetResource(ctx, rg.Path, variant.VariantID, uuid.Nil)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrInvalidInput)
 
 	// Test with missing tenant ID
 	ctxWithoutTenant := common.SetTenantIdInContext(ctx, "")
-	_, err = DB(ctx).GetResourceGroup(ctxWithoutTenant, rg.Path, variant.VariantID, variant.ResourceGroupsDirectoryID)
+	_, err = DB(ctx).GetResource(ctxWithoutTenant, rg.Path, variant.VariantID, variant.ResourceDirectoryID)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrMissingTenantID)
 }

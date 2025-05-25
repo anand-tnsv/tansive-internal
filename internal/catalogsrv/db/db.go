@@ -107,12 +107,12 @@ type ObjectManager interface {
 	HasReferencesToCollectionSchema(ctx context.Context, collectionSchema string, dir uuid.UUID) (bool, apperrors.Error)
 
 	// Resource Groups
-	UpsertResourceGroup(ctx context.Context, rg *models.ResourceGroup, directoryID uuid.UUID) apperrors.Error
-	GetResourceGroup(ctx context.Context, path string, variantID uuid.UUID, directoryID uuid.UUID) (*models.ResourceGroup, apperrors.Error)
-	GetResourceGroupObject(ctx context.Context, path string, directoryID uuid.UUID) (*models.CatalogObject, apperrors.Error)
-	UpdateResourceGroup(ctx context.Context, rg *models.ResourceGroup, directoryID uuid.UUID) apperrors.Error
-	DeleteResourceGroup(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error)
-	UpsertResourceGroupObject(ctx context.Context, rg *models.ResourceGroup, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error
+	UpsertResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error
+	GetResource(ctx context.Context, path string, variantID uuid.UUID, directoryID uuid.UUID) (*models.Resource, apperrors.Error)
+	GetResourceObject(ctx context.Context, path string, directoryID uuid.UUID) (*models.CatalogObject, apperrors.Error)
+	UpdateResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error
+	DeleteResource(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error)
+	UpsertResourceObject(ctx context.Context, rg *models.Resource, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error
 
 	// Schema Directory
 	CreateSchemaDirectory(ctx context.Context, t types.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error

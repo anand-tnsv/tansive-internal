@@ -11,7 +11,7 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-func (om *objectManager) UpsertResourceGroup(ctx context.Context, rg *models.ResourceGroup, directoryID uuid.UUID) apperrors.Error {
+func (om *objectManager) UpsertResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error {
 	tenantID := common.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -23,7 +23,7 @@ func (om *objectManager) UpsertResourceGroup(ctx context.Context, rg *models.Res
 	}
 
 	err := om.AddOrUpdateObjectByPath(ctx,
-		types.CatalogObjectTypeResourceGroup,
+		types.CatalogObjectTypeResource,
 		directoryID,
 		rg.Path,
 		models.ObjectRef{
@@ -37,7 +37,7 @@ func (om *objectManager) UpsertResourceGroup(ctx context.Context, rg *models.Res
 	return nil
 }
 
-func (om *objectManager) GetResourceGroup(ctx context.Context, path string, variantID uuid.UUID, directoryID uuid.UUID) (*models.ResourceGroup, apperrors.Error) {
+func (om *objectManager) GetResource(ctx context.Context, path string, variantID uuid.UUID, directoryID uuid.UUID) (*models.Resource, apperrors.Error) {
 	tenantID := common.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
@@ -47,12 +47,12 @@ func (om *objectManager) GetResourceGroup(ctx context.Context, path string, vari
 		return nil, dberror.ErrInvalidInput.Msg("invalid directory ID")
 	}
 
-	objRef, err := om.GetObjectRefByPath(ctx, types.CatalogObjectTypeResourceGroup, directoryID, path)
+	objRef, err := om.GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, directoryID, path)
 	if err != nil {
 		return nil, err
 	}
 
-	return &models.ResourceGroup{
+	return &models.Resource{
 		Path:      path,
 		Hash:      objRef.Hash,
 		VariantID: variantID,
@@ -60,7 +60,7 @@ func (om *objectManager) GetResourceGroup(ctx context.Context, path string, vari
 	}, nil
 }
 
-func (om *objectManager) GetResourceGroupObject(ctx context.Context, path string, directoryID uuid.UUID) (*models.CatalogObject, apperrors.Error) {
+func (om *objectManager) GetResourceObject(ctx context.Context, path string, directoryID uuid.UUID) (*models.CatalogObject, apperrors.Error) {
 	tenantID := common.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
@@ -70,10 +70,10 @@ func (om *objectManager) GetResourceGroupObject(ctx context.Context, path string
 		return nil, dberror.ErrInvalidInput.Msg("invalid directory ID")
 	}
 
-	return om.LoadObjectByPath(ctx, types.CatalogObjectTypeResourceGroup, directoryID, path)
+	return om.LoadObjectByPath(ctx, types.CatalogObjectTypeResource, directoryID, path)
 }
 
-func (om *objectManager) UpdateResourceGroup(ctx context.Context, rg *models.ResourceGroup, directoryID uuid.UUID) apperrors.Error {
+func (om *objectManager) UpdateResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error {
 	tenantID := common.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -83,13 +83,13 @@ func (om *objectManager) UpdateResourceGroup(ctx context.Context, rg *models.Res
 		return dberror.ErrInvalidInput.Msg("invalid directory ID")
 	}
 
-	objRef, err := om.GetObjectRefByPath(ctx, types.CatalogObjectTypeResourceGroup, directoryID, rg.Path)
+	objRef, err := om.GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, directoryID, rg.Path)
 	if err != nil {
 		return err
 	}
 	objRef.Hash = rg.Hash
 	err = om.AddOrUpdateObjectByPath(ctx,
-		types.CatalogObjectTypeResourceGroup,
+		types.CatalogObjectTypeResource,
 		directoryID,
 		rg.Path,
 		*objRef,
@@ -100,7 +100,7 @@ func (om *objectManager) UpdateResourceGroup(ctx context.Context, rg *models.Res
 	return nil
 }
 
-func (om *objectManager) DeleteResourceGroup(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error) {
+func (om *objectManager) DeleteResource(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error) {
 	tenantID := common.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return "", dberror.ErrMissingTenantID
@@ -110,7 +110,7 @@ func (om *objectManager) DeleteResourceGroup(ctx context.Context, path string, d
 		return "", dberror.ErrInvalidInput.Msg("invalid directory ID")
 	}
 
-	deletedHash, err := om.DeleteObjectByPath(ctx, types.CatalogObjectTypeResourceGroup, directoryID, path)
+	deletedHash, err := om.DeleteObjectByPath(ctx, types.CatalogObjectTypeResource, directoryID, path)
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +118,7 @@ func (om *objectManager) DeleteResourceGroup(ctx context.Context, path string, d
 	return string(deletedHash), nil
 }
 
-func (om *objectManager) UpsertResourceGroupObject(ctx context.Context, rg *models.ResourceGroup, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error {
+func (om *objectManager) UpsertResourceObject(ctx context.Context, rg *models.Resource, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error {
 	tenantID := common.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -140,7 +140,7 @@ func (om *objectManager) UpsertResourceGroupObject(ctx context.Context, rg *mode
 
 	// Then add/update the directory entry
 	err = om.AddOrUpdateObjectByPath(ctx,
-		types.CatalogObjectTypeResourceGroup,
+		types.CatalogObjectTypeResource,
 		directoryID,
 		rg.Path,
 		models.ObjectRef{

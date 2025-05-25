@@ -276,7 +276,7 @@ type AttributeResource struct {
 }
 
 // NewAttributeResource creates a new AttributeResource instance
-func NewAttributeResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+func NewAttributeResource(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}

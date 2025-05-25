@@ -383,7 +383,7 @@ func (nr *namespaceResource) List(ctx context.Context) ([]byte, apperrors.Error)
 	return nil, nil
 }
 
-func NewNamespaceResource(ctx context.Context, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+func NewNamespaceResource(ctx context.Context, name RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	if name.Catalog == "" || name.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}

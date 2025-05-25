@@ -59,10 +59,10 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 		variantID = uuid.New()
 	}
 	rgDirID := uuid.New()
-	variant.ResourceGroupsDirectoryID = rgDirID
+	variant.ResourceDirectoryID = rgDirID
 	// Query to insert the variant
 	queryVariant := `
-		INSERT INTO variants (variant_id, name, description, info, catalog_id, resourcegroups_directory, tenant_id)
+		INSERT INTO variants (variant_id, name, description, info, catalog_id, resource_directory, tenant_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (name, catalog_id, tenant_id) DO NOTHING
 		RETURNING variant_id, name;
@@ -121,7 +121,7 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 		Directory:   []byte("{}"),
 	}
 
-	tableName := getSchemaDirectoryTableName(types.CatalogObjectTypeResourceGroup)
+	tableName := getSchemaDirectoryTableName(types.CatalogObjectTypeResource)
 	if tableName == "" {
 		return dberror.ErrInvalidInput.Msg("invalid catalog object type: resource group not supported")
 	}
@@ -161,14 +161,14 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 
 	if variantID != uuid.Nil {
 		query = `
-			SELECT variant_id, name, description, info, catalog_id, resourcegroups_directory
+			SELECT variant_id, name, description, info, catalog_id, resource_directory
 			FROM variants
 			WHERE variant_id = $1 AND tenant_id = $2;
 		`
 		row = mm.conn().QueryRowContext(ctx, query, variantID, tenantID)
 	} else if name != "" {
 		query = `
-			SELECT variant_id, name, description, info, catalog_id, resourcegroups_directory
+			SELECT variant_id, name, description, info, catalog_id, resource_directory
 			FROM variants
 			WHERE name = $1 AND catalog_id = $2 AND tenant_id = $3;
 		`
@@ -179,7 +179,7 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 	}
 
 	variant := &models.Variant{}
-	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceGroupsDirectoryID)
+	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceDirectoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Ctx(ctx).Info().Msg("variant not found")

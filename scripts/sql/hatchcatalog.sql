@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS variants (
   name VARCHAR(128) NOT NULL,
   description VARCHAR(1024),
   info JSONB,
-  resourcegroups_directory UUID DEFAULT uuid_nil(),
+  resource_directory UUID DEFAULT uuid_nil(),
   catalog_id UUID NOT NULL,
   tenant_id VARCHAR(10) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -78,7 +78,7 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE IF NOT EXISTS catalog_objects (
   hash CHAR(128) NOT NULL,
-  type VARCHAR(64) NOT NULL CHECK (type IN ('parameter_schema', 'collection_schema', 'collection', 'resource_group')),
+  type VARCHAR(64) NOT NULL CHECK (type IN ('parameter_schema', 'collection_schema', 'collection', 'resource')),
   version VARCHAR(16) NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   data BYTEA NOT NULL,
@@ -92,7 +92,7 @@ BEFORE UPDATE ON catalog_objects
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE IF NOT EXISTS resourcegroups_directory ( 
+CREATE TABLE IF NOT EXISTS resource_directory ( 
   directory_id UUID NOT NULL DEFAULT uuid_generate_v4(),
   variant_id UUID NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
@@ -103,13 +103,13 @@ CREATE TABLE IF NOT EXISTS resourcegroups_directory (
   FOREIGN KEY (variant_id, tenant_id) REFERENCES variants(variant_id, tenant_id) ON DELETE CASCADE
 );
 
-CREATE TRIGGER update_resourcegroups_directory_updated_at
-BEFORE UPDATE ON resourcegroups_directory
+CREATE TRIGGER update_resource_directory_updated_at
+BEFORE UPDATE ON resource_directory
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
-CREATE INDEX IF NOT EXISTS idx_resourcegroups_directory_hash_gin
-ON resourcegroups_directory USING GIN (jsonb_path_query_array(directory, '$.*.hash'));
+CREATE INDEX IF NOT EXISTS idx_resource_directory_hash_gin
+ON resource_directory USING GIN (jsonb_path_query_array(directory, '$.*.hash'));
 
 CREATE TABLE IF NOT EXISTS namespaces (
   name VARCHAR(128) NOT NULL,
@@ -190,7 +190,7 @@ GRANT ALL PRIVILEGES ON TABLE
 	catalogs,
 	variants,
   catalog_objects,
-  resourcegroups_directory,
+  resource_directory,
   namespaces,
   views,
   view_tokens,

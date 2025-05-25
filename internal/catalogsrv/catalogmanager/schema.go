@@ -1131,7 +1131,7 @@ func (or *objectResource) List(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // NewSchemaResource creates a new schema resource
-func NewSchemaResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+func NewSchemaResource(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}

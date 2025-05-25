@@ -278,7 +278,7 @@ func (cr *catalogResource) List(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // NewCatalogResource creates a new catalog resource
-func NewCatalogResource(ctx context.Context, requestContext RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+func NewCatalogResource(ctx context.Context, requestContext RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	return &catalogResource{
 		requestContext: requestContext,
 	}, nil

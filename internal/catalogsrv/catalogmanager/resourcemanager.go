@@ -29,18 +29,18 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-type ResourceGroup struct {
-	Version  string                       `json:"version" validate:"required,requireVersionV1"`
-	Kind     string                       `json:"kind" validate:"required,oneof=ResourceGroup"`
-	Metadata schemamanager.SchemaMetadata `json:"metadata" validate:"required"`
-	Spec     ResourceGroupSpec            `json:"spec,omitempty"` // we can have empty collections
-}
-
-type ResourceGroupSpec struct {
-	Resources map[string]Resource `json:"resources,omitempty" validate:"omitempty,dive,keys,nameFormatValidator,endkeys,required"`
-}
-
+// Resource represents a single resource in the catalog system.
+// It contains metadata, schema, and value information.
 type Resource struct {
+	Version  string                       `json:"version" validate:"required,requireVersionV1"`
+	Kind     string                       `json:"kind" validate:"required,oneof=Resource"`
+	Metadata schemamanager.SchemaMetadata `json:"metadata" validate:"required"`
+	Spec     ResourceSpec                 `json:"spec,omitempty"` // we can have empty collections
+}
+
+// ResourceSpec defines the specification for a resource, including its schema,
+// value, policy, and annotations.
+type ResourceSpec struct {
 	Provider    ResourceProvider          `json:"-" validate:"required_without=Schema,omitempty,nameFormatValidator"`
 	Schema      json.RawMessage           `json:"schema" validate:"required_without=Provider,omitempty"`
 	Value       types.NullableAny         `json:"value" validate:"omitempty"`
@@ -53,36 +53,38 @@ type ResourceProvider struct {
 	_ any `json:"-"`
 }
 
+// JSON returns the JSON representation of the resource.
 func (r *Resource) JSON(ctx context.Context) ([]byte, apperrors.Error) {
 	j, err := json.Marshal(r)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal object schema")
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal object schema")
 		return j, ErrUnableToLoadObject
 	}
 	return j, nil
 }
 
-func (rg *ResourceGroup) Validate() schemaerr.ValidationErrors {
+// Validate performs validation on the resource, including:
+// - Kind validation
+// - Schema validation
+// - Value validation against the schema
+func (r *Resource) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
-	if rg.Kind != types.ResourceGroupKind {
+	if r.Kind != types.ResourceKind {
 		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
 
-	err := schemavalidator.V().Struct(rg)
+	err := schemavalidator.V().Struct(r)
 	if err == nil {
 		// Validate the schema if it is a valid json schema by using Santhosh Tekuri library
-		for name, resource := range rg.Spec.Resources {
-			if len(resource.Schema) > 0 {
-				var compiledSchema *jsonschema.Schema
-				compiledSchema, err = compileSchema(string(resource.Schema))
-				if err != nil {
-					validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("resource %s: %v", name, err)))
-				}
-				if compiledSchema != nil {
-					// validate the value against the schema
-					if err := resource.ValidateValue(resource.Value, compiledSchema); err != nil {
-						validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("resource %s: %v", name, err)))
-					}
+		if len(r.Spec.Schema) > 0 {
+			compiledSchema, err := compileSchema(string(r.Spec.Schema))
+			if err != nil {
+				validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("resource %s: %v", r.Metadata.Name, err)))
+			}
+			if compiledSchema != nil {
+				// validate the value against the schema
+				if err := r.ValidateValue(r.Spec.Value, compiledSchema); err != nil {
+					validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("resource %s: %v", r.Metadata.Name, err)))
 				}
 			}
 		}
@@ -94,7 +96,7 @@ func (rg *ResourceGroup) Validate() schemaerr.ValidationErrors {
 		return append(validationErrors, schemaerr.ErrInvalidSchema)
 	}
 
-	value := reflect.ValueOf(rg).Elem()
+	value := reflect.ValueOf(r).Elem()
 	typeOfCS := value.Type()
 
 	for _, e := range validatorErrors {
@@ -119,12 +121,13 @@ func (rg *ResourceGroup) Validate() schemaerr.ValidationErrors {
 	return validationErrors
 }
 
-// ValidateValue validates a value against the resource's JSON schema
-func (rg *Resource) ValidateValue(value types.NullableAny, optsCompiledSchema ...*jsonschema.Schema) error {
+// ValidateValue validates a value against the resource's JSON schema.
+// It accepts an optional pre-compiled schema to avoid recompilation.
+func (r *Resource) ValidateValue(value types.NullableAny, optsCompiledSchema ...*jsonschema.Schema) error {
 	var compiledSchema *jsonschema.Schema
 	var err error
 	if len(optsCompiledSchema) == 0 {
-		compiledSchema, err = compileSchema(string(rg.Schema))
+		compiledSchema, err = compileSchema(string(r.Spec.Schema))
 		if err != nil {
 			return fmt.Errorf("failed to compile schema: %w", err)
 		}
@@ -147,6 +150,8 @@ func (rg *Resource) ValidateValue(value types.NullableAny, optsCompiledSchema ..
 	return compiledSchema.Validate(value.Get())
 }
 
+// compileSchema compiles a JSON schema string into a jsonschema.Schema.
+// It validates the schema is valid JSON and handles self-referential schemas.
 func compileSchema(schema string) (*jsonschema.Schema, error) {
 	// First validate that the schema is valid JSON using gjson
 	if !gjson.Valid(schema) {
@@ -173,93 +178,88 @@ func compileSchema(schema string) (*jsonschema.Schema, error) {
 	return compiledSchema, nil
 }
 
-type resourceGroupManager struct {
-	resourceGroup ResourceGroup
+// resourceManager implements the ResourceManager interface for managing a single resource.
+type resourceManager struct {
+	resource Resource
 }
 
-func (rgm *resourceGroupManager) Metadata() schemamanager.SchemaMetadata {
-	return rgm.resourceGroup.Metadata
+// Metadata returns the resource's metadata.
+func (rm *resourceManager) Metadata() schemamanager.SchemaMetadata {
+	return rm.resource.Metadata
 }
 
-func (rgm *resourceGroupManager) FullyQualifiedName() string {
-	m := rgm.resourceGroup.Metadata
+// FullyQualifiedName returns the fully qualified name of the resource.
+func (rm *resourceManager) FullyQualifiedName() string {
+	m := rm.resource.Metadata
 	return path.Clean(m.Path + "/" + m.Name)
 }
 
-func (rgm *resourceGroupManager) SetValue(ctx context.Context, resourceName string, value types.NullableAny) apperrors.Error {
-	resource, ok := rgm.resourceGroup.Spec.Resources[resourceName]
-	if !ok {
-		return ErrInvalidResourceValue.Msg(fmt.Sprintf("resource %s not found", resourceName))
-	}
+// SetValue sets the resource's value after validating it against the schema.
+func (rm *resourceManager) SetValue(ctx context.Context, value types.NullableAny) apperrors.Error {
 	// validate the value against the schema
-	if err := resource.ValidateValue(value); err != nil {
+	if err := rm.resource.ValidateValue(value); err != nil {
 		return ErrInvalidResourceValue.Msg(err.Error())
 	}
-	resource.Value = value
-	rgm.resourceGroup.Spec.Resources[resourceName] = resource
+	rm.resource.Spec.Value = value
 	return nil
 }
 
-func (rgm *resourceGroupManager) GetValue(ctx context.Context, resourceName string) (types.NullableAny, apperrors.Error) {
-	resource, ok := rgm.resourceGroup.Spec.Resources[resourceName]
-	if !ok {
-		return types.NilAny(), ErrInvalidResourceValue.Msg(fmt.Sprintf("resource %s not found", resourceName))
-	}
-	return resource.Value, nil
+// GetValue returns the resource's current value.
+func (rm *resourceManager) GetValue(ctx context.Context) types.NullableAny {
+	return rm.resource.Spec.Value
 }
 
-func (rgm *resourceGroupManager) GetValueJSON(ctx context.Context, resourceName string) ([]byte, apperrors.Error) {
-	resource, ok := rgm.resourceGroup.Spec.Resources[resourceName]
-	if !ok {
-		return nil, ErrInvalidResourceValue.Msg(fmt.Sprintf("resource %s not found", resourceName))
-	}
-	json, err := json.Marshal(resource.Value)
+// GetValueJSON returns the JSON representation of the resource's value.
+func (rm *resourceManager) GetValueJSON(ctx context.Context) ([]byte, apperrors.Error) {
+	json, err := json.Marshal(rm.resource.Spec.Value)
 	if err != nil {
 		return nil, ErrInvalidResourceValue.Msg("unable to obtain resource value")
 	}
 	return json, nil
 }
 
-func (rgm *resourceGroupManager) StorageRepresentation() *objectstore.ObjectStorageRepresentation {
+// StorageRepresentation returns the object storage representation of the resource.
+func (rm *resourceManager) StorageRepresentation() *objectstore.ObjectStorageRepresentation {
 	s := objectstore.ObjectStorageRepresentation{
-		Version: rgm.resourceGroup.Version,
-		Type:    types.CatalogObjectTypeResourceGroup,
+		Version: rm.resource.Version,
+		Type:    types.CatalogObjectTypeResource,
 	}
-	s.Values, _ = json.Marshal(rgm.resourceGroup.Spec)
-	s.Spec, _ = json.Marshal(rgm.resourceGroup.Spec)
-	s.Description = rgm.resourceGroup.Metadata.Description
-	s.Entropy = rgm.resourceGroup.Metadata.GetEntropyBytes(types.CatalogObjectTypeResourceGroup)
+	s.Spec, _ = json.Marshal(rm.resource.Spec)
+	s.Description = rm.resource.Metadata.Description
+	s.Entropy = rm.resource.Metadata.GetEntropyBytes(types.CatalogObjectTypeResource)
 	return &s
 }
 
-func (rgm *resourceGroupManager) GetStoragePath() string {
-	m := rgm.Metadata()
-	return getResourceGroupStoragePath(&m)
+// GetStoragePath returns the storage path for the resource.
+func (rm *resourceManager) GetStoragePath() string {
+	m := rm.Metadata()
+	return getResourceStoragePath(&m)
 }
 
-func getResourceGroupStoragePath(m *schemamanager.SchemaMetadata) string {
-	t := types.CatalogObjectTypeResourceGroup
+// getResourceStoragePath constructs the storage path for a resource based on its metadata.
+func getResourceStoragePath(m *schemamanager.SchemaMetadata) string {
+	t := types.CatalogObjectTypeResource
 	rsrcPath := m.GetStoragePath(t)
 	pathWithName := path.Clean(rsrcPath + "/" + m.Name)
 	return pathWithName
 }
 
-// Save saves the resource group to the database.
-// It handles the creation or update of both the resource group and its associated catalog object.
-func (rgm *resourceGroupManager) Save(ctx context.Context) apperrors.Error {
-	if rgm == nil {
+// Save saves the resource to the database.
+// It handles the creation or update of both the resource and its associated catalog object.
+func (rm *resourceManager) Save(ctx context.Context) apperrors.Error {
+	if rm == nil {
 		return validationerrors.ErrEmptySchema
 	}
 
-	t := types.CatalogObjectTypeResourceGroup
+	t := types.CatalogObjectTypeResource
 
-	m := rgm.Metadata()
-	s := rgm.StorageRepresentation()
-	storagePath := rgm.GetStoragePath()
+	m := rm.Metadata()
+	s := rm.StorageRepresentation()
+	storagePath := rm.GetStoragePath()
 
 	data, err := s.Serialize()
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("Failed to serialize resource group")
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to serialize resource")
 		return err
 	}
 	newHash := s.GetHash()
@@ -268,18 +268,14 @@ func (rgm *resourceGroupManager) Save(ctx context.Context) apperrors.Error {
 	obj := models.CatalogObject{
 		Type:    t,
 		Hash:    newHash,
-		Version: s.Version,
 		Data:    data,
-	}
-	rgModel := models.ResourceGroup{
-		Path:      storagePath,
-		Hash:      newHash,
-		VariantID: common.GetVariantIdFromContext(ctx),
+		Version: rm.resource.Version,
 	}
 
-	// Get the directory ID for the resource group
+	// Get the directory ID for the resource
 	catalogID := common.GetCatalogIdFromContext(ctx)
 	if catalogID == uuid.Nil {
+		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, m.Catalog)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Str("catalog", m.Catalog).Msg("Failed to get catalog ID by name")
@@ -287,31 +283,39 @@ func (rgm *resourceGroupManager) Save(ctx context.Context) apperrors.Error {
 		}
 	}
 
-	v, err := db.DB(ctx).GetVariant(ctx, catalogID, uuid.Nil, m.Variant.String())
+	variant, err := db.DB(ctx).GetVariant(ctx, catalogID, uuid.Nil, m.Variant.String())
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Str("catalogID", catalogID.String()).Str("name", m.Name).Msg("Failed to get variant")
 		return err
 	}
 
-	err = db.DB(ctx).UpsertResourceGroupObject(ctx, &rgModel, &obj, v.ResourceGroupsDirectoryID)
+	// Create the resource model
+	rsrc := &models.Resource{
+		Path:      storagePath,
+		Hash:      newHash,
+		VariantID: variant.VariantID,
+	}
+
+	// Store the object
+	err = db.DB(ctx).UpsertResourceObject(ctx, rsrc, &obj, variant.ResourceDirectoryID)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Str("path", storagePath).Msg("Failed to upsert resource group object")
+		log.Ctx(ctx).Error().Err(err).Str("path", storagePath).Msg("Failed to store object")
 		return err
 	}
 
 	return nil
 }
 
-func DeleteResourceGroup(ctx context.Context, m *schemamanager.SchemaMetadata) apperrors.Error {
+// DeleteResource deletes a resource from the database.
+func DeleteResource(ctx context.Context, m *schemamanager.SchemaMetadata) apperrors.Error {
 	if m == nil {
-		return ErrEmptyMetadata
+		return ErrInvalidObject.Msg("unable to infer object metadata")
 	}
 
-	storagePath := getResourceGroupStoragePath(m)
-	// Get the directory ID for the resource group
+	// Get the directory ID for the resource
 	catalogID := common.GetCatalogIdFromContext(ctx)
-	var err apperrors.Error
 	if catalogID == uuid.Nil {
+		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, m.Catalog)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Str("catalog", m.Catalog).Msg("Failed to get catalog ID by name")
@@ -319,38 +323,38 @@ func DeleteResourceGroup(ctx context.Context, m *schemamanager.SchemaMetadata) a
 		}
 	}
 
-	v, err := db.DB(ctx).GetVariant(ctx, catalogID, uuid.Nil, m.Variant.String())
+	variant, err := db.DB(ctx).GetVariant(ctx, catalogID, uuid.Nil, m.Variant.String())
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Str("catalogID", catalogID.String()).Str("name", m.Name).Msg("Failed to get variant")
 		return err
 	}
 
-	hash, err := db.DB(ctx).DeleteResourceGroup(ctx, storagePath, v.ResourceGroupsDirectoryID)
+	pathWithName := path.Clean(m.GetStoragePath(types.CatalogObjectTypeResource) + "/" + m.Name)
+
+	// Delete the resource
+	hash, err := db.DB(ctx).DeleteResource(ctx, pathWithName, variant.ResourceDirectoryID)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Str("path", storagePath).Msg("Failed to delete resource group object")
+		if errors.Is(err, dberror.ErrNotFound) {
+			return ErrObjectNotFound
+		}
+		log.Ctx(ctx).Error().Err(err).Str("path", pathWithName).Msg("Failed to delete object")
 		return err
 	}
 
 	if hash != "" {
-		err = db.DB(ctx).DeleteCatalogObject(ctx, types.CatalogObjectTypeResourceGroup, hash)
+		err = db.DB(ctx).DeleteCatalogObject(ctx, types.CatalogObjectTypeResource, hash)
 		if !errors.Is(err, dberror.ErrNotFound) {
-			// we don't return an error since the object reference has already been removed and
-			// we cannot roll this back.
 			log.Ctx(ctx).Error().Err(err).Str("hash", string(hash)).Msg("failed to delete object from database")
 		}
 	} else {
-		log.Ctx(ctx).Warn().Str("path", storagePath).Msg("resource group object not found")
-		return ErrResourceGroupNotFound
+		log.Ctx(ctx).Warn().Str("path", pathWithName).Msg("resource not found")
+		return ErrObjectNotFound
 	}
 
 	return nil
 }
 
-func (rgm *resourceGroupManager) JSON(ctx context.Context) ([]byte, apperrors.Error) {
-	j, err := json.Marshal(rgm.resourceGroup)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to marshal object schema")
-		return j, ErrUnableToLoadObject
-	}
-	return j, nil
+// JSON returns the JSON representation of the resource.
+func (rm *resourceManager) JSON(ctx context.Context) ([]byte, apperrors.Error) {
+	return rm.resource.JSON(ctx)
 }

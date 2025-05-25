@@ -423,7 +423,7 @@ func (wr *workspaceResource) List(ctx context.Context) ([]byte, apperrors.Error)
 	return nil, nil
 }
 
-func NewWorkspaceResource(ctx context.Context, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+func NewWorkspaceResource(ctx context.Context, name RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	if name.Catalog == "" || name.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}

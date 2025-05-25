@@ -50,7 +50,7 @@ func RequestType(resourceJSON []byte) (kind string, err apperrors.Error) {
 	return "", ErrInvalidSchema.Msg("invalid kind or version")
 }
 
-type ResourceManagerFactory func(context.Context, RequestContext) (schemamanager.ResourceManager, apperrors.Error)
+type ResourceManagerFactory func(context.Context, RequestContext) (schemamanager.KindHandler, apperrors.Error)
 
 var resourceFactories = map[string]ResourceManagerFactory{
 	types.CatalogKind:          NewCatalogResource,
@@ -64,7 +64,7 @@ var resourceFactories = map[string]ResourceManagerFactory{
 	types.ViewKind:             NewViewResource,
 }
 
-func ResourceManagerForKind(ctx context.Context, kind string, name RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+func ResourceManagerForKind(ctx context.Context, kind string, name RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	factory, ok := resourceFactories[kind]
 	if !ok {
 		return nil, ErrInvalidSchema.Msg("unsupported resource kind: " + kind)

@@ -41,7 +41,7 @@ const (
 	ParameterSchemaKind  = "ParameterSchema"
 	CollectionSchemaKind = "CollectionSchema"
 	CollectionKind       = "Collection"
-	ResourceGroupKind    = "ResourceGroup"
+	ResourceKind         = "Resource"
 	AttributeKind        = "Attribute"
 	ViewKind             = "View"
 	InvalidKind          = "InvalidKind"
@@ -57,7 +57,7 @@ const (
 	ResourceNameCollections       = "collections"
 	ResourceNameAttributes        = "attributes"
 	ResourceNameViews             = "views"
-	ResourceNameResourceGroups    = "resourcegroups"
+	ResourceNameResources         = "resources"
 )
 
 func ResourceURIs() []string {
@@ -67,7 +67,7 @@ func ResourceURIs() []string {
 		ResourceNameCollections,
 		ResourceNameAttributes,
 		ResourceNameViews,
-		ResourceNameResourceGroups,
+		ResourceNameResources,
 	}
 }
 
@@ -79,8 +79,8 @@ func Kind(t CatalogObjectType) string {
 		return CollectionSchemaKind
 	case CatalogObjectTypeCatalogCollection:
 		return CollectionKind
-	case CatalogObjectTypeResourceGroup:
-		return ResourceGroupKind
+	case CatalogObjectTypeResource:
+		return ResourceKind
 	default:
 		return ""
 	}
@@ -106,8 +106,8 @@ func KindFromResourceName(uri string) string {
 		return AttributeKind
 	case ResourceNameViews:
 		return ViewKind
-	case ResourceNameResourceGroups:
-		return ResourceGroupKind
+	case ResourceNameResources:
+		return ResourceKind
 	default:
 		return InvalidKind
 	}
@@ -121,8 +121,8 @@ func ResourceNameFromObjectType(t CatalogObjectType) string {
 		return "collectionschemas"
 	case CatalogObjectTypeCatalogCollection:
 		return "collections"
-	case CatalogObjectTypeResourceGroup:
-		return "resourcegroups"
+	case CatalogObjectTypeResource:
+		return "resources"
 	default:
 		return ""
 	}
@@ -157,7 +157,7 @@ const (
 	CatalogObjectTypeParameterSchema   CatalogObjectType = "parameter_schema"
 	CatalogObjectTypeCollectionSchema  CatalogObjectType = "collection_schema"
 	CatalogObjectTypeCatalogCollection CatalogObjectType = "collection"
-	CatalogObjectTypeResourceGroup     CatalogObjectType = "resource_group"
+	CatalogObjectTypeResource          CatalogObjectType = "resource"
 )
 
 func CatalogObjectTypeFromKind(k string) CatalogObjectType {
@@ -168,8 +168,8 @@ func CatalogObjectTypeFromKind(k string) CatalogObjectType {
 		return CatalogObjectTypeCollectionSchema
 	case CollectionKind:
 		return CatalogObjectTypeCatalogCollection
-	case ResourceGroupKind:
-		return CatalogObjectTypeResourceGroup
+	case ResourceKind:
+		return CatalogObjectTypeResource
 	default:
 		return CatalogObjectTypeInvalid
 	}

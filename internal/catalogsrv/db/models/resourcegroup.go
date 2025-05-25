@@ -7,7 +7,7 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-type ResourceGroup struct {
+type Resource struct {
 	ID        uuid.UUID      `db:"id"`
 	Path      string         `db:"path"`
 	Hash      string         `db:"hash"`

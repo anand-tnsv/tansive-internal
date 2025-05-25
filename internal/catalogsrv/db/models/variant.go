@@ -15,7 +15,7 @@ import (
  name                     | character varying(128)   |           | not null |
  description              | character varying(1024)  |           |          |
  info                     | jsonb                    |           |          |
- resourcegroups_directory | uuid                     |           |          | uuid_nil()
+ resource_directory       | uuid                     |           |          | uuid_nil()
  catalog_id               | uuid                     |           | not null |
  tenant_id                | character varying(10)    |           | not null |
  created_at               | timestamp with time zone |           |          | now()
@@ -36,12 +36,12 @@ Triggers:
 
 // Variant model definition
 type Variant struct {
-	VariantID                 uuid.UUID    `db:"variant_id"`
-	Name                      string       `db:"name"`
-	Description               string       `db:"description"`
-	Info                      pgtype.JSONB `db:"info"`
-	CatalogID                 uuid.UUID    `db:"catalog_id"`
-	ResourceGroupsDirectoryID uuid.UUID    `db:"resourcegroups_directory"`
-	CreatedAt                 time.Time    `db:"created_at"`
-	UpdatedAt                 time.Time    `db:"updated_at"`
+	VariantID           uuid.UUID    `db:"variant_id"`
+	Name                string       `db:"name"`
+	Description         string       `db:"description"`
+	Info                pgtype.JSONB `db:"info"`
+	CatalogID           uuid.UUID    `db:"catalog_id"`
+	ResourceDirectoryID uuid.UUID    `db:"resource_directory"`
+	CreatedAt           time.Time    `db:"created_at"`
+	UpdatedAt           time.Time    `db:"updated_at"`
 }

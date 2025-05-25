@@ -613,7 +613,7 @@ func (cr *collectionResource) List(ctx context.Context) ([]byte, apperrors.Error
 	return nil, nil
 }
 
-func NewCollectionResource(ctx context.Context, reqCtx RequestContext) (schemamanager.ResourceManager, apperrors.Error) {
+func NewCollectionResource(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}

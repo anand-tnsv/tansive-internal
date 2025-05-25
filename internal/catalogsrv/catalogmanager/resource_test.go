@@ -15,7 +15,7 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-func TestResourceGroupNewManager(t *testing.T) {
+func TestResourceNewManager(t *testing.T) {
 	tests := []struct {
 		name          string
 		jsonInput     string
@@ -23,27 +23,23 @@ func TestResourceGroupNewManager(t *testing.T) {
 		expectedError bool
 	}{
 		{
-			name: "valid resource group",
+			name: "valid resource",
 			jsonInput: `{
 				"version": "v1",
-				"kind": "ResourceGroup",
+				"kind": "Resource",
 				"metadata": {
-					"name": "test-group",
+					"name": "test-resource",
 					"catalog": "test-catalog",
 					"namespace": "default",
 					"variant": "default"
 				},
 				"spec": {
-					"resources": {
-						"resource1": {
-							"schema": {"type": "integer"},
-							"value": 42
-						}
-					}
+					"schema": {"type": "integer"},
+					"value": 42
 				}
 			}`,
 			metadata: &schemamanager.SchemaMetadata{
-				Name:      "test-group",
+				Name:      "test-resource",
 				Catalog:   "test-catalog",
 				Namespace: types.NullableStringFrom("default"),
 				Variant:   types.NullableStringFrom("default"),
@@ -62,14 +58,14 @@ func TestResourceGroupNewManager(t *testing.T) {
 				"version": "v1",
 				"kind": "InvalidKind",
 				"metadata": {
-					"name": "test-group",
+					"name": "test-resource",
 					"catalog": "test-catalog",
 					"namespace": "default",
 					"variant": "default"
 				}
 			}`,
 			metadata: &schemamanager.SchemaMetadata{
-				Name:      "test-group",
+				Name:      "test-resource",
 				Catalog:   "test-catalog",
 				Namespace: types.NullableStringFrom("default"),
 				Variant:   types.NullableStringFrom("default"),
@@ -80,7 +76,7 @@ func TestResourceGroupNewManager(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			manager, err := NewResourceGroupManager(context.Background(), []byte(tt.jsonInput), tt.metadata)
+			manager, err := NewResourceManager(context.Background(), []byte(tt.jsonInput), tt.metadata)
 			if tt.expectedError {
 				assert.Error(t, err)
 				assert.Nil(t, manager)
@@ -107,7 +103,7 @@ func TestResourceGroupNewManager(t *testing.T) {
 	}
 }
 
-func TestLoadResourceGroupManagerByPath(t *testing.T) {
+func TestLoadResourceManagerByPath(t *testing.T) {
 	// Initialize context with logger and database connection
 	ctx := newDb()
 	defer db.DB(ctx).Close(ctx)
@@ -160,74 +156,69 @@ func TestLoadResourceGroupManagerByPath(t *testing.T) {
 	ctx = common.SetVariantIdInContext(ctx, variant.VariantID)
 	ctx = common.SetVariantInContext(ctx, variant.Name)
 
-	t.Run("Load existing resource group", func(t *testing.T) {
-		// Create a resource group
-		rgJson := []byte(`{
+	t.Run("Load existing resource", func(t *testing.T) {
+		// Create a resource
+		rsrcJson := []byte(`{
 			"version": "v1",
-			"kind": "ResourceGroup",
+			"kind": "Resource",
 			"metadata": {
-				"name": "test-rg",
-				"description": "Test resource group",
+				"name": "test-resource",
+				"description": "Test resource",
 				"catalog": "test-catalog",
 				"variant": "test-variant",
 				"path": "/test"
 			},
 			"spec": {
-				"resources": {
-					"resource1": {
-						"schema": {
-							"type": "object",
-							"properties": {
-								"name": {
-									"type": "string"
-								}
-							}
-						},
-						"value": {
-							"name": "test"
+				"schema": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
 						}
 					}
+				},
+				"value": {
+					"name": "test"
 				}
 			}
 		}`)
 
-		// Create and save the resource group
-		rgm, err := NewResourceGroupManager(ctx, rgJson, nil)
+		// Create and save the resource
+		rm, err := NewResourceManager(ctx, rsrcJson, nil)
 		require.NoError(t, err)
-		err = rgm.Save(ctx)
+		err = rm.Save(ctx)
 		require.NoError(t, err)
 
 		// Create metadata for loading
 		metadata := &schemamanager.SchemaMetadata{
-			Name:    "test-rg",
+			Name:    "test-resource",
 			Catalog: "test-catalog",
 			Variant: types.NullableStringFrom("test-variant"),
 			Path:    "/test",
 		}
 
-		// Load the resource group by path
-		loadedRgm, err := LoadResourceGroupManagerByPath(ctx, metadata)
+		// Load the resource by path
+		loadedRm, err := LoadResourceManagerByPath(ctx, metadata)
 		require.NoError(t, err)
-		require.NotNil(t, loadedRgm)
+		require.NotNil(t, loadedRm)
 
 		// Verify metadata
-		loadedMetadata := loadedRgm.Metadata()
-		assert.Equal(t, "test-rg", loadedMetadata.Name)
+		loadedMetadata := loadedRm.Metadata()
+		assert.Equal(t, "test-resource", loadedMetadata.Name)
 		assert.Equal(t, "test-catalog", loadedMetadata.Catalog)
 		assert.Equal(t, "test-variant", loadedMetadata.Variant.String())
 		assert.Equal(t, "/test", loadedMetadata.Path)
 
-		// Verify resources
-		value, err := loadedRgm.GetValue(ctx, "resource1")
-		require.NoError(t, err)
+		// Verify value
+		value := loadedRm.GetValue(ctx)
 		assert.Equal(t, map[string]any{"name": "test"}, value.Get())
 
 		// Verify storage path
-		assert.Equal(t, rgm.GetStoragePath(), loadedRgm.GetStoragePath())
+		assert.Equal(t, rm.GetStoragePath(), loadedRm.GetStoragePath())
 	})
 
-	t.Run("Load non-existent resource group", func(t *testing.T) {
-		// Create metadata for non-existent resource group
+	t.Run("Load non-existent resource", func(t *testing.T) {
+		// Create metadata for non-existent resource
 		metadata := &schemamanager.SchemaMetadata{
 			Name:    "non-existent",
 			Catalog: "test-catalog",
@@ -235,60 +226,24 @@ func TestLoadResourceGroupManagerByPath(t *testing.T) {
 			Path:    "/test",
 		}
 
-		// Try to load a non-existent resource group
-		loadedRgm, err := LoadResourceGroupManagerByPath(ctx, metadata)
+		// Try to load a non-existent resource
+		loadedRm, err := LoadResourceManagerByPath(ctx, metadata)
 		assert.Error(t, err)
-		assert.Nil(t, loadedRgm)
+		assert.Nil(t, loadedRm)
 	})
 
-	t.Run("Load resource group with invalid variant", func(t *testing.T) {
-		// Create a resource group
-		rgJson := []byte(`{
-			"version": "v1",
-			"kind": "ResourceGroup",
-			"metadata": {
-				"name": "test-rg2",
-				"description": "Test resource group 2",
-				"catalog": "test-catalog",
-				"variant": "test-variant",
-				"path": "/test"
-			},
-			"spec": {
-				"resources": {
-					"resource1": {
-						"schema": {
-							"type": "object",
-							"properties": {
-								"name": {
-									"type": "string"
-								}
-							}
-						},
-						"value": {
-							"name": "test"
-						}
-					}
-				}
-			}
-		}`)
-
-		// Create and save the resource group
-		rgm, err := NewResourceGroupManager(ctx, rgJson, nil)
-		require.NoError(t, err)
-		err = rgm.Save(ctx)
-		require.NoError(t, err)
-
-		// Create metadata with invalid variant
+	t.Run("Load resource with invalid variant", func(t *testing.T) {
+		// Create metadata for resource with invalid variant
 		metadata := &schemamanager.SchemaMetadata{
-			Name:    "test-rg2",
+			Name:    "test-resource2",
 			Catalog: "test-catalog",
 			Variant: types.NullableStringFrom("invalid-variant"),
 			Path:    "/test",
 		}
 
-		// Try to load with invalid variant
-		loadedRgm, err := LoadResourceGroupManagerByPath(ctx, metadata)
+		// Try to load a resource with invalid variant
+		loadedRm, err := LoadResourceManagerByPath(ctx, metadata)
 		assert.Error(t, err)
-		assert.Nil(t, loadedRgm)
+		assert.Nil(t, loadedRm)
 	})
 }
