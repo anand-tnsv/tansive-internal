@@ -14,7 +14,7 @@ type Hash string
 const DefaultVariant = "default"
 const InitialVersionLabel = "init"
 const DefaultNamespace = "--root--"
-const DefaultAdminViewLabel = "default-admin-view"
+const DefaultAdminViewLabel = "_default-admin-view"
 
 func (u CatalogId) String() string {
 	return uuid.UUID(u).String()

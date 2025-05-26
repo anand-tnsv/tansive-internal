@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-func TestViewCrud(t *testing.T) {
+func TestResourceCrud(t *testing.T) {
 	ctx := newDb()
 	t.Cleanup(func() {
 		db.DB(ctx).Close(ctx)
@@ -48,7 +49,6 @@ func TestViewCrud(t *testing.T) {
 	}
 
 	// Create a catalog
-	// Create a New Request
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
@@ -58,13 +58,10 @@ func TestViewCrud(t *testing.T) {
 				"name": "valid-catalog",
 				"description": "This is a valid catalog"
 			}
-		} `
+		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	// set bearer token in header
 	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
-	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
-	// Check the response code
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
@@ -91,28 +88,38 @@ func TestViewCrud(t *testing.T) {
 	}
 	testContext.CatalogContext.Variant = "valid-variant"
 
-	// Create a view
-	httpReq, _ = http.NewRequest("POST", "/views", nil)
+	// Create a resource
+	httpReq, _ = http.NewRequest("POST", "/resources", nil)
 	req = `
 		{
 			"version": "v1",
-			"kind": "View",
+			"kind": "Resource",
 			"metadata": {
-				"name": "valid-view",
+				"name": "valid-resource",
 				"catalog": "valid-catalog",
-				"description": "This is a valid view"
+				"variant": "valid-variant",
+				"namespace": "",
+				"path": "/",
+				"description": "This is a valid resource"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "valid-catalog"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/valid-catalog", "res://catalogs/valid-catalog/variants/valid-variant"]
-					}]
-				}
+				"schema": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
+						},
+						"value": {
+							"type": "integer"
+						}
+					}
+				},
+				"value": {
+					"name": "test-resource",
+					"value": 42
+				},
+				"annotations": null,
+				"policy": ""
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
@@ -121,11 +128,10 @@ func TestViewCrud(t *testing.T) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
-	// Check Location in header
-	assert.Contains(t, response.Header().Get("Location"), "/views/valid-view")
+	assert.Contains(t, response.Header().Get("Location"), "/resources/valid-resource")
 
-	// Get the view
-	httpReq, _ = http.NewRequest("GET", "/views/valid-view", nil)
+	// Get the resource
+	httpReq, _ = http.NewRequest("GET", "/resources/valid-resource/definition", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusOK, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -142,41 +148,49 @@ func TestViewCrud(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, reqType, rspType)
 
-	// Update the view
+	// Update the resource
 	req = `
 		{
 			"version": "v1",
-			"kind": "View",
+			"kind": "Resource",
 			"metadata": {
-				"name": "valid-view",
+				"name": "valid-resource",
 				"catalog": "valid-catalog",
-				"description": "This is a new description"
+				"variant": "valid-variant",
+				"namespace": "",
+				"path": "/",
+				"description": "This is an updated resource"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "valid-catalog"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/valid-catalog", "res://catalogs/valid-catalog/variants/valid-variant"]
-					}]
-				}
+				"schema": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
+						},
+						"value": {
+							"type": "integer"
+						}
+					}
+				},
+				"value": {
+					"name": "updated-resource",
+					"value": 100
+				},
+				"annotations": null,
+				"policy": ""
 			}
 		}`
-	httpReq, _ = http.NewRequest("PUT", "/views/valid-view", nil)
+	httpReq, _ = http.NewRequest("PUT", "/resources/valid-resource/definition", nil)
 	setRequestBodyAndHeader(t, httpReq, req)
-
 	response = executeTestRequest(t, httpReq, nil, testContext)
-	// Check the response code
 	if !assert.Equal(t, http.StatusOK, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
 
-	// Get the updated view
-	httpReq, _ = http.NewRequest("GET", "/views/valid-view", nil)
+	// Get the updated resource
+	httpReq, _ = http.NewRequest("GET", "/resources/valid-resource/definition", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusOK, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -193,24 +207,24 @@ func TestViewCrud(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, reqType, rspType)
 
-	// Delete the view
-	httpReq, _ = http.NewRequest("DELETE", "/views/valid-view", nil)
+	// Delete the resource
+	httpReq, _ = http.NewRequest("DELETE", "/resources/valid-resource/definition", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusNoContent, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
 
-	// Try to get the deleted view
-	httpReq, _ = http.NewRequest("GET", "/views/valid-view", nil)
+	// Try to get the deleted resource
+	httpReq, _ = http.NewRequest("GET", "/resources/valid-resource/definition", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusNotFound, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
 
-	// Try to update not existing view
-	httpReq, _ = http.NewRequest("PUT", "/views/not-existing-view", nil)
+	// Try to update non-existing resource
+	httpReq, _ = http.NewRequest("PUT", "/resources/not-existing-resource/definition", nil)
 	setRequestBodyAndHeader(t, httpReq, req)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusNotFound, response.Code) {
@@ -219,7 +233,7 @@ func TestViewCrud(t *testing.T) {
 	}
 }
 
-func TestViewList(t *testing.T) {
+func TestResourceList(t *testing.T) {
 	ctx := newDb()
 	t.Cleanup(func() {
 		db.DB(ctx).Close(ctx)
@@ -257,7 +271,7 @@ func TestViewList(t *testing.T) {
 			"kind": "Catalog",
 			"metadata": {
 				"name": "list-catalog",
-				"description": "Catalog for view list test"
+				"description": "Catalog for resource list test"
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
@@ -266,60 +280,99 @@ func TestViewList(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, response.Code)
 	testContext.CatalogContext.Catalog = "list-catalog"
 
-	// Create views (two normal, one internal)
-	views := []struct {
+	// Create a variant
+	httpReq, _ = http.NewRequest("POST", "/variants", nil)
+	req = `
+		{
+			"version": "v1",
+			"kind": "Variant",
+			"metadata": {
+				"name": "list-variant",
+				"description": "Variant for resource list test"
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusCreated, response.Code)
+	testContext.CatalogContext.Variant = "list-variant"
+
+	// Create resources
+	resources := []struct {
 		Name        string
 		Description string
+		Value       map[string]interface{}
 	}{
-		{"view1", "First test view"},
-		{"view2", "Second test view"},
-		{"internal", "Internal view"},
+		{
+			"resource1",
+			"First test resource",
+			map[string]interface{}{
+				"name":  "test1",
+				"value": 1,
+			},
+		},
+		{
+			"resource2",
+			"Second test resource",
+			map[string]interface{}{
+				"name":  "test2",
+				"value": 2,
+			},
+		},
+		{
+			"internal",
+			"Internal resource",
+			map[string]interface{}{
+				"name":  "internal",
+				"value": 3,
+			},
+		},
 	}
-	for _, v := range views {
+
+	for _, r := range resources {
 		req = `
 		{
 			"version": "v1",
-			"kind": "View",
+			"kind": "Resource",
 			"metadata": {
-				"name": "` + v.Name + `",
+				"name": "` + r.Name + `",
 				"catalog": "list-catalog",
-				"description": "` + v.Description + `"
+				"variant": "list-variant",
+				"description": "` + r.Description + `"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "list-catalog"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/list-catalog"]
-					}]
+				"schema": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
+						},
+						"value": {
+							"type": "integer"
+						}
+					}
+				},
+				"value": {
+					"name": "` + r.Value["name"].(string) + `",
+					"value": ` + strconv.Itoa(r.Value["value"].(int)) + `
 				}
 			}
 		}`
-		httpReq, _ = http.NewRequest("POST", "/views", nil)
+		httpReq, _ = http.NewRequest("POST", "/resources", nil)
 		setRequestBodyAndHeader(t, httpReq, req)
 		response = executeTestRequest(t, httpReq, nil, testContext)
 		assert.Equal(t, http.StatusCreated, response.Code)
 	}
 
-	// List views
-	httpReq, _ = http.NewRequest("GET", "/views?catalog=list-catalog", nil)
-	// set bearer token in header
+	// List resources
+	httpReq, _ = http.NewRequest("GET", "/resources?catalog=list-catalog&variant=list-variant", nil)
 	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	require.Equal(t, http.StatusOK, response.Code)
 
-	var result struct {
-		Views []struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
-		} `json:"views"`
-	}
+	var result = make(map[string]json.RawMessage)
 	err = json.Unmarshal(response.Body.Bytes(), &result)
 	assert.NoError(t, err)
 
-	// Only the two non-internal views should be present
-	assert.Len(t, result.Views, 3)
+	// All resources should be present
+	assert.Len(t, result, 3)
 }

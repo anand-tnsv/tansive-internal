@@ -27,17 +27,13 @@ const (
 	ActionNamespaceCreate   Action = "namespace.create"
 	ActionNamespaceList     Action = "namespace.list"
 	ActionNamespaceAdmin    Action = "namespace.admin"
-	ActionSchemaCreate      Action = "schema.create"
-	ActionSchemaRead        Action = "schema.read"
-	ActionSchemaEdit        Action = "schema.edit"
-	ActionSchemaInstantiate Action = "schema.instantiate"
-	ActionCollectionCreate  Action = "collection.create"
-	ActionCollectionRead    Action = "collection.read"
-	ActionCollectionWrite   Action = "collection.write"
-	ActionCollectionRun     Action = "collection.run"
-	ActionWorkspaceAdmin    Action = "workspace.admin"
-	ActionWorkspaceList     Action = "workspace.list"
-	ActionWorkspaceCreate   Action = "workspace.create"
+	ActionResourceCreate    Action = "resource.create"
+	ActionResourceRead      Action = "resource.read"
+	ActionResourceUpdate    Action = "resource.update"
+	ActionResourceDelete    Action = "resource.delete"
+	ActionResourceGet       Action = "resource.get"
+	ActionResourcePut       Action = "resource.put"
+	ActionResourceList      Action = "resource.list"
 )
 
 var ValidActions = []Action{
@@ -51,17 +47,13 @@ var ValidActions = []Action{
 	ActionNamespaceCreate,
 	ActionNamespaceList,
 	ActionNamespaceAdmin,
-	ActionSchemaCreate,
-	ActionSchemaRead,
-	ActionSchemaEdit,
-	ActionSchemaInstantiate,
-	ActionCollectionCreate,
-	ActionCollectionRead,
-	ActionCollectionWrite,
-	ActionCollectionRun,
-	ActionWorkspaceAdmin,
-	ActionWorkspaceList,
-	ActionWorkspaceCreate,
+	ActionResourceCreate,
+	ActionResourceRead,
+	ActionResourceUpdate,
+	ActionResourceDelete,
+	ActionResourceGet,
+	ActionResourcePut,
+	ActionResourceList,
 }
 
 type Rule struct {
@@ -75,14 +67,12 @@ type Rules []Rule
 type Scope struct {
 	Catalog   string `json:"catalog" validate:"required,resourceNameValidator"`
 	Variant   string `json:"variant,omitempty" validate:"omitempty,resourceNameValidator"`
-	Workspace string `json:"workspace,omitempty" validate:"omitempty,workspaceNameValidator"`
 	Namespace string `json:"namespace,omitempty" validate:"omitempty,resourceNameValidator"`
 }
 
 func (v Scope) Equals(other Scope) bool {
 	return v.Catalog == other.Catalog &&
 		v.Variant == other.Variant &&
-		v.Workspace == other.Workspace &&
 		v.Namespace == other.Namespace
 }
 
@@ -104,7 +94,7 @@ func buildAdminActionMap(actions []Action) adminActionMap {
 	adminActions := make(adminActionMap)
 	for _, action := range actions {
 		switch action {
-		case ActionCatalogAdmin, ActionVariantAdmin, ActionNamespaceAdmin, ActionWorkspaceAdmin:
+		case ActionCatalogAdmin, ActionVariantAdmin, ActionNamespaceAdmin:
 			adminActions[action] = true
 		}
 	}
@@ -184,9 +174,6 @@ func (r Rules) matchesAdmin(resource string) bool {
 				isMatch = true
 			}
 			if adminActions[ActionVariantAdmin] && checkAdminMatch(ResourceNameVariants, ruleSegments) {
-				isMatch = true
-			}
-			if adminActions[ActionWorkspaceAdmin] && checkAdminMatch(ResourceNameWorkspaces, ruleSegments) {
 				isMatch = true
 			}
 			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(ResourceNameNamespaces, ruleSegments) {

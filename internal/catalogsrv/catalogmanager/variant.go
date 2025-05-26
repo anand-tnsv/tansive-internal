@@ -244,90 +244,92 @@ func DeleteVariant(ctx context.Context, catalogID, variantID uuid.UUID, name str
 
 // TODO Handle base variant and copy of data
 
-type variantResource struct {
-	name RequestContext
-	vm   schemamanager.VariantManager
+type variantKind struct {
+	req RequestContext
+	vm  schemamanager.VariantManager
 }
 
-func (vr *variantResource) Name() string {
-	return vr.name.Variant
+func (v *variantKind) Name() string {
+	return v.req.Variant
 }
 
-func (vr *variantResource) Location() string {
-	return "/variants/" + vr.vm.Name()
+func (v *variantKind) Location() string {
+	return "/variants/" + v.vm.Name()
 }
 
-func (vr *variantResource) Manager() schemamanager.VariantManager {
-	return vr.vm
+func (v *variantKind) Manager() schemamanager.VariantManager {
+	return v.vm
 }
 
-func (vr *variantResource) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
-	vm, err := NewVariantManager(ctx, resourceJSON, vr.name.Variant, vr.name.Catalog)
+func (v *variantKind) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
+	vm, err := NewVariantManager(ctx, resourceJSON, "", v.req.Catalog)
 	if err != nil {
 		return "", err
 	}
-	if err := vm.Save(ctx); err != nil {
+
+	err = vm.Save(ctx)
+	if err != nil {
 		return "", err
 	}
-	vr.name.Variant = vm.Name()
-	vr.name.VariantID = vm.ID()
-	vr.name.CatalogID = vm.CatalogID()
-	vr.vm = vm
-	vr.name.Catalog = gjson.GetBytes(resourceJSON, "metadata.catalog").String()
-	return vr.Location(), nil
+	v.req.Variant = vm.Name()
+	v.req.VariantID = vm.ID()
+	v.req.CatalogID = vm.CatalogID()
+	v.vm = vm
+	v.req.Catalog = gjson.GetBytes(resourceJSON, "metadata.catalog").String()
+	return v.Location(), nil
 }
 
-func (vr *variantResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
-	variant, err := LoadVariantManager(ctx, vr.name.CatalogID, vr.name.VariantID, vr.name.Variant)
+func (v *variantKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
+	variant, err := LoadVariantManager(ctx, v.req.CatalogID, v.req.VariantID, v.req.Variant)
 	if err != nil {
 		return nil, err
 	}
 	return variant.ToJson(ctx)
 }
 
-func (vr *variantResource) Delete(ctx context.Context) apperrors.Error {
-	return DeleteVariant(ctx, vr.name.CatalogID, vr.name.VariantID, vr.name.Variant)
+func (v *variantKind) Delete(ctx context.Context) apperrors.Error {
+	return DeleteVariant(ctx, v.req.CatalogID, v.req.VariantID, v.req.Variant)
 }
 
-func (vr *variantResource) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {
-	vs := &variantSchema{}
-	if err := json.Unmarshal(rsrcJson, vs); err != nil {
+func (v *variantKind) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {
+	schema := &variantSchema{}
+	if err := json.Unmarshal(rsrcJson, schema); err != nil {
 		return ErrInvalidSchema.Err(err)
 	}
 
-	ves := vs.Validate()
-	if ves != nil {
-		return ErrInvalidSchema.Err(ves)
+	validationErrors := schema.Validate()
+	if validationErrors != nil {
+		return ErrInvalidSchema.Err(validationErrors)
 	}
 
-	v, err := db.DB(ctx).GetVariant(ctx, vr.name.CatalogID, vr.name.VariantID, vs.Metadata.Name)
+	variant, err := db.DB(ctx).GetVariant(ctx, v.req.CatalogID, v.req.VariantID, schema.Metadata.Name)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
-			return ErrCatalogNotFound
+			return ErrVariantNotFound
 		}
-		log.Ctx(ctx).Error().Err(err).Msg("failed to load catalog")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to load variant")
 		return err
 	}
-	v.Description = vs.Metadata.Description
 
-	err = db.DB(ctx).UpdateVariant(ctx, uuid.Nil, vr.name.Variant, v)
+	variant.Description = schema.Metadata.Description
+
+	err = db.DB(ctx).UpdateVariant(ctx, uuid.Nil, v.req.Variant, variant)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update variant")
 		return ErrUnableToUpdateObject.Msg("failed to update variant")
 	}
-
 	return nil
 }
 
-func (vr *variantResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+func (v *variantKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 	return nil, nil
 }
 
-func NewVariantResource(ctx context.Context, name RequestContext) (schemamanager.KindHandler, apperrors.Error) {
-	if name.Catalog == "" || name.CatalogID == uuid.Nil {
+func NewVariantKindHandler(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidVariant.Msg("catalog name and ID are required for variant creation")
 	}
-	return &variantResource{
-		name: name,
+	return &variantKind{
+		req: reqCtx,
 	}, nil
 }

@@ -71,30 +71,6 @@ var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 	},
 	{
 		Method:       http.MethodPost,
-		Path:         "/workspaces",
-		Handler:      createObject,
-		PolicyAction: types.ActionWorkspaceCreate,
-	},
-	{
-		Method:       http.MethodGet,
-		Path:         "/workspaces/{workspaceRef}",
-		Handler:      getObject,
-		PolicyAction: types.ActionWorkspaceList,
-	},
-	{
-		Method:       http.MethodPut,
-		Path:         "/workspaces/{workspaceRef}",
-		Handler:      updateObject,
-		PolicyAction: types.ActionWorkspaceAdmin,
-	},
-	{
-		Method:       http.MethodDelete,
-		Path:         "/workspaces/{workspaceRef}",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionWorkspaceAdmin,
-	},
-	{
-		Method:       http.MethodPost,
 		Path:         "/namespaces",
 		Handler:      createObject,
 		PolicyAction: types.ActionNamespaceCreate,
@@ -143,93 +119,33 @@ var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 	},
 	{
 		Method:       http.MethodPost,
-		Path:         "/collectionschemas",
+		Path:         "/resources",
 		Handler:      createObject,
-		PolicyAction: types.ActionSchemaCreate,
+		PolicyAction: types.ActionResourceCreate,
 	},
 	{
 		Method:       http.MethodGet,
-		Path:         "/collectionschemas/*",
+		Path:         "/resources",
+		Handler:      listObjects,
+		PolicyAction: types.ActionResourceList,
+	},
+	{
+		Method:       http.MethodGet,
+		Path:         "/resources/{resourcePath:.+}/definition",
 		Handler:      getObject,
-		PolicyAction: types.ActionSchemaRead,
+		PolicyAction: types.ActionResourceRead,
 	},
 	{
 		Method:       http.MethodPut,
-		Path:         "/collectionschemas/*",
+		Path:         "/resources/{resourcePath:.+}/definition",
 		Handler:      updateObject,
-		PolicyAction: types.ActionSchemaEdit,
+		PolicyAction: types.ActionResourceUpdate,
 	},
 	{
 		Method:       http.MethodDelete,
-		Path:         "/collectionschemas/*",
+		Path:         "/resources/{resourcePath:.+}/definition",
 		Handler:      deleteObject,
-		PolicyAction: types.ActionSchemaEdit,
-	},
-	{
-		Method:       http.MethodPost,
-		Path:         "/parameterschemas",
-		Handler:      createObject,
-		PolicyAction: types.ActionSchemaCreate,
-	},
-	{
-		Method:       http.MethodGet,
-		Path:         "/parameterschemas/*",
-		Handler:      getObject,
-		PolicyAction: types.ActionSchemaRead,
-	},
-	{
-		Method:       http.MethodPut,
-		Path:         "/parameterschemas/*",
-		Handler:      updateObject,
-		PolicyAction: types.ActionSchemaEdit,
-	},
-	{
-		Method:       http.MethodDelete,
-		Path:         "/parameterschemas/*",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionSchemaEdit,
-	},
-	{
-		Method:       http.MethodPost,
-		Path:         "/collections",
-		Handler:      createObject,
-		PolicyAction: types.ActionSchemaInstantiate,
-	},
-	{
-		Method:       http.MethodGet,
-		Path:         "/collections/*",
-		Handler:      getObject,
-		PolicyAction: types.ActionCollectionRead,
-	},
-	{
-		Method:       http.MethodPut,
-		Path:         "/collections/*",
-		Handler:      updateObject,
-		PolicyAction: types.ActionCollectionWrite,
-	},
-	{
-		Method:       http.MethodDelete,
-		Path:         "/collections/*",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionCollectionWrite,
-	},
-	{
-		Method:       http.MethodGet,
-		Path:         "/attributes/*",
-		Handler:      getObject,
-		PolicyAction: types.ActionCollectionRead,
-	},
-	{
-		Method:       http.MethodPost,
-		Path:         "/attributes/*",
-		Handler:      updateObject,
-		PolicyAction: types.ActionCollectionWrite,
-	},
-	{
-		Method:       http.MethodDelete,
-		Path:         "/attributes/*",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionCollectionWrite,
+		PolicyAction: types.ActionResourceDelete,
 	},
 }
 
@@ -287,12 +203,6 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 			httpx.ErrInvalidVariant().Send(w)
 			return
 		}
-		// Load Workspace
-		c, err = loadWorkspaceObject(ctx, c, urlValues)
-		if err != nil {
-			httpx.ErrInvalidWorkspace().Send(w)
-			return
-		}
 
 		// Load Namespace
 		c, err = loadNamespaceObject(ctx, c, urlValues)
@@ -325,7 +235,6 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 		targetScope := types.Scope{
 			Catalog:   c.Catalog,
 			Variant:   c.Variant,
-			Workspace: c.WorkspaceLabel,
 			Namespace: c.Namespace,
 		}
 		targetResource := catalogmanager.MorphResource(targetScope, types.TargetResource("res://"+strings.TrimPrefix(r.URL.Path, "/")))
@@ -339,9 +248,6 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 		}
 		if c.Variant != "" && resourceName != types.ResourceNameVariants {
 			s.WriteString("/" + types.ResourceNameVariants + "/" + c.Variant)
-		}
-		if c.WorkspaceLabel != "" && resourceName != types.ResourceNameWorkspaces {
-			s.WriteString("/" + types.ResourceNameWorkspaces + "/" + c.WorkspaceLabel)
 		}
 		if c.Namespace != "" && resourceName != types.ResourceNameNamespaces {
 			s.WriteString("/" + types.ResourceNameNamespaces + "/" + c.Namespace)
@@ -358,7 +264,7 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 			Params:         r.URL.Query(),
 		}
 
-		if policyRequest.ResourceName == types.ResourceNameCollections && handler.PolicyAction == types.ActionSchemaInstantiate {
+		if policyRequest.ResourceName == types.ResourceNameCollections && handler.PolicyAction == types.ActionResourceCreate {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				return nil, httpx.ErrUnableToReadRequest()

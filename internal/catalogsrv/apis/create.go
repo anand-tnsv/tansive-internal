@@ -23,7 +23,7 @@ func createObject(req *http.Request) (*httpx.Response, error) {
 		return nil, httpx.ErrUnableToReadRequest()
 	}
 
-	name, err := getResourceName(req)
+	reqContext, err := getRequestContext(req)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func createObject(req *http.Request) (*httpx.Response, error) {
 		return nil, err
 	}
 
-	manager, err := catalogmanager.ResourceManagerForKind(ctx, kind, name)
+	manager, err := catalogmanager.ResourceManagerForKind(ctx, kind, reqContext)
 	if err != nil {
 		return nil, err
 	}

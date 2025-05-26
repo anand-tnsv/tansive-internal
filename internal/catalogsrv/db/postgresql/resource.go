@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
@@ -152,4 +153,38 @@ func (om *objectManager) UpsertResourceObject(ctx context.Context, rg *models.Re
 	}
 
 	return nil
+}
+
+func (om *objectManager) ListResources(ctx context.Context, directoryID uuid.UUID) ([]models.Resource, apperrors.Error) {
+	tenantID := common.TenantIdFromContext(ctx)
+	if tenantID == "" {
+		return nil, dberror.ErrMissingTenantID
+	}
+
+	if directoryID == uuid.Nil {
+		return nil, dberror.ErrInvalidInput.Msg("invalid directory ID")
+	}
+
+	// Get the directory
+	dir, err := om.GetSchemaDirectory(ctx, types.CatalogObjectTypeResource, directoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	resources := []models.Resource{}
+	var directory models.Directory
+
+	if err := json.Unmarshal(dir.Directory, &directory); err != nil {
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+
+	for path, objRef := range directory {
+		resource := models.Resource{
+			Path: path,
+			Hash: objRef.Hash,
+		}
+		resources = append(resources, resource)
+	}
+
+	return resources, nil
 }

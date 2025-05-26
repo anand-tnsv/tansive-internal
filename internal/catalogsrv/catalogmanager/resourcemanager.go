@@ -358,3 +358,12 @@ func DeleteResource(ctx context.Context, m *schemamanager.SchemaMetadata) apperr
 func (rm *resourceManager) JSON(ctx context.Context) ([]byte, apperrors.Error) {
 	return rm.resource.JSON(ctx)
 }
+
+func (rm *resourceManager) SpecJSON(ctx context.Context) ([]byte, apperrors.Error) {
+	j, err := json.Marshal(rm.resource.Spec)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal resource spec")
+		return nil, ErrInvalidResourceDefinition
+	}
+	return j, nil
+}

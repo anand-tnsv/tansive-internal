@@ -59,7 +59,7 @@ func ValidateViewPolicy(ctx context.Context, req PolicyRequest) apperrors.Error 
 // by validating the action against the collection schema in case of instantiate action
 func validateCollectionPolicy(ctx context.Context, req PolicyRequest) apperrors.Error {
 	_ = ctx //future use for logging
-	if req.Action == types.ActionSchemaInstantiate {
+	if req.Action == types.ActionResourceCreate {
 		if len(req.ResourceJSON) == 0 {
 			return ErrDisallowedByPolicy.Msg("empty collection")
 		}

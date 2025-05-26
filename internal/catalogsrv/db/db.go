@@ -37,6 +37,7 @@ type MetadataManager interface {
 	// Variant
 	CreateVariant(ctx context.Context, variant *models.Variant) apperrors.Error
 	GetVariant(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) (*models.Variant, apperrors.Error)
+	GetVariantByID(ctx context.Context, variantID uuid.UUID) (*models.Variant, apperrors.Error)
 	GetVariantIDFromName(ctx context.Context, catalogID uuid.UUID, name string) (uuid.UUID, apperrors.Error)
 	UpdateVariant(ctx context.Context, variantID uuid.UUID, name string, updatedVariant *models.Variant) apperrors.Error
 	DeleteVariant(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) apperrors.Error
@@ -113,6 +114,7 @@ type ObjectManager interface {
 	UpdateResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error
 	DeleteResource(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error)
 	UpsertResourceObject(ctx context.Context, rg *models.Resource, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error
+	ListResources(ctx context.Context, directoryID uuid.UUID) ([]models.Resource, apperrors.Error)
 
 	// Schema Directory
 	CreateSchemaDirectory(ctx context.Context, t types.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error

@@ -192,6 +192,33 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 	return variant, nil
 }
 
+// GetVariantByID retrieves a variant by its UUID. This function performs a direct lookup
+func (mm *metadataManager) GetVariantByID(ctx context.Context, variantID uuid.UUID) (*models.Variant, apperrors.Error) {
+	tenantID := common.TenantIdFromContext(ctx)
+	if tenantID == "" {
+		return nil, dberror.ErrMissingTenantID
+	}
+
+	query := `
+		SELECT variant_id, name, description, info, catalog_id, resource_directory
+		FROM variants
+		WHERE variant_id = $1 AND tenant_id = $2;
+	`
+	row := mm.conn().QueryRowContext(ctx, query, variantID, tenantID)
+	variant := &models.Variant{}
+	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceDirectoryID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Ctx(ctx).Info().Msg("variant not found")
+			return nil, dberror.ErrNotFound.Msg("variant not found")
+		}
+		log.Ctx(ctx).Error().Err(err).Msg("failed to retrieve variant")
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+
+	return variant, nil
+}
+
 func (mm *metadataManager) GetVariantIDFromName(ctx context.Context, catalogID uuid.UUID, name string) (uuid.UUID, apperrors.Error) {
 	tenantID := common.TenantIdFromContext(ctx)
 	if tenantID == "" {

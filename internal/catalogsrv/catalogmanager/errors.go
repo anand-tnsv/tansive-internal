@@ -52,4 +52,5 @@ var (
 	ErrDisallowedByPolicy                     apperrors.Error = ErrCatalogError.New("disallowed by policy").SetStatusCode(http.StatusForbidden)
 	ErrInvalidResourceValue                   apperrors.Error = ErrCatalogError.New("invalid resource value").SetStatusCode(http.StatusBadRequest)
 	ErrResourceGroupNotFound                  apperrors.Error = ErrCatalogError.New("resource group not found").SetStatusCode(http.StatusNotFound)
+	ErrInvalidResourceDefinition              apperrors.Error = ErrCatalogError.New("invalid resource definition").SetStatusCode(http.StatusBadRequest)
 )

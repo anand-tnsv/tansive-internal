@@ -12,7 +12,7 @@ func listObjects(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()
 	var kind string
 
-	n, err := getResourceName(r)
+	reqContext, err := getRequestContext(r)
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func listObjects(r *http.Request) (*httpx.Response, error) {
 		return nil, httpx.ErrInvalidRequest()
 	}
 
-	rm, err := catalogmanager.ResourceManagerForKind(ctx, kind, n)
+	rm, err := catalogmanager.ResourceManagerForKind(ctx, kind, reqContext)
 	if err != nil {
 		return nil, err
 	}

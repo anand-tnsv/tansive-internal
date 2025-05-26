@@ -75,7 +75,6 @@ func validateToken(ctx context.Context, token string) (context.Context, error) {
 	catalogContext.ViewDefinition = &viewDef
 	catalogContext.Catalog = viewDef.Scope.Catalog
 	catalogContext.Variant = viewDef.Scope.Variant
-	catalogContext.WorkspaceLabel = viewDef.Scope.Workspace
 	catalogContext.Namespace = viewDef.Scope.Namespace
 
 	tokenType := tokenObj.GetTokenType()

@@ -51,8 +51,6 @@ const ctxCatalogContextKey ctxCatalogContextKeyType = "HatchCatalogContext"
 type CatalogContext struct {
 	CatalogId      uuid.UUID
 	VariantId      uuid.UUID
-	WorkspaceId    uuid.UUID
-	WorkspaceLabel string
 	Namespace      string
 	Catalog        string
 	Variant        string
@@ -96,26 +94,6 @@ func SetVariantIdInContext(ctx context.Context, variantId uuid.UUID) context.Con
 		currContext = &CatalogContext{}
 	}
 	currContext.VariantId = uuid.UUID(variantId)
-	return SetCatalogContext(ctx, currContext)
-}
-
-// SetWorkspaceIdInContext sets the workspace ID in the provided context.
-func SetWorkspaceIdInContext(ctx context.Context, workspaceId uuid.UUID) context.Context {
-	currContext := CatalogContextFromContext(ctx)
-	if currContext == nil {
-		currContext = &CatalogContext{}
-	}
-	currContext.WorkspaceId = uuid.UUID(workspaceId)
-	return SetCatalogContext(ctx, currContext)
-}
-
-// SetWorkspaceLabelInContext sets the workspace label in the provided context.
-func SetWorkspaceLabelInContext(ctx context.Context, workspaceLabel string) context.Context {
-	currContext := CatalogContextFromContext(ctx)
-	if currContext == nil {
-		currContext = &CatalogContext{}
-	}
-	currContext.WorkspaceLabel = workspaceLabel
 	return SetCatalogContext(ctx, currContext)
 }
 
@@ -173,22 +151,6 @@ func GetVariantIdFromContext(ctx context.Context) uuid.UUID {
 		return catalogContext.VariantId
 	}
 	return uuid.Nil
-}
-
-// GetWorkspaceIdFromContext retrieves the workspace ID from the provided context.
-func GetWorkspaceIdFromContext(ctx context.Context) uuid.UUID {
-	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
-		return catalogContext.WorkspaceId
-	}
-	return uuid.Nil
-}
-
-// GetWorkspaceLabelFromContext retrieves the workspace label from the provided context.
-func GetWorkspaceLabelFromContext(ctx context.Context) string {
-	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
-		return catalogContext.WorkspaceLabel
-	}
-	return ""
 }
 
 // GetNamespaceFromContext retrieves the namespace from the provided context.

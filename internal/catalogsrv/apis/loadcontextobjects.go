@@ -81,42 +81,6 @@ func loadVariantObject(ctx context.Context, catalogCtx *common.CatalogContext, v
 	return catalogCtx, nil
 }
 
-// loadWorkspaceObject loads workspace information into the context
-func loadWorkspaceObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
-	if catalogCtx.WorkspaceId == uuid.Nil && catalogCtx.WorkspaceLabel == "" {
-		workspaceID := getURLValue(values, "workspace_id")
-		var err error
-		if workspaceID != "" {
-			catalogCtx.WorkspaceId, err = uuid.Parse(workspaceID)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			workspaceLabel := getURLValue(values, "workspace")
-			if workspaceLabel != "" {
-				catalogCtx.WorkspaceLabel = workspaceLabel
-			}
-		}
-	}
-
-	if catalogCtx.WorkspaceId != uuid.Nil {
-		if catalogCtx.WorkspaceLabel == "" {
-			workspace, err := db.DB(ctx).GetWorkspace(ctx, catalogCtx.WorkspaceId)
-			if err != nil {
-				return nil, err
-			}
-			catalogCtx.WorkspaceLabel = workspace.Label
-		}
-	} else if catalogCtx.WorkspaceLabel != "" {
-		workspace, err := db.DB(ctx).GetWorkspaceByLabel(ctx, catalogCtx.VariantId, catalogCtx.WorkspaceLabel)
-		if err != nil {
-			return nil, err
-		}
-		catalogCtx.WorkspaceId = workspace.WorkspaceID
-	}
-	return catalogCtx, nil
-}
-
 // loadNamespaceObject loads namespace information into the context
 func loadNamespaceObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
 	_ = ctx

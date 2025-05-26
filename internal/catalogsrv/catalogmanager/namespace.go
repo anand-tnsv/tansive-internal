@@ -235,7 +235,7 @@ func (nm *namespaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error
 	return jsonData, nil
 }
 
-func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID, dir Directories) apperrors.Error {
+func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) apperrors.Error {
 	// check if the namespace exists by retrieving it
 	_, err := db.DB(ctx).GetNamespace(ctx, name, variantID)
 	if err != nil {
@@ -256,67 +256,68 @@ func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID, dir 
 		return err
 	}
 
+	//get the resource directory for the variant
+	variant, err := db.DB(ctx).GetVariantByID(ctx, variantID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get variant")
+		return err
+	}
+
+	dir := variant.ResourceDirectoryID
+
 	// delete the namespace objects in all directories
-	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, name)
+	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, types.CatalogObjectTypeResource, dir, name)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace objects in ParameterSchema")
-	}
-	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, name)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace objects in CollectionSchema")
-	}
-	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, types.CatalogObjectTypeCatalogCollection, dir.ValuesDir, name)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace objects in CatalogCollection")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace objects in Resource")
 	}
 
 	return nil
 }
 
-type namespaceResource struct {
-	name RequestContext
-	nm   schemamanager.NamespaceManager
+type namespaceKind struct {
+	req RequestContext
+	nm  schemamanager.NamespaceManager
 }
 
-func (nr *namespaceResource) Name() string {
-	return nr.name.Namespace
+func (n *namespaceKind) Name() string {
+	return n.req.Namespace
 }
 
-func (nr *namespaceResource) ID() uuid.UUID {
-	return nr.name.VariantID
+func (n *namespaceKind) ID() uuid.UUID {
+	return n.req.VariantID
 }
 
-func (nr *namespaceResource) Location() string {
-	return "/namespaces/" + nr.name.Namespace
+func (n *namespaceKind) Location() string {
+	return "/namespaces/" + n.req.Namespace
 }
 
-func (nr *namespaceResource) Manager() schemamanager.NamespaceManager {
-	return nr.nm
+func (n *namespaceKind) Manager() schemamanager.NamespaceManager {
+	return n.nm
 }
 
-func (nr *namespaceResource) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
-	nm, err := NewNamespaceManager(ctx, resourceJSON, nr.name.Catalog, nr.name.Variant)
+func (n *namespaceKind) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
+	nm, err := NewNamespaceManager(ctx, resourceJSON, n.req.Catalog, n.req.Variant)
 	if err != nil {
 		return "", err
 	}
 	if err := nm.Save(ctx); err != nil {
 		return "", err
 	}
-	nr.name.Namespace = nm.Name()
-	if nr.name.Catalog == "" {
-		nr.name.Catalog = nm.Catalog()
+	n.req.Namespace = nm.Name()
+	if n.req.Catalog == "" {
+		n.req.Catalog = nm.Catalog()
 	}
-	if nr.name.Variant == "" {
-		nr.name.Variant = nm.Variant()
+	if n.req.Variant == "" {
+		n.req.Variant = nm.Variant()
 	}
-	return nr.Location(), nil
+	return n.Location(), nil
 }
 
-func (nr *namespaceResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
-	if nr.name.VariantID == uuid.Nil || nr.name.Namespace == "" {
+func (n *namespaceKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
+	if n.req.VariantID == uuid.Nil || n.req.Namespace == "" {
 		return nil, ErrInvalidNamespace
 	}
-	namespace, err := LoadNamespaceManagerByName(ctx, nr.name.VariantID, nr.name.Namespace)
+	namespace, err := LoadNamespaceManagerByName(ctx, n.req.VariantID, n.req.Namespace)
 	if err != nil {
 		if errors.Is(err, ErrNamespaceNotFound) {
 			return nil, ErrNamespaceNotFound
@@ -329,26 +330,16 @@ func (nr *namespaceResource) Get(ctx context.Context) ([]byte, apperrors.Error) 
 		log.Ctx(ctx).Error().Err(err).Msg("unable to marshal namespace schema")
 		return nil, ErrUnableToLoadObject.Msg("unable to marshal namespace schema")
 	}
-	nr.nm = namespace
+	n.nm = namespace
 	return jsonData, nil
 }
 
-func (nr *namespaceResource) Delete(ctx context.Context) apperrors.Error {
+func (n *namespaceKind) Delete(ctx context.Context) apperrors.Error {
 	// delete the namespace
-	var dir Directories
-	var err apperrors.Error
-	if nr.name.WorkspaceID != uuid.Nil {
-		dir, err = getWorkspaceDirs(ctx, nr.name.WorkspaceID)
-	} else {
-		dir, err = getVariantDirs(ctx, nr.name.VariantID)
-	}
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to get directories")
-	}
-	return DeleteNamespace(ctx, nr.name.Namespace, nr.name.VariantID, dir)
+	return DeleteNamespace(ctx, n.req.Namespace, n.req.VariantID)
 }
 
-func (nr *namespaceResource) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {
+func (n *namespaceKind) Update(ctx context.Context, rsrcJson []byte) apperrors.Error {
 	ns := &namespaceSchema{}
 	if err := json.Unmarshal(rsrcJson, ns); err != nil {
 		return ErrInvalidSchema.Err(err)
@@ -357,11 +348,11 @@ func (nr *namespaceResource) Update(ctx context.Context, rsrcJson []byte) apperr
 	if ves != nil {
 		return ErrInvalidSchema.Err(ves)
 	}
-	_, err := nr.Get(ctx)
+	_, err := n.Get(ctx)
 	if err != nil {
 		return err
 	}
-	namespace := nr.nm.GetNamespaceModel()
+	namespace := n.nm.GetNamespaceModel()
 	if namespace == nil {
 		return ErrInvalidNamespace
 	}
@@ -375,22 +366,22 @@ func (nr *namespaceResource) Update(ctx context.Context, rsrcJson []byte) apperr
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update namespace")
 		return ErrUnableToLoadObject.Msg("unable to update namespace")
 	}
-	nr.name.Namespace = namespace.Name
+	n.req.Namespace = namespace.Name
 	return nil
 }
 
-func (nr *namespaceResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+func (n *namespaceKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 	return nil, nil
 }
 
-func NewNamespaceResource(ctx context.Context, name RequestContext) (schemamanager.KindHandler, apperrors.Error) {
-	if name.Catalog == "" || name.CatalogID == uuid.Nil {
+func NewNamespaceKindHandler(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}
-	if name.Variant == "" || name.VariantID == uuid.Nil {
+	if reqCtx.Variant == "" || reqCtx.VariantID == uuid.Nil {
 		return nil, ErrInvalidVariant
 	}
-	return &namespaceResource{
-		name: name,
+	return &namespaceKind{
+		req: reqCtx,
 	}, nil
 }

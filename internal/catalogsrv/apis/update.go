@@ -4,8 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
+	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -14,7 +14,7 @@ func updateObject(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()
 	var kind string
 
-	n, err := getResourceName(r)
+	reqContext, err := getRequestContext(r)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func updateObject(r *http.Request) (*httpx.Response, error) {
 		return nil, err
 	}
 
-	rm, err := catalogmanager.ResourceManagerForKind(ctx, kind, n)
+	rm, err := catalogmanager.ResourceManagerForKind(ctx, kind, reqContext)
 	if err != nil {
 		return nil, err
 	}

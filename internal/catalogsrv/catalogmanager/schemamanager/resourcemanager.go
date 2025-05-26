@@ -18,4 +18,5 @@ type ResourceManager interface {
 	Save(ctx context.Context) apperrors.Error
 	GetStoragePath() string
 	JSON(ctx context.Context) ([]byte, apperrors.Error)
+	SpecJSON(ctx context.Context) ([]byte, apperrors.Error)
 }

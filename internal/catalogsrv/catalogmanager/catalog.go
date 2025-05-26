@@ -190,29 +190,29 @@ func DeleteCatalogByName(ctx context.Context, name string) apperrors.Error {
 	return nil
 }
 
-// catalogResource implements the ResourceManager interface for catalogs
-type catalogResource struct {
-	requestContext RequestContext
-	manager        schemamanager.CatalogManager
+// catalogKind implements the ResourceManager interface for catalogs
+type catalogKind struct {
+	req     RequestContext
+	manager schemamanager.CatalogManager
 }
 
 // Name returns the catalog name
-func (cr *catalogResource) Name() string {
-	return cr.requestContext.Catalog
+func (c *catalogKind) Name() string {
+	return c.req.Catalog
 }
 
 // Location returns the resource location
-func (cr *catalogResource) Location() string {
-	return "/catalogs/" + cr.manager.Name()
+func (c *catalogKind) Location() string {
+	return "/catalogs/" + c.manager.Name()
 }
 
 // Manager returns the catalog manager
-func (cr *catalogResource) Manager() schemamanager.CatalogManager {
-	return cr.manager
+func (c *catalogKind) Manager() schemamanager.CatalogManager {
+	return c.manager
 }
 
 // Create creates a new catalog
-func (cr *catalogResource) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
+func (c *catalogKind) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
 	catalog, err := NewCatalogManager(ctx, resourceJSON, "")
 	if err != nil {
 		return "", err
@@ -223,13 +223,13 @@ func (cr *catalogResource) Create(ctx context.Context, resourceJSON []byte) (str
 		return "", err
 	}
 
-	cr.manager = catalog
-	return cr.Location(), nil
+	c.manager = catalog
+	return c.Location(), nil
 }
 
 // Get retrieves a catalog
-func (cr *catalogResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
-	catalog, err := LoadCatalogManagerByName(ctx, cr.requestContext.Catalog)
+func (c *catalogKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
+	catalog, err := LoadCatalogManagerByName(ctx, c.req.Catalog)
 	if err != nil {
 		return nil, err
 	}
@@ -237,12 +237,12 @@ func (cr *catalogResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // Delete removes a catalog
-func (cr *catalogResource) Delete(ctx context.Context) apperrors.Error {
-	return DeleteCatalogByName(ctx, cr.requestContext.Catalog)
+func (c *catalogKind) Delete(ctx context.Context) apperrors.Error {
+	return DeleteCatalogByName(ctx, c.req.Catalog)
 }
 
 // Update modifies an existing catalog
-func (cr *catalogResource) Update(ctx context.Context, resourceJSON []byte) apperrors.Error {
+func (c *catalogKind) Update(ctx context.Context, resourceJSON []byte) apperrors.Error {
 	schema := &catalogSchema{}
 	if err := json.Unmarshal(resourceJSON, schema); err != nil {
 		return ErrInvalidSchema.Err(err)
@@ -273,13 +273,13 @@ func (cr *catalogResource) Update(ctx context.Context, resourceJSON []byte) appe
 }
 
 // List returns a list of catalogs
-func (cr *catalogResource) List(ctx context.Context) ([]byte, apperrors.Error) {
+func (c *catalogKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 	return nil, nil
 }
 
-// NewCatalogResource creates a new catalog resource
-func NewCatalogResource(ctx context.Context, requestContext RequestContext) (schemamanager.KindHandler, apperrors.Error) {
-	return &catalogResource{
-		requestContext: requestContext,
+// NewCatalogKindHandler creates a new catalog resource
+func NewCatalogKindHandler(ctx context.Context, requestContext RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+	return &catalogKind{
+		req: requestContext,
 	}, nil
 }

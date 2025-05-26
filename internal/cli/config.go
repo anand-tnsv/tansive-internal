@@ -181,23 +181,22 @@ var configClearCmd = &cobra.Command{
 
 This is useful when you want to reset your configuration or switch to a different catalog.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Get the current config
-		cfg := GetConfig()
-		if cfg == nil {
-			// Create a new config if none exists
-			cfg = &Config{}
+		if err := LoadConfig(configFile); err != nil {
+			if os.IsNotExist(err) {
+				fmt.Println("Tansive config file not found. Configure tansive with \"tansive config create\" first.")
+				os.Exit(1)
+			} else {
+				fmt.Printf("Unable to load config file: %s\n", err.Error())
+				os.Exit(1)
+			}
 		}
-
+		cfg := GetConfig()
 		// Clear the token-related fields
 		cfg.CurrentToken = ""
 		cfg.TokenExpiry = ""
 		cfg.CurrentCatalog = ""
 
 		// Save the config
-		configFile, err := GetDefaultConfigPath()
-		if err != nil {
-			return fmt.Errorf("failed to get config path: %v", err)
-		}
 		if err := cfg.WriteConfig(configFile); err != nil {
 			return fmt.Errorf("failed to save config: %v", err)
 		}

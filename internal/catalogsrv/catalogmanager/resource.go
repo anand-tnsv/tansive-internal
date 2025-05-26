@@ -48,6 +48,15 @@ func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *schemamanager.S
 	return &resourceManager{resource: rsrc}, nil
 }
 
+func LoadResourceManagerByHash(ctx context.Context, hash string, m *schemamanager.SchemaMetadata) (schemamanager.ResourceManager, apperrors.Error) {
+	// get the object from catalog object store
+	obj, err := db.DB(ctx).GetCatalogObject(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+	return resourceManagerFromObject(ctx, obj, m)
+}
+
 // LoadResourceManagerByPath loads a resource manager from the database by path.
 func LoadResourceManagerByPath(ctx context.Context, m *schemamanager.SchemaMetadata) (schemamanager.ResourceManager, apperrors.Error) {
 	if m == nil {
@@ -107,6 +116,7 @@ func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m
 	rm.resource.Kind = types.ResourceKind
 	rm.resource.Version = storageRep.Version
 	rm.resource.Metadata = *m
+	rm.resource.Metadata.Description = storageRep.Description
 
 	return rm, nil
 }
@@ -257,13 +267,49 @@ func (h *resourceKindHandler) Delete(ctx context.Context) apperrors.Error {
 	return nil
 }
 
-// List is not implemented for individual resources.
-// Returns nil as resources are managed individually.
 func (h *resourceKindHandler) List(ctx context.Context) ([]byte, apperrors.Error) {
-	return nil, nil
+	variant, err := db.DB(ctx).GetVariantByID(ctx, h.req.VariantID)
+	if err != nil {
+		return nil, ErrInvalidVariant
+	}
+
+	resources, err := db.DB(ctx).ListResources(ctx, variant.ResourceDirectoryID)
+	if err != nil {
+		return nil, ErrCatalogError.Msg("unable to list resources")
+	}
+
+	resourceList := make(map[string]json.RawMessage)
+	for _, resource := range resources {
+		m := &schemamanager.SchemaMetadata{
+			Catalog:   h.req.Catalog,
+			Variant:   types.NullableStringFrom(h.req.Variant),
+			Namespace: types.NullableStringFrom(h.req.Namespace),
+		}
+		m.SetNameAndPathFromStoragePath(resource.Path)
+		rm, err := LoadResourceManagerByHash(ctx, resource.Hash, m)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Str("path", resource.Path).Msg("Failed to load resource")
+			continue
+		}
+
+		j, err := rm.JSON(ctx)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Str("path", resource.Path).Msg("Failed to marshal resource")
+			continue
+		}
+		resourceList[path.Clean(m.Path+"/"+m.Name)] = j
+	}
+
+	j, goErr := json.Marshal(resourceList)
+	if goErr != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal resource list")
+		return nil, ErrInvalidResourceDefinition
+	}
+
+	return j, nil
 }
 
-func NewResourceGroupResource(ctx context.Context, req RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+func NewResourceKindHandler(ctx context.Context, req RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	if req.Catalog == "" {
 		return nil, ErrInvalidCatalog
 	}

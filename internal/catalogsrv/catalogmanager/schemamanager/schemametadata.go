@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path"
 	"reflect"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -95,4 +96,11 @@ func (m SchemaMetadata) GetStoragePath(t types.CatalogObjectType) string {
 func (m SchemaMetadata) GetEntropyBytes(t types.CatalogObjectType) []byte {
 	entropy := m.Catalog + ":" + string(t)
 	return []byte(entropy)
+}
+
+func (m *SchemaMetadata) SetNameAndPathFromStoragePath(storagePath string) {
+	m.Name = path.Base(storagePath)
+	m.Path = path.Dir(storagePath)
+	m.Path = strings.TrimPrefix(m.Path, "/"+types.DefaultNamespace)
+	m.Path = "/" + strings.TrimPrefix(m.Path, "/")
 }

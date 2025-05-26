@@ -280,38 +280,38 @@ func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catal
 	return v, nil
 }
 
-type viewResource struct {
+type viewKind struct {
 	reqCtx RequestContext
 	view   *models.View
 }
 
 // Name returns the name of the view resource.
-func (vr *viewResource) Name() string {
-	return vr.reqCtx.ObjectName
+func (v *viewKind) Name() string {
+	return v.reqCtx.ObjectName
 }
 
 // Location returns the location path of the view resource.
-func (vr *viewResource) Location() string {
-	return "/views/" + vr.view.Label
+func (v *viewKind) Location() string {
+	return "/views/" + v.view.Label
 }
 
 // Create creates a new view resource.
-func (vr *viewResource) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
-	v, err := CreateView(ctx, resourceJSON, vr.reqCtx.Catalog)
+func (v *viewKind) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
+	view, err := CreateView(ctx, resourceJSON, v.reqCtx.Catalog)
 	if err != nil {
 		return "", err
 	}
-	vr.view = v
-	return vr.Location(), nil
+	v.view = view
+	return v.Location(), nil
 }
 
 // Get retrieves a view resource by its name.
-func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
-	if vr.reqCtx.CatalogID == uuid.Nil || vr.reqCtx.ObjectName == "" {
+func (v *viewKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
+	if v.reqCtx.CatalogID == uuid.Nil || v.reqCtx.ObjectName == "" {
 		return nil, ErrInvalidView
 	}
 
-	view, err := db.DB(ctx).GetViewByLabel(ctx, vr.reqCtx.ObjectName, vr.reqCtx.CatalogID)
+	view, err := db.DB(ctx).GetViewByLabel(ctx, v.reqCtx.ObjectName, v.reqCtx.CatalogID)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return nil, ErrViewNotFound
@@ -320,7 +320,7 @@ func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 		return nil, ErrUnableToLoadObject.Msg("unable to load view")
 	}
 
-	vr.view = view
+	v.view = view
 
 	// Convert the view model to JSON
 	viewSchema := &viewSchema{
@@ -328,7 +328,7 @@ func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 		Kind:    types.ViewKind,
 		Metadata: viewMetadata{
 			Name:        view.Label,
-			Catalog:     vr.reqCtx.Catalog,
+			Catalog:     v.reqCtx.Catalog,
 			Description: view.Description,
 		},
 	}
@@ -351,12 +351,12 @@ func (vr *viewResource) Get(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // Delete removes a view resource.
-func (vr *viewResource) Delete(ctx context.Context) apperrors.Error {
-	if vr.reqCtx.CatalogID == uuid.Nil || vr.reqCtx.ObjectName == "" {
+func (v *viewKind) Delete(ctx context.Context) apperrors.Error {
+	if v.reqCtx.CatalogID == uuid.Nil || v.reqCtx.ObjectName == "" {
 		return ErrInvalidView
 	}
 
-	err := db.DB(ctx).DeleteViewByLabel(ctx, vr.reqCtx.ObjectName, vr.reqCtx.CatalogID)
+	err := db.DB(ctx).DeleteViewByLabel(ctx, v.reqCtx.ObjectName, v.reqCtx.CatalogID)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return nil
@@ -369,21 +369,21 @@ func (vr *viewResource) Delete(ctx context.Context) apperrors.Error {
 }
 
 // Update modifies an existing view resource.
-func (vr *viewResource) Update(ctx context.Context, resourceJSON []byte) apperrors.Error {
-	v, err := UpdateView(ctx, resourceJSON, vr.reqCtx.ObjectName, vr.reqCtx.Catalog)
+func (v *viewKind) Update(ctx context.Context, resourceJSON []byte) apperrors.Error {
+	view, err := UpdateView(ctx, resourceJSON, v.reqCtx.ObjectName, v.reqCtx.Catalog)
 	if err != nil {
 		return err
 	}
-	vr.view = v
+	v.view = view
 	return nil
 }
 
-func (vr *viewResource) List(ctx context.Context) ([]byte, apperrors.Error) {
-	if vr.reqCtx.CatalogID == uuid.Nil {
+func (v *viewKind) List(ctx context.Context) ([]byte, apperrors.Error) {
+	if v.reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}
 
-	views, err := db.DB(ctx).ListViewsByCatalog(ctx, vr.reqCtx.CatalogID)
+	views, err := db.DB(ctx).ListViewsByCatalog(ctx, v.reqCtx.CatalogID)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load views")
 		return nil, ErrUnableToLoadObject.Msg("unable to load view")
@@ -399,16 +399,16 @@ func (vr *viewResource) List(ctx context.Context) ([]byte, apperrors.Error) {
 	}
 
 	viewsRsp := viewListRsp{
-		Views: make([]viewItem, len(views)),
+		Views: []viewItem{},
 	}
-	for i, v := range views {
-		if strings.HasPrefix(v.Label, "_") {
+	for _, view := range views {
+		if strings.HasPrefix(view.Label, "_") {
 			continue
 		}
-		viewsRsp.Views[i] = viewItem{
-			Name:        v.Label,
-			Description: v.Description,
-		}
+		viewsRsp.Views = append(viewsRsp.Views, viewItem{
+			Name:        view.Label,
+			Description: view.Description,
+		})
 	}
 
 	jsonData, e := json.Marshal(viewsRsp)
@@ -420,12 +420,12 @@ func (vr *viewResource) List(ctx context.Context) ([]byte, apperrors.Error) {
 	return jsonData, nil
 }
 
-// NewViewResource creates a new view resource manager.
-func NewViewResource(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+// NewViewKindHandler creates a new view resource manager.
+func NewViewKindHandler(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}
-	return &viewResource{
+	return &viewKind{
 		reqCtx: reqCtx,
 	}, nil
 }
@@ -469,8 +469,7 @@ func MorphResource(scope types.Scope, resource types.TargetResource) types.Targe
 
 	morphedMetadata[types.ResourceNameCatalogs] = morphMetadata(scope.Catalog, 0, types.ResourceNameCatalogs, resourceKV)
 	morphedMetadata[types.ResourceNameVariants] = morphMetadata(scope.Variant, 1, types.ResourceNameVariants, resourceKV)
-	morphedMetadata[types.ResourceNameWorkspaces] = morphMetadata(scope.Workspace, 2, types.ResourceNameWorkspaces, resourceKV)
-	morphedMetadata[types.ResourceNameNamespaces] = morphMetadata(scope.Namespace, 3, types.ResourceNameNamespaces, resourceKV)
+	morphedMetadata[types.ResourceNameNamespaces] = morphMetadata(scope.Namespace, 2, types.ResourceNameNamespaces, resourceKV)
 
 	s := strings.Builder{}
 	s.WriteString(types.ResourceNameCatalogs + "/" + morphedMetadata[types.ResourceNameCatalogs].value)
