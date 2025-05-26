@@ -212,8 +212,13 @@ func (h *resourceKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error)
 	if err != nil {
 		return nil, err
 	}
+	if h.req.ObjectProperty == types.ResourcePropertyDefinition {
+		return rm.JSON(ctx)
+	} else if h.req.ObjectProperty == types.ResourcePropertyValue {
+		return rm.GetValueJSON(ctx)
+	}
 
-	return rm.JSON(ctx)
+	return nil, ErrDisallowedByPolicy
 }
 
 // Update updates an existing resource with new data.
@@ -240,12 +245,24 @@ func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apper
 		return ErrObjectNotFound
 	}
 
-	rm, err := NewResourceManager(ctx, rsrcJSON, m)
-	if err != nil {
-		return err
+	if h.req.ObjectProperty == types.ResourcePropertyDefinition {
+		rm, err := NewResourceManager(ctx, rsrcJSON, m)
+		if err != nil {
+			return err
+		}
+		return rm.Save(ctx)
+	} else if h.req.ObjectProperty == types.ResourcePropertyValue {
+		val := types.NullableAny{}
+		if err := json.Unmarshal(rsrcJSON, &val); err != nil {
+			return ErrInvalidResourceValue
+		}
+		if err := existing.SetValue(ctx, val); err != nil {
+			return err
+		}
+		return existing.Save(ctx)
 	}
 
-	return rm.Save(ctx)
+	return ErrDisallowedByPolicy
 }
 
 // Delete removes a resource from storage.

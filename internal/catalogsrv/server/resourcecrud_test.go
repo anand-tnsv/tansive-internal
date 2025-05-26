@@ -376,3 +376,163 @@ func TestResourceList(t *testing.T) {
 	// All resources should be present
 	assert.Len(t, result, 3)
 }
+
+func TestResourceValue(t *testing.T) {
+	ctx := newDb()
+	t.Cleanup(func() {
+		db.DB(ctx).Close(ctx)
+	})
+
+	tenantID := types.TenantId("TABCDE")
+	projectID := types.ProjectId("PABCDE")
+
+	config.Config().DefaultProjectID = string(projectID)
+	config.Config().DefaultTenantID = string(tenantID)
+
+	// Set the tenant ID and project ID in the context
+	ctx = common.SetTenantIdInContext(ctx, tenantID)
+	ctx = common.SetProjectIdInContext(ctx, projectID)
+
+	// Create the tenant for testing
+	err := db.DB(ctx).CreateTenant(ctx, tenantID)
+	assert.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.DB(ctx).DeleteTenant(ctx, tenantID)
+	})
+
+	// Create the project for testing
+	err = db.DB(ctx).CreateProject(ctx, projectID)
+	assert.NoError(t, err)
+	defer db.DB(ctx).DeleteProject(ctx, projectID)
+
+	testContext := TestContext{
+		TenantId:       tenantID,
+		ProjectId:      projectID,
+		CatalogContext: common.CatalogContext{},
+	}
+
+	// Create a catalog
+	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
+	req := `
+		{
+			"version": "v1",
+			"kind": "Catalog",
+			"metadata": {
+				"name": "value-catalog",
+				"description": "Catalog for resource value test"
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	response := executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusCreated, response.Code)
+	testContext.CatalogContext.Catalog = "value-catalog"
+
+	// Create a variant
+	httpReq, _ = http.NewRequest("POST", "/variants", nil)
+	req = `
+		{
+			"version": "v1",
+			"kind": "Variant",
+			"metadata": {
+				"name": "value-variant",
+				"description": "Variant for resource value test"
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusCreated, response.Code)
+	testContext.CatalogContext.Variant = "value-variant"
+
+	// Create a resource
+	httpReq, _ = http.NewRequest("POST", "/resources", nil)
+	req = `
+		{
+			"version": "v1",
+			"kind": "Resource",
+			"metadata": {
+				"name": "value-resource",
+				"catalog": "value-catalog",
+				"variant": "value-variant",
+				"namespace": "",
+				"path": "/",
+				"description": "Resource for value test"
+			},
+			"spec": {
+				"schema": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
+						},
+						"value": {
+							"type": "integer"
+						}
+					}
+				},
+				"value": {
+					"name": "initial-value",
+					"value": 42
+				},
+				"annotations": null,
+				"policy": ""
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusCreated, response.Code)
+
+	// Get the resource value
+	httpReq, _ = http.NewRequest("GET", "/resources/value-resource", nil)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusOK, response.Code)
+
+	var valueResponse map[string]interface{}
+	err = json.Unmarshal(response.Body.Bytes(), &valueResponse)
+	assert.NoError(t, err)
+	assert.Equal(t, "initial-value", valueResponse["name"])
+	assert.Equal(t, float64(42), valueResponse["value"])
+
+	// Update the resource value
+	updateValue := `
+		{
+			"name": "updated-value",
+			"value": 100
+		}`
+	httpReq, _ = http.NewRequest("PUT", "/resources/value-resource", nil)
+	setRequestBodyAndHeader(t, httpReq, updateValue)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusOK, response.Code)
+
+	// Get the updated resource value
+	httpReq, _ = http.NewRequest("GET", "/resources/value-resource", nil)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusOK, response.Code)
+
+	err = json.Unmarshal(response.Body.Bytes(), &valueResponse)
+	assert.NoError(t, err)
+	assert.Equal(t, "updated-value", valueResponse["name"])
+	assert.Equal(t, float64(100), valueResponse["value"])
+
+	// Try to update with invalid value (should fail schema validation)
+	invalidValue := `
+		{
+			"name": "invalid-value",
+			"value": "not-a-number"
+		}`
+	httpReq, _ = http.NewRequest("PUT", "/resources/value-resource", nil)
+	setRequestBodyAndHeader(t, httpReq, invalidValue)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusBadRequest, response.Code)
+
+	// Try to get non-existent resource value
+	httpReq, _ = http.NewRequest("GET", "/resources/non-existent-resource", nil)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusNotFound, response.Code)
+
+	// Try to update non-existent resource value
+	httpReq, _ = http.NewRequest("PUT", "/resources/non-existent-resource", nil)
+	setRequestBodyAndHeader(t, httpReq, updateValue)
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	assert.Equal(t, http.StatusNotFound, response.Code)
+}

@@ -175,6 +175,11 @@ func CatalogObjectTypeFromKind(k string) CatalogObjectType {
 	}
 }
 
+const (
+	ResourcePropertyDefinition = "definition"
+	ResourcePropertyValue      = "value"
+)
+
 type Nullable interface {
 	IsNil() bool
 }

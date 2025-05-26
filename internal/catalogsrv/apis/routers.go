@@ -136,6 +136,18 @@ var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 		PolicyAction: types.ActionResourceRead,
 	},
 	{
+		Method:       http.MethodGet,
+		Path:         "/resources/{resourceValue:.+}",
+		Handler:      getObject,
+		PolicyAction: types.ActionResourceGet,
+	},
+	{
+		Method:       http.MethodPut,
+		Path:         "/resources/{resourceValue:.+}",
+		Handler:      updateObject,
+		PolicyAction: types.ActionResourcePut,
+	},
+	{
 		Method:       http.MethodPut,
 		Path:         "/resources/{resourcePath:.+}/definition",
 		Handler:      updateObject,

@@ -24,6 +24,7 @@ type RequestContext struct {
 	ObjectName     string
 	ObjectType     types.CatalogObjectType
 	ObjectPath     string
+	ObjectProperty string
 	QueryParams    url.Values
 }
 

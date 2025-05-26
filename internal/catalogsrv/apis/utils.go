@@ -22,6 +22,7 @@ func getRequestContext(r *http.Request) (catalogmanager.RequestContext, error) {
 	namespace := chi.URLParam(r, "namespaceName")
 	viewName := chi.URLParam(r, "viewName")
 	resourcePath := chi.URLParam(r, "resourcePath")
+	resourceValue := chi.URLParam(r, "resourceValue")
 
 	n := catalogmanager.RequestContext{}
 	catalogContext := common.CatalogContextFromContext(ctx)
@@ -58,6 +59,21 @@ func getRequestContext(r *http.Request) (catalogmanager.RequestContext, error) {
 		}
 		n.ObjectPath = path.Clean("/" + n.ObjectPath)
 		n.ObjectType = types.CatalogObjectTypeResource
+		n.ObjectProperty = types.ResourcePropertyDefinition
+	}
+
+	if resourceValue != "" {
+		n.ObjectName = path.Base(resourceValue)
+		if n.ObjectName == "/" || n.ObjectName == "." {
+			n.ObjectName = ""
+		}
+		n.ObjectPath = path.Dir(resourceValue)
+		if n.ObjectPath == "." {
+			n.ObjectPath = "/"
+		}
+		n.ObjectPath = path.Clean("/" + n.ObjectPath)
+		n.ObjectType = types.CatalogObjectTypeResource
+		n.ObjectProperty = types.ResourcePropertyValue
 	}
 
 	n.QueryParams = r.URL.Query()
@@ -93,6 +109,9 @@ func getUUIDOrName(ref string) (string, uuid.UUID) {
 func validateRequest(reqJSON []byte, kind string) error {
 	if !gjson.ValidBytes(reqJSON) {
 		return httpx.ErrInvalidRequest("unable to parse request")
+	}
+	if kind == types.ResourceKind {
+		return nil
 	}
 	result := gjson.GetBytes(reqJSON, "kind")
 	if !result.Exists() {
