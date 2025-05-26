@@ -32,7 +32,7 @@ type PolicyRequest struct {
 // Returns:
 //   - apperrors.Error: Returns nil if the action is allowed, or an error if the action is not permitted
 func ValidateViewPolicy(ctx context.Context, req PolicyRequest) apperrors.Error {
-	vd := MorphViewDefinition(req.ViewDefinition)
+	vd := CanonicalizeViewDefinition(req.ViewDefinition)
 	if vd == nil || vd.Rules == nil {
 		return ErrInvalidView.Msg("invalid view definition")
 	}

@@ -1,18 +1,102 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
+type testSetup struct {
+	ctx       context.Context
+	tenantID  types.TenantId
+	projectID types.ProjectId
+}
+
 func TestAdoptView(t *testing.T) {
+	_ = setupTest(t)
+
+	// Try to get Catalog without token
+	httpReq, _ := http.NewRequest("GET", "/catalogs/test-catalog", nil)
+	response := executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusUnauthorized, response.Code)
+
+	// Test successful adoption of default view
+	token := adoptDefaultView(t, "test-catalog")
+
+	// Try to get Catalog with adopted token
+	httpReq, _ = http.NewRequest("GET", "/catalogs/test-catalog", nil)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	// Setup test objects with the adopted token
+	setupObjects(t, token)
+
+	// Adopt the read-only view
+	readOnlyToken := adoptView(t, "test-catalog", "read-only-view", token)
+
+	// Try to get resource1 with read-only view token
+	httpReq, _ = http.NewRequest("GET", "/resources/resource1", nil)
+	httpReq.Header.Set("Authorization", "Bearer "+readOnlyToken)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	// Try to update resource1 with read-only view token - should fail
+	httpReq, _ = http.NewRequest("PUT", "/resources/resource1", nil)
+	req := `
+		{
+			"name": "resource1",
+			"value": 100
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+readOnlyToken)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusForbidden, response.Code)
+
+	// Adopt the read-write view
+	readWriteToken := adoptView(t, "test-catalog", "read-write-view", token)
+
+	// Try to get resource1 with read-write view token
+	httpReq, _ = http.NewRequest("GET", "/resources/resource1", nil)
+	httpReq.Header.Set("Authorization", "Bearer "+readWriteToken)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	// Try to update resource1 with read-write view token - should succeed
+	httpReq, _ = http.NewRequest("PUT", "/resources/resource1", nil)
+	req = `
+		{
+			"name": "resource1",
+			"value": 200
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+readWriteToken)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	// Verify the update was successful
+	httpReq, _ = http.NewRequest("GET", "/resources/resource1", nil)
+	httpReq.Header.Set("Authorization", "Bearer "+readWriteToken)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	var resourceResponse struct {
+		Name  string `json:"name"`
+		Value int    `json:"value"`
+	}
+	err := json.Unmarshal(response.Body.Bytes(), &resourceResponse)
+	require.NoError(t, err)
+	require.Equal(t, 200, resourceResponse.Value)
+}
+
+func setupTest(t *testing.T) *testSetup {
 	ctx := newDb()
 	t.Cleanup(func() {
 		db.DB(ctx).Close(ctx)
@@ -30,21 +114,14 @@ func TestAdoptView(t *testing.T) {
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.DB(ctx).DeleteTenant(ctx, tenantID)
 	})
 
 	// Create the project for testing
 	err = db.DB(ctx).CreateProject(ctx, projectID)
-	assert.NoError(t, err)
-	defer db.DB(ctx).DeleteProject(ctx, projectID)
-
-	testContext := TestContext{
-		TenantId:       tenantID,
-		ProjectId:      projectID,
-		CatalogContext: common.CatalogContext{},
-	}
+	require.NoError(t, err)
 
 	// Create a catalog
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
@@ -59,98 +136,203 @@ func TestAdoptView(t *testing.T) {
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
 	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
-	response := executeTestRequest(t, httpReq, nil, testContext)
-	assert.Equal(t, http.StatusCreated, response.Code)
-	testContext.CatalogContext.Catalog = "test-catalog"
+	response := executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusCreated, response.Code)
 
-	// Create target view
+	return &testSetup{
+		ctx:       ctx,
+		tenantID:  tenantID,
+		projectID: projectID,
+	}
+}
+
+func setupObjects(t *testing.T, token string) {
+	// Create a variant
+	httpReq, _ := http.NewRequest("POST", "/variants", nil)
+	req := `
+		{
+			"version": "v1",
+			"kind": "Variant",
+			"metadata": {
+				"name": "test-variant",
+				"description": "Test variant"
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	response := executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusCreated, response.Code)
+
+	// Create two resources
+	httpReq, _ = http.NewRequest("POST", "/resources", nil)
+	req = `
+		{
+			"version": "v1",
+			"kind": "Resource",
+			"metadata": {
+				"name": "resource1",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"namespace": "",
+				"path": "/",
+				"description": "First test resource"
+			},
+			"spec": {
+				"schema": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
+						},
+						"value": {
+							"type": "integer"
+						}
+					}
+				},
+				"value": {
+					"name": "resource1",
+					"value": 42
+				},
+				"annotations": null,
+				"policy": ""
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusCreated, response.Code)
+
+	httpReq, _ = http.NewRequest("POST", "/resources", nil)
+	req = `
+		{
+			"version": "v1",
+			"kind": "Resource",
+			"metadata": {
+				"name": "resource2",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"namespace": "",
+				"path": "/",
+				"description": "Second test resource"
+			},
+			"spec": {
+				"schema": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
+						},
+						"value": {
+							"type": "integer"
+						}
+					}
+				},
+				"value": {
+					"name": "resource2",
+					"value": 100
+				},
+				"annotations": null,
+				"policy": ""
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusCreated, response.Code)
+
+	// Create first view with resource.get permission
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
 	req = `
 		{
 			"version": "v1",
 			"kind": "View",
 			"metadata": {
-				"name": "target-view",
+				"name": "read-only-view",
 				"catalog": "test-catalog",
-				"description": "Target view for adoption"
+				"description": "View with read-only access"
 			},
 			"spec": {
 				"definition": {
 					"scope": {
-						"catalog": "test-catalog"
+						"catalog": "test-catalog",
+						"variant": "test-variant"
 					},
 					"rules": [{
 						"intent": "Allow",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/test-catalog"]
+						"actions": ["resource.get"],
+						"targets": ["res://resources/*"]
 					}]
 				}
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	response = executeTestRequest(t, httpReq, nil, testContext)
-	assert.Equal(t, http.StatusCreated, response.Code)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusCreated, response.Code)
 
-	// Set up the current view context
-	// sourceViewDef := &catalogmanager.ViewDefinition{
-	// 	Scope: catalogmanager.Scope{
-	// 		Catalog: "test-catalog",
-	// 	},
-	// 	Rules: []catalogmanager.Rule{
-	// 		{
-	// 			Intent: catalogmanager.IntentAllow,
-	// 			Actions: []catalogmanager.Action{
-	// 				catalogmanager.ActionCatalogList,
-	// 			},
-	// 			Targets: []catalogmanager.TargetResource{
-	// 				"res://catalogs/test-catalog",
-	// 			},
-	// 		},
-	// 	},
-	// }
-	//testContext.CatalogContext.ViewDefinition = sourceViewDef
-
-	// Try to get Catalog
-	httpReq, _ = http.NewRequest("GET", "/catalogs/test-catalog", nil)
+	// Create second view with resource.get and resource.put permissions
+	httpReq, _ = http.NewRequest("POST", "/views", nil)
+	req = `
+		{
+			"version": "v1",
+			"kind": "View",
+			"metadata": {
+				"name": "read-write-view",
+				"catalog": "test-catalog",
+				"description": "View with read and write access"
+			},
+			"spec": {
+				"definition": {
+					"scope": {
+						"catalog": "test-catalog",
+						"variant": "test-variant"
+					},
+					"rules": [{
+						"intent": "Allow",
+						"actions": ["resource.get", "resource.put"],
+						"targets": ["res://resources/*"]
+					}]
+				}
+			}
+		}`
 	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
 	response = executeTestRequest(t, httpReq, nil)
-	assert.Equal(t, http.StatusUnauthorized, response.Code)
+	require.Equal(t, http.StatusCreated, response.Code)
+}
 
-	// Test successful adoption
-	httpReq, _ = http.NewRequest("POST", "/auth/adopt-default-view/test-catalog", nil)
-	// set bearer token
+func adoptDefaultView(t *testing.T, catalog string) string {
+	httpReq, _ := http.NewRequest("POST", "/auth/adopt-default-view/"+catalog, nil)
 	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
-	response = executeTestRequest(t, httpReq, nil)
-	assert.Equal(t, http.StatusOK, response.Code)
+	response := executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
 
 	var adoptResponse struct {
 		Token     string `json:"token"`
 		ExpiresAt string `json:"expires_at"`
 	}
-	err = json.Unmarshal(response.Body.Bytes(), &adoptResponse)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, adoptResponse.Token)
-	assert.NotEmpty(t, adoptResponse.ExpiresAt)
+	err := json.Unmarshal(response.Body.Bytes(), &adoptResponse)
+	require.NoError(t, err)
+	require.NotEmpty(t, adoptResponse.Token)
+	require.NotEmpty(t, adoptResponse.ExpiresAt)
 
-	// Try to get Catalog
-	httpReq, _ = http.NewRequest("GET", "/catalogs/test-catalog", nil)
-	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+adoptResponse.Token)
-	response = executeTestRequest(t, httpReq, nil, testContext)
-	assert.Equal(t, http.StatusOK, response.Code)
+	return adoptResponse.Token
+}
 
-	// // Test invalid catalog
-	// httpReq, _ = http.NewRequest("POST", "/catalogs/invalid-catalog/views/target-view/adopt", nil)
-	// response = executeTestRequest(t, httpReq, nil, testContext)
-	// assert.Equal(t, http.StatusBadRequest, response.Code)
+func adoptView(t *testing.T, catalog, viewLabel, token string) string {
+	httpReq, _ := http.NewRequest("POST", "/auth/adopt-view/"+catalog+"/"+viewLabel, nil)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	response := executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
 
-	// // Test invalid view
-	// httpReq, _ = http.NewRequest("POST", "/catalogs/test-catalog/views/invalid-view/adopt", nil)
-	// response = executeTestRequest(t, httpReq, nil, testContext)
-	// assert.Equal(t, http.StatusBadRequest, response.Code)
+	var adoptResponse struct {
+		Token     string `json:"token"`
+		ExpiresAt string `json:"expires_at"`
+	}
+	err := json.Unmarshal(response.Body.Bytes(), &adoptResponse)
+	require.NoError(t, err)
+	require.NotEmpty(t, adoptResponse.Token)
+	require.NotEmpty(t, adoptResponse.ExpiresAt)
 
-	// // Test view from different catalog
-	// httpReq, _ = http.NewRequest("POST", "/catalogs/other-catalog/views/target-view/adopt", nil)
-	// response = executeTestRequest(t, httpReq, nil, testContext)
-	// assert.Equal(t, http.StatusBadRequest, response.Code)
+	return adoptResponse.Token
 }

@@ -1,8 +1,6 @@
 package apis
 
 import (
-	"bytes"
-	"io"
 	"net/http"
 	"strings"
 
@@ -173,6 +171,7 @@ func Router(r chi.Router) chi.Router {
 			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
 		}
 	})
+
 	//Load the group that needs session validation and catalog context
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.LoadContext)
@@ -234,64 +233,40 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler {
 	return func(r *http.Request) (*httpx.Response, error) {
 		ctx := r.Context()
+
+		//Get allowed actions from Context. This is set from the token by validation middleware
 		c := common.CatalogContextFromContext(ctx)
 		if c == nil {
 			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
 		}
-		ourViewDef := c.ViewDefinition
-		if ourViewDef == nil {
+		authorizedViewDef := catalogmanager.CanonicalizeViewDefinition(c.ViewDefinition)
+		if authorizedViewDef == nil {
 			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
 		}
-		resourceName := getResourceNameFromPath(r)
+
 		// Build the metadata path
 		targetScope := types.Scope{
 			Catalog:   c.Catalog,
 			Variant:   c.Variant,
 			Namespace: c.Namespace,
 		}
-		targetResource := catalogmanager.MorphResource(targetScope, types.TargetResource("res://"+strings.TrimPrefix(r.URL.Path, "/")))
-		if !strings.HasSuffix(string(targetResource), r.URL.Path) {
-			return nil, httpx.ErrApplicationError("unable to validate policy for resource")
-		}
-		s := strings.Builder{}
-		s.WriteString("res://")
-		if c.Catalog != "" && resourceName != types.ResourceNameCatalogs {
-			s.WriteString(types.ResourceNameCatalogs + "/" + c.Catalog)
-		}
-		if c.Variant != "" && resourceName != types.ResourceNameVariants {
-			s.WriteString("/" + types.ResourceNameVariants + "/" + c.Variant)
-		}
-		if c.Namespace != "" && resourceName != types.ResourceNameNamespaces {
-			s.WriteString("/" + types.ResourceNameNamespaces + "/" + c.Namespace)
-		}
-		metadata := s.String()
-
-		// Build the policy request
-		policyRequest := catalogmanager.PolicyRequest{
-			ViewDefinition: ourViewDef,
-			Metadata:       metadata,
-			ResourceName:   resourceName,
-			Action:         handler.PolicyAction,
-			Target:         targetResource,
-			Params:         r.URL.Query(),
+		targetResource := catalogmanager.CanonicalizeResourcePath(targetScope, types.TargetResource("res://"+strings.TrimPrefix(r.URL.Path, "/")))
+		if targetResource == "" {
+			return nil, httpx.ErrApplicationError("unable to canonicalize resource path")
 		}
 
-		if policyRequest.ResourceName == types.ResourceNameCollections && handler.PolicyAction == types.ActionResourceCreate {
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				return nil, httpx.ErrUnableToReadRequest()
-			}
-			// Create a new reader for downstream handlers
-			r.Body = io.NopCloser(bytes.NewReader(body))
-			policyRequest.ResourceJSON = body
+		resourceName := getResourceNameFromPath(r)
+		// For resources, policies are applied to the resource path
+		if resourceName == types.ResourceNameResources {
+			targetResource = types.TargetResource(strings.TrimSuffix(string(targetResource), "/definition"))
 		}
 
-		// Validate the policy
-		err := catalogmanager.ValidateViewPolicy(ctx, policyRequest)
-		if err != nil {
-			return nil, err
+		// Validate against the policy
+		if !authorizedViewDef.Rules.IsActionAllowed(handler.PolicyAction, targetResource) {
+			return nil, ErrBlockedByPolicy
 		}
 
+		// If we get here, we are good to go, so call the handler
 		return handler.Handler(r)
 	}
 }

@@ -56,7 +56,7 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 
 	token, tokenExpiry, err := catalogmanager.CreateToken(ctx, wantView, catalogmanager.WithParentViewDefinition(ourViewDef))
 	if err != nil {
-		return nil, httpx.ErrInvalidView()
+		return nil, err
 	}
 
 	rsp := &httpx.Response{
@@ -133,7 +133,7 @@ func getDefaultUserViewDefInCatalog(ctx context.Context, catalogID uuid.UUID) (*
 	if userContext.UserID == "" {
 		return nil, httpx.ErrUnAuthorized()
 	}
-
+	// Currently in single user mode, return admin view
 	v, err := db.DB(ctx).GetViewByLabel(ctx, types.DefaultAdminViewLabel, catalogID)
 	if err != nil {
 		return nil, httpx.ErrUnableToServeRequest()

@@ -56,13 +56,13 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 		}
 		for _, rule := range v.Spec.Definition.Rules {
 			if len(rule.Targets) == 0 {
-				m := MorphResource(v.Spec.Definition.Scope, "")
+				m := CanonicalizeResourcePath(v.Spec.Definition.Scope, "")
 				if m == "" || schemavalidator.V().Var(m, "resourceURIValidator") != nil {
 					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI("null"))
 				}
 			}
 			for _, res := range rule.Targets {
-				m := MorphResource(v.Spec.Definition.Scope, res)
+				m := CanonicalizeResourcePath(v.Spec.Definition.Scope, res)
 				if m == "" || schemavalidator.V().Var(m, "resourceURIValidator") != nil {
 					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI(string(res)))
 				}
@@ -438,9 +438,8 @@ func ValidateDerivedView(ctx context.Context, parent *types.ViewDefinition, chil
 		return ErrInvalidView
 	}
 
-	if !parent.Scope.Equals(child.Scope) {
-		return ErrInvalidView.New("derived view scope must match parent view scope")
-	}
+	parent = CanonicalizeViewDefinition(parent)
+	child = CanonicalizeViewDefinition(child)
 
 	if !child.Rules.IsSubsetOf(parent.Rules) {
 		return ErrInvalidView.New("derived view rules must be a subset of parent view rules")
@@ -449,10 +448,10 @@ func ValidateDerivedView(ctx context.Context, parent *types.ViewDefinition, chil
 	return nil
 }
 
-// MorphResource transforms a resource string based on the provided scope.
+// CanonicalizeResourcePath transforms a resource string based on the provided scope.
 // It handles the conversion of resource paths and ensures proper formatting
 // of catalog, variant, workspace, and namespace components.
-func MorphResource(scope types.Scope, resource types.TargetResource) types.TargetResource {
+func CanonicalizeResourcePath(scope types.Scope, resource types.TargetResource) types.TargetResource {
 	segments, resourceName, err := extractSegmentsAndResourceName(resource)
 	if err != nil && len(resource) > 0 {
 		return ""
@@ -517,7 +516,8 @@ func MorphResource(scope types.Scope, resource types.TargetResource) types.Targe
 		s.WriteString("/" + path)
 	}
 
-	return types.TargetResource("res://" + s.String())
+	canonicalized := types.TargetResource("res://" + s.String())
+	return canonicalized
 }
 
 // morphMetadata processes a single metadata field based on scope name and resource type.
@@ -539,14 +539,14 @@ func morphMetadata(scopeName string, pos int, resourceType string, resourceMetad
 	return m
 }
 
-// morph all targets in the view definition to its scope
-func MorphViewDefinition(vd *types.ViewDefinition) *types.ViewDefinition {
+// CanonicalizeViewDefinition canonicalizes all targets in the view definition to its scope
+func CanonicalizeViewDefinition(vd *types.ViewDefinition) *types.ViewDefinition {
 	if vd == nil {
 		return nil
 	}
 	for i, rule := range vd.Rules {
 		for j, target := range rule.Targets {
-			vd.Rules[i].Targets[j] = types.TargetResource(MorphResource(vd.Scope, target))
+			vd.Rules[i].Targets[j] = types.TargetResource(CanonicalizeResourcePath(vd.Scope, target))
 		}
 	}
 	return vd

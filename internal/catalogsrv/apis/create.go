@@ -11,29 +11,29 @@ import (
 )
 
 // createObject creates a new resource object
-func createObject(req *http.Request) (*httpx.Response, error) {
-	ctx := req.Context()
+func createObject(r *http.Request) (*httpx.Response, error) {
+	ctx := r.Context()
 
-	if req.Body == nil {
+	if r.Body == nil {
 		return nil, httpx.ErrInvalidRequest("request body is required")
 	}
 
-	body, err := io.ReadAll(req.Body)
+	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, httpx.ErrUnableToReadRequest()
 	}
 
-	reqContext, err := getRequestContext(req)
+	reqContext, err := hydrateRequestContext(r, req)
 	if err != nil {
 		return nil, err
 	}
 
-	kind := getResourceKind(req)
+	kind := getResourceKind(r)
 	if kind == types.InvalidKind {
 		return nil, httpx.ErrInvalidRequest("invalid resource kind")
 	}
 
-	if err := validateRequest(body, kind); err != nil {
+	if err := validateRequest(req, kind); err != nil {
 		return nil, err
 	}
 
@@ -42,7 +42,7 @@ func createObject(req *http.Request) (*httpx.Response, error) {
 		return nil, err
 	}
 
-	resourceLoc, err := manager.Create(ctx, body)
+	resourceLoc, err := manager.Create(ctx, req)
 	if err != nil {
 		if errors.Is(err, catalogmanager.ErrInvalidVariant) {
 			return nil, httpx.ErrInvalidVariant()

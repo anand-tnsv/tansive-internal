@@ -1795,7 +1795,7 @@ func TestMorphViewDefinition(t *testing.T) {
 	err := json.Unmarshal([]byte(vdjson), &vd)
 	require.NoError(t, err)
 
-	vd = MorphViewDefinition(vd)
+	vd = CanonicalizeViewDefinition(vd)
 	assert.Equal(t, &types.ViewDefinition{
 		Scope: types.Scope{
 			Catalog: "validcatalog",

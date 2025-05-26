@@ -67,6 +67,9 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 	// get parent view from database
 	if options.parentView != nil {
 		parentViewDef = options.parentView
+		if parentViewDef == nil {
+			return "", tokenExpiry, ErrUnableToCreateView
+		}
 	} else {
 		var p *models.View
 		var err apperrors.Error

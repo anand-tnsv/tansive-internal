@@ -11,7 +11,7 @@ import (
 func deleteObject(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()
 
-	reqContext, err := getRequestContext(r)
+	reqContext, err := hydrateRequestContext(r, nil)
 	if err != nil {
 		return nil, err
 	}

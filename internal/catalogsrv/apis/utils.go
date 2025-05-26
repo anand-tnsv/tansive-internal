@@ -14,7 +14,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func getRequestContext(r *http.Request) (catalogmanager.RequestContext, error) {
+func hydrateRequestContext(r *http.Request, body []byte) (catalogmanager.RequestContext, error) {
 	ctx := r.Context()
 
 	catalogName := chi.URLParam(r, "catalogName")
@@ -43,6 +43,8 @@ func getRequestContext(r *http.Request) (catalogmanager.RequestContext, error) {
 	} else if catalogContext != nil {
 		n.Namespace = catalogContext.Namespace
 	}
+
+	hydrateObjectMetadata(&n, body)
 
 	if viewName != "" {
 		n.ObjectName = viewName
@@ -121,4 +123,35 @@ func validateRequest(reqJSON []byte, kind string) error {
 		return httpx.ErrInvalidRequest("invalid kind")
 	}
 	return nil
+}
+
+func hydrateObjectMetadata(n *catalogmanager.RequestContext, body []byte) {
+	result := gjson.GetBytes(body, "metadata")
+	if !result.Exists() {
+		return
+	}
+	val := result.Value()
+
+	metadata, ok := val.(map[string]interface{})
+	if !ok {
+		return
+	}
+	if n.Catalog == "" && n.CatalogID == uuid.Nil {
+		catalog, ok := metadata["catalog"].(string)
+		if ok {
+			n.Catalog = catalog
+		}
+	}
+	if n.Variant == "" && n.VariantID == uuid.Nil {
+		variant, ok := metadata["variant"].(string)
+		if ok {
+			n.Variant = variant
+		}
+	}
+	if n.Namespace == "" {
+		namespace, ok := metadata["namespace"].(string)
+		if ok {
+			n.Namespace = namespace
+		}
+	}
 }

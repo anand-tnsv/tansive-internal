@@ -14,7 +14,15 @@ func updateObject(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()
 	var kind string
 
-	reqContext, err := getRequestContext(r)
+	if r.Body == nil {
+		return nil, httpx.ErrInvalidRequest()
+	}
+	req, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, httpx.ErrUnableToReadRequest()
+	}
+
+	reqContext, err := hydrateRequestContext(r, req)
 	if err != nil {
 		return nil, err
 	}
@@ -23,13 +31,6 @@ func updateObject(r *http.Request) (*httpx.Response, error) {
 		return nil, httpx.ErrInvalidRequest()
 	}
 
-	if r.Body == nil {
-		return nil, httpx.ErrInvalidRequest()
-	}
-	req, err := io.ReadAll(r.Body)
-	if err != nil {
-		return nil, httpx.ErrUnableToReadRequest()
-	}
 	if err := validateRequest(req, kind); err != nil {
 		return nil, err
 	}

@@ -42,6 +42,11 @@ func UserSessionValidator(next http.Handler) http.Handler {
 				return
 			}
 		}
+
+		if config.Config().SingleUserMode {
+			ctx = common.SetProjectIdInContext(ctx, types.ProjectId(config.Config().DefaultProjectID))
+		}
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

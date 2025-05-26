@@ -49,7 +49,7 @@ var (
 	ErrUnableToParseTokenDuration             apperrors.Error = ErrCatalogError.New("unable to parse token duration").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToGenerateToken                  apperrors.Error = ErrCatalogError.New("unable to generate token").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToCreateView                     apperrors.Error = ErrCatalogError.New("unable to create view").SetStatusCode(http.StatusInternalServerError)
-	ErrDisallowedByPolicy                     apperrors.Error = ErrCatalogError.New("disallowed by policy").SetStatusCode(http.StatusForbidden)
+	ErrDisallowedByPolicy                     apperrors.Error = ErrCatalogError.New("not allowed by policy").SetStatusCode(http.StatusForbidden)
 	ErrInvalidResourceValue                   apperrors.Error = ErrCatalogError.New("invalid resource value").SetStatusCode(http.StatusBadRequest)
 	ErrResourceGroupNotFound                  apperrors.Error = ErrCatalogError.New("resource group not found").SetStatusCode(http.StatusNotFound)
 	ErrInvalidResourceDefinition              apperrors.Error = ErrCatalogError.New("invalid resource definition").SetStatusCode(http.StatusBadRequest)
