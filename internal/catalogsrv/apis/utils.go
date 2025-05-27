@@ -10,7 +10,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
-	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
 )
 
@@ -47,8 +46,8 @@ func hydrateRequestContext(r *http.Request) (catalogmanager.RequestContext, erro
 			n.ObjectPath = "/"
 		}
 		n.ObjectPath = path.Clean("/" + n.ObjectPath)
-		n.ObjectType = types.CatalogObjectTypeResource
-		n.ObjectProperty = types.ResourcePropertyDefinition
+		n.ObjectType = catcommon.CatalogObjectTypeResource
+		n.ObjectProperty = catcommon.ResourcePropertyDefinition
 	}
 
 	if resourceValue != "" {
@@ -61,8 +60,8 @@ func hydrateRequestContext(r *http.Request) (catalogmanager.RequestContext, erro
 			n.ObjectPath = "/"
 		}
 		n.ObjectPath = path.Clean("/" + n.ObjectPath)
-		n.ObjectType = types.CatalogObjectTypeResource
-		n.ObjectProperty = types.ResourcePropertyValue
+		n.ObjectType = catcommon.CatalogObjectTypeResource
+		n.ObjectProperty = catcommon.ResourcePropertyValue
 	}
 
 	n.QueryParams = r.URL.Query()
@@ -71,7 +70,7 @@ func hydrateRequestContext(r *http.Request) (catalogmanager.RequestContext, erro
 }
 
 func getResourceKind(r *http.Request) string {
-	return types.KindFromResourceName(getResourceNameFromPath(r))
+	return catcommon.KindFromResourceName(getResourceNameFromPath(r))
 }
 
 func getResourceNameFromPath(r *http.Request) string {
@@ -88,7 +87,7 @@ func validateRequest(reqJSON []byte, kind string) error {
 	if !gjson.ValidBytes(reqJSON) {
 		return httpx.ErrInvalidRequest("unable to parse request")
 	}
-	if kind == types.ResourceKind {
+	if kind == catcommon.ResourceKind {
 		return nil
 	}
 	result := gjson.GetBytes(reqJSON, "kind")

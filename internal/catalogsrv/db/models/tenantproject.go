@@ -3,18 +3,18 @@ package models
 import (
 	"time"
 
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 type Tenant struct {
-	TenantID  types.TenantId
+	TenantID  catcommon.TenantId
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
 type Project struct {
-	ProjectID types.ProjectId
-	TenantID  types.TenantId
+	ProjectID catcommon.ProjectId
+	TenantID  catcommon.TenantId
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

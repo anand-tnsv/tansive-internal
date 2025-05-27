@@ -16,10 +16,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-func (om *objectManager) CreateSchemaDirectory(ctx context.Context, t types.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error {
+func (om *objectManager) CreateSchemaDirectory(ctx context.Context, t catcommon.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -62,7 +61,7 @@ func (om *objectManager) CreateSchemaDirectory(ctx context.Context, t types.Cata
 	return nil
 }
 
-func (om *objectManager) SetDirectory(ctx context.Context, t types.CatalogObjectType, id uuid.UUID, dir []byte) apperrors.Error {
+func (om *objectManager) SetDirectory(ctx context.Context, t catcommon.CatalogObjectType, id uuid.UUID, dir []byte) apperrors.Error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -85,7 +84,7 @@ func (om *objectManager) SetDirectory(ctx context.Context, t types.CatalogObject
 	return nil
 }
 
-func (om *objectManager) GetDirectory(ctx context.Context, t types.CatalogObjectType, id uuid.UUID) ([]byte, apperrors.Error) {
+func (om *objectManager) GetDirectory(ctx context.Context, t catcommon.CatalogObjectType, id uuid.UUID) ([]byte, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
@@ -111,7 +110,7 @@ func (om *objectManager) GetDirectory(ctx context.Context, t types.CatalogObject
 	return dir, nil
 }
 
-func (om *objectManager) createSchemaDirectoryWithTransaction(ctx context.Context, t types.CatalogObjectType, dir *models.SchemaDirectory, tx *sql.Tx) apperrors.Error {
+func (om *objectManager) createSchemaDirectoryWithTransaction(ctx context.Context, t catcommon.CatalogObjectType, dir *models.SchemaDirectory, tx *sql.Tx) apperrors.Error {
 	tableName := getSchemaDirectoryTableName(t)
 	if tableName == "" {
 		return dberror.ErrInvalidInput.Msg("invalid catalog object type")
@@ -140,7 +139,7 @@ func (om *objectManager) createSchemaDirectoryWithTransaction(ctx context.Contex
 	return nil
 }
 
-func (om *objectManager) GetSchemaDirectory(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID) (*models.SchemaDirectory, apperrors.Error) {
+func (om *objectManager) GetSchemaDirectory(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID) (*models.SchemaDirectory, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
@@ -165,7 +164,7 @@ func (om *objectManager) GetSchemaDirectory(ctx context.Context, t types.Catalog
 	return dir, nil
 }
 
-func (om *objectManager) GetObjectRefByPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (*models.ObjectRef, apperrors.Error) {
+func (om *objectManager) GetObjectRefByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (*models.ObjectRef, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
@@ -201,7 +200,7 @@ func (om *objectManager) GetObjectRefByPath(ctx context.Context, t types.Catalog
 	return &obj, nil
 }
 
-func (om *objectManager) LoadObjectByPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (*models.CatalogObject, apperrors.Error) {
+func (om *objectManager) LoadObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (*models.CatalogObject, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
@@ -235,7 +234,7 @@ func (om *objectManager) LoadObjectByPath(ctx context.Context, t types.CatalogOb
 	`
 
 	var hash, version string
-	var objType types.CatalogObjectType
+	var objType catcommon.CatalogObjectType
 	var data []byte
 	err := om.conn().QueryRowContext(ctx, query, path, directoryID, tenantID).Scan(&hash, &objType, &version, &tenantID, &data)
 	if err != nil {
@@ -265,7 +264,7 @@ func (om *objectManager) LoadObjectByPath(ctx context.Context, t types.CatalogOb
 	return catalogObj, nil
 }
 
-func (om *objectManager) AddOrUpdateObjectByPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string, obj models.ObjectRef) apperrors.Error {
+func (om *objectManager) AddOrUpdateObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, obj models.ObjectRef) apperrors.Error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -315,7 +314,7 @@ func (om *objectManager) AddOrUpdateObjectByPath(ctx context.Context, t types.Ca
 	return nil
 }
 
-func (om *objectManager) AddReferencesToObject(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string, references models.References) apperrors.Error {
+func (om *objectManager) AddReferencesToObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, references models.References) apperrors.Error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -382,7 +381,7 @@ func (om *objectManager) AddReferencesToObject(ctx context.Context, t types.Cata
 	return nil
 }
 
-func (om *objectManager) GetAllReferences(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (models.References, apperrors.Error) {
+func (om *objectManager) GetAllReferences(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (models.References, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
@@ -416,7 +415,7 @@ func (om *objectManager) GetAllReferences(ctx context.Context, t types.CatalogOb
 	return references, nil
 }
 
-func (om *objectManager) DeleteReferenceFromObject(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string, refName string) apperrors.Error {
+func (om *objectManager) DeleteReferenceFromObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, refName string) apperrors.Error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -469,8 +468,8 @@ func (om *objectManager) DeleteReferenceFromObject(ctx context.Context, t types.
 	return nil
 }
 
-func (om *objectManager) DeleteObjectByPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (types.Hash, apperrors.Error) {
-	var hash types.Hash = ""
+func (om *objectManager) DeleteObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (catcommon.Hash, apperrors.Error) {
+	var hash catcommon.Hash = ""
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return hash, dberror.ErrMissingTenantID
@@ -502,12 +501,12 @@ func (om *objectManager) DeleteObjectByPath(ctx context.Context, t types.Catalog
 	} else if !result.Valid {
 		return hash, dberror.ErrNotFound.Msg("object not found")
 	}
-	hash = types.Hash(result.String)
+	hash = catcommon.Hash(result.String)
 
 	return hash, nil
 }
 
-func (om *objectManager) UpdateObjectHashForPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string, hash string) apperrors.Error {
+func (om *objectManager) UpdateObjectHashForPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, hash string) apperrors.Error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -551,9 +550,9 @@ func (om *objectManager) DeleteTree(ctx context.Context, directoryIds models.Dir
 
 	var paramDirID, collectionDirID uuid.UUID
 	for _, dirId := range directoryIds {
-		if dirId.Type == types.CatalogObjectTypeCollectionSchema {
+		if dirId.Type == catcommon.CatalogObjectTypeCollectionSchema {
 			collectionDirID = dirId.ID
-		} else if dirId.Type == types.CatalogObjectTypeParameterSchema {
+		} else if dirId.Type == catcommon.CatalogObjectTypeParameterSchema {
 			paramDirID = dirId.ID
 		}
 	}
@@ -605,7 +604,7 @@ func (om *objectManager) DeleteTree(ctx context.Context, directoryIds models.Dir
 		return nil, dberror.ErrDatabase.Err(err)
 	}
 	// define a function to delete paths
-	deletePaths := func(t types.CatalogObjectType, dir models.Directory, path string) ([]string, apperrors.Error) {
+	deletePaths := func(t catcommon.CatalogObjectType, dir models.Directory, path string) ([]string, apperrors.Error) {
 		/*
 			We remove all objects that start with the path
 			We also remove all references that start with the path
@@ -632,7 +631,7 @@ func (om *objectManager) DeleteTree(ctx context.Context, directoryIds models.Dir
 			return nil, dberror.ErrDatabase.Err(err)
 		}
 		var query string
-		if t == types.CatalogObjectTypeCollectionSchema {
+		if t == catcommon.CatalogObjectTypeCollectionSchema {
 			query = `UPDATE collections_directory SET directory = $1 WHERE directory_id = $2 AND tenant_id = $3;`
 			_, err = tx.ExecContext(ctx, query, b, collectionDirID, tenantID)
 		} else {
@@ -648,12 +647,12 @@ func (om *objectManager) DeleteTree(ctx context.Context, directoryIds models.Dir
 
 	// delete the paths
 	var removedObjects []string
-	if objects, err := deletePaths(types.CatalogObjectTypeCollectionSchema, collectionDir, path); err != nil {
+	if objects, err := deletePaths(catcommon.CatalogObjectTypeCollectionSchema, collectionDir, path); err != nil {
 		return nil, err
 	} else {
 		removedObjects = objects
 	}
-	if objects, err := deletePaths(types.CatalogObjectTypeParameterSchema, parameterDir, path); err != nil {
+	if objects, err := deletePaths(catcommon.CatalogObjectTypeParameterSchema, parameterDir, path); err != nil {
 		return nil, err
 	} else {
 		removedObjects = append(removedObjects, objects...)
@@ -693,7 +692,7 @@ func (o *directoryObjDeleteOptions) ApplyOptions(opts ...models.DirectoryObjectD
 }
 
 func (om *objectManager) DeleteObjectWithReferences(ctx context.Context,
-	t types.CatalogObjectType,
+	t catcommon.CatalogObjectType,
 	dirIDs models.DirectoryIDs,
 	delPath string,
 	opts ...models.DirectoryObjectDeleteOptions) (objHash string, errRet apperrors.Error) {
@@ -708,9 +707,9 @@ func (om *objectManager) DeleteObjectWithReferences(ctx context.Context,
 
 	var paramDirID, collectionDirID uuid.UUID
 	for _, dirId := range dirIDs {
-		if dirId.Type == types.CatalogObjectTypeCollectionSchema {
+		if dirId.Type == catcommon.CatalogObjectTypeCollectionSchema {
 			collectionDirID = dirId.ID
-		} else if dirId.Type == types.CatalogObjectTypeParameterSchema {
+		} else if dirId.Type == catcommon.CatalogObjectTypeParameterSchema {
 			paramDirID = dirId.ID
 		}
 	}
@@ -734,12 +733,12 @@ func (om *objectManager) DeleteObjectWithReferences(ctx context.Context,
 		refDirID           uuid.UUID
 		ancestorPath       string
 	)
-	if t == types.CatalogObjectTypeCollectionSchema {
+	if t == catcommon.CatalogObjectTypeCollectionSchema {
 		deleteDirTableName = "collections_directory"
 		deleteDirID = collectionDirID
 		refDirTableName = "parameters_directory"
 		refDirID = paramDirID
-	} else if t == types.CatalogObjectTypeParameterSchema {
+	} else if t == catcommon.CatalogObjectTypeParameterSchema {
 		deleteDirTableName = "parameters_directory"
 		deleteDirID = paramDirID
 		refDirTableName = "collections_directory"
@@ -920,7 +919,7 @@ func (om *objectManager) DeleteObjectWithReferences(ctx context.Context,
 //
 // If no path with the specified targetName is found within or above startPath, the function returns an empty string and nil for the object.
 
-func (om *objectManager) FindClosestObject(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, targetName, startPath string) (string, *models.ObjectRef, apperrors.Error) {
+func (om *objectManager) FindClosestObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, targetName, startPath string) (string, *models.ObjectRef, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return "", nil, dberror.ErrMissingTenantID
@@ -993,7 +992,7 @@ func isParentPath(path, startPath, targetName string) bool {
 	return false
 }
 
-func (om *objectManager) PathExists(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (bool, apperrors.Error) {
+func (om *objectManager) PathExists(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (bool, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return false, dberror.ErrMissingTenantID
@@ -1017,15 +1016,15 @@ func (om *objectManager) PathExists(ctx context.Context, t types.CatalogObjectTy
 	return exists, nil
 }
 
-func getSchemaDirectoryTableName(t types.CatalogObjectType) string {
+func getSchemaDirectoryTableName(t catcommon.CatalogObjectType) string {
 	switch t {
-	case types.CatalogObjectTypeCollectionSchema:
+	case catcommon.CatalogObjectTypeCollectionSchema:
 		return "collections_directory"
-	case types.CatalogObjectTypeParameterSchema:
+	case catcommon.CatalogObjectTypeParameterSchema:
 		return "parameters_directory"
-	case types.CatalogObjectTypeCatalogCollection:
+	case catcommon.CatalogObjectTypeCatalogCollection:
 		return "values_directory"
-	case types.CatalogObjectTypeResource:
+	case catcommon.CatalogObjectTypeResource:
 		return "resource_directory"
 	default:
 		return ""
@@ -1038,7 +1037,7 @@ func isValidPath(path string) bool {
 }
 
 // DeleteNamespaceObjects deletes all objects in a namespace from the schema directory
-func (om *objectManager) DeleteNamespaceObjects(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, namespace string) ([]string, apperrors.Error) {
+func (om *objectManager) DeleteNamespaceObjects(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, namespace string) ([]string, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID

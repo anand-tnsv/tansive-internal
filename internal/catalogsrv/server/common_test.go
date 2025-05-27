@@ -18,8 +18,8 @@ import (
 )
 
 type TestContext struct {
-	TenantId  types.TenantId
-	ProjectId types.ProjectId
+	TenantId  catcommon.TenantId
+	ProjectId catcommon.ProjectId
 	catcommon.CatalogContext
 }
 

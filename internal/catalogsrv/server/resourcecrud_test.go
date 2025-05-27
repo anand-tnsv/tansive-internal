@@ -11,7 +11,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func TestResourceCrud(t *testing.T) {
@@ -20,8 +19,8 @@ func TestResourceCrud(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 
 	config.Config().DefaultProjectID = string(projectID)
 	config.Config().DefaultTenantID = string(tenantID)
@@ -239,8 +238,8 @@ func TestResourceList(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
@@ -383,8 +382,8 @@ func TestResourceValue(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 
 	config.Config().DefaultProjectID = string(projectID)
 	config.Config().DefaultTenantID = string(tenantID)

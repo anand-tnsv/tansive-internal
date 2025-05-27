@@ -8,19 +8,20 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 var validKinds = []string{
-	types.CatalogKind,
-	types.VariantKind,
-	types.NamespaceKind,
-	types.WorkspaceKind,
-	types.ParameterSchemaKind,
-	types.CollectionSchemaKind,
-	types.ResourceKind,
-	types.CollectionKind,
-	types.ViewKind,
+	catcommon.CatalogKind,
+	catcommon.VariantKind,
+	catcommon.NamespaceKind,
+	catcommon.WorkspaceKind,
+	catcommon.ParameterSchemaKind,
+	catcommon.CollectionSchemaKind,
+	catcommon.ResourceKind,
+	catcommon.CollectionKind,
+	catcommon.ViewKind,
 }
 
 // kindValidator checks if the given kind is a valid resource kind.
@@ -101,7 +102,7 @@ func resourcePathValidator(fl validator.FieldLevel) bool {
 		if collection == "" {
 			continue
 		}
-		if n == 0 && collection == types.DefaultNamespace {
+		if n == 0 && collection == catcommon.DefaultNamespace {
 			continue // Skip the first segment if it's the default namespace
 		}
 		// Validate each folder name using the regex
@@ -124,7 +125,7 @@ func workspaceNameValidator(fl validator.FieldLevel) bool {
 
 func requireVersionV1(fl validator.FieldLevel) bool {
 	version := fl.Field().String()
-	return version == types.VersionV1
+	return version == catcommon.VersionV1
 }
 
 func ValidateSchemaName(name string) bool {

@@ -9,7 +9,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func (om *objectManager) UpsertResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error {
@@ -24,7 +23,7 @@ func (om *objectManager) UpsertResource(ctx context.Context, rg *models.Resource
 	}
 
 	err := om.AddOrUpdateObjectByPath(ctx,
-		types.CatalogObjectTypeResource,
+		catcommon.CatalogObjectTypeResource,
 		directoryID,
 		rg.Path,
 		models.ObjectRef{
@@ -48,7 +47,7 @@ func (om *objectManager) GetResource(ctx context.Context, path string, variantID
 		return nil, dberror.ErrInvalidInput.Msg("invalid directory ID")
 	}
 
-	objRef, err := om.GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, directoryID, path)
+	objRef, err := om.GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeResource, directoryID, path)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +70,7 @@ func (om *objectManager) GetResourceObject(ctx context.Context, path string, dir
 		return nil, dberror.ErrInvalidInput.Msg("invalid directory ID")
 	}
 
-	return om.LoadObjectByPath(ctx, types.CatalogObjectTypeResource, directoryID, path)
+	return om.LoadObjectByPath(ctx, catcommon.CatalogObjectTypeResource, directoryID, path)
 }
 
 func (om *objectManager) UpdateResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error {
@@ -84,13 +83,13 @@ func (om *objectManager) UpdateResource(ctx context.Context, rg *models.Resource
 		return dberror.ErrInvalidInput.Msg("invalid directory ID")
 	}
 
-	objRef, err := om.GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, directoryID, rg.Path)
+	objRef, err := om.GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeResource, directoryID, rg.Path)
 	if err != nil {
 		return err
 	}
 	objRef.Hash = rg.Hash
 	err = om.AddOrUpdateObjectByPath(ctx,
-		types.CatalogObjectTypeResource,
+		catcommon.CatalogObjectTypeResource,
 		directoryID,
 		rg.Path,
 		*objRef,
@@ -111,7 +110,7 @@ func (om *objectManager) DeleteResource(ctx context.Context, path string, direct
 		return "", dberror.ErrInvalidInput.Msg("invalid directory ID")
 	}
 
-	deletedHash, err := om.DeleteObjectByPath(ctx, types.CatalogObjectTypeResource, directoryID, path)
+	deletedHash, err := om.DeleteObjectByPath(ctx, catcommon.CatalogObjectTypeResource, directoryID, path)
 	if err != nil {
 		return "", err
 	}
@@ -141,7 +140,7 @@ func (om *objectManager) UpsertResourceObject(ctx context.Context, rg *models.Re
 
 	// Then add/update the directory entry
 	err = om.AddOrUpdateObjectByPath(ctx,
-		types.CatalogObjectTypeResource,
+		catcommon.CatalogObjectTypeResource,
 		directoryID,
 		rg.Path,
 		models.ObjectRef{
@@ -166,7 +165,7 @@ func (om *objectManager) ListResources(ctx context.Context, directoryID uuid.UUI
 	}
 
 	// Get the directory
-	dir, err := om.GetSchemaDirectory(ctx, types.CatalogObjectTypeResource, directoryID)
+	dir, err := om.GetSchemaDirectory(ctx, catcommon.CatalogObjectTypeResource, directoryID)
 	if err != nil {
 		return nil, err
 	}

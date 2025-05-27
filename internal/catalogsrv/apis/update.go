@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // Create a new resource object
@@ -27,7 +27,7 @@ func updateObject(r *http.Request) (*httpx.Response, error) {
 		return nil, err
 	}
 	kind = getResourceKind(r)
-	if kind == types.InvalidKind {
+	if kind == catcommon.InvalidKind {
 		return nil, httpx.ErrInvalidRequest()
 	}
 

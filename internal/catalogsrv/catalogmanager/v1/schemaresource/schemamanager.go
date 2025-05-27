@@ -11,9 +11,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/parameter"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/api/schemastore"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 type V1SchemaManager struct {
@@ -51,9 +51,9 @@ func LoadV1SchemaManager(ctx context.Context, s *schemastore.SchemaStorageRepres
 	rs := &SchemaResource{}
 	rs.Version = s.Version
 	switch s.Type {
-	case types.CatalogObjectTypeParameterSchema:
+	case catcommon.CatalogObjectTypeParameterSchema:
 		rs.Kind = "ParameterSchema"
-	case types.CatalogObjectTypeCollectionSchema:
+	case catcommon.CatalogObjectTypeCollectionSchema:
 		rs.Kind = "CollectionSchema"
 	}
 	rs.Metadata = *m
@@ -110,14 +110,14 @@ func (rm *V1SchemaManager) Kind() string {
 	return rm.resourceSchema.Kind
 }
 
-func (rm *V1SchemaManager) Type() types.CatalogObjectType {
+func (rm *V1SchemaManager) Type() catcommon.CatalogObjectType {
 	switch rm.Kind() {
 	case "ParameterSchema":
-		return types.CatalogObjectTypeParameterSchema
+		return catcommon.CatalogObjectTypeParameterSchema
 	case "CollectionSchema":
-		return types.CatalogObjectTypeCollectionSchema
+		return catcommon.CatalogObjectTypeCollectionSchema
 	default:
-		return types.CatalogObjectTypeInvalid
+		return catcommon.CatalogObjectTypeInvalid
 	}
 }
 func (rm *V1SchemaManager) Metadata() schemamanager.SchemaMetadata {

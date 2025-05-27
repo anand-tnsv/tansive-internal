@@ -8,13 +8,12 @@ import (
 	"os"
 
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/server"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/logtrace"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func init() {
@@ -60,13 +59,13 @@ func main() {
 func createDefaultTenantAndProject() error {
 	ctx := db.ConnCtx(context.Background())
 	defer db.DB(ctx).Close(ctx)
-	if err := db.DB(ctx).CreateTenant(ctx, types.TenantId(config.Config().DefaultTenantID)); err != nil {
+	if err := db.DB(ctx).CreateTenant(ctx, catcommon.TenantId(config.Config().DefaultTenantID)); err != nil {
 		if err != dberror.ErrAlreadyExists {
 			return err
 		}
 	}
-	ctx = catcommon.SetTenantIdInContext(ctx, types.TenantId(config.Config().DefaultTenantID))
-	if err := db.DB(ctx).CreateProject(ctx, types.ProjectId(config.Config().DefaultProjectID)); err != nil {
+	ctx = catcommon.SetTenantIdInContext(ctx, catcommon.TenantId(config.Config().DefaultTenantID))
+	if err := db.DB(ctx).CreateProject(ctx, catcommon.ProjectId(config.Config().DefaultProjectID)); err != nil {
 		if err != dberror.ErrAlreadyExists {
 			return err
 		}

@@ -18,7 +18,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // catalogSchema represents the structure of a catalog definition
@@ -44,7 +43,7 @@ var _ schemamanager.CatalogManager = (*catalogManager)(nil)
 // Validate performs validation on the catalog schema
 func (cs *catalogSchema) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
-	if cs.Kind != types.CatalogKind {
+	if cs.Kind != catcommon.CatalogKind {
 		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
 
@@ -161,8 +160,8 @@ func (cm *catalogManager) Save(ctx context.Context) apperrors.Error {
 // ToJson converts the catalog to its JSON representation
 func (cm *catalogManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) {
 	schema := catalogSchema{
-		Version: types.VersionV1,
-		Kind:    types.CatalogKind,
+		Version: catcommon.VersionV1,
+		Kind:    catcommon.CatalogKind,
 		Metadata: catalogMetadata{
 			Name:        cm.catalog.Name,
 			Description: cm.catalog.Description,

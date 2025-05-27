@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 /*
@@ -35,13 +35,13 @@ Foreign-key constraints:
 */
 
 type Collection struct {
-	CollectionID     uuid.UUID      `db:"collection_id"`
-	Path             string         `db:"path"`
-	Hash             string         `db:"hash"`
-	CollectionSchema string         `db:"collection_schema"`
-	RepoID           uuid.UUID      `db:"repo_id"`
-	VariantID        uuid.UUID      `db:"variant_id"`
-	TenantID         types.TenantId `db:"tenant_id"`
-	CreatedAt        time.Time      `db:"created_at"`
-	UpdatedAt        time.Time      `db:"updated_at"`
+	CollectionID     uuid.UUID          `db:"collection_id"`
+	Path             string             `db:"path"`
+	Hash             string             `db:"hash"`
+	CollectionSchema string             `db:"collection_schema"`
+	RepoID           uuid.UUID          `db:"repo_id"`
+	VariantID        uuid.UUID          `db:"variant_id"`
+	TenantID         catcommon.TenantId `db:"tenant_id"`
+	CreatedAt        time.Time          `db:"created_at"`
+	UpdatedAt        time.Time          `db:"updated_at"`
 }

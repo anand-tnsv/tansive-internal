@@ -14,6 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -70,7 +71,7 @@ func (vs *valueSchema) Validate() schemaerr.ValidationErrors {
 func GetValue(ctx context.Context, metadata *ValueMetadata, dir Directories) (*valueSchema, apperrors.Error) {
 	// load the object manager
 	objectManager, err := GetSchema(ctx,
-		types.CatalogObjectTypeCollectionSchema,
+		catcommon.CatalogObjectTypeCollectionSchema,
 		&schemamanager.SchemaMetadata{
 			Catalog: metadata.Catalog,
 			Variant: metadata.Variant,
@@ -148,7 +149,7 @@ func SaveValue(ctx context.Context, valueJSON []byte, metadata *ValueMetadata, o
 
 	// load the object manager
 	objectManager, err := GetSchema(ctx,
-		types.CatalogObjectTypeCollectionSchema,
+		catcommon.CatalogObjectTypeCollectionSchema,
 		&schemamanager.SchemaMetadata{
 			Catalog: valueSchema.Metadata.Catalog,
 			Variant: valueSchema.Metadata.Variant,
@@ -167,7 +168,7 @@ func SaveValue(ctx context.Context, valueJSON []byte, metadata *ValueMetadata, o
 	oldHash := objectManager.StorageRepresentation().GetHash()
 
 	// get object References
-	refs, err := getSchemaRefs(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, valueSchema.Metadata.Collection)
+	refs, err := getSchemaRefs(ctx, catcommon.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, valueSchema.Metadata.Collection)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to get object references")
 		refs = schemamanager.SchemaReferences{}
@@ -231,8 +232,8 @@ func SaveValue(ctx context.Context, valueJSON []byte, metadata *ValueMetadata, o
 	}
 
 	if err := db.DB(ctx).AddOrUpdateObjectByPath(
-		ctx, types.CatalogObjectTypeCollectionSchema,
-		dir.DirForType(types.CatalogObjectTypeCollectionSchema),
+		ctx, catcommon.CatalogObjectTypeCollectionSchema,
+		dir.DirForType(catcommon.CatalogObjectTypeCollectionSchema),
 		valueSchema.Metadata.Collection,
 		models.ObjectRef{
 			Hash:       catalogObject.Hash,

@@ -6,12 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
 func (mm *metadataManager) CreateNamespace(ctx context.Context, ns *models.Namespace) (err apperrors.Error) {
@@ -51,7 +50,7 @@ func (mm *metadataManager) CreateNamespace(ctx context.Context, ns *models.Names
 
 func (mm *metadataManager) createNamespaceWithTransaction(ctx context.Context, ns *models.Namespace, tx *sql.Tx) apperrors.Error {
 	if ns.Name == "" {
-		ns.Name = types.DefaultNamespace
+		ns.Name = catcommon.DefaultNamespace
 	}
 	// Treat empty string as NULL
 	description := sql.NullString{String: ns.Description, Valid: ns.Description != ""}

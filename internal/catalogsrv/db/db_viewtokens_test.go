@@ -12,7 +12,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func TestCreateViewToken(t *testing.T) {
@@ -20,8 +19,8 @@ func TestCreateViewToken(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
@@ -61,8 +60,8 @@ func TestGetViewToken(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
@@ -102,8 +101,8 @@ func TestUpdateViewTokenExpiry(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
@@ -146,8 +145,8 @@ func TestDeleteViewToken(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 

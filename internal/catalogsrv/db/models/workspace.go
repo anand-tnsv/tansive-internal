@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 /*
@@ -40,16 +40,16 @@ Triggers:
 */
 
 type Workspace struct {
-	WorkspaceID    uuid.UUID      `db:"workspace_id"`
-	Label          string         `db:"label"`
-	Description    string         `db:"description"`
-	Info           pgtype.JSONB   `db:"info"` // JSONB
-	BaseVersion    int            `db:"base_version"`
-	ParametersDir  uuid.UUID      `db:"parameters_directory"`
-	CollectionsDir uuid.UUID      `db:"collections_directory"`
-	ValuesDir      uuid.UUID      `db:"values_directory"`
-	VariantID      uuid.UUID      `db:"variant_id"`
-	TenantID       types.TenantId `db:"tenant_id"`
-	CreatedAt      time.Time      `db:"created_at"`
-	UpdatedAt      time.Time      `db:"updated_at"`
+	WorkspaceID    uuid.UUID          `db:"workspace_id"`
+	Label          string             `db:"label"`
+	Description    string             `db:"description"`
+	Info           pgtype.JSONB       `db:"info"` // JSONB
+	BaseVersion    int                `db:"base_version"`
+	ParametersDir  uuid.UUID          `db:"parameters_directory"`
+	CollectionsDir uuid.UUID          `db:"collections_directory"`
+	ValuesDir      uuid.UUID          `db:"values_directory"`
+	VariantID      uuid.UUID          `db:"variant_id"`
+	TenantID       catcommon.TenantId `db:"tenant_id"`
+	CreatedAt      time.Time          `db:"created_at"`
+	UpdatedAt      time.Time          `db:"updated_at"`
 }

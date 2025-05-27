@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 /*
@@ -30,17 +30,17 @@ Triggers:
 */
 
 type SchemaDirectory struct {
-	DirectoryID uuid.UUID      `db:"directory_id"`
-	VariantID   uuid.UUID      `db:"variant_id"`
-	TenantID    types.TenantId `db:"tenant_id"`
-	Directory   []byte         `db:"directory"` // JSONB
-	CreatedAt   time.Time      `db:"created_at"`
-	UpdatedAt   time.Time      `db:"updated_at"`
+	DirectoryID uuid.UUID          `db:"directory_id"`
+	VariantID   uuid.UUID          `db:"variant_id"`
+	TenantID    catcommon.TenantId `db:"tenant_id"`
+	Directory   []byte             `db:"directory"` // JSONB
+	CreatedAt   time.Time          `db:"created_at"`
+	UpdatedAt   time.Time          `db:"updated_at"`
 }
 
 type DirectoryID struct {
 	ID   uuid.UUID
-	Type types.CatalogObjectType
+	Type catcommon.CatalogObjectType
 }
 
 type DirectoryIDs []DirectoryID

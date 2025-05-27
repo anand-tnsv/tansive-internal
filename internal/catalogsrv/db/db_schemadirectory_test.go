@@ -12,7 +12,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func TestSchemaDirectory(t *testing.T) {
@@ -22,8 +21,8 @@ func TestSchemaDirectory(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -52,7 +51,7 @@ func TestSchemaDirectory(t *testing.T) {
 	assert.NoError(t, err)
 	defer DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
 
-	variant, err := DB(ctx).GetVariant(ctx, catalog.CatalogID, uuid.Nil, types.DefaultVariant)
+	variant, err := DB(ctx).GetVariant(ctx, catalog.CatalogID, uuid.Nil, catcommon.DefaultVariant)
 	assert.NoError(t, err)
 
 	// get the parameter directory
@@ -118,10 +117,10 @@ func TestSchemaDirectory(t *testing.T) {
 	`
 	dir, err := models.JSONToDirectory([]byte(dirJson))
 	assert.NoError(t, err)
-	err = DB(ctx).SetDirectory(ctx, types.CatalogObjectTypeResource, rg, []byte(dirJson))
+	err = DB(ctx).SetDirectory(ctx, catcommon.CatalogObjectTypeResource, rg, []byte(dirJson))
 	assert.NoError(t, err)
 	// get the directory
-	dirRetJson, err := DB(ctx).GetDirectory(ctx, types.CatalogObjectTypeResource, rg)
+	dirRetJson, err := DB(ctx).GetDirectory(ctx, catcommon.CatalogObjectTypeResource, rg)
 	assert.NoError(t, err)
 	dirRet, err := models.JSONToDirectory(dirRetJson)
 	assert.NoError(t, err)
@@ -129,22 +128,22 @@ func TestSchemaDirectory(t *testing.T) {
 	assert.Equal(t, dirRet["/a2/b3"], dir["/a2/b3"])
 
 	// Test the GetObjectByPath function
-	object, err := DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	object, err := DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.Equal(t, object.Hash, dir["/a/b3/c/d/e/f"].Hash)
 
 	// Non existing path
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, rg, "/non/existing/path")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/non/existing/path")
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
 	assert.Nil(t, object)
 
 	// Does path exist
-	exists, err := DB(ctx).PathExists(ctx, types.CatalogObjectTypeResource, rg, "/x/y2/z/a/b")
+	exists, err := DB(ctx).PathExists(ctx, catcommon.CatalogObjectTypeResource, rg, "/x/y2/z/a/b")
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
 	// Non existing path
-	exists, err = DB(ctx).PathExists(ctx, types.CatalogObjectTypeResource, rg, "/non/existing/path")
+	exists, err = DB(ctx).PathExists(ctx, catcommon.CatalogObjectTypeResource, rg, "/non/existing/path")
 	assert.NoError(t, err)
 	assert.False(t, exists)
 
@@ -152,101 +151,101 @@ func TestSchemaDirectory(t *testing.T) {
 	updateObj := models.ObjectRef{
 		Hash: "new_hash_value",
 	}
-	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", updateObj)
+	err = DB(ctx).AddOrUpdateObjectByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", updateObj)
 	assert.NoError(t, err)
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.Equal(t, object.Hash, updateObj.Hash)
 
 	// Update non existing path
-	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeResource, rg, "/non/existing/path", updateObj)
+	err = DB(ctx).AddOrUpdateObjectByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/non/existing/path", updateObj)
 	// this should have added a new entry
 	assert.NoError(t, err)
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, rg, "/non/existing/path")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/non/existing/path")
 	assert.NoError(t, err)
 	assert.Equal(t, object.Hash, updateObj.Hash)
 
 	// Add a reference
-	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref1"}, {Name: "ref2"}})
+	err = DB(ctx).AddReferencesToObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref1"}, {Name: "ref2"}})
 	assert.NoError(t, err)
 
 	// Add more references with a duplicate
-	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref2"}, {Name: "ref4"}})
+	err = DB(ctx).AddReferencesToObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref2"}, {Name: "ref4"}})
 	assert.NoError(t, err)
 	// Get the references
-	references, err := DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	references, err := DB(ctx).GetAllReferences(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}, {Name: "ref2"}, {Name: "ref4"}})
 
 	// Update a reference
-	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref2"}})
+	err = DB(ctx).AddReferencesToObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref2"}})
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}, {Name: "ref2"}, {Name: "ref4"}})
 
 	// Delete one of the references
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref2")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref2")
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}, {Name: "ref4"}})
 
 	// Delete non-existing reference
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref2")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref2")
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}, {Name: "ref4"}})
 
 	// Delete all references
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref1")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref1")
 	assert.NoError(t, err)
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref3")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref3")
 	assert.NoError(t, err)
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref4")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref4")
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{})
 	// Delete non-existing reference
-	err = DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref1")
+	err = DB(ctx).DeleteReferenceFromObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", "ref1")
 	assert.NoError(t, err)
 
 	// Now add a reference
-	err = DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref1"}})
+	err = DB(ctx).AddReferencesToObject(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f", []models.Reference{{Name: "ref1"}})
 	assert.NoError(t, err)
 	// Get the references
-	references, err = DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	references, err = DB(ctx).GetAllReferences(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, references, []models.Reference{{Name: "ref1"}})
 
 	// Delete object by path
-	hash, err := DB(ctx).DeleteObjectByPath(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	hash, err := DB(ctx).DeleteObjectByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, hash)
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/a/b3/c/d/e/f")
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
 	assert.Nil(t, object)
 
 	// Test FindClosestObject function
-	closestPath, closestObj, err := DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeResource, rg, "c", "/a/b3/c/d/e/f")
+	closestPath, closestObj, err := DB(ctx).FindClosestObject(ctx, catcommon.CatalogObjectTypeResource, rg, "c", "/a/b3/c/d/e/f")
 	assert.NoError(t, err)
 	assert.Equal(t, closestPath, "/a/b3/c")
 	assert.Equal(t, closestObj.Hash, dir["/a/b3/c"].Hash)
 
 	// Test FindClosestObject function with non-existing path
-	closestPath, closestObj, err = DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeResource, rg, "s", "/p/q/roger")
+	closestPath, closestObj, err = DB(ctx).FindClosestObject(ctx, catcommon.CatalogObjectTypeResource, rg, "s", "/p/q/roger")
 	assert.NoError(t, err)
 	assert.Equal(t, "", closestPath)
 	assert.Nil(t, closestObj)
 
 	// Test FindClosestObject function with non-existing path
-	closestPath, closestObj, err = DB(ctx).FindClosestObject(ctx, types.CatalogObjectTypeResource, rg, "s", "/m/n/p/t/k")
+	closestPath, closestObj, err = DB(ctx).FindClosestObject(ctx, catcommon.CatalogObjectTypeResource, rg, "s", "/m/n/p/t/k")
 	assert.NoError(t, err)
 	assert.Equal(t, "/m/n/p/s", closestPath)
 	assert.Equal(t, closestObj.Hash, dir["/m/n/p/s"].Hash)
@@ -256,15 +255,15 @@ func TestSchemaDirectory(t *testing.T) {
 		{Name: "/col/a/b"}, {Name: "/col/a/b/c"}, {Name: "/col/a/b/c/d/e/f"}, {Name: "/col/a/b/c/d"}, {Name: "/col/a/b/d/e"}, {Name: "/col/a/c"}, {Name: "/col/a/c/e/f"},
 	}
 	for _, path := range paths {
-		err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeResource, rg, path, models.ObjectRef{Hash: "hash", References: refsC})
+		err = DB(ctx).AddOrUpdateObjectByPath(ctx, catcommon.CatalogObjectTypeResource, rg, path, models.ObjectRef{Hash: "hash", References: refsC})
 		assert.NoError(t, err)
 	}
 
 	// create a parameter with no references
-	err = DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeResource, rg, "/par/a/b/c/d/c/g", models.ObjectRef{Hash: "hash"})
+	err = DB(ctx).AddOrUpdateObjectByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/par/a/b/c/d/c/g", models.ObjectRef{Hash: "hash"})
 	require.NoError(t, err)
 	// get it
-	object, err = DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeResource, rg, "/par/a/b/c/d/c/g")
+	object, err = DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeResource, rg, "/par/a/b/c/d/c/g")
 	require.NoError(t, err)
 	require.Equal(t, object.Hash, "hash")
 }

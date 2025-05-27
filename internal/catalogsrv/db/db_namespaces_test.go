@@ -5,13 +5,12 @@ import (
 	"testing"
 
 	"github.com/jackc/pgtype"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 )
 
 func TestCreateNamespace(t *testing.T) {
@@ -19,8 +18,8 @@ func TestCreateNamespace(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
@@ -84,8 +83,8 @@ func TestGetNamespace(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
@@ -130,8 +129,8 @@ func TestUpdateNamespace(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
@@ -180,8 +179,8 @@ func TestDeleteNamespace(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
@@ -228,8 +227,8 @@ func TestListNamespacesByVariant(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 

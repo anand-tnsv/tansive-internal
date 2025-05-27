@@ -5,11 +5,10 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
 // The Collections interface functions are a shim on top of schema directory.  This would allow for a different implementation
@@ -27,7 +26,7 @@ func (om *objectManager) UpsertCollection(ctx context.Context, c *models.Collect
 	}
 
 	err := om.AddOrUpdateObjectByPath(ctx,
-		types.CatalogObjectTypeCatalogCollection,
+		catcommon.CatalogObjectTypeCatalogCollection,
 		dir,
 		c.Path,
 		models.ObjectRef{
@@ -48,7 +47,7 @@ func (om *objectManager) GetCollection(ctx context.Context, path string, dir uui
 		return nil, dberror.ErrMissingTenantID
 	}
 
-	objRef, err := om.GetObjectRefByPath(ctx, types.CatalogObjectTypeCatalogCollection, dir, path)
+	objRef, err := om.GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeCatalogCollection, dir, path)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +65,7 @@ func (om *objectManager) GetCollectionObject(ctx context.Context, path string, d
 		return nil, dberror.ErrMissingTenantID
 	}
 
-	return om.LoadObjectByPath(ctx, types.CatalogObjectTypeCatalogCollection, dir, path)
+	return om.LoadObjectByPath(ctx, catcommon.CatalogObjectTypeCatalogCollection, dir, path)
 }
 
 func (om *objectManager) UpdateCollection(ctx context.Context, c *models.Collection, dir uuid.UUID) apperrors.Error {
@@ -79,14 +78,14 @@ func (om *objectManager) UpdateCollection(ctx context.Context, c *models.Collect
 		return dberror.ErrInvalidInput.Msg("invalid collection schema")
 	}
 
-	objRef, err := om.GetObjectRefByPath(ctx, types.CatalogObjectTypeCatalogCollection, dir, c.Path)
+	objRef, err := om.GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeCatalogCollection, dir, c.Path)
 	if err != nil {
 		return err
 	}
 	objRef.Hash = c.Hash
 	objRef.BaseSchema = c.CollectionSchema
 	err = om.AddOrUpdateObjectByPath(ctx,
-		types.CatalogObjectTypeCatalogCollection,
+		catcommon.CatalogObjectTypeCatalogCollection,
 		dir,
 		c.Path,
 		*objRef,
@@ -103,7 +102,7 @@ func (om *objectManager) DeleteCollection(ctx context.Context, path string, dir 
 		return "", dberror.ErrMissingTenantID
 	}
 
-	deletedHash, err := om.DeleteObjectByPath(ctx, types.CatalogObjectTypeCatalogCollection, dir, path)
+	deletedHash, err := om.DeleteObjectByPath(ctx, catcommon.CatalogObjectTypeCatalogCollection, dir, path)
 	if err != nil {
 		return "", err
 	}

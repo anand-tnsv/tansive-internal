@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -169,7 +170,7 @@ func TestCanonicalizeMetadata(t *testing.T) {
 			expectedMeta: &schemamanager.SchemaMetadata{
 				Name:    "test-group",
 				Catalog: "test-catalog",
-				Variant: types.NullableStringFrom(types.DefaultVariant),
+				Variant: types.NullableStringFrom(catcommon.DefaultVariant),
 			},
 			checkJSON: func(t *testing.T, json []byte) {
 				assert.Contains(t, string(json), `"variant":"default"`)

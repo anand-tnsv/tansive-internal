@@ -12,7 +12,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
-	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/sjson"
 )
 
@@ -22,8 +21,8 @@ func TestCreateTenantProject(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TANAND")
-	projectID := types.ProjectId("PANAND")
+	tenantID := catcommon.TenantId("TANAND")
+	projectID := catcommon.ProjectId("PANAND")
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -52,8 +51,8 @@ func TestCatalogCreate(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 
 	config.Config().DefaultProjectID = string(projectID)
 	config.Config().DefaultTenantID = string(tenantID)
@@ -126,8 +125,8 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 
 	config.Config().DefaultProjectID = string(projectID)
 	config.Config().DefaultTenantID = string(tenantID)
@@ -264,8 +263,8 @@ func TestVariantCrud(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 
 	config.Config().DefaultProjectID = string(projectID)
 	config.Config().DefaultTenantID = string(tenantID)
@@ -479,8 +478,8 @@ func TestNamespaceCrud(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 
 	config.Config().DefaultProjectID = string(projectID)
 	config.Config().DefaultTenantID = string(tenantID)

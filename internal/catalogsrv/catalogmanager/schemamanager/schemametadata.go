@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -84,16 +85,16 @@ func (s SchemaMetadata) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
-func (m SchemaMetadata) GetStoragePath(t types.CatalogObjectType) string {
+func (m SchemaMetadata) GetStoragePath(t catcommon.CatalogObjectType) string {
 	_ = t // unused
 	if m.Namespace.IsNil() {
-		return path.Clean("/" + types.DefaultNamespace + "/" + m.Path)
+		return path.Clean("/" + catcommon.DefaultNamespace + "/" + m.Path)
 	} else {
-		return path.Clean("/" + types.DefaultNamespace + "/" + m.Namespace.String() + "/" + m.Path)
+		return path.Clean("/" + catcommon.DefaultNamespace + "/" + m.Namespace.String() + "/" + m.Path)
 	}
 }
 
-func (m SchemaMetadata) GetEntropyBytes(t types.CatalogObjectType) []byte {
+func (m SchemaMetadata) GetEntropyBytes(t catcommon.CatalogObjectType) []byte {
 	entropy := m.Catalog + ":" + string(t)
 	return []byte(entropy)
 }
@@ -101,6 +102,6 @@ func (m SchemaMetadata) GetEntropyBytes(t types.CatalogObjectType) []byte {
 func (m *SchemaMetadata) SetNameAndPathFromStoragePath(storagePath string) {
 	m.Name = path.Base(storagePath)
 	m.Path = path.Dir(storagePath)
-	m.Path = strings.TrimPrefix(m.Path, "/"+types.DefaultNamespace)
+	m.Path = strings.TrimPrefix(m.Path, "/"+catcommon.DefaultNamespace)
 	m.Path = "/" + strings.TrimPrefix(m.Path, "/")
 }

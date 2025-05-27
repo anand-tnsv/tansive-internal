@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/api/schemastore"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -66,7 +67,7 @@ func NewV1CollectionSchemaManager(ctx context.Context, version string, rsrcJson 
 func (cm *V1CollectionSchemaManager) StorageRepresentation() *schemastore.SchemaStorageRepresentation {
 	s := schemastore.SchemaStorageRepresentation{
 		Version: cm.version,
-		Type:    types.CatalogObjectTypeCollectionSchema,
+		Type:    catcommon.CatalogObjectTypeCollectionSchema,
 	}
 	s.Values, _ = json.Marshal(cm.collectionSchema.Values)
 	s.Schema, _ = json.Marshal(cm.collectionSchema.Spec)

@@ -6,12 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
+	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateVariant(t *testing.T) {
@@ -20,8 +19,8 @@ func TestCreateVariant(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -114,8 +113,8 @@ func TestGetVariant(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -190,8 +189,8 @@ func TestUpdateVariant(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -307,8 +306,8 @@ func TestDeleteVariant(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	catalogID := uuid.New()
 
 	// Set the tenant ID and project ID in the context

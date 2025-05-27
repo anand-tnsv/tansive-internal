@@ -8,7 +8,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func UserSessionValidator(next http.Handler) http.Handler {
@@ -44,7 +43,7 @@ func UserSessionValidator(next http.Handler) http.Handler {
 		}
 
 		if config.Config().SingleUserMode {
-			ctx = catcommon.SetProjectIdInContext(ctx, types.ProjectId(config.Config().DefaultProjectID))
+			ctx = catcommon.SetProjectIdInContext(ctx, catcommon.ProjectId(config.Config().DefaultProjectID))
 		}
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -52,8 +51,8 @@ func UserSessionValidator(next http.Handler) http.Handler {
 }
 
 func setDefaultSingleUserContext(ctx context.Context) (context.Context, error) {
-	ctx = catcommon.SetTenantIdInContext(ctx, types.TenantId(config.Config().DefaultTenantID))
-	ctx = catcommon.SetProjectIdInContext(ctx, types.ProjectId(config.Config().DefaultProjectID))
+	ctx = catcommon.SetTenantIdInContext(ctx, catcommon.TenantId(config.Config().DefaultTenantID))
+	ctx = catcommon.SetProjectIdInContext(ctx, catcommon.ProjectId(config.Config().DefaultProjectID))
 	catCtx := catcommon.CatalogContextFromContext(ctx)
 	if catCtx == nil {
 		catCtx = &catcommon.CatalogContext{}

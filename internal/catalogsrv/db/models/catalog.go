@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 /*
@@ -23,11 +23,11 @@ import (
 
 // Catalog model definition
 type Catalog struct {
-	CatalogID   uuid.UUID       `db:"catalog_id"`
-	Name        string          `db:"name"`
-	Description string          `db:"description"`
-	Info        pgtype.JSONB    `db:"info"`
-	ProjectID   types.ProjectId `db:"project_id"`
-	CreatedAt   time.Time       `db:"created_at"`
-	UpdatedAt   time.Time       `db:"updated_at"`
+	CatalogID   uuid.UUID           `db:"catalog_id"`
+	Name        string              `db:"name"`
+	Description string              `db:"description"`
+	Info        pgtype.JSONB        `db:"info"`
+	ProjectID   catcommon.ProjectId `db:"project_id"`
+	CreatedAt   time.Time           `db:"created_at"`
+	UpdatedAt   time.Time           `db:"updated_at"`
 }

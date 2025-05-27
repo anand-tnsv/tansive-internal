@@ -492,24 +492,24 @@ func TestCreateView(t *testing.T) {
 	require.NoError(t, goerr)
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, types.TenantId(tenantID))
-	ctx = catcommon.SetProjectIdInContext(ctx, types.ProjectId(projectID))
+	ctx = catcommon.SetTenantIdInContext(ctx, catcommon.TenantId(tenantID))
+	ctx = catcommon.SetProjectIdInContext(ctx, catcommon.ProjectId(projectID))
 
 	// Create the tenant and project for testing
-	err := db.DB(ctx).CreateTenant(ctx, types.TenantId(tenantID))
+	err := db.DB(ctx).CreateTenant(ctx, catcommon.TenantId(tenantID))
 	require.NoError(t, err)
-	defer db.DB(ctx).DeleteTenant(ctx, types.TenantId(tenantID))
+	defer db.DB(ctx).DeleteTenant(ctx, catcommon.TenantId(tenantID))
 
-	err = db.DB(ctx).CreateProject(ctx, types.ProjectId(projectID))
+	err = db.DB(ctx).CreateProject(ctx, catcommon.ProjectId(projectID))
 	require.NoError(t, err)
-	defer db.DB(ctx).DeleteProject(ctx, types.ProjectId(projectID))
+	defer db.DB(ctx).DeleteProject(ctx, catcommon.ProjectId(projectID))
 
 	// Create a catalog for testing the variants
 	catalogName := "validcatalog"
 	err = db.DB(ctx).CreateCatalog(ctx, &models.Catalog{
 		Name:        catalogName,
 		Description: "Test catalog",
-		ProjectID:   types.ProjectId(projectID),
+		ProjectID:   catcommon.ProjectId(projectID),
 		Info:        pgtype.JSONB{Status: pgtype.Null},
 	})
 	require.NoError(t, err)
@@ -532,8 +532,8 @@ func TestUpdateView(t *testing.T) {
 	ctx := newDb()
 	defer db.DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
@@ -1641,8 +1641,8 @@ func TestDeleteView(t *testing.T) {
 	ctx := newDb()
 	defer db.DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 

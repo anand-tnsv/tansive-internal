@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -66,7 +67,7 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 
 	// create default variant
 	variant := models.Variant{
-		Name:        types.DefaultVariant,
+		Name:        catcommon.DefaultVariant,
 		CatalogID:   catalog.CatalogID,
 		Info:        pgtype.JSONB{Status: pgtype.Null},
 		Description: "default variant",
@@ -99,7 +100,7 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 	}
 
 	view := models.View{
-		Label:       types.DefaultAdminViewLabel,
+		Label:       catcommon.DefaultAdminViewLabel,
 		CatalogID:   catalog.CatalogID,
 		Description: "default admin view",
 		Info:        nil,

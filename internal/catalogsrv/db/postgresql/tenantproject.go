@@ -8,13 +8,12 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
 
 	"github.com/rs/zerolog/log"
 )
 
 // CreateProjectAndTenant creates a new project and tenant in the database.
-func (mm *metadataManager) CreateProjectAndTenant(ctx context.Context, projectID types.ProjectId, tenantID types.TenantId) error {
+func (mm *metadataManager) CreateProjectAndTenant(ctx context.Context, projectID catcommon.ProjectId, tenantID catcommon.TenantId) error {
 	// Create the tenant
 	err := mm.CreateTenant(ctx, tenantID)
 	if err != nil {
@@ -36,7 +35,7 @@ func (mm *metadataManager) CreateProjectAndTenant(ctx context.Context, projectID
 
 // CreateTenant inserts a new tenant into the database.
 // If the tenant already exists, it does nothing.
-func (mm *metadataManager) CreateTenant(ctx context.Context, tenantID types.TenantId) error {
+func (mm *metadataManager) CreateTenant(ctx context.Context, tenantID catcommon.TenantId) error {
 	query := `
 		INSERT INTO tenants (tenant_id)
 		VALUES ($1)
@@ -61,7 +60,7 @@ func (mm *metadataManager) CreateTenant(ctx context.Context, tenantID types.Tena
 }
 
 // GetTenant retrieves a tenant from the database.
-func (mm *metadataManager) GetTenant(ctx context.Context, tenantID types.TenantId) (*models.Tenant, error) {
+func (mm *metadataManager) GetTenant(ctx context.Context, tenantID catcommon.TenantId) (*models.Tenant, error) {
 	query := `
 		SELECT tenant_id
 		FROM tenants
@@ -86,7 +85,7 @@ func (mm *metadataManager) GetTenant(ctx context.Context, tenantID types.TenantI
 }
 
 // DeleteTenant deletes a tenant from the database.
-func (mm *metadataManager) DeleteTenant(ctx context.Context, tenantID types.TenantId) error {
+func (mm *metadataManager) DeleteTenant(ctx context.Context, tenantID catcommon.TenantId) error {
 	query := `
 		DELETE FROM tenants
 		WHERE tenant_id = $1;
@@ -100,7 +99,7 @@ func (mm *metadataManager) DeleteTenant(ctx context.Context, tenantID types.Tena
 }
 
 // CreateProject inserts a new project into the database.
-func (mm *metadataManager) CreateProject(ctx context.Context, projectID types.ProjectId) error {
+func (mm *metadataManager) CreateProject(ctx context.Context, projectID catcommon.ProjectId) error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 
 	// Validate tenantID to ensure it is not empty
@@ -133,7 +132,7 @@ func (mm *metadataManager) CreateProject(ctx context.Context, projectID types.Pr
 }
 
 // GetProject retrieves a project from the database.
-func (mm *metadataManager) GetProject(ctx context.Context, projectID types.ProjectId) (*models.Project, error) {
+func (mm *metadataManager) GetProject(ctx context.Context, projectID catcommon.ProjectId) (*models.Project, error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 
 	// Validate tenantID to ensure it is not empty
@@ -170,7 +169,7 @@ func (mm *metadataManager) GetProject(ctx context.Context, projectID types.Proje
 }
 
 // DeleteProject deletes a project from the database. If the project does not exist, it does nothing.
-func (mm *metadataManager) DeleteProject(ctx context.Context, projectID types.ProjectId) error {
+func (mm *metadataManager) DeleteProject(ctx context.Context, projectID catcommon.ProjectId) error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 
 	// Validate tenantID to ensure it is not empty

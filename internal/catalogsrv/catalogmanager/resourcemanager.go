@@ -69,7 +69,7 @@ func (r *Resource) JSON(ctx context.Context) ([]byte, apperrors.Error) {
 // - Value validation against the schema
 func (r *Resource) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
-	if r.Kind != types.ResourceKind {
+	if r.Kind != catcommon.ResourceKind {
 		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
 
@@ -222,11 +222,11 @@ func (rm *resourceManager) GetValueJSON(ctx context.Context) ([]byte, apperrors.
 func (rm *resourceManager) StorageRepresentation() *objectstore.ObjectStorageRepresentation {
 	s := objectstore.ObjectStorageRepresentation{
 		Version: rm.resource.Version,
-		Type:    types.CatalogObjectTypeResource,
+		Type:    catcommon.CatalogObjectTypeResource,
 	}
 	s.Spec, _ = json.Marshal(rm.resource.Spec)
 	s.Description = rm.resource.Metadata.Description
-	s.Entropy = rm.resource.Metadata.GetEntropyBytes(types.CatalogObjectTypeResource)
+	s.Entropy = rm.resource.Metadata.GetEntropyBytes(catcommon.CatalogObjectTypeResource)
 	return &s
 }
 
@@ -238,7 +238,7 @@ func (rm *resourceManager) GetStoragePath() string {
 
 // getResourceStoragePath constructs the storage path for a resource based on its metadata.
 func getResourceStoragePath(m *schemamanager.SchemaMetadata) string {
-	t := types.CatalogObjectTypeResource
+	t := catcommon.CatalogObjectTypeResource
 	rsrcPath := m.GetStoragePath(t)
 	pathWithName := path.Clean(rsrcPath + "/" + m.Name)
 	return pathWithName
@@ -251,7 +251,7 @@ func (rm *resourceManager) Save(ctx context.Context) apperrors.Error {
 		return validationerrors.ErrEmptySchema
 	}
 
-	t := types.CatalogObjectTypeResource
+	t := catcommon.CatalogObjectTypeResource
 
 	m := rm.Metadata()
 	s := rm.StorageRepresentation()
@@ -329,7 +329,7 @@ func DeleteResource(ctx context.Context, m *schemamanager.SchemaMetadata) apperr
 		return err
 	}
 
-	pathWithName := path.Clean(m.GetStoragePath(types.CatalogObjectTypeResource) + "/" + m.Name)
+	pathWithName := path.Clean(m.GetStoragePath(catcommon.CatalogObjectTypeResource) + "/" + m.Name)
 
 	// Delete the resource
 	hash, err := db.DB(ctx).DeleteResource(ctx, pathWithName, variant.ResourceDirectoryID)
@@ -342,7 +342,7 @@ func DeleteResource(ctx context.Context, m *schemamanager.SchemaMetadata) apperr
 	}
 
 	if hash != "" {
-		err = db.DB(ctx).DeleteCatalogObject(ctx, types.CatalogObjectTypeResource, hash)
+		err = db.DB(ctx).DeleteCatalogObject(ctx, catcommon.CatalogObjectTypeResource, hash)
 		if !errors.Is(err, dberror.ErrNotFound) {
 			log.Ctx(ctx).Error().Err(err).Str("hash", string(hash)).Msg("failed to delete object from database")
 		}

@@ -6,13 +6,12 @@ import (
 	"testing"
 
 	"github.com/jackc/pgtype"
+	"github.com/stretchr/testify/assert"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )
 
@@ -170,8 +169,8 @@ spec:
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
@@ -202,8 +201,8 @@ spec:
 				db.DB(ctx).Close(ctx)
 			})
 
-			tenantID := types.TenantId("TABCDE")
-			projectID := types.ProjectId("PABCDE")
+			tenantID := catcommon.TenantId("TABCDE")
+			projectID := catcommon.ProjectId("PABCDE")
 			// Set the tenant ID and project ID in the context
 			ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 			ctx = catcommon.SetProjectIdInContext(ctx, projectID)
@@ -338,8 +337,8 @@ spec:
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
@@ -368,8 +367,8 @@ spec:
 			t.Cleanup(func() {
 				db.DB(ctx).Close(ctx)
 			})
-			tenantID := types.TenantId("TABCDE")
-			projectID := types.ProjectId("PABCDE")
+			tenantID := catcommon.TenantId("TABCDE")
+			projectID := catcommon.ProjectId("PABCDE")
 			// Set the tenant ID and project ID in the context
 			ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 			ctx = catcommon.SetProjectIdInContext(ctx, projectID)

@@ -10,13 +10,12 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 type testSetup struct {
 	ctx       context.Context
-	tenantID  types.TenantId
-	projectID types.ProjectId
+	tenantID  catcommon.TenantId
+	projectID catcommon.ProjectId
 }
 
 func TestAdoptView(t *testing.T) {
@@ -164,8 +163,8 @@ func setupTest(t *testing.T) *testSetup {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 	cfg := config.Config()
 	cfg.DefaultTenantID = string(tenantID)
 	cfg.DefaultProjectID = string(projectID)

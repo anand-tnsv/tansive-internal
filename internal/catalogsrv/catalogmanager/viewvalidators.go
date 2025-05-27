@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -57,7 +58,7 @@ func extractSegmentsAndResourceName(t types.TargetResource) ([]types.TargetResou
 		return nil, "", fmt.Errorf("invalid resource string: missing %s prefix", prefix)
 	}
 
-	separators := types.ResourceURIs()
+	separators := catcommon.ResourceURIs()
 
 	rest := strings.TrimPrefix(s, prefix)
 	var parts = []string{rest}
@@ -125,10 +126,10 @@ func isValidStructuredPath(path string) error {
 
 	// Validate segment order
 	expectedOrder := map[string]int{
-		types.ResourceNameCatalogs:   0,
-		types.ResourceNameVariants:   1,
-		types.ResourceNameWorkspaces: 2,
-		types.ResourceNameNamespaces: -1, // Special case, handled below
+		catcommon.ResourceNameCatalogs:   0,
+		catcommon.ResourceNameVariants:   1,
+		catcommon.ResourceNameWorkspaces: 2,
+		catcommon.ResourceNameNamespaces: -1, // Special case, handled below
 	}
 
 	for key, pos := range found {
@@ -137,8 +138,8 @@ func isValidStructuredPath(path string) error {
 			return fmt.Errorf("invalid path: unknown key '%s'", key)
 		}
 
-		if key == types.ResourceNameNamespaces {
-			if _, hasWorkspace := found[types.ResourceNameWorkspaces]; hasWorkspace {
+		if key == catcommon.ResourceNameNamespaces {
+			if _, hasWorkspace := found[catcommon.ResourceNameWorkspaces]; hasWorkspace {
 				expectedPos = 3
 			} else {
 				expectedPos = 2

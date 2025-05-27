@@ -12,6 +12,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/errors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/api/schemastore"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -33,7 +34,7 @@ type collectionSpec struct {
 
 func (cs *collectionSchema) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
-	if cs.Kind != types.CollectionKind {
+	if cs.Kind != catcommon.CollectionKind {
 		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
 
@@ -107,12 +108,12 @@ func (cm *collectionManager) GetCollectionSchemaPath() string {
 func (cm *collectionManager) StorageRepresentation() *schemastore.SchemaStorageRepresentation {
 	s := schemastore.SchemaStorageRepresentation{
 		Version: cm.schema.Version,
-		Type:    types.CatalogObjectTypeCatalogCollection,
+		Type:    catcommon.CatalogObjectTypeCatalogCollection,
 	}
 	s.Values, _ = json.Marshal(cm.schema.Values)
 	s.Schema, _ = json.Marshal(cm.schema.Spec)
 	s.Description = cm.schema.Metadata.Description
-	s.Entropy = cm.schema.Metadata.GetEntropyBytes(types.CatalogObjectTypeCatalogCollection)
+	s.Entropy = cm.schema.Metadata.GetEntropyBytes(catcommon.CatalogObjectTypeCatalogCollection)
 	return &s
 }
 

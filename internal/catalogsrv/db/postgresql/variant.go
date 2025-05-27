@@ -11,7 +11,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // CreateVariant creates a new variant in the database.
@@ -101,7 +100,7 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 
 	// Create a default namespace for the variant
 	namespace := models.Namespace{
-		Name:        types.DefaultNamespace,
+		Name:        catcommon.DefaultNamespace,
 		VariantID:   variant.VariantID,
 		TenantID:    tenantID,
 		Description: "Default namespace for the variant",
@@ -121,7 +120,7 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 		Directory:   []byte("{}"),
 	}
 
-	tableName := getSchemaDirectoryTableName(types.CatalogObjectTypeResource)
+	tableName := getSchemaDirectoryTableName(catcommon.CatalogObjectTypeResource)
 	if tableName == "" {
 		return dberror.ErrInvalidInput.Msg("invalid catalog object type: resource group not supported")
 	}

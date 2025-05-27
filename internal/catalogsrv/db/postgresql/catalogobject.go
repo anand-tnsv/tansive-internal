@@ -5,13 +5,12 @@ import (
 	"database/sql"
 
 	"github.com/golang/snappy"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
 func (om *objectManager) CreateCatalogObject(ctx context.Context, obj *models.CatalogObject) apperrors.Error {
@@ -107,7 +106,7 @@ func (om *objectManager) GetCatalogObject(ctx context.Context, hash string) (*mo
 	return &obj, nil
 }
 
-func (om *objectManager) DeleteCatalogObject(ctx context.Context, t types.CatalogObjectType, hash string) apperrors.Error {
+func (om *objectManager) DeleteCatalogObject(ctx context.Context, t catcommon.CatalogObjectType, hash string) apperrors.Error {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -118,11 +117,11 @@ func (om *objectManager) DeleteCatalogObject(ctx context.Context, t types.Catalo
 
 	var table string
 	switch t {
-	case types.CatalogObjectTypeParameterSchema:
+	case catcommon.CatalogObjectTypeParameterSchema:
 		table = "parameters_directory"
-	case types.CatalogObjectTypeCollectionSchema:
+	case catcommon.CatalogObjectTypeCollectionSchema:
 		table = "collections_directory"
-	case types.CatalogObjectTypeCatalogCollection:
+	case catcommon.CatalogObjectTypeCatalogCollection:
 		table = "values_directory"
 	default:
 		return dberror.ErrInvalidInput.Msg("invalid catalog object type")

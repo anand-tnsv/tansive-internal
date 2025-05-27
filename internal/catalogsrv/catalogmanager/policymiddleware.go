@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
@@ -38,12 +39,12 @@ func ValidateViewPolicy(ctx context.Context, req PolicyRequest) apperrors.Error 
 	}
 
 	// Handle collection-specific validation
-	if req.ResourceName == types.ResourceNameCollections {
+	if req.ResourceName == catcommon.ResourceNameCollections {
 		return validateCollectionPolicy(ctx, req)
 	}
 
 	// Handle attribute-specific validation
-	if req.ResourceName == types.ResourceNameAttributes {
+	if req.ResourceName == catcommon.ResourceNameAttributes {
 		return validateAttributePolicy(ctx, req)
 	}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	v1Schema "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/schemaresource"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
@@ -96,13 +97,13 @@ func (d Directories) IsNil() bool {
 }
 
 // DirForType returns the appropriate directory ID for the given catalog object type
-func (d Directories) DirForType(t types.CatalogObjectType) uuid.UUID {
+func (d Directories) DirForType(t catcommon.CatalogObjectType) uuid.UUID {
 	switch t {
-	case types.CatalogObjectTypeParameterSchema:
+	case catcommon.CatalogObjectTypeParameterSchema:
 		return d.ParametersDir
-	case types.CatalogObjectTypeCollectionSchema:
+	case catcommon.CatalogObjectTypeCollectionSchema:
 		return d.CollectionsDir
-	case types.CatalogObjectTypeCatalogCollection:
+	case catcommon.CatalogObjectTypeCatalogCollection:
 		return d.ValuesDir
 	default:
 		return uuid.Nil
@@ -226,7 +227,7 @@ func SaveSchema(ctx context.Context, om schemamanager.SchemaManager, opts ...Obj
 	)
 
 	switch t {
-	case types.CatalogObjectTypeParameterSchema:
+	case catcommon.CatalogObjectTypeParameterSchema:
 		if !options.SkipValidationForUpdate {
 			var err apperrors.Error
 			existingObjHash, refs, existingPath, existingRef, err = validateParameterSchema(ctx, om, dir, options)
@@ -234,7 +235,7 @@ func SaveSchema(ctx context.Context, om schemamanager.SchemaManager, opts ...Obj
 				return err
 			}
 		}
-	case types.CatalogObjectTypeCollectionSchema:
+	case catcommon.CatalogObjectTypeCollectionSchema:
 		if !options.SkipValidationForUpdate {
 			var err apperrors.Error
 			existingObjHash, refs, existingRefs, err = validateCollectionSchema(ctx, om, dir, options.ErrorIfExists)
@@ -246,7 +247,7 @@ func SaveSchema(ctx context.Context, om schemamanager.SchemaManager, opts ...Obj
 		return ErrCatalogError.Msg("invalid catalog object type")
 	}
 
-	if om.Type() == types.CatalogObjectTypeCollectionSchema {
+	if om.Type() == catcommon.CatalogObjectTypeCollectionSchema {
 		om.CollectionSchemaManager().SetDefaultValues(ctx)
 	}
 
@@ -298,9 +299,9 @@ func SaveSchema(ctx context.Context, om schemamanager.SchemaManager, opts ...Obj
 		return ErrCatalogError.Msg("failed to save object to directory")
 	}
 
-	if t == types.CatalogObjectTypeCollectionSchema && !options.SkipValidationForUpdate {
+	if t == catcommon.CatalogObjectTypeCollectionSchema && !options.SkipValidationForUpdate {
 		updateCollectionRefsInParameters(ctx, dir.ParametersDir, pathWithName, existingRefs, refs)
-	} else if t == types.CatalogObjectTypeParameterSchema && len(refs) > 0 {
+	} else if t == catcommon.CatalogObjectTypeParameterSchema && len(refs) > 0 {
 		updateParameterRefsInCollections(ctx, dir, existingPath, pathWithName, existingRef, refs)
 	}
 
@@ -327,7 +328,7 @@ func updateParameterRefsInCollections(ctx context.Context, dir Directories, exis
 
 	if len(newRefsForExistingParam) > 0 {
 		existingParamObjRef.References = newRefsForExistingParam
-		if err := db.DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, existingPath, *existingParamObjRef); err != nil {
+		if err := db.DB(ctx).AddOrUpdateObjectByPath(ctx, catcommon.CatalogObjectTypeParameterSchema, dir.ParametersDir, existingPath, *existingParamObjRef); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to update parameter references")
 			return
 		}
@@ -338,11 +339,11 @@ func updateParameterRefsInCollections(ctx context.Context, dir Directories, exis
 	}
 
 	for _, newRef := range newCollectionRefs {
-		if err := db.DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, newRef.Name, []models.Reference{{Name: newPath}}); err != nil {
+		if err := db.DB(ctx).AddReferencesToObject(ctx, catcommon.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, newRef.Name, []models.Reference{{Name: newPath}}); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to add new parameter path to collection")
 			return
 		}
-		if err := db.DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, newRef.Name, existingPath); err != nil {
+		if err := db.DB(ctx).DeleteReferenceFromObject(ctx, catcommon.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, newRef.Name, existingPath); err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to delete parameter path from collection")
 			return
 		}
@@ -374,7 +375,7 @@ func updateCollectionRefsInParameters(ctx context.Context, paramDir uuid.UUID, c
 	for param, action := range refActions {
 		switch action {
 		case actionAdd:
-			if err := db.DB(ctx).AddReferencesToObject(ctx, types.CatalogObjectTypeParameterSchema, paramDir, param, []models.Reference{{Name: collectionFQP}}); err != nil {
+			if err := db.DB(ctx).AddReferencesToObject(ctx, catcommon.CatalogObjectTypeParameterSchema, paramDir, param, []models.Reference{{Name: collectionFQP}}); err != nil {
 				log.Ctx(ctx).Error().
 					Str("param", param).
 					Str("collectionschema", collectionFQP).
@@ -382,7 +383,7 @@ func updateCollectionRefsInParameters(ctx context.Context, paramDir uuid.UUID, c
 					Msg("failed to add references to collection schema")
 			}
 		case actionDelete:
-			if err := db.DB(ctx).DeleteReferenceFromObject(ctx, types.CatalogObjectTypeParameterSchema, paramDir, param, collectionFQP); err != nil {
+			if err := db.DB(ctx).DeleteReferenceFromObject(ctx, catcommon.CatalogObjectTypeParameterSchema, paramDir, param, collectionFQP); err != nil {
 				log.Ctx(ctx).Error().
 					Str("param", param).
 					Str("collectionschema", collectionFQP).
@@ -407,9 +408,9 @@ func validateParameterSchema(ctx context.Context, om schemamanager.SchemaManager
 	}
 
 	m := om.Metadata()
-	pathWithName := path.Clean(m.GetStoragePath(types.CatalogObjectTypeParameterSchema) + "/" + m.Name)
+	pathWithName := path.Clean(m.GetStoragePath(catcommon.CatalogObjectTypeParameterSchema) + "/" + m.Name)
 
-	r, err := db.DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, pathWithName)
+	r, err := db.DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeParameterSchema, dir.ParametersDir, pathWithName)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			log.Ctx(ctx).Debug().Str("path", pathWithName).Msg("object not found")
@@ -452,10 +453,10 @@ func validateParameterSchema(ctx context.Context, om schemamanager.SchemaManager
 		existingObjHash = r.Hash
 	} else {
 		existingPath, existingParamRef, err = db.DB(ctx).FindClosestObject(ctx,
-			types.CatalogObjectTypeParameterSchema,
+			catcommon.CatalogObjectTypeParameterSchema,
 			dir.ParametersDir,
 			m.Name,
-			m.GetStoragePath(types.CatalogObjectTypeParameterSchema),
+			m.GetStoragePath(catcommon.CatalogObjectTypeParameterSchema),
 		)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Str("path", existingPath).Msg("failed to find closest object")
@@ -465,7 +466,7 @@ func validateParameterSchema(ctx context.Context, om schemamanager.SchemaManager
 			collectionRefs := existingParamRef.References
 			var refsToAdd schemamanager.SchemaReferences
 			for _, ref := range collectionRefs {
-				if isParentOrSame(m.GetStoragePath(types.CatalogObjectTypeCollectionSchema), path.Dir(ref.Name)) {
+				if isParentOrSame(m.GetStoragePath(catcommon.CatalogObjectTypeCollectionSchema), path.Dir(ref.Name)) {
 					refsToAdd = append(refsToAdd, schemamanager.SchemaReference{
 						Name: ref.Name,
 					})
@@ -516,10 +517,10 @@ func validateCollectionSchema(ctx context.Context, om schemamanager.SchemaManage
 	}
 
 	m := om.Metadata()
-	parentPath := m.GetStoragePath(types.CatalogObjectTypeCollectionSchema)
+	parentPath := m.GetStoragePath(catcommon.CatalogObjectTypeCollectionSchema)
 	pathWithName := path.Clean(parentPath + "/" + m.Name)
 
-	r, err := db.DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, pathWithName)
+	r, err := db.DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, pathWithName)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			log.Ctx(ctx).Debug().Str("path", pathWithName).Msg("object not found")
@@ -556,7 +557,7 @@ func validateCollectionSchema(ctx context.Context, om schemamanager.SchemaManage
 }
 
 // deleteCollectionSchema deletes a collection schema
-func deleteCollectionSchema(ctx context.Context, t types.CatalogObjectType, m *schemamanager.SchemaMetadata, dir Directories) apperrors.Error {
+func deleteCollectionSchema(ctx context.Context, t catcommon.CatalogObjectType, m *schemamanager.SchemaMetadata, dir Directories) apperrors.Error {
 	pathWithName := path.Clean(m.GetStoragePath(t) + "/" + m.Name)
 	if m.IDS.VariantID == uuid.Nil {
 		if err := validateMetadata(ctx, m); err != nil {
@@ -575,10 +576,10 @@ func deleteCollectionSchema(ctx context.Context, t types.CatalogObjectType, m *s
 	}
 
 	hash, err := db.DB(ctx).DeleteObjectWithReferences(ctx,
-		types.CatalogObjectTypeCollectionSchema,
+		catcommon.CatalogObjectTypeCollectionSchema,
 		models.DirectoryIDs{
-			{ID: dir.CollectionsDir, Type: types.CatalogObjectTypeCollectionSchema},
-			{ID: dir.ParametersDir, Type: types.CatalogObjectTypeParameterSchema},
+			{ID: dir.CollectionsDir, Type: catcommon.CatalogObjectTypeCollectionSchema},
+			{ID: dir.ParametersDir, Type: catcommon.CatalogObjectTypeParameterSchema},
 		},
 		pathWithName,
 		models.DeleteReferences(true),
@@ -587,7 +588,7 @@ func deleteCollectionSchema(ctx context.Context, t types.CatalogObjectType, m *s
 		return ErrCatalogError.Err(err).Msg("unable to delete collection schema from directory")
 	}
 
-	if err := db.DB(ctx).DeleteCatalogObject(ctx, types.CatalogObjectTypeCollectionSchema, string(hash)); err != nil {
+	if err := db.DB(ctx).DeleteCatalogObject(ctx, catcommon.CatalogObjectTypeCollectionSchema, string(hash)); err != nil {
 		if !errors.Is(err, dberror.ErrNotFound) {
 			log.Ctx(ctx).Error().Err(err).Str("hash", string(hash)).Msg("failed to delete object from database")
 		}
@@ -596,10 +597,10 @@ func deleteCollectionSchema(ctx context.Context, t types.CatalogObjectType, m *s
 }
 
 // deleteParameterSchema deletes a parameter schema
-func deleteParameterSchema(ctx context.Context, t types.CatalogObjectType, m *schemamanager.SchemaMetadata, dir Directories) apperrors.Error {
+func deleteParameterSchema(ctx context.Context, t catcommon.CatalogObjectType, m *schemamanager.SchemaMetadata, dir Directories) apperrors.Error {
 	pathWithName := path.Clean(m.GetStoragePath(t) + "/" + m.Name)
 
-	refs, err := db.DB(ctx).GetAllReferences(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, pathWithName)
+	refs, err := db.DB(ctx).GetAllReferences(ctx, catcommon.CatalogObjectTypeParameterSchema, dir.ParametersDir, pathWithName)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Str("path", pathWithName).Msg("failed to get all references")
 		if errors.Is(err, dberror.ErrNotFound) {
@@ -612,12 +613,12 @@ func deleteParameterSchema(ctx context.Context, t types.CatalogObjectType, m *sc
 		return ErrUnableToDeleteParameterWithReferences
 	}
 
-	hash, err := db.DB(ctx).DeleteObjectByPath(ctx, types.CatalogObjectTypeParameterSchema, dir.ParametersDir, pathWithName)
+	hash, err := db.DB(ctx).DeleteObjectByPath(ctx, catcommon.CatalogObjectTypeParameterSchema, dir.ParametersDir, pathWithName)
 	if err != nil {
 		return ErrCatalogError.Err(err).Msg("unable to delete parameter schema from directory")
 	}
 
-	if err := db.DB(ctx).DeleteCatalogObject(ctx, types.CatalogObjectTypeParameterSchema, string(hash)); err != nil {
+	if err := db.DB(ctx).DeleteCatalogObject(ctx, catcommon.CatalogObjectTypeParameterSchema, string(hash)); err != nil {
 		if !errors.Is(err, dberror.ErrNotFound) {
 			log.Ctx(ctx).Error().Err(err).Str("hash", string(hash)).Msg("failed to delete objects from database")
 		}
@@ -628,7 +629,7 @@ func deleteParameterSchema(ctx context.Context, t types.CatalogObjectType, m *sc
 // collectionSchemaExists checks if a collection schema exists
 func collectionSchemaExists(ctx context.Context, collectionsDir uuid.UUID, path string) apperrors.Error {
 	if path != "/" {
-		exists, err := db.DB(ctx).PathExists(ctx, types.CatalogObjectTypeCollectionSchema, collectionsDir, path)
+		exists, err := db.DB(ctx).PathExists(ctx, catcommon.CatalogObjectTypeCollectionSchema, collectionsDir, path)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Str("path", path).Msg("failed to check if parent path exists")
 			return ErrCatalogError
@@ -643,7 +644,7 @@ func collectionSchemaExists(ctx context.Context, collectionsDir uuid.UUID, path 
 var _ = collectionSchemaExists // silence lint
 
 // GetSchema loads a schema by its path
-func GetSchema(ctx context.Context, t types.CatalogObjectType, m *schemamanager.SchemaMetadata, opts ...ObjectStoreOption) (schemamanager.SchemaManager, apperrors.Error) {
+func GetSchema(ctx context.Context, t catcommon.CatalogObjectType, m *schemamanager.SchemaMetadata, opts ...ObjectStoreOption) (schemamanager.SchemaManager, apperrors.Error) {
 	o := &storeOptions{}
 	for _, opt := range opts {
 		opt(o)
@@ -805,7 +806,7 @@ func getClosestParentSchemaFinder(ctx context.Context, m schemamanager.SchemaMet
 		return nil
 	}
 
-	return func(ctx context.Context, t types.CatalogObjectType, targetName string) (string, string, apperrors.Error) {
+	return func(ctx context.Context, t catcommon.CatalogObjectType, targetName string) (string, string, apperrors.Error) {
 		startPath := m.GetStoragePath(t)
 		path, obj, err := db.DB(ctx).FindClosestObject(ctx, t, dir.DirForType(t), targetName, startPath)
 		if err != nil {
@@ -849,14 +850,14 @@ func getSchemaLoaderByPath(ctx context.Context, m schemamanager.SchemaMetadata, 
 
 	opts = append(opts, WithDirectories(dir))
 
-	return func(ctx context.Context, t types.CatalogObjectType, m_passed *schemamanager.SchemaMetadata) (schemamanager.SchemaManager, apperrors.Error) {
+	return func(ctx context.Context, t catcommon.CatalogObjectType, m_passed *schemamanager.SchemaMetadata) (schemamanager.SchemaManager, apperrors.Error) {
 		return GetSchema(ctx, t, m_passed, opts...)
 	}
 }
 
 // getSchemaLoaderByHash returns a function to load schemas by hash
 func getSchemaLoaderByHash() schemamanager.SchemaLoaderByHash {
-	return func(ctx context.Context, t types.CatalogObjectType, hash string, m *schemamanager.SchemaMetadata) (schemamanager.SchemaManager, apperrors.Error) {
+	return func(ctx context.Context, t catcommon.CatalogObjectType, hash string, m *schemamanager.SchemaMetadata) (schemamanager.SchemaManager, apperrors.Error) {
 		return GetSchemaByHash(ctx, hash, m)
 	}
 }
@@ -934,7 +935,7 @@ func getVariantDirs(ctx context.Context, variantID uuid.UUID) (Directories, appe
 }
 
 // getSchemaRefs gets the references for a schema
-func getSchemaRefs(ctx context.Context, t types.CatalogObjectType, dir uuid.UUID, path string) (schemamanager.SchemaReferences, apperrors.Error) {
+func getSchemaRefs(ctx context.Context, t catcommon.CatalogObjectType, dir uuid.UUID, path string) (schemamanager.SchemaReferences, apperrors.Error) {
 	var refs schemamanager.SchemaReferences
 	r, err := db.DB(ctx).GetAllReferences(ctx, t, dir, path)
 	if err != nil {
@@ -961,7 +962,7 @@ func (or *objectResource) Name() string {
 
 // Location returns the location of the resource
 func (or *objectResource) Location() string {
-	objName := types.ResourceNameFromObjectType(or.reqCtx.ObjectType)
+	objName := catcommon.ResourceNameFromObjectType(or.reqCtx.ObjectType)
 	loc := path.Clean("/" + objName + or.om.FullyQualifiedName())
 	q := url.Values{}
 	if workspace := or.reqCtx.WorkspaceLabel; workspace != "" {
@@ -1144,14 +1145,14 @@ func NewSchemaResource(ctx context.Context, reqCtx RequestContext) (schemamanage
 }
 
 // DeleteSchema deletes a schema
-func DeleteSchema(ctx context.Context, t types.CatalogObjectType, m *schemamanager.SchemaMetadata, dir Directories) apperrors.Error {
+func DeleteSchema(ctx context.Context, t catcommon.CatalogObjectType, m *schemamanager.SchemaMetadata, dir Directories) apperrors.Error {
 	if m == nil {
 		return ErrEmptyMetadata
 	}
 	switch t {
-	case types.CatalogObjectTypeCollectionSchema:
+	case catcommon.CatalogObjectTypeCollectionSchema:
 		return deleteCollectionSchema(ctx, t, m, dir)
-	case types.CatalogObjectTypeParameterSchema:
+	case catcommon.CatalogObjectTypeParameterSchema:
 		return deleteParameterSchema(ctx, t, m, dir)
 	default:
 		return ErrInvalidSchema

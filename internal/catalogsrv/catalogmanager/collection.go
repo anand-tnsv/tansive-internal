@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -25,7 +26,7 @@ func NewCollectionManager(ctx context.Context, rsrcJson []byte, m *schemamanager
 	}
 
 	// Get the metadata, replace fields in JSON from provided metadata, and set defaults.
-	rsrcJson, m, err := canonicalizeMetadata(rsrcJson, types.CollectionKind, m)
+	rsrcJson, m, err := canonicalizeMetadata(rsrcJson, catcommon.CollectionKind, m)
 	if err != nil {
 		return nil, validationerrors.ErrSchemaSerialization
 	}
@@ -60,7 +61,7 @@ func SaveCollection(ctx context.Context, cm schemamanager.CollectionManager, opt
 		opt(&options)
 	}
 
-	t := types.CatalogObjectTypeCatalogCollection
+	t := catcommon.CatalogObjectTypeCatalogCollection
 	var dir Directories
 	rsrcPath := cm.Metadata().GetStoragePath(t)
 	pathWithName := path.Clean(rsrcPath + "/" + cm.Metadata().Name)
@@ -160,17 +161,17 @@ func setCollectionSchemaManager(ctx context.Context, cm schemamanager.Collection
 	// Now we try for the schema either in the namespace cr in the root namespace
 	schemaPath = cm.GetCollectionSchemaPath()
 	if schemaPath != "" {
-		schemaObj, err = db.DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, schemaPath)
+		schemaObj, err = db.DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, schemaPath)
 	} else {
 		m := cm.Metadata()
 		if !cm.Metadata().Namespace.IsNil() {
-			schemaPath = path.Clean(m.GetStoragePath(types.CatalogObjectTypeCollectionSchema) + "/" + cm.Schema())
-			schemaObj, err = db.DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, schemaPath)
+			schemaPath = path.Clean(m.GetStoragePath(catcommon.CatalogObjectTypeCollectionSchema) + "/" + cm.Schema())
+			schemaObj, err = db.DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, schemaPath)
 		}
 		if schemaObj == nil {
 			m.Namespace = types.NullString()
-			schemaPath = path.Clean(m.GetStoragePath(types.CatalogObjectTypeCollectionSchema) + "/" + cm.Schema())
-			schemaObj, err = db.DB(ctx).GetObjectRefByPath(ctx, types.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, schemaPath)
+			schemaPath = path.Clean(m.GetStoragePath(catcommon.CatalogObjectTypeCollectionSchema) + "/" + cm.Schema())
+			schemaObj, err = db.DB(ctx).GetObjectRefByPath(ctx, catcommon.CatalogObjectTypeCollectionSchema, dir.CollectionsDir, schemaPath)
 		}
 	}
 
@@ -215,7 +216,7 @@ func saveCollectionObject(ctx context.Context, m *schemamanager.SchemaMetadata, 
 
 	namespace := m.Namespace.String()
 	if namespace == "" {
-		namespace = types.DefaultNamespace
+		namespace = catcommon.DefaultNamespace
 	}
 
 	c := models.Collection{
@@ -229,7 +230,7 @@ func saveCollectionObject(ctx context.Context, m *schemamanager.SchemaMetadata, 
 	if err := db.DB(ctx).UpsertCollection(ctx, &c, dir.ValuesDir); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to create collection in database")
 		// If the collection creation fails, we should also delete the catalog object
-		if _, delErr := db.DB(ctx).DeleteObjectByPath(ctx, types.CatalogObjectTypeCatalogCollection, dir.ValuesDir, pathWithName); delErr != nil {
+		if _, delErr := db.DB(ctx).DeleteObjectByPath(ctx, catcommon.CatalogObjectTypeCatalogCollection, dir.ValuesDir, pathWithName); delErr != nil {
 			log.Ctx(ctx).Error().Err(delErr).Msg("failed to delete catalog object after collection creation failure")
 		}
 		return ErrCatalogError.Err(err)
@@ -242,7 +243,7 @@ func saveCollectionObject(ctx context.Context, m *schemamanager.SchemaMetadata, 
 		})
 
 		// store the reference in the directory
-		if err := db.DB(ctx).AddOrUpdateObjectByPath(ctx, types.CatalogObjectTypeCatalogCollection, dir.ValuesDir, pathWithName, models.ObjectRef{
+		if err := db.DB(ctx).AddOrUpdateObjectByPath(ctx, catcommon.CatalogObjectTypeCatalogCollection, dir.ValuesDir, pathWithName, models.ObjectRef{
 			Hash:       obj.Hash,
 			References: refModel,
 		}); err != nil {
@@ -263,7 +264,7 @@ func DeleteCollection(ctx context.Context, m *schemamanager.SchemaMetadata, opts
 		opt(&options)
 	}
 
-	t := types.CatalogObjectTypeCatalogCollection
+	t := catcommon.CatalogObjectTypeCatalogCollection
 	rsrcPath := m.GetStoragePath(t)
 	pathWithName := path.Clean(rsrcPath + "/" + m.Name)
 
@@ -297,7 +298,7 @@ func DeleteCollection(ctx context.Context, m *schemamanager.SchemaMetadata, opts
 	}
 
 	if hash != "" {
-		err = db.DB(ctx).DeleteCatalogObject(ctx, types.CatalogObjectTypeCatalogCollection, hash)
+		err = db.DB(ctx).DeleteCatalogObject(ctx, catcommon.CatalogObjectTypeCatalogCollection, hash)
 		if !errors.Is(err, dberror.ErrNotFound) {
 			// we don't return an error since the object reference has already been removed and
 			// we cannot roll this back.
@@ -325,7 +326,7 @@ func LoadCollectionByHash(ctx context.Context, hash string, m *schemamanager.Sch
 		return nil, ErrUnableToLoadObject.Err(err)
 	}
 
-	if obj.Type != types.CatalogObjectTypeCatalogCollection {
+	if obj.Type != catcommon.CatalogObjectTypeCatalogCollection {
 		log.Ctx(ctx).Error().Msg("invalid collection type")
 		return nil, ErrUnableToLoadObject
 	}
@@ -343,7 +344,7 @@ func loadCollectionObjectByPath(ctx context.Context, m *schemamanager.SchemaMeta
 		opt(&options)
 	}
 
-	t := types.CatalogObjectTypeCatalogCollection
+	t := catcommon.CatalogObjectTypeCatalogCollection
 	rsrcPath := m.GetStoragePath(t)
 	pathWithName := path.Clean(rsrcPath + "/" + m.Name)
 
@@ -412,11 +413,11 @@ func collectionManagerFromObject(ctx context.Context, obj *models.CatalogObject,
 		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal collection schema")
 		return nil, validationerrors.ErrSchemaValidation
 	}
-	if s.Type != types.CatalogObjectTypeCatalogCollection {
+	if s.Type != catcommon.CatalogObjectTypeCatalogCollection {
 		log.Ctx(ctx).Error().Msg("invalid collection schema type")
 		return nil, ErrUnableToLoadObject
 	}
-	if s.Type != types.CatalogObjectTypeCatalogCollection {
+	if s.Type != catcommon.CatalogObjectTypeCatalogCollection {
 		log.Ctx(ctx).Error().Msg("invalid collection schema kind")
 		return nil, ErrUnableToLoadObject
 	}
@@ -430,7 +431,7 @@ func collectionManagerFromObject(ctx context.Context, obj *models.CatalogObject,
 		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal collection schema values")
 		return nil, ErrUnableToLoadObject
 	}
-	cm.schema.Kind = types.CollectionKind
+	cm.schema.Kind = catcommon.CollectionKind
 	cm.schema.Version = s.Version
 	cm.schema.Metadata = *m
 	var schemaPathNS types.NullableString
@@ -451,7 +452,7 @@ func (cr *collectionResource) Name() string {
 }
 
 func (cr *collectionResource) Location() string {
-	objName := types.ResourceNameFromObjectType(cr.reqCtx.ObjectType)
+	objName := catcommon.ResourceNameFromObjectType(cr.reqCtx.ObjectType)
 	loc := path.Clean("/" + objName + cr.cm.FullyQualifiedName())
 	q := url.Values{}
 	if workspace := cr.reqCtx.WorkspaceLabel; workspace != "" {
@@ -489,7 +490,7 @@ func (cr *collectionResource) Create(ctx context.Context, rsrcJson []byte) (stri
 
 	cr.reqCtx.ObjectName = collection.Metadata().Name
 	cr.reqCtx.ObjectPath = collection.Metadata().Path
-	cr.reqCtx.ObjectType = types.CatalogObjectTypeCatalogCollection
+	cr.reqCtx.ObjectType = catcommon.CatalogObjectTypeCatalogCollection
 	cr.cm = collection
 
 	if cr.reqCtx.Catalog == "" {

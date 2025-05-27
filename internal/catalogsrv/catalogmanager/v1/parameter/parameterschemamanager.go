@@ -9,6 +9,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager/datatyperegistry"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/api/schemastore"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -91,7 +92,7 @@ func (pm *V1ParameterSchemaManager) ValidateValue(value types.NullableAny) apper
 func (pm *V1ParameterSchemaManager) StorageRepresentation() *schemastore.SchemaStorageRepresentation {
 	s := schemastore.SchemaStorageRepresentation{
 		Version: pm.version,
-		Type:    types.CatalogObjectTypeParameterSchema,
+		Type:    catcommon.CatalogObjectTypeParameterSchema,
 	}
 	s.Schema, _ = json.Marshal(pm.parameterSchema.Spec)
 	return &s
@@ -111,7 +112,7 @@ func (pm *V1ParameterSchemaManager) ValidateDependencies(ctx context.Context, lo
 		m := loaders.SelfMetadata()
 		m.Path = collectionRef.Path()
 		m.Name = collectionRef.SchemaName()
-		om, err := loaders.ByPath(ctx, types.CatalogObjectTypeCollectionSchema, &m)
+		om, err := loaders.ByPath(ctx, catcommon.CatalogObjectTypeCollectionSchema, &m)
 		if err != nil {
 			log.Ctx(ctx).Error().Str("collectionschema", collectionRef.Name).Msg("failed to load collection")
 			continue

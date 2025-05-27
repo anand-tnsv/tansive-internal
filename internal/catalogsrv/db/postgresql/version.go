@@ -354,13 +354,13 @@ func (mm *metadataManager) GetVersionByLabel(ctx context.Context, label string, 
 		cd := models.SchemaDirectory{VersionNum: version.VersionNum, VariantID: version.VariantID, TenantID: version.TenantID, Directory: []byte("{}")}
 		vd := models.SchemaDirectory{VersionNum: version.VersionNum, VariantID: version.VariantID, TenantID: version.TenantID, Directory: []byte("{}")}
 
-		if err := mm.m.createSchemaDirectoryWithTransaction(ctx, types.CatalogObjectTypeParameterSchema, &pd, tx); err != nil {
+		if err := mm.m.createSchemaDirectoryWithTransaction(ctx, catcommon.CatalogObjectTypeParameterSchema, &pd, tx); err != nil {
 			return err
 		}
-		if err := mm.m.createSchemaDirectoryWithTransaction(ctx, types.CatalogObjectTypeCollectionSchema, &cd, tx); err != nil {
+		if err := mm.m.createSchemaDirectoryWithTransaction(ctx, catcommon.CatalogObjectTypeCollectionSchema, &cd, tx); err != nil {
 			return err
 		}
-		if err := mm.m.createSchemaDirectoryWithTransaction(ctx, types.CatalogObjectTypeCatalogCollection, &vd, tx); err != nil {
+		if err := mm.m.createSchemaDirectoryWithTransaction(ctx, catcommon.CatalogObjectTypeCatalogCollection, &vd, tx); err != nil {
 			return err
 		}
 

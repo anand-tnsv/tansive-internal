@@ -170,13 +170,13 @@ func (r Rules) matchesAdmin(resource string) bool {
 				continue
 			}
 			isMatch := false
-			if adminActions[ActionCatalogAdmin] && checkAdminMatch(ResourceNameCatalogs, ruleSegments) {
+			if adminActions[ActionCatalogAdmin] && checkAdminMatch("catalogs", ruleSegments) {
 				isMatch = true
 			}
-			if adminActions[ActionVariantAdmin] && checkAdminMatch(ResourceNameVariants, ruleSegments) {
+			if adminActions[ActionVariantAdmin] && checkAdminMatch("variants", ruleSegments) {
 				isMatch = true
 			}
-			if adminActions[ActionNamespaceAdmin] && checkAdminMatch(ResourceNameNamespaces, ruleSegments) {
+			if adminActions[ActionNamespaceAdmin] && checkAdminMatch("namespaces", ruleSegments) {
 				isMatch = true
 			}
 			if isMatch && (strings.HasPrefix(resource, string(res)) || res.matches(resource)) {

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 func TestSchemaStorageRepresentation(t *testing.T) {
@@ -325,7 +325,7 @@ func TestSchemaStorageRepresentation(t *testing.T) {
 	var baseHash, equivalentHash string
 	s := ObjectStorageRepresentation{
 		Version: "v1",
-		Type:    types.CatalogObjectTypeParameterSchema,
+		Type:    catcommon.CatalogObjectTypeParameterSchema,
 		Spec:    []byte(baseJson),
 	}
 	baseHash = s.GetHash()

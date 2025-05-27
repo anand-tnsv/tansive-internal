@@ -13,7 +13,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func TestResourceOperations(t *testing.T) {
@@ -22,8 +21,8 @@ func TestResourceOperations(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -73,7 +72,7 @@ func TestResourceOperations(t *testing.T) {
 	// Create a mock catalog object
 	obj := &models.CatalogObject{
 		Hash:     rg.Hash,
-		Type:     types.CatalogObjectTypeResource,
+		Type:     catcommon.CatalogObjectTypeResource,
 		Version:  "v1",
 		TenantID: tenantID,
 		Data:     []byte(`{"key": "value"}`),

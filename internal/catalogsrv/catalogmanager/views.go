@@ -45,7 +45,7 @@ type viewSpec struct {
 // Validate performs validation on the view schema and returns any validation errors.
 func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
-	if v.Kind != types.ViewKind {
+	if v.Kind != catcommon.ViewKind {
 		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
 	err := schemavalidator.V().Struct(v)
@@ -324,8 +324,8 @@ func (v *viewKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
 
 	// Convert the view model to JSON
 	viewSchema := &viewSchema{
-		Version: types.VersionV1,
-		Kind:    types.ViewKind,
+		Version: catcommon.VersionV1,
+		Kind:    catcommon.ViewKind,
 		Metadata: viewMetadata{
 			Name:        view.Label,
 			Catalog:     v.reqCtx.Catalog,
@@ -466,20 +466,20 @@ func CanonicalizeResourcePath(scope types.Scope, resource types.TargetResource) 
 
 	var morphedMetadata = make(map[string]resourceMetadataValue)
 
-	morphedMetadata[types.ResourceNameCatalogs] = morphMetadata(scope.Catalog, 0, types.ResourceNameCatalogs, resourceKV)
-	morphedMetadata[types.ResourceNameVariants] = morphMetadata(scope.Variant, 1, types.ResourceNameVariants, resourceKV)
-	morphedMetadata[types.ResourceNameNamespaces] = morphMetadata(scope.Namespace, 2, types.ResourceNameNamespaces, resourceKV)
+	morphedMetadata[catcommon.ResourceNameCatalogs] = morphMetadata(scope.Catalog, 0, catcommon.ResourceNameCatalogs, resourceKV)
+	morphedMetadata[catcommon.ResourceNameVariants] = morphMetadata(scope.Variant, 1, catcommon.ResourceNameVariants, resourceKV)
+	morphedMetadata[catcommon.ResourceNameNamespaces] = morphMetadata(scope.Namespace, 2, catcommon.ResourceNameNamespaces, resourceKV)
 
 	s := strings.Builder{}
-	s.WriteString(types.ResourceNameCatalogs + "/" + morphedMetadata[types.ResourceNameCatalogs].value)
-	if morphedMetadata[types.ResourceNameVariants].value != "" {
-		s.WriteString("/" + types.ResourceNameVariants + "/" + morphedMetadata[types.ResourceNameVariants].value)
+	s.WriteString(catcommon.ResourceNameCatalogs + "/" + morphedMetadata[catcommon.ResourceNameCatalogs].value)
+	if morphedMetadata[catcommon.ResourceNameVariants].value != "" {
+		s.WriteString("/" + catcommon.ResourceNameVariants + "/" + morphedMetadata[catcommon.ResourceNameVariants].value)
 	}
-	if morphedMetadata[types.ResourceNameWorkspaces].value != "" {
-		s.WriteString("/" + types.ResourceNameWorkspaces + "/" + morphedMetadata[types.ResourceNameWorkspaces].value)
+	if morphedMetadata[catcommon.ResourceNameWorkspaces].value != "" {
+		s.WriteString("/" + catcommon.ResourceNameWorkspaces + "/" + morphedMetadata[catcommon.ResourceNameWorkspaces].value)
 	}
-	if morphedMetadata[types.ResourceNameNamespaces].value != "" {
-		s.WriteString("/" + types.ResourceNameNamespaces + "/" + morphedMetadata[types.ResourceNameNamespaces].value)
+	if morphedMetadata[catcommon.ResourceNameNamespaces].value != "" {
+		s.WriteString("/" + catcommon.ResourceNameNamespaces + "/" + morphedMetadata[catcommon.ResourceNameNamespaces].value)
 	}
 
 	// write remaining segments in metadata in sorted order. Usually this will end up as erroneous segments

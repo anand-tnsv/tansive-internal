@@ -5,12 +5,12 @@ import (
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
 /*
@@ -29,7 +29,7 @@ type SchemaResource struct {
 
 func (rs *SchemaResource) Validate() schemaerr.ValidationErrors {
 	var ves schemaerr.ValidationErrors
-	if rs.Kind != types.CollectionSchemaKind && rs.Kind != types.ParameterSchemaKind {
+	if rs.Kind != catcommon.CollectionSchemaKind && rs.Kind != catcommon.ParameterSchemaKind {
 		ves = append(ves, schemaerr.ErrUnsupportedKind("kind"))
 	}
 	err := schemavalidator.V().Struct(rs)

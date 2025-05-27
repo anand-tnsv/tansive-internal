@@ -22,12 +22,12 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-func setupTest(t *testing.T) (context.Context, types.TenantId, types.ProjectId, uuid.UUID, uuid.UUID, *config.ConfigParam) {
+func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.ProjectId, uuid.UUID, uuid.UUID, *config.ConfigParam) {
 	// Initialize context with logger and database connection
 	ctx := newDb()
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -153,7 +153,7 @@ func TestCreateToken(t *testing.T) {
 			Rules:       derivedViewJSON,
 			Info:        nil,
 			CatalogID:   catalogID,
-			TenantID:    types.TenantId("TABCDE"),
+			TenantID:    catcommon.TenantId("TABCDE"),
 		}
 
 		// Store the derived view in the database
@@ -220,7 +220,7 @@ func TestCreateToken(t *testing.T) {
 			Description: "Derived view for testing",
 			Rules:       []byte(`{"scope":{"catalog":"test-catalog"},"rules":[{"intent":"allow","actions":["catalog:list"],"targets":["res://catalogs/test-catalog"]}]}`),
 			CatalogID:   catalogID,
-			TenantID:    types.TenantId("TABCDE"),
+			TenantID:    catcommon.TenantId("TABCDE"),
 		}
 
 		token, expiry, err := CreateToken(ctx, derivedView)

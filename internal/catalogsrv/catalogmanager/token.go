@@ -12,7 +12,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // Token represents a JWT token with its associated claims and validation methods
@@ -74,7 +73,7 @@ func NewToken(ctx context.Context, tokenString string) (*Token, apperrors.Error)
 		return nil, ErrUnableToGenerateToken
 	}
 
-	ctx = catcommon.SetTenantIdInContext(ctx, types.TenantId(tenantID))
+	ctx = catcommon.SetTenantIdInContext(ctx, catcommon.TenantId(tenantID))
 
 	// Get the view from database
 	view, err := db.DB(ctx).GetView(ctx, viewID)
@@ -123,12 +122,12 @@ func (t *Token) GetString(key string) (string, bool) {
 	return str, ok
 }
 
-func (t *Token) GetTokenType() types.TokenType {
+func (t *Token) GetTokenType() catcommon.TokenType {
 	tokenType, ok := t.Get("token_type")
 	if !ok {
-		return types.TokenTypeUnknown
+		return catcommon.TokenTypeUnknown
 	}
-	return types.TokenType(tokenType.(string))
+	return catcommon.TokenType(tokenType.(string))
 }
 
 func (t *Token) GetSubject() string {

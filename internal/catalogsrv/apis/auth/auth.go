@@ -105,7 +105,7 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 		wantView,
 		catalogmanager.WithParentViewDefinition(&viewDef),
 		catalogmanager.WithAdditionalClaims(map[string]any{
-			"token_type": types.TokenTypeIdentity,
+			"token_type": catcommon.TokenTypeIdentity,
 			"sub":        catcommon.GetUserContextFromContext(ctx).UserID,
 		}),
 	)
@@ -134,7 +134,7 @@ func getDefaultUserViewDefInCatalog(ctx context.Context, catalogID uuid.UUID) (*
 		return nil, httpx.ErrUnAuthorized()
 	}
 	// Currently in single user mode, return admin view
-	v, err := db.DB(ctx).GetViewByLabel(ctx, types.DefaultAdminViewLabel, catalogID)
+	v, err := db.DB(ctx).GetViewByLabel(ctx, catcommon.DefaultAdminViewLabel, catalogID)
 	if err != nil {
 		return nil, httpx.ErrUnableToServeRequest()
 	}

@@ -41,7 +41,7 @@ func LoadContext(next http.Handler) http.Handler {
 		}
 
 		if config.Config().SingleUserMode {
-			ctx = catcommon.SetProjectIdInContext(ctx, types.ProjectId(config.Config().DefaultProjectID))
+			ctx = catcommon.SetProjectIdInContext(ctx, catcommon.ProjectId(config.Config().DefaultProjectID))
 		}
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -66,7 +66,7 @@ func validateToken(ctx context.Context, token string) (context.Context, error) {
 	if tenantID == "" {
 		return ctx, fmt.Errorf("invalid token")
 	}
-	ctx = catcommon.SetTenantIdInContext(ctx, types.TenantId(tenantID))
+	ctx = catcommon.SetTenantIdInContext(ctx, catcommon.TenantId(tenantID))
 	// Get the catalog context
 	catalogContext := catcommon.CatalogContextFromContext(ctx)
 	if catalogContext == nil {
@@ -78,7 +78,7 @@ func validateToken(ctx context.Context, token string) (context.Context, error) {
 	catalogContext.Namespace = viewDef.Scope.Namespace
 
 	tokenType := tokenObj.GetTokenType()
-	if tokenType == types.TokenTypeIdentity {
+	if tokenType == catcommon.TokenTypeIdentity {
 		catalogContext.UserContext = &catcommon.UserContext{
 			UserID: tokenObj.GetSubject(),
 		}

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 /*
@@ -30,14 +30,14 @@ Foreign-key constraints:
 */
 
 type View struct {
-	ViewID      uuid.UUID      `db:"view_id"`
-	Label       string         `db:"label"`
-	Description string         `db:"description"`
-	Info        []byte         `db:"info"`
-	Rules       []byte         `db:"rules"`
-	CatalogID   uuid.UUID      `db:"catalog_id"`
-	TenantID    types.TenantId `db:"tenant_id"`
-	Catalog     string         `db:"-"`
-	CreatedAt   time.Time      `db:"created_at"`
-	UpdatedAt   time.Time      `db:"updated_at"`
+	ViewID      uuid.UUID          `db:"view_id"`
+	Label       string             `db:"label"`
+	Description string             `db:"description"`
+	Info        []byte             `db:"info"`
+	Rules       []byte             `db:"rules"`
+	CatalogID   uuid.UUID          `db:"catalog_id"`
+	TenantID    catcommon.TenantId `db:"tenant_id"`
+	Catalog     string             `db:"-"`
+	CreatedAt   time.Time          `db:"created_at"`
+	UpdatedAt   time.Time          `db:"updated_at"`
 }

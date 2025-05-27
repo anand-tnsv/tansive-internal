@@ -212,8 +212,8 @@ func TestCollection(t *testing.T) {
 	replaceTabsWithSpaces(&validCollectionValueWithInvalidValueYaml2)
 	replaceTabsWithSpaces(&validCollectionWithChangedValueYaml)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
@@ -237,7 +237,7 @@ func TestCollection(t *testing.T) {
 	err = db.DB(ctx).CreateCatalog(ctx, cat)
 	assert.NoError(t, err)
 
-	varId, err := db.DB(ctx).GetVariantIDFromName(ctx, cat.CatalogID, types.DefaultVariant)
+	varId, err := db.DB(ctx).GetVariantIDFromName(ctx, cat.CatalogID, catcommon.DefaultVariant)
 	assert.NoError(t, err)
 
 	// create a workspace
@@ -530,8 +530,8 @@ func TestCollectionWithNamespaces(t *testing.T) {
 	replaceTabsWithSpaces(&invalidCollectionvalueYaml)
 	replaceTabsWithSpaces(&validCollectionValueYaml)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PABCDE")
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
@@ -555,7 +555,7 @@ func TestCollectionWithNamespaces(t *testing.T) {
 	err = db.DB(ctx).CreateCatalog(ctx, cat)
 	assert.NoError(t, err)
 
-	varId, err := db.DB(ctx).GetVariantIDFromName(ctx, cat.CatalogID, types.DefaultVariant)
+	varId, err := db.DB(ctx).GetVariantIDFromName(ctx, cat.CatalogID, catcommon.DefaultVariant)
 	assert.NoError(t, err)
 
 	// create a namespace
@@ -650,11 +650,11 @@ func TestCollectionWithNamespaces(t *testing.T) {
 	require.NoError(t, err)
 	m = parameterSchema.Metadata()
 	m.Namespace = types.NullString()
-	err = DeleteSchema(ctx, types.CatalogObjectTypeParameterSchema, &m, dir)
+	err = DeleteSchema(ctx, catcommon.CatalogObjectTypeParameterSchema, &m, dir)
 	require.Error(t, err)
 	// delete the collection schema
 	m = collectionSchema.Metadata()
-	err = DeleteSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, dir)
+	err = DeleteSchema(ctx, catcommon.CatalogObjectTypeCollectionSchema, &m, dir)
 	require.Error(t, err)
 	// delete the collection
 	m = validCollection.Metadata()
@@ -665,6 +665,6 @@ func TestCollectionWithNamespaces(t *testing.T) {
 	require.Error(t, err)
 	// delete the collection schema
 	m = collectionSchema.Metadata()
-	err = DeleteSchema(ctx, types.CatalogObjectTypeCollectionSchema, &m, dir)
+	err = DeleteSchema(ctx, catcommon.CatalogObjectTypeCollectionSchema, &m, dir)
 	require.NoError(t, err)
 }

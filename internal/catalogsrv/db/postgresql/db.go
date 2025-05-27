@@ -8,7 +8,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dbmanager"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 type hatchCatalogDb struct {
@@ -27,7 +26,7 @@ func NewHatchCatalogDb(c dbmanager.ScopedConn) (*metadataManager, *objectManager
 }
 
 // getTenantAndProjectFromContext extracts tenant and project IDs from the context
-func getTenantAndProjectFromContext(ctx context.Context) (types.TenantId, types.ProjectId, apperrors.Error) {
+func getTenantAndProjectFromContext(ctx context.Context) (catcommon.TenantId, catcommon.ProjectId, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 	projectID := catcommon.ProjectIdFromContext(ctx)
 
@@ -43,7 +42,7 @@ func getTenantAndProjectFromContext(ctx context.Context) (types.TenantId, types.
 }
 
 // getTenantIdFromContext extracts only the tenant ID from the context
-func getTenantIdFromContext(ctx context.Context) (types.TenantId, apperrors.Error) {
+func getTenantIdFromContext(ctx context.Context) (catcommon.TenantId, apperrors.Error) {
 	tenantID := catcommon.TenantIdFromContext(ctx)
 
 	// Validate tenantID to ensure it is not empty

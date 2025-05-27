@@ -5,12 +5,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
+	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewVariantManager(t *testing.T) {
@@ -72,8 +71,8 @@ func TestNewVariantManager(t *testing.T) {
 	ctx := newDb()
 	defer db.DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PDEFGH")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PDEFGH")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)

@@ -6,12 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
+	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
-	"github.com/rs/zerolog/log"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -20,7 +19,7 @@ func TestCreateTenant(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
 
 	// Test successful tenant creation
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -39,7 +38,7 @@ func TestGetTenant(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
+	tenantID := catcommon.TenantId("TABCDE")
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
 
 	// First, create the tenant to test retrieval
@@ -53,7 +52,7 @@ func TestGetTenant(t *testing.T) {
 	assert.Equal(t, tenantID, tenant.TenantID)
 
 	// Test trying to get a non-existent tenant (should return ErrNotFound)
-	nonExistentTenantID := types.TenantId("nonexistent123")
+	nonExistentTenantID := catcommon.TenantId("nonexistent123")
 	tenant, err = DB(ctx).GetTenant(ctx, nonExistentTenantID)
 	assert.Error(t, err)
 	assert.Nil(t, tenant)
@@ -66,8 +65,8 @@ func TestCreateProject(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -100,8 +99,8 @@ func TestGetProject(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -123,7 +122,7 @@ func TestGetProject(t *testing.T) {
 	assert.Equal(t, tenantID, project.TenantID)
 
 	// Test trying to get a non-existent project (should return ErrNotFound)
-	nonExistentProjectID := types.ProjectId("nonexistent123")
+	nonExistentProjectID := catcommon.ProjectId("nonexistent123")
 	project, err = DB(ctx).GetProject(ctx, nonExistentProjectID)
 	assert.Error(t, err)
 	assert.Nil(t, project)
@@ -136,8 +135,8 @@ func TestDeleteProject(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -172,8 +171,8 @@ func TestCreateCatalog(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -238,8 +237,8 @@ func TestGetCatalog(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -319,8 +318,8 @@ func TestUpdateCatalog(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
@@ -386,8 +385,8 @@ func TestDeleteCatalog(t *testing.T) {
 	ctx = newDb(ctx)
 	defer DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("P12345")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)

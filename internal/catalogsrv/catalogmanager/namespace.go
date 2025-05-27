@@ -18,7 +18,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 type namespaceSchema struct {
@@ -120,7 +119,7 @@ func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog strin
 
 func (ns *namespaceSchema) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
-	if ns.Kind != types.NamespaceKind {
+	if ns.Kind != catcommon.NamespaceKind {
 		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
 
@@ -217,7 +216,7 @@ func (nm *namespaceManager) Save(ctx context.Context) apperrors.Error {
 func (nm *namespaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) {
 	ns := &namespaceSchema{
 		Version: "v1",
-		Kind:    types.NamespaceKind,
+		Kind:    catcommon.NamespaceKind,
 		Metadata: namespaceMetadata{
 			Catalog:     nm.namespace.Catalog,
 			Variant:     nm.namespace.Variant,
@@ -266,7 +265,7 @@ func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) appe
 	dir := variant.ResourceDirectoryID
 
 	// delete the namespace objects in all directories
-	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, types.CatalogObjectTypeResource, dir, name)
+	_, err = db.DB(ctx).DeleteNamespaceObjects(ctx, catcommon.CatalogObjectTypeResource, dir, name)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to delete namespace objects in Resource")
 	}

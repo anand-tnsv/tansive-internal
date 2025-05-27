@@ -19,7 +19,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
 )
 
@@ -43,7 +42,7 @@ var _ schemamanager.VariantManager = (*variantManager)(nil)
 
 func (vs *variantSchema) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
-	if vs.Kind != types.VariantKind {
+	if vs.Kind != catcommon.VariantKind {
 		validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind("kind"))
 	}
 
@@ -212,8 +211,8 @@ func (vm *variantManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) 
 	}
 
 	s := variantSchema{
-		Version: types.VersionV1,
-		Kind:    types.VariantKind,
+		Version: catcommon.VersionV1,
+		Kind:    catcommon.VariantKind,
 		Metadata: variantMetadata{
 			Name:        vm.variant.Name,
 			Catalog:     catalog.Name,

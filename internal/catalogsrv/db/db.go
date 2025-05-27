@@ -6,11 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dbmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/postgresql"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // DB_ is an interface for the database connection. It wraps the underlying sql.Conn interface while
@@ -20,12 +20,12 @@ import (
 
 type MetadataManager interface {
 	//Tenant and Project
-	CreateTenant(ctx context.Context, tenantID types.TenantId) error
-	GetTenant(ctx context.Context, tenantID types.TenantId) (*models.Tenant, error)
-	DeleteTenant(ctx context.Context, tenantID types.TenantId) error
-	CreateProject(ctx context.Context, projectID types.ProjectId) error
-	GetProject(ctx context.Context, projectID types.ProjectId) (*models.Project, error)
-	DeleteProject(ctx context.Context, projectID types.ProjectId) error
+	CreateTenant(ctx context.Context, tenantID catcommon.TenantId) error
+	GetTenant(ctx context.Context, tenantID catcommon.TenantId) (*models.Tenant, error)
+	DeleteTenant(ctx context.Context, tenantID catcommon.TenantId) error
+	CreateProject(ctx context.Context, projectID catcommon.ProjectId) error
+	GetProject(ctx context.Context, projectID catcommon.ProjectId) (*models.Project, error)
+	DeleteProject(ctx context.Context, projectID catcommon.ProjectId) error
 
 	// Catalog
 	CreateCatalog(ctx context.Context, catalog *models.Catalog) apperrors.Error
@@ -97,7 +97,7 @@ type ObjectManager interface {
 	// Catalog Object
 	CreateCatalogObject(ctx context.Context, obj *models.CatalogObject) apperrors.Error
 	GetCatalogObject(ctx context.Context, hash string) (*models.CatalogObject, apperrors.Error)
-	DeleteCatalogObject(ctx context.Context, t types.CatalogObjectType, hash string) apperrors.Error
+	DeleteCatalogObject(ctx context.Context, t catcommon.CatalogObjectType, hash string) apperrors.Error
 
 	//Collections
 	UpsertCollection(ctx context.Context, wc *models.Collection, dir uuid.UUID) (err apperrors.Error)
@@ -117,23 +117,23 @@ type ObjectManager interface {
 	ListResources(ctx context.Context, directoryID uuid.UUID) ([]models.Resource, apperrors.Error)
 
 	// Schema Directory
-	CreateSchemaDirectory(ctx context.Context, t types.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error
-	SetDirectory(ctx context.Context, t types.CatalogObjectType, id uuid.UUID, dir []byte) apperrors.Error
-	GetDirectory(ctx context.Context, t types.CatalogObjectType, id uuid.UUID) ([]byte, apperrors.Error)
-	GetSchemaDirectory(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID) (*models.SchemaDirectory, apperrors.Error)
-	GetObjectRefByPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (*models.ObjectRef, apperrors.Error)
-	LoadObjectByPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (*models.CatalogObject, apperrors.Error)
-	UpdateObjectHashForPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string, hash string) apperrors.Error
-	AddOrUpdateObjectByPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string, obj models.ObjectRef) apperrors.Error
-	AddReferencesToObject(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string, references models.References) apperrors.Error
-	GetAllReferences(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (models.References, apperrors.Error)
-	DeleteReferenceFromObject(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string, reference string) apperrors.Error
-	DeleteObjectByPath(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (types.Hash, apperrors.Error)
-	FindClosestObject(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, targetName, startPath string) (string, *models.ObjectRef, apperrors.Error)
-	PathExists(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, path string) (bool, apperrors.Error)
+	CreateSchemaDirectory(ctx context.Context, t catcommon.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error
+	SetDirectory(ctx context.Context, t catcommon.CatalogObjectType, id uuid.UUID, dir []byte) apperrors.Error
+	GetDirectory(ctx context.Context, t catcommon.CatalogObjectType, id uuid.UUID) ([]byte, apperrors.Error)
+	GetSchemaDirectory(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID) (*models.SchemaDirectory, apperrors.Error)
+	GetObjectRefByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (*models.ObjectRef, apperrors.Error)
+	LoadObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (*models.CatalogObject, apperrors.Error)
+	UpdateObjectHashForPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, hash string) apperrors.Error
+	AddOrUpdateObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, obj models.ObjectRef) apperrors.Error
+	AddReferencesToObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, references models.References) apperrors.Error
+	GetAllReferences(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (models.References, apperrors.Error)
+	DeleteReferenceFromObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, reference string) apperrors.Error
+	DeleteObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (catcommon.Hash, apperrors.Error)
+	FindClosestObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, targetName, startPath string) (string, *models.ObjectRef, apperrors.Error)
+	PathExists(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (bool, apperrors.Error)
 	DeleteTree(ctx context.Context, directoryIds models.DirectoryIDs, path string) ([]string, apperrors.Error)
-	DeleteObjectWithReferences(ctx context.Context, t types.CatalogObjectType, dirIDs models.DirectoryIDs, delPath string, opts ...models.DirectoryObjectDeleteOptions) (string, apperrors.Error)
-	DeleteNamespaceObjects(ctx context.Context, t types.CatalogObjectType, directoryID uuid.UUID, namespace string) ([]string, apperrors.Error)
+	DeleteObjectWithReferences(ctx context.Context, t catcommon.CatalogObjectType, dirIDs models.DirectoryIDs, delPath string, opts ...models.DirectoryObjectDeleteOptions) (string, apperrors.Error)
+	DeleteNamespaceObjects(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, namespace string) ([]string, apperrors.Error)
 }
 
 type ConnectionManager interface {

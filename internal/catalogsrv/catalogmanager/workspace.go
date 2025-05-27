@@ -22,7 +22,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // workspaceSchema represents the structure of a workspace configuration
@@ -124,7 +123,7 @@ func NewWorkspaceManager(ctx context.Context, rsrcJSON []byte, catalog, variant 
 
 func (ws *workspaceSchema) Validate() schemaerr.ValidationErrors {
 	var ves schemaerr.ValidationErrors
-	if ws.Kind != types.WorkspaceKind {
+	if ws.Kind != catcommon.WorkspaceKind {
 		ves = append(ves, schemaerr.ErrUnsupportedKind("kind"))
 	}
 	err := schemavalidator.V().Struct(ws)
@@ -260,7 +259,7 @@ func (wm *workspaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error
 
 	ws := &workspaceSchema{
 		Version: "v1",
-		Kind:    types.WorkspaceKind,
+		Kind:    catcommon.WorkspaceKind,
 		Metadata: workspaceMetadata{
 			Catalog:     catalog.Name,
 			Variant:     variant.Name,

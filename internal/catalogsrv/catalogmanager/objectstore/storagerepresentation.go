@@ -5,18 +5,18 @@ import (
 
 	json "github.com/json-iterator/go"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 type ObjectStorageRepresentation struct {
-	Version     string                  `json:"version"`
-	Type        types.CatalogObjectType `json:"type"`
-	Description string                  `json:"description"`
-	Spec        json.RawMessage         `json:"spec"`
-	Values      json.RawMessage         `json:"values"`
-	Reserved    json.RawMessage         `json:"reserved"`
-	Entropy     []byte                  `json:"entropy"`
+	Version     string                      `json:"version"`
+	Type        catcommon.CatalogObjectType `json:"type"`
+	Description string                      `json:"description"`
+	Spec        json.RawMessage             `json:"spec"`
+	Values      json.RawMessage             `json:"values"`
+	Reserved    json.RawMessage             `json:"reserved"`
+	Entropy     []byte                      `json:"entropy"`
 }
 
 // Serialize converts the SchemaStorageRepresentation to a JSON byte array

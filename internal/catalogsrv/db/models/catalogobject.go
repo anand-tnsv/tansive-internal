@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 /*
@@ -18,11 +18,11 @@ import (
 */
 
 type CatalogObject struct {
-	Hash      string                  `db:"hash"`
-	Type      types.CatalogObjectType `db:"type"`
-	Version   string                  `db:"version"`
-	TenantID  types.TenantId          `db:"tenant_id"`
-	Data      []byte                  `db:"data"`
-	CreatedAt time.Time               `db:"created_at"`
-	UpdatedAt time.Time               `db:"updated_at"`
+	Hash      string                      `db:"hash"`
+	Type      catcommon.CatalogObjectType `db:"type"`
+	Version   string                      `db:"version"`
+	TenantID  catcommon.TenantId          `db:"tenant_id"`
+	Data      []byte                      `db:"data"`
+	CreatedAt time.Time                   `db:"created_at"`
+	UpdatedAt time.Time                   `db:"updated_at"`
 }

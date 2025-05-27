@@ -26,7 +26,7 @@ func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *schemamanager.S
 	}
 
 	// Get the metadata, replace fields in JSON from provided metadata, and set defaults.
-	rsrcJSON, m, err := canonicalizeMetadata(rsrcJSON, types.ResourceKind, m)
+	rsrcJSON, m, err := canonicalizeMetadata(rsrcJSON, catcommon.ResourceKind, m)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("Failed to canonicalize metadata")
 		return nil, validationerrors.ErrSchemaSerialization
@@ -81,7 +81,7 @@ func LoadResourceManagerByPath(ctx context.Context, m *schemamanager.SchemaMetad
 		return nil, err
 	}
 
-	pathWithName := path.Clean(m.GetStoragePath(types.CatalogObjectTypeResource) + "/" + m.Name)
+	pathWithName := path.Clean(m.GetStoragePath(catcommon.CatalogObjectTypeResource) + "/" + m.Name)
 
 	obj, err := db.DB(ctx).GetResourceObject(ctx, pathWithName, variant.ResourceDirectoryID)
 	if err != nil {
@@ -102,7 +102,7 @@ func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m
 		return nil, validationerrors.ErrSchemaValidation
 	}
 
-	if storageRep.Type != types.CatalogObjectTypeResource {
+	if storageRep.Type != catcommon.CatalogObjectTypeResource {
 		log.Ctx(ctx).Error().Msg("Invalid type")
 		return nil, ErrUnableToLoadObject
 	}
@@ -113,7 +113,7 @@ func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m
 		return nil, ErrUnableToLoadObject
 	}
 
-	rm.resource.Kind = types.ResourceKind
+	rm.resource.Kind = catcommon.ResourceKind
 	rm.resource.Version = storageRep.Version
 	rm.resource.Metadata = *m
 	rm.resource.Metadata.Description = storageRep.Description
@@ -136,7 +136,7 @@ func (h *resourceKindHandler) Name() string {
 // Location returns the fully qualified path to the resource, including any query parameters.
 // The path is constructed using the resource name and namespace (if present).
 func (h *resourceKindHandler) Location() string {
-	objName := types.ResourceNameFromObjectType(h.req.ObjectType)
+	objName := catcommon.ResourceNameFromObjectType(h.req.ObjectType)
 	loc := path.Clean("/" + objName + h.rm.FullyQualifiedName())
 
 	q := url.Values{}
@@ -176,7 +176,7 @@ func (h *resourceKindHandler) Create(ctx context.Context, rsrcJSON []byte) (stri
 
 	h.req.ObjectName = rm.Metadata().Name
 	h.req.ObjectPath = rm.Metadata().Path
-	h.req.ObjectType = types.CatalogObjectTypeResource
+	h.req.ObjectType = catcommon.CatalogObjectTypeResource
 	h.rm = rm
 
 	// Update request context with metadata if not set
@@ -212,9 +212,9 @@ func (h *resourceKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error)
 	if err != nil {
 		return nil, err
 	}
-	if h.req.ObjectProperty == types.ResourcePropertyDefinition {
+	if h.req.ObjectProperty == catcommon.ResourcePropertyDefinition {
 		return rm.JSON(ctx)
-	} else if h.req.ObjectProperty == types.ResourcePropertyValue {
+	} else if h.req.ObjectProperty == catcommon.ResourcePropertyValue {
 		return rm.GetValueJSON(ctx)
 	}
 
@@ -245,13 +245,13 @@ func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apper
 		return ErrObjectNotFound
 	}
 
-	if h.req.ObjectProperty == types.ResourcePropertyDefinition {
+	if h.req.ObjectProperty == catcommon.ResourcePropertyDefinition {
 		rm, err := NewResourceManager(ctx, rsrcJSON, m)
 		if err != nil {
 			return err
 		}
 		return rm.Save(ctx)
-	} else if h.req.ObjectProperty == types.ResourcePropertyValue {
+	} else if h.req.ObjectProperty == catcommon.ResourcePropertyValue {
 		val := types.NullableAny{}
 		if err := json.Unmarshal(rsrcJSON, &val); err != nil {
 			return ErrInvalidResourceValue

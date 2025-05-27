@@ -6,6 +6,7 @@ import (
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
@@ -78,7 +79,7 @@ func canonicalizeMetadata(resourceJSON []byte, kind string, metadata *schemamana
 	}
 
 	if resourceMetadata.Variant.IsNil() {
-		resourceMetadata.Variant = types.NullableStringFrom(types.DefaultVariant) // set default variant if nil
+		resourceMetadata.Variant = types.NullableStringFrom(catcommon.DefaultVariant) // set default variant if nil
 	}
 
 	updatedJSON, err := sjson.SetBytes(resourceJSON, "metadata", resourceMetadata)

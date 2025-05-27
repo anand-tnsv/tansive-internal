@@ -12,6 +12,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager/datatyperegistry"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/parameter"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -227,7 +228,7 @@ func validateParameterSchemaDependency(ctx context.Context, loaders schemamanage
 
 	// find if there is an applicable parameter schema
 	if schemaPath == "" {
-		schemaPath, hash, err = loaders.ClosestParent(ctx, types.CatalogObjectTypeParameterSchema, p.Schema)
+		schemaPath, hash, err = loaders.ClosestParent(ctx, catcommon.CatalogObjectTypeParameterSchema, p.Schema)
 	}
 
 	if err != nil || (schemaPath == "" && hash == "") {
@@ -244,9 +245,9 @@ func validateParameterSchemaDependency(ctx context.Context, loaders schemamanage
 		m.Name = path.Base(schemaPath)
 		m.Path = path.Dir(schemaPath)
 		if len(hash) > 0 {
-			om, err = loaders.ByHash(ctx, types.CatalogObjectTypeParameterSchema, hash, &m)
+			om, err = loaders.ByHash(ctx, catcommon.CatalogObjectTypeParameterSchema, hash, &m)
 		} else {
-			om, err = loaders.ByPath(ctx, types.CatalogObjectTypeParameterSchema, &m)
+			om, err = loaders.ByPath(ctx, catcommon.CatalogObjectTypeParameterSchema, &m)
 		}
 		if err != nil && om == nil {
 			ves = append(ves, schemaerr.ErrParameterSchemaDoesNotExist(p.Schema))

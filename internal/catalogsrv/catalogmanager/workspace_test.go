@@ -9,7 +9,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func TestNewWorkspaceManager(t *testing.T) {
@@ -78,8 +77,8 @@ func TestNewWorkspaceManager(t *testing.T) {
 		db.DB(ctx).Close(ctx)
 	})
 
-	tenantID := types.TenantId("TABCDE")
-	projectID := types.ProjectId("PDEFGH")
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PDEFGH")
 
 	// Set the tenant ID and project ID in the context
 	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)

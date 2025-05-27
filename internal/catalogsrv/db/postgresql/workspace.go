@@ -492,12 +492,12 @@ func (mm *metadataManager) CommitWorkspace(ctx context.Context, workspace *model
 		workspace.WorkspaceID = insertedWorkspaceID
 
 		dirs := []struct {
-			objType types.CatalogObjectType
+			objType catcommon.CatalogObjectType
 			dirID   *uuid.UUID
 		}{
-			{types.CatalogObjectTypeParameterSchema, &workspace.ParametersDir},
-			{types.CatalogObjectTypeCollectionSchema, &workspace.CollectionsDir},
-			{types.CatalogObjectTypeCatalogCollection, &workspace.ValuesDir},
+			{catcommon.CatalogObjectTypeParameterSchema, &workspace.ParametersDir},
+			{catcommon.CatalogObjectTypeCollectionSchema, &workspace.CollectionsDir},
+			{catcommon.CatalogObjectTypeCatalogCollection, &workspace.ValuesDir},
 		}
 
 		for _, d := range dirs {

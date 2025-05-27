@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -87,7 +88,7 @@ func DeleteAttribute(ctx context.Context, metadata *schemamanager.SchemaMetadata
 	}
 
 	var dir Directories
-	objType := types.CatalogObjectTypeCatalogCollection
+	objType := catcommon.CatalogObjectTypeCatalogCollection
 	storagePath := path.Clean(metadata.GetStoragePath(objType) + "/" + metadata.Name)
 
 	// get the directory
@@ -158,7 +159,7 @@ func DeleteAttribute(ctx context.Context, metadata *schemamanager.SchemaMetadata
 	}
 
 	obj := models.CatalogObject{
-		Type:    types.CatalogObjectTypeCatalogCollection,
+		Type:    catcommon.CatalogObjectTypeCatalogCollection,
 		Hash:    newHash,
 		Version: storage.Version,
 		Data:    data,
@@ -182,7 +183,7 @@ func UpdateAttributes(ctx context.Context, metadata *schemamanager.SchemaMetadat
 	}
 
 	var dir Directories
-	objType := types.CatalogObjectTypeCatalogCollection
+	objType := catcommon.CatalogObjectTypeCatalogCollection
 	storagePath := path.Clean(metadata.GetStoragePath(objType) + "/" + metadata.Name)
 
 	// get the directory
@@ -261,7 +262,7 @@ func UpdateAttributes(ctx context.Context, metadata *schemamanager.SchemaMetadat
 	}
 
 	obj := models.CatalogObject{
-		Type:    types.CatalogObjectTypeCatalogCollection,
+		Type:    catcommon.CatalogObjectTypeCatalogCollection,
 		Hash:    newHash,
 		Version: storage.Version,
 		Data:    data,
