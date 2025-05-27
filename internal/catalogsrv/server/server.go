@@ -14,20 +14,19 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/common/logtrace"
 	commonmiddleware "github.com/tansive/tansive-internal/internal/common/middleware"
-	"github.com/tansive/tansive-internal/pkg/api"
 )
 
-type HatchCatalogServer struct {
+type CatalogServer struct {
 	Router *chi.Mux
 }
 
-func CreateNewServer() (*HatchCatalogServer, error) {
-	s := &HatchCatalogServer{}
+func CreateNewServer() (*CatalogServer, error) {
+	s := &CatalogServer{}
 	s.Router = chi.NewRouter()
 	return s, nil
 }
 
-func (s *HatchCatalogServer) MountHandlers() {
+func (s *CatalogServer) MountHandlers() {
 	s.Router.Use(commonmiddleware.RequestLogger)
 	s.Router.Use(commonmiddleware.PanicHandler)
 	s.Router.Use(commonmiddleware.SetTimeout(5 * time.Second))
@@ -48,23 +47,28 @@ func (s *HatchCatalogServer) MountHandlers() {
 	}
 }
 
-func (s *HatchCatalogServer) mountResourceHandlers(r chi.Router) {
+func (s *CatalogServer) mountResourceHandlers(r chi.Router) {
 	r.Use(middleware.LoadScopedDB) // Load the scoped db connection
 	r.Mount("/auth", auth.Router(r))
 	r.Mount("/", apis.Router(r))
 	r.Get("/version", s.getVersion)
 }
 
-func (s *HatchCatalogServer) getVersion(w http.ResponseWriter, r *http.Request) {
+type GetVersionRsp struct {
+	ServerVersion string `json:"serverVersion"`
+	ApiVersion    string `json:"apiVersion"`
+}
+
+func (s *CatalogServer) getVersion(w http.ResponseWriter, r *http.Request) {
 	log.Ctx(r.Context()).Debug().Msg("GetVersion")
-	rsp := &api.GetVersionRsp{
-		ServerVersion: "CatalogSrv: 1.0.0", //TODO - Implement server versioning
-		ApiVersion:    api.ApiVersion_1_0,
+	rsp := &GetVersionRsp{
+		ServerVersion: "Tansive Catalog Server: 0.1.0", //TODO - Implement server versioning
+		ApiVersion:    "v1alpha1",
 	}
 	httpx.SendJsonRsp(r.Context(), w, http.StatusOK, rsp)
 }
 
-func (s *HatchCatalogServer) HandleCORS(next http.Handler) http.Handler {
+func (s *CatalogServer) HandleCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8190")

@@ -10,12 +10,9 @@ type IdType int
 
 const (
 	ID_TYPE_GENERIC = iota
-	ID_TYPE_NODE
 	ID_TYPE_TENANT
-	ID_TYPE_BILL
 	ID_TYPE_USER
 	ID_TYPE_PROJECT
-	ID_TYPE_USERGROUP
 )
 
 const (
@@ -51,18 +48,12 @@ func GetUniqueId(t IdType) (string, error) {
 
 	prefix := ""
 	switch t {
-	case ID_TYPE_NODE:
-		prefix = "N"
-	case ID_TYPE_BILL:
-		prefix = "B"
 	case ID_TYPE_TENANT:
 		prefix = "T"
 	case ID_TYPE_USER:
 		prefix = "U"
 	case ID_TYPE_PROJECT:
 		prefix = "P"
-	case ID_TYPE_USERGROUP:
-		prefix = "G"
 	}
 
 	return prefix + code, nil
