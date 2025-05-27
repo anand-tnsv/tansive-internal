@@ -1,4 +1,4 @@
-package common
+package catcommon
 
 import (
 	"crypto/aes"

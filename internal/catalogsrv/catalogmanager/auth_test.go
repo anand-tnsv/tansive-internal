@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -30,8 +30,8 @@ func setupTest(t *testing.T) (context.Context, types.TenantId, types.ProjectId, 
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -110,7 +110,7 @@ func setupTest(t *testing.T) (context.Context, types.TenantId, types.ProjectId, 
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
 
-	encKey, err := common.Encrypt(priv, cfg.KeyEncryptionPasswd)
+	encKey, err := catcommon.Encrypt(priv, cfg.KeyEncryptionPasswd)
 	require.NoError(t, err)
 
 	signingKey := &models.SigningKey{

@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -22,8 +22,8 @@ func TestCreateViewToken(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create test tenant
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -63,8 +63,8 @@ func TestGetViewToken(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create test tenant
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -104,8 +104,8 @@ func TestUpdateViewTokenExpiry(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create test tenant
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -148,8 +148,8 @@ func TestDeleteViewToken(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create test tenant
 	err := DB(ctx).CreateTenant(ctx, tenantID)

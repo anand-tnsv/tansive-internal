@@ -9,16 +9,16 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tidwall/gjson"
 )
 
-func loadContext(r *http.Request) (*common.CatalogContext, error) {
+func loadContext(r *http.Request) (*catcommon.CatalogContext, error) {
 	ctx := r.Context()
 
-	catalogCtx := common.CatalogContextFromContext(ctx)
+	catalogCtx := catcommon.CatalogContextFromContext(ctx)
 
 	catalogCtx = loadMetadataFromParam(r, catalogCtx)
 	catalogCtx = loadMetadataFromQuery(r, catalogCtx)
@@ -64,7 +64,7 @@ func loadContext(r *http.Request) (*common.CatalogContext, error) {
 	return catalogCtx, nil
 }
 
-func loadMetadataFromParam(r *http.Request, catalogCtx *common.CatalogContext) *common.CatalogContext {
+func loadMetadataFromParam(r *http.Request, catalogCtx *catcommon.CatalogContext) *catcommon.CatalogContext {
 	if catalogCtx == nil {
 		return nil
 	}
@@ -86,7 +86,7 @@ func loadMetadataFromParam(r *http.Request, catalogCtx *common.CatalogContext) *
 	return catalogCtx
 }
 
-func loadMetadataFromQuery(r *http.Request, catalogCtx *common.CatalogContext) *common.CatalogContext {
+func loadMetadataFromQuery(r *http.Request, catalogCtx *catcommon.CatalogContext) *catcommon.CatalogContext {
 	if catalogCtx == nil {
 		return nil
 	}
@@ -133,7 +133,7 @@ func loadMetadataFromQuery(r *http.Request, catalogCtx *common.CatalogContext) *
 	return catalogCtx
 }
 
-func loadMetadataFromBody(r *http.Request, catalogCtx *common.CatalogContext) (*common.CatalogContext, error) {
+func loadMetadataFromBody(r *http.Request, catalogCtx *catcommon.CatalogContext) (*catcommon.CatalogContext, error) {
 	if catalogCtx == nil || r.Body == nil {
 		return catalogCtx, nil
 	}

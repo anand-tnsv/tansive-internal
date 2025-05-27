@@ -45,9 +45,11 @@ func main() {
 	http.ListenAndServe(":"+config.Config().ServerPort, s.Router)
 }
 
+const DefaultConfigFile = "/etc/tansive/worker.conf"
+
 func parseFlags() cmdoptions {
 	var opt cmdoptions
-	opt.configFile = flag.String("config", common.DefaultConfigFile, "Path to the config file")
+	opt.configFile = flag.String("config", DefaultConfigFile, "Path to the config file")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options]\n\n", os.Args[0])
 		fmt.Println("Options:")

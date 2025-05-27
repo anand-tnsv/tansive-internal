@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -74,7 +74,7 @@ func NewToken(ctx context.Context, tokenString string) (*Token, apperrors.Error)
 		return nil, ErrUnableToGenerateToken
 	}
 
-	ctx = common.SetTenantIdInContext(ctx, types.TenantId(tenantID))
+	ctx = catcommon.SetTenantIdInContext(ctx, types.TenantId(tenantID))
 
 	// Get the view from database
 	view, err := db.DB(ctx).GetView(ctx, viewID)

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -101,7 +101,7 @@ func (mm *metadataManager) DeleteTenant(ctx context.Context, tenantID types.Tena
 
 // CreateProject inserts a new project into the database.
 func (mm *metadataManager) CreateProject(ctx context.Context, projectID types.ProjectId) error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 
 	// Validate tenantID to ensure it is not empty
 	if tenantID == "" {
@@ -134,7 +134,7 @@ func (mm *metadataManager) CreateProject(ctx context.Context, projectID types.Pr
 
 // GetProject retrieves a project from the database.
 func (mm *metadataManager) GetProject(ctx context.Context, projectID types.ProjectId) (*models.Project, error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 
 	// Validate tenantID to ensure it is not empty
 	if tenantID == "" {
@@ -171,7 +171,7 @@ func (mm *metadataManager) GetProject(ctx context.Context, projectID types.Proje
 
 // DeleteProject deletes a project from the database. If the project does not exist, it does nothing.
 func (mm *metadataManager) DeleteProject(ctx context.Context, projectID types.ProjectId) error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 
 	// Validate tenantID to ensure it is not empty
 	if tenantID == "" {

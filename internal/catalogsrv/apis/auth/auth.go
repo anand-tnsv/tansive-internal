@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
@@ -43,7 +43,7 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 	}
 
 	// get current context
-	c := common.CatalogContextFromContext(ctx)
+	c := catcommon.CatalogContextFromContext(ctx)
 	ourViewDef := c.ViewDefinition
 	if ourViewDef == nil || ourViewDef.Scope.Catalog != catalog.Name {
 		return nil, httpx.ErrInvalidView("current view not in catalog: " + catalog.Name)
@@ -106,7 +106,7 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 		catalogmanager.WithParentViewDefinition(&viewDef),
 		catalogmanager.WithAdditionalClaims(map[string]any{
 			"token_type": types.TokenTypeIdentity,
-			"sub":        common.GetUserContextFromContext(ctx).UserID,
+			"sub":        catcommon.GetUserContextFromContext(ctx).UserID,
 		}),
 	)
 	if err != nil {
@@ -126,7 +126,7 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 
 func getDefaultUserViewDefInCatalog(ctx context.Context, catalogID uuid.UUID) (*models.View, error) {
 	// get usercontext
-	userContext := common.GetUserContextFromContext(ctx)
+	userContext := catcommon.GetUserContextFromContext(ctx)
 	if userContext == nil {
 		return nil, httpx.ErrUnAuthorized()
 	}

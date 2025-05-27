@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -43,7 +43,7 @@ func (mm *metadataManager) CreateView(ctx context.Context, view *models.View) (e
 }
 
 func (mm *metadataManager) createViewWithTransaction(ctx context.Context, view *models.View, tx *sql.Tx) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -87,7 +87,7 @@ func (mm *metadataManager) createViewWithTransaction(ctx context.Context, view *
 }
 
 func (mm *metadataManager) GetView(ctx context.Context, viewID uuid.UUID) (*models.View, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -126,7 +126,7 @@ func (mm *metadataManager) GetView(ctx context.Context, viewID uuid.UUID) (*mode
 }
 
 func (mm *metadataManager) GetViewByLabel(ctx context.Context, label string, catalogID uuid.UUID) (*models.View, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -166,7 +166,7 @@ func (mm *metadataManager) GetViewByLabel(ctx context.Context, label string, cat
 }
 
 func (mm *metadataManager) UpdateView(ctx context.Context, view *models.View) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -218,7 +218,7 @@ func (mm *metadataManager) UpdateView(ctx context.Context, view *models.View) ap
 }
 
 func (mm *metadataManager) DeleteView(ctx context.Context, viewID uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -245,7 +245,7 @@ func (mm *metadataManager) DeleteView(ctx context.Context, viewID uuid.UUID) app
 }
 
 func (mm *metadataManager) DeleteViewByLabel(ctx context.Context, label string, catalogID uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -284,7 +284,7 @@ func (mm *metadataManager) DeleteViewByLabel(ctx context.Context, label string, 
 }
 
 func (mm *metadataManager) ListViewsByCatalog(ctx context.Context, catalogID uuid.UUID) ([]*models.View, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}

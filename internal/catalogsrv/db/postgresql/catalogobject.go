@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/snappy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -15,7 +15,7 @@ import (
 )
 
 func (om *objectManager) CreateCatalogObject(ctx context.Context, obj *models.CatalogObject) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -68,7 +68,7 @@ func (om *objectManager) CreateCatalogObject(ctx context.Context, obj *models.Ca
 }
 
 func (om *objectManager) GetCatalogObject(ctx context.Context, hash string) (*models.CatalogObject, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -108,7 +108,7 @@ func (om *objectManager) GetCatalogObject(ctx context.Context, hash string) (*mo
 }
 
 func (om *objectManager) DeleteCatalogObject(ctx context.Context, t types.CatalogObjectType, hash string) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}

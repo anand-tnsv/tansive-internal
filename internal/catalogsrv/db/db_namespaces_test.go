@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgtype"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -21,8 +21,8 @@ func TestCreateNamespace(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -86,8 +86,8 @@ func TestGetNamespace(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -132,8 +132,8 @@ func TestUpdateNamespace(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -182,8 +182,8 @@ func TestDeleteNamespace(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -230,8 +230,8 @@ func TestListNamespacesByVariant(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)

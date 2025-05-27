@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -16,7 +16,7 @@ import (
 // in future, if necessary.
 
 func (om *objectManager) UpsertCollection(ctx context.Context, c *models.Collection, dir uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -43,7 +43,7 @@ func (om *objectManager) UpsertCollection(ctx context.Context, c *models.Collect
 }
 
 func (om *objectManager) GetCollection(ctx context.Context, path string, dir uuid.UUID) (*models.Collection, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -61,7 +61,7 @@ func (om *objectManager) GetCollection(ctx context.Context, path string, dir uui
 }
 
 func (om *objectManager) GetCollectionObject(ctx context.Context, path string, dir uuid.UUID) (*models.CatalogObject, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -70,7 +70,7 @@ func (om *objectManager) GetCollectionObject(ctx context.Context, path string, d
 }
 
 func (om *objectManager) UpdateCollection(ctx context.Context, c *models.Collection, dir uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -98,7 +98,7 @@ func (om *objectManager) UpdateCollection(ctx context.Context, c *models.Collect
 }
 
 func (om *objectManager) DeleteCollection(ctx context.Context, path string, dir uuid.UUID) (string, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return "", dberror.ErrMissingTenantID
 	}
@@ -112,7 +112,7 @@ func (om *objectManager) DeleteCollection(ctx context.Context, path string, dir 
 }
 
 func (om *objectManager) HasReferencesToCollectionSchema(ctx context.Context, collectionSchema string, dir uuid.UUID) (bool, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return false, dberror.ErrMissingTenantID
 	}

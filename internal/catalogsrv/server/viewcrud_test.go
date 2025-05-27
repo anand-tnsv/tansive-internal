@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -26,8 +26,8 @@ func TestViewCrud(t *testing.T) {
 	config.Config().DefaultTenantID = string(tenantID)
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -44,7 +44,7 @@ func TestViewCrud(t *testing.T) {
 	testContext := TestContext{
 		TenantId:       tenantID,
 		ProjectId:      projectID,
-		CatalogContext: common.CatalogContext{},
+		CatalogContext: catcommon.CatalogContext{},
 	}
 
 	// Create a catalog
@@ -228,8 +228,8 @@ func TestViewList(t *testing.T) {
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	config.Config().DefaultProjectID = string(projectID)
 	config.Config().DefaultTenantID = string(tenantID)
@@ -246,7 +246,7 @@ func TestViewList(t *testing.T) {
 	testContext := TestContext{
 		TenantId:       tenantID,
 		ProjectId:      projectID,
-		CatalogContext: common.CatalogContext{},
+		CatalogContext: catcommon.CatalogContext{},
 	}
 
 	// Create a catalog

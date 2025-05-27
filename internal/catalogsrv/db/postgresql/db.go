@@ -4,7 +4,7 @@ package postgresql
 import (
 	"context"
 
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dbmanager"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -28,8 +28,8 @@ func NewHatchCatalogDb(c dbmanager.ScopedConn) (*metadataManager, *objectManager
 
 // getTenantAndProjectFromContext extracts tenant and project IDs from the context
 func getTenantAndProjectFromContext(ctx context.Context) (types.TenantId, types.ProjectId, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
-	projectID := common.ProjectIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
+	projectID := catcommon.ProjectIdFromContext(ctx)
 
 	// Validate tenantID and projectID to ensure they are not empty
 	if tenantID == "" {
@@ -44,7 +44,7 @@ func getTenantAndProjectFromContext(ctx context.Context) (types.TenantId, types.
 
 // getTenantIdFromContext extracts only the tenant ID from the context
 func getTenantIdFromContext(ctx context.Context) (types.TenantId, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 
 	// Validate tenantID to ensure it is not empty
 	if tenantID == "" {

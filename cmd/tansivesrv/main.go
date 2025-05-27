@@ -8,11 +8,11 @@ import (
 	"os"
 
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/server"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/logtrace"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -65,7 +65,7 @@ func createDefaultTenantAndProject() error {
 			return err
 		}
 	}
-	ctx = common.SetTenantIdInContext(ctx, types.TenantId(config.Config().DefaultTenantID))
+	ctx = catcommon.SetTenantIdInContext(ctx, types.TenantId(config.Config().DefaultTenantID))
 	if err := db.DB(ctx).CreateProject(ctx, types.ProjectId(config.Config().DefaultProjectID)); err != nil {
 		if err != dberror.ErrAlreadyExists {
 			return err
@@ -74,9 +74,11 @@ func createDefaultTenantAndProject() error {
 	return nil
 }
 
+const DefaultConfigFile = "/etc/tansive/tansivesrv.conf"
+
 func parseFlags() cmdoptions {
 	var opt cmdoptions
-	opt.configFile = flag.String("config", common.DefaultConfigFile, "Path to the config file")
+	opt.configFile = flag.String("config", DefaultConfigFile, "Path to the config file")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options]\n\n", os.Args[0])
 		fmt.Println("Options:")

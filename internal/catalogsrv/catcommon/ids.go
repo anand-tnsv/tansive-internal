@@ -1,4 +1,4 @@
-package common
+package catcommon
 
 import "crypto/rand"
 
@@ -32,18 +32,10 @@ func GetUniqueId(t IdType) string {
 		return ""
 	}
 	switch t {
-	case ID_TYPE_NODE:
-		c = "N" + c
-	case ID_TYPE_BILL:
-		c = "B" + c
 	case ID_TYPE_TENANT:
 		c = "T" + c
-	case ID_TYPE_USER:
-		c = "U" + c
 	case ID_TYPE_PROJECT:
 		c = "P" + c
-	case ID_TYPE_USERGROUP:
-		c = "G" + c
 	default:
 	}
 	return c
@@ -51,27 +43,22 @@ func GetUniqueId(t IdType) string {
 
 // Function to generate a random alphanumeric string of a given length like Airline PNR Code
 func airlineCode(length int) (string, error) {
-	// Define the character set containing A-Z and 0-9
 	charSet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	charSetLen := len(charSet)
 
-	// Create a byte slice to hold the random characters
 	randomBytes := make([]byte, length)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
 		return "", err
 	}
 
-	// Convert the random bytes to the character set
 	for i := 0; i < length; i++ {
-		// Generate a random index within the character set length
 		index := int(randomBytes[i]) % charSetLen
 		randomBytes[i] = charSet[index]
 	}
 
 	// Ensure the first character is a letter (not a number)
 	if randomBytes[0] >= '0' && randomBytes[0] <= '9' {
-		// Replace with a random letter
 		index := int(randomBytes[0]) % 26
 		randomBytes[0] = charSet[index]
 	}

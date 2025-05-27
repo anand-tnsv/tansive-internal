@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -20,7 +20,7 @@ import (
 type TestContext struct {
 	TenantId  types.TenantId
 	ProjectId types.ProjectId
-	common.CatalogContext
+	catcommon.CatalogContext
 }
 
 func executeTestRequest(t *testing.T, req *http.Request, apiKey *string, testContext ...TestContext) *httptest.ResponseRecorder {
@@ -38,8 +38,8 @@ func executeTestRequest(t *testing.T, req *http.Request, apiKey *string, testCon
 	rr := httptest.NewRecorder()
 	if len(testContext) > 0 {
 		ctx := req.Context()
-		ctx = common.SetTenantIdInContext(ctx, testContext[0].TenantId)
-		ctx = common.SetProjectIdInContext(ctx, testContext[0].ProjectId)
+		ctx = catcommon.SetTenantIdInContext(ctx, testContext[0].TenantId)
+		ctx = catcommon.SetProjectIdInContext(ctx, testContext[0].ProjectId)
 		catalogContext := &testContext[0].CatalogContext
 		vd := types.ViewDefinition{
 			Scope: types.Scope{
@@ -54,8 +54,8 @@ func executeTestRequest(t *testing.T, req *http.Request, apiKey *string, testCon
 			},
 		}
 		catalogContext.ViewDefinition = &vd
-		ctx = common.SetCatalogContext(ctx, catalogContext)
-		ctx = common.SetTestContext(ctx, true)
+		ctx = catcommon.SetCatalogContext(ctx, catalogContext)
+		ctx = catcommon.SetTestContext(ctx, true)
 		req = req.WithContext(ctx)
 	}
 	s.Router.ServeHTTP(rr, req)

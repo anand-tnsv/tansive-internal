@@ -9,7 +9,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -18,7 +18,7 @@ import (
 func LoadContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		if common.TestContextFromContext(ctx) {
+		if catcommon.TestContextFromContext(ctx) {
 			// If the context is already set, skip loading it again
 			next.ServeHTTP(w, r)
 			return
@@ -41,7 +41,7 @@ func LoadContext(next http.Handler) http.Handler {
 		}
 
 		if config.Config().SingleUserMode {
-			ctx = common.SetProjectIdInContext(ctx, types.ProjectId(config.Config().DefaultProjectID))
+			ctx = catcommon.SetProjectIdInContext(ctx, types.ProjectId(config.Config().DefaultProjectID))
 		}
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -66,11 +66,11 @@ func validateToken(ctx context.Context, token string) (context.Context, error) {
 	if tenantID == "" {
 		return ctx, fmt.Errorf("invalid token")
 	}
-	ctx = common.SetTenantIdInContext(ctx, types.TenantId(tenantID))
+	ctx = catcommon.SetTenantIdInContext(ctx, types.TenantId(tenantID))
 	// Get the catalog context
-	catalogContext := common.CatalogContextFromContext(ctx)
+	catalogContext := catcommon.CatalogContextFromContext(ctx)
 	if catalogContext == nil {
-		catalogContext = &common.CatalogContext{}
+		catalogContext = &catcommon.CatalogContext{}
 	}
 	catalogContext.ViewDefinition = &viewDef
 	catalogContext.Catalog = viewDef.Scope.Catalog
@@ -79,9 +79,9 @@ func validateToken(ctx context.Context, token string) (context.Context, error) {
 
 	tokenType := tokenObj.GetTokenType()
 	if tokenType == types.TokenTypeIdentity {
-		catalogContext.UserContext = &common.UserContext{
+		catalogContext.UserContext = &catcommon.UserContext{
 			UserID: tokenObj.GetSubject(),
 		}
 	}
-	return common.SetCatalogContext(ctx, catalogContext), nil
+	return catcommon.SetCatalogContext(ctx, catalogContext), nil
 }

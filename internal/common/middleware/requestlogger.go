@@ -17,7 +17,7 @@ const requestIdKey = requestIdContextKey("requestId")
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		// Generate a unique uuid. don't use common.uuid() as it is not defined in this package
+		// Generate a unique uuid. don't use catcommon.uuid() as it is not defined in this package
 		requestID := newRequestId()
 		// Add the request ID to the request context
 		ctx = context.WithValue(ctx, requestIdKey, requestID)

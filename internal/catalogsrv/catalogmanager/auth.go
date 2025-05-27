@@ -12,7 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
@@ -125,7 +125,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 
 	claims := jwt.MapClaims{
 		"view_id":   derivedView.ViewID.String(),
-		"tenant_id": common.TenantIdFromContext(ctx),
+		"tenant_id": catcommon.TenantIdFromContext(ctx),
 		"iss":       config.Config().ServerHostName + ":" + config.Config().ServerPort,
 		"exp":       jwt.NewNumericDate(tokenExpiry),
 		"iat":       jwt.NewNumericDate(time.Now()),
@@ -224,7 +224,7 @@ func retrieveOrCreateSigningKey(ctx context.Context) (*signingKey, apperrors.Err
 			log.Ctx(ctx).Error().Err(err).Msg("unable to generate signing key")
 			return nil, ErrUnableToGenerateSigningKey
 		}
-		encKey, err := common.Encrypt(priv, config.Config().KeyEncryptionPasswd)
+		encKey, err := catcommon.Encrypt(priv, config.Config().KeyEncryptionPasswd)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("unable to encrypt signing key")
 			return nil, ErrUnableToGenerateSigningKey
@@ -244,7 +244,7 @@ func retrieveOrCreateSigningKey(ctx context.Context) (*signingKey, apperrors.Err
 		}
 	} else {
 		// Decrypt the existing key
-		decKey, err := common.Decrypt(key.PrivateKey, config.Config().KeyEncryptionPasswd)
+		decKey, err := catcommon.Decrypt(key.PrivateKey, config.Config().KeyEncryptionPasswd)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("unable to decrypt signing key")
 			return nil, ErrUnableToGenerateSigningKey

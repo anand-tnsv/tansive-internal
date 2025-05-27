@@ -20,7 +20,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -273,7 +273,7 @@ func (rm *resourceManager) Save(ctx context.Context) apperrors.Error {
 	}
 
 	// Get the directory ID for the resource
-	catalogID := common.GetCatalogIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogIdFromContext(ctx)
 	if catalogID == uuid.Nil {
 		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, m.Catalog)
@@ -313,7 +313,7 @@ func DeleteResource(ctx context.Context, m *schemamanager.SchemaMetadata) apperr
 	}
 
 	// Get the directory ID for the resource
-	catalogID := common.GetCatalogIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogIdFromContext(ctx)
 	if catalogID == uuid.Nil {
 		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, m.Catalog)

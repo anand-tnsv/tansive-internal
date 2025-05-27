@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -70,7 +70,7 @@ func TestCreateProject(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 
 	// Create the tenant to associate with the project
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -88,7 +88,7 @@ func TestCreateProject(t *testing.T) {
 	assert.ErrorIs(t, err, dberror.ErrAlreadyExists)
 
 	// Test trying to create a project without a tenant ID in the context
-	ctx = common.SetTenantIdInContext(ctx, "")
+	ctx = catcommon.SetTenantIdInContext(ctx, "")
 	err = DB(ctx).CreateProject(ctx, projectID)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrDatabase)
@@ -104,7 +104,7 @@ func TestGetProject(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 
 	// Create the tenant and project to test retrieval
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -140,7 +140,7 @@ func TestDeleteProject(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
 
 	// Create the tenant and project to test deletion
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -176,8 +176,8 @@ func TestCreateCatalog(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -242,8 +242,8 @@ func TestGetCatalog(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project to test retrieval
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -323,8 +323,8 @@ func TestUpdateCatalog(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -390,8 +390,8 @@ func TestDeleteCatalog(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)

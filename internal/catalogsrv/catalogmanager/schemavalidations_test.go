@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgtype"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -173,8 +173,8 @@ spec:
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -205,8 +205,8 @@ spec:
 			tenantID := types.TenantId("TABCDE")
 			projectID := types.ProjectId("PABCDE")
 			// Set the tenant ID and project ID in the context
-			ctx = common.SetTenantIdInContext(ctx, tenantID)
-			ctx = common.SetProjectIdInContext(ctx, projectID)
+			ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+			ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 			jsonData, err := yaml.YAMLToJSON([]byte(tt.yamlData))
 			if assert.NoError(t, err) {
 				_, err := NewSchema(ctx, jsonData, nil)
@@ -341,8 +341,8 @@ spec:
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("PABCDE")
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -371,8 +371,8 @@ spec:
 			tenantID := types.TenantId("TABCDE")
 			projectID := types.ProjectId("PABCDE")
 			// Set the tenant ID and project ID in the context
-			ctx = common.SetTenantIdInContext(ctx, tenantID)
-			ctx = common.SetProjectIdInContext(ctx, projectID)
+			ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+			ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 			jsonData, err := yaml.YAMLToJSON([]byte(tt.yamlData))
 			if assert.NoError(t, err) {
 				_, err := NewSchema(ctx, jsonData, nil)

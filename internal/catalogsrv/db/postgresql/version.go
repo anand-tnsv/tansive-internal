@@ -7,14 +7,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/rs/zerolog/log"
 )
 
 func (mm *metadataManager) CreateVersion(ctx context.Context, version *models.Version) (err error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -99,7 +99,7 @@ func (mm *metadataManager) createVersionWithTransaction(ctx context.Context, ver
 }
 
 func (mm *metadataManager) GetVersion(ctx context.Context, versionNum int, variantID uuid.UUID) (*models.Version, error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -126,7 +126,7 @@ func (mm *metadataManager) GetVersion(ctx context.Context, versionNum int, varia
 }
 
 func (mm *metadataManager) SetVersionLabel(ctx context.Context, versionNum int, variantID uuid.UUID, newLabel string) error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -169,7 +169,7 @@ func (mm *metadataManager) SetVersionLabel(ctx context.Context, versionNum int, 
 }
 
 func (mm *metadataManager) UpdateVersionDescription(ctx context.Context, versionNum int, variantID uuid.UUID, newDescription string) error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -197,7 +197,7 @@ func (mm *metadataManager) UpdateVersionDescription(ctx context.Context, version
 }
 
 func (mm *metadataManager) DeleteVersion(ctx context.Context, versionNum int, variantID uuid.UUID) error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -228,7 +228,7 @@ func (mm *metadataManager) DeleteVersion(ctx context.Context, versionNum int, va
 }
 
 func (mm *metadataManager) CountVersionsInVariant(ctx context.Context, variantID uuid.UUID) (int, error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return 0, dberror.ErrMissingTenantID
 	}
@@ -250,7 +250,7 @@ func (mm *metadataManager) CountVersionsInVariant(ctx context.Context, variantID
 }
 
 func (mm *metadataManager) GetNamedVersions(ctx context.Context, variantID uuid.UUID) ([]models.Version, error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -288,7 +288,7 @@ func (mm *metadataManager) GetNamedVersions(ctx context.Context, variantID uuid.
 }
 
 func (mm *metadataManager) GetVersionByLabel(ctx context.Context, label string, variantID uuid.UUID) (*models.Version, error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}

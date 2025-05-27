@@ -13,7 +13,7 @@ import (
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -84,7 +84,7 @@ func (cs *catalogSchema) Validate() schemaerr.ValidationErrors {
 
 // NewCatalogManager creates a new catalog manager from JSON input
 func NewCatalogManager(ctx context.Context, resourceJSON []byte, name string) (schemamanager.CatalogManager, apperrors.Error) {
-	projectID := common.ProjectIdFromContext(ctx)
+	projectID := catcommon.ProjectIdFromContext(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}

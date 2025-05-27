@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -50,7 +50,7 @@ func (mm *metadataManager) CreateVariant(ctx context.Context, variant *models.Va
 }
 
 func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, variant *models.Variant, tx *sql.Tx) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -151,7 +151,7 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 // Returns the variant if found, or an error if the variant is not found or there is a database error.
 
 func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) (*models.Variant, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -194,7 +194,7 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 
 // GetVariantByID retrieves a variant by its UUID. This function performs a direct lookup
 func (mm *metadataManager) GetVariantByID(ctx context.Context, variantID uuid.UUID) (*models.Variant, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -220,7 +220,7 @@ func (mm *metadataManager) GetVariantByID(ctx context.Context, variantID uuid.UU
 }
 
 func (mm *metadataManager) GetVariantIDFromName(ctx context.Context, catalogID uuid.UUID, name string) (uuid.UUID, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return uuid.Nil, dberror.ErrMissingTenantID
 	}
@@ -251,7 +251,7 @@ func (mm *metadataManager) GetVariantIDFromName(ctx context.Context, catalogID u
 // Returns an error if the variant is not found, the variant name already exists for the given catalog ID,
 // the variant name format is invalid, or there is a database error.
 func (mm *metadataManager) UpdateVariant(ctx context.Context, variantID uuid.UUID, name string, updatedVariant *models.Variant) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -308,7 +308,7 @@ func (mm *metadataManager) UpdateVariant(ctx context.Context, variantID uuid.UUI
 // If both variantID and name are provided, variantID takes precedence.
 // Returns an error if the variant is not found or there is a database error.
 func (mm *metadataManager) DeleteVariant(ctx context.Context, catalogID, variantID uuid.UUID, name string) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}

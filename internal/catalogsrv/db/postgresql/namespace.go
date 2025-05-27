@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -15,7 +15,7 @@ import (
 )
 
 func (mm *metadataManager) CreateNamespace(ctx context.Context, ns *models.Namespace) (err apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -86,7 +86,7 @@ func (mm *metadataManager) createNamespaceWithTransaction(ctx context.Context, n
 }
 
 func (mm *metadataManager) GetNamespace(ctx context.Context, name string, variantID uuid.UUID) (*models.Namespace, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -131,7 +131,7 @@ func (mm *metadataManager) GetNamespace(ctx context.Context, name string, varian
 }
 
 func (mm *metadataManager) UpdateNamespace(ctx context.Context, ns *models.Namespace) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -165,7 +165,7 @@ func (mm *metadataManager) UpdateNamespace(ctx context.Context, ns *models.Names
 }
 
 func (mm *metadataManager) DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -195,7 +195,7 @@ func (mm *metadataManager) DeleteNamespace(ctx context.Context, name string, var
 }
 
 func (mm *metadataManager) ListNamespacesByVariant(ctx context.Context, variantID uuid.UUID) ([]*models.Namespace, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}

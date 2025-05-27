@@ -1,5 +1,6 @@
-// Description: This file contains the context package which is used to set and retrieve data from the context.
-package common
+// Package catcommon provides context management utilities for the catalog service.
+// It includes functionality for managing tenant, project, catalog, and user contexts.
+package catcommon
 
 import (
 	"context"
@@ -8,15 +9,43 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-// ctxTenantIdKeyType represents the key type for the tenant ID in the context.
-type ctxTenantIdKeyType string
+// ctxKeyType represents the type for all context keys
+type ctxKeyType string
 
-const ctxTenantIdKey ctxTenantIdKeyType = "HatchCatalogTenantId"
+// Context keys for different types of data
+const (
+	// Catalog related keys
+	ctxCatalogContextKey ctxKeyType = "CatalogContext"
+	ctxTenantIdKey       ctxKeyType = "CatalogTenantId"
+	ctxProjectIdKey      ctxKeyType = "CatalogProjectId"
+	ctxTestContextKey    ctxKeyType = "CatalogTestContext"
+)
 
-// ctxProjectIdKeyType represents the key type for the project ID in the context.
-type ctxProjectIdKeyType string
+// CatalogContext represents the complete context for catalog operations.
+// It contains all necessary information about the catalog, variant, and user.
+type CatalogContext struct {
+	// CatalogId is the unique identifier for the catalog
+	CatalogId uuid.UUID
+	// VariantId is the unique identifier for the variant
+	VariantId uuid.UUID
+	// Namespace is the namespace for the catalog
+	Namespace string
+	// Catalog is the name of the catalog
+	Catalog string
+	// Variant is the name of the variant
+	Variant string
+	// ViewDefinition contains the view definition for the catalog
+	ViewDefinition *types.ViewDefinition
+	// UserContext contains information about the authenticated user
+	UserContext *UserContext
+}
 
-const ctxProjectIdKey ctxProjectIdKeyType = "HatchCatalogProjectId"
+// UserContext represents the context of an authenticated user in the system.
+// It contains information about the user's identity and permissions.
+type UserContext struct {
+	// UserID is the unique identifier for the user
+	UserID string
+}
 
 // SetTenantIdInContext sets the tenant ID in the provided context.
 func SetTenantIdInContext(ctx context.Context, tenantId types.TenantId) context.Context {
@@ -44,26 +73,6 @@ func ProjectIdFromContext(ctx context.Context) types.ProjectId {
 	return ""
 }
 
-type ctxCatalogContextKeyType string
-
-const ctxCatalogContextKey ctxCatalogContextKeyType = "HatchCatalogContext"
-
-type CatalogContext struct {
-	CatalogId      uuid.UUID
-	VariantId      uuid.UUID
-	Namespace      string
-	Catalog        string
-	Variant        string
-	ViewDefinition *types.ViewDefinition
-	UserContext    *UserContext
-}
-
-// UserContext represents the context of an authenticated user in the system.
-// It contains information about the user's identity and permissions.
-type UserContext struct {
-	UserID string
-}
-
 // SetCatalogContext sets the catalog context in the provided context.
 func SetCatalogContext(ctx context.Context, catalogContext *CatalogContext) context.Context {
 	return context.WithValue(ctx, ctxCatalogContextKey, catalogContext)
@@ -83,7 +92,7 @@ func SetCatalogIdInContext(ctx context.Context, catalogId uuid.UUID) context.Con
 	if currContext == nil {
 		currContext = &CatalogContext{}
 	}
-	currContext.CatalogId = uuid.UUID(catalogId)
+	currContext.CatalogId = catalogId
 	return SetCatalogContext(ctx, currContext)
 }
 
@@ -93,7 +102,7 @@ func SetVariantIdInContext(ctx context.Context, variantId uuid.UUID) context.Con
 	if currContext == nil {
 		currContext = &CatalogContext{}
 	}
-	currContext.VariantId = uuid.UUID(variantId)
+	currContext.VariantId = variantId
 	return SetCatalogContext(ctx, currContext)
 }
 
@@ -178,7 +187,7 @@ func GetVariantFromContext(ctx context.Context) string {
 }
 
 // GetViewDefinitionFromContext retrieves the view definition from the provided context.
-func GetViewDefinitionFromContext(ctx context.Context) any {
+func GetViewDefinitionFromContext(ctx context.Context) *types.ViewDefinition {
 	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
 		return catalogContext.ViewDefinition
 	}
@@ -193,14 +202,9 @@ func GetUserContextFromContext(ctx context.Context) *UserContext {
 	return nil
 }
 
-type ctxTestContextKeyType string
-
-const ctxTestContextKey ctxTestContextKeyType = "HatchTestContext"
-
 // SetTestContext sets the test context in the provided context.
-func SetTestContext(ctx context.Context, b bool) context.Context {
-
-	return context.WithValue(ctx, ctxTestContextKey, b)
+func SetTestContext(ctx context.Context, isTest bool) context.Context {
+	return context.WithValue(ctx, ctxTestContextKey, isTest)
 }
 
 // TestContextFromContext retrieves the test context from the provided context.

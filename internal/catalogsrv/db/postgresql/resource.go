@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -13,7 +13,7 @@ import (
 )
 
 func (om *objectManager) UpsertResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -39,7 +39,7 @@ func (om *objectManager) UpsertResource(ctx context.Context, rg *models.Resource
 }
 
 func (om *objectManager) GetResource(ctx context.Context, path string, variantID uuid.UUID, directoryID uuid.UUID) (*models.Resource, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -62,7 +62,7 @@ func (om *objectManager) GetResource(ctx context.Context, path string, variantID
 }
 
 func (om *objectManager) GetResourceObject(ctx context.Context, path string, directoryID uuid.UUID) (*models.CatalogObject, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -75,7 +75,7 @@ func (om *objectManager) GetResourceObject(ctx context.Context, path string, dir
 }
 
 func (om *objectManager) UpdateResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -102,7 +102,7 @@ func (om *objectManager) UpdateResource(ctx context.Context, rg *models.Resource
 }
 
 func (om *objectManager) DeleteResource(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return "", dberror.ErrMissingTenantID
 	}
@@ -120,7 +120,7 @@ func (om *objectManager) DeleteResource(ctx context.Context, path string, direct
 }
 
 func (om *objectManager) UpsertResourceObject(ctx context.Context, rg *models.Resource, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -156,7 +156,7 @@ func (om *objectManager) UpsertResourceObject(ctx context.Context, rg *models.Re
 }
 
 func (om *objectManager) ListResources(ctx context.Context, directoryID uuid.UUID) ([]models.Resource, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}

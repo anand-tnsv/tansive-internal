@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgtype"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/rs/zerolog/log"
@@ -19,7 +19,7 @@ import (
 // Returns an error if the label already exists, the label format is invalid,
 // the catalog or variant ID is invalid, or there is a database error.
 func (mm *metadataManager) CreateWorkspace(ctx context.Context, workspace *models.Workspace) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -114,7 +114,7 @@ func (mm *metadataManager) CreateWorkspace(ctx context.Context, workspace *model
 }
 
 func (mm *metadataManager) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -144,7 +144,7 @@ func (mm *metadataManager) DeleteWorkspace(ctx context.Context, workspaceID uuid
 }
 
 func (mm *metadataManager) DeleteWorkspaceByLabel(ctx context.Context, variantID uuid.UUID, label string) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -180,7 +180,7 @@ func (mm *metadataManager) DeleteWorkspaceByLabel(ctx context.Context, variantID
 }
 
 func (mm *metadataManager) GetWorkspace(ctx context.Context, workspaceID uuid.UUID) (*models.Workspace, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -216,7 +216,7 @@ func (mm *metadataManager) GetWorkspace(ctx context.Context, workspaceID uuid.UU
 }
 
 func (mm *metadataManager) UpdateWorkspace(ctx context.Context, workspace *models.Workspace) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -264,7 +264,7 @@ func (mm *metadataManager) UpdateWorkspace(ctx context.Context, workspace *model
 }
 
 func (mm *metadataManager) GetWorkspaceByLabel(ctx context.Context, variantID uuid.UUID, label string) (*models.Workspace, apperrors.Error) {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -301,7 +301,7 @@ func (mm *metadataManager) GetWorkspaceByLabel(ctx context.Context, variantID uu
 }
 
 func (mm *metadataManager) UpdateWorkspaceLabel(ctx context.Context, workspaceID uuid.UUID, newLabel string) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -345,7 +345,7 @@ func (mm *metadataManager) UpdateWorkspaceLabel(ctx context.Context, workspaceID
 
 func (mm *metadataManager) GetCatalogForWorkspace(ctx context.Context, workspaceID uuid.UUID) (models.Catalog, apperrors.Error) {
 	// get the variant ID and then from variant fetch the catalog id and then the catalog
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return models.Catalog{}, dberror.ErrMissingTenantID
 	}
@@ -381,7 +381,7 @@ func (mm *metadataManager) GetCatalogForWorkspace(ctx context.Context, workspace
 }
 
 func (mm *metadataManager) CommitWorkspace(ctx context.Context, workspace *models.Workspace) apperrors.Error {
-	tenantID := common.TenantIdFromContext(ctx)
+	tenantID := catcommon.TenantIdFromContext(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -429,7 +429,7 @@ func (mm *metadataManager) CommitWorkspace(ctx context.Context, workspace *model
 
 /*
 	func (mm *metadataManager) CreateWorkspaceWithoutStoredProcedure(ctx context.Context, workspace *models.Workspace) (err apperrors.Error) {
-		tenantID := common.TenantIdFromContext(ctx)
+		tenantID := catcommon.TenantIdFromContext(ctx)
 		if tenantID == "" {
 			return dberror.ErrMissingTenantID
 		}

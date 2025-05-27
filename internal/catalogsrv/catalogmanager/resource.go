@@ -11,7 +11,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -64,7 +64,7 @@ func LoadResourceManagerByPath(ctx context.Context, m *schemamanager.SchemaMetad
 	}
 
 	// Get the directory ID for the resource
-	catalogID := common.GetCatalogIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogIdFromContext(ctx)
 	var err apperrors.Error
 
 	if catalogID == uuid.Nil {

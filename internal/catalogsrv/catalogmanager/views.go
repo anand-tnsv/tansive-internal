@@ -14,7 +14,7 @@ import (
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -133,7 +133,7 @@ func parseAndValidateView(resourceJSON []byte, viewName string, catalog string) 
 
 // resolveCatalogID resolves the catalog ID from context or by name.
 func resolveCatalogID(ctx context.Context, catalogName string) (uuid.UUID, apperrors.Error) {
-	catalogID := common.GetCatalogIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogIdFromContext(ctx)
 	if catalogID == uuid.Nil {
 		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, catalogName)
@@ -210,7 +210,7 @@ func deduplicateRules(rules types.Rules) types.Rules {
 
 // CreateView creates a new view in the database.
 func CreateView(ctx context.Context, resourceJSON []byte, catalog string) (*models.View, apperrors.Error) {
-	projectID := common.ProjectIdFromContext(ctx)
+	projectID := catcommon.ProjectIdFromContext(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}
@@ -246,7 +246,7 @@ func CreateView(ctx context.Context, resourceJSON []byte, catalog string) (*mode
 
 // UpdateView updates an existing view in the database.
 func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catalog string) (*models.View, apperrors.Error) {
-	projectID := common.ProjectIdFromContext(ctx)
+	projectID := catcommon.ProjectIdFromContext(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}

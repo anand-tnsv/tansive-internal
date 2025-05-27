@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -196,13 +196,13 @@ func Router(r chi.Router) chi.Router {
 func LoadCatalogContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		tenantID := common.TenantIdFromContext(ctx)
-		projectID := common.ProjectIdFromContext(ctx)
+		tenantID := catcommon.TenantIdFromContext(ctx)
+		projectID := catcommon.ProjectIdFromContext(ctx)
 		if tenantID == "" || projectID == "" {
 			httpx.ErrInvalidRequest().Send(w)
 			return
 		}
-		c := common.CatalogContextFromContext(ctx)
+		c := catcommon.CatalogContextFromContext(ctx)
 		if c == nil {
 			httpx.ErrUnAuthorized("missing or invalid authorization token").Send(w)
 			return
@@ -218,7 +218,7 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 			}
 			return
 		}
-		ctx = common.SetCatalogContext(ctx, c)
+		ctx = catcommon.SetCatalogContext(ctx, c)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -231,7 +231,7 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 		ctx := r.Context()
 
 		//Get allowed actions from Context. This is set from the token by validation middleware
-		c := common.CatalogContextFromContext(ctx)
+		c := catcommon.CatalogContextFromContext(ctx)
 		if c == nil {
 			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
 		}

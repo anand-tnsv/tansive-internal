@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -485,12 +485,12 @@ func TestCreateView(t *testing.T) {
 	ctx := newDb()
 	defer db.DB(ctx).Close(ctx)
 
-	tenantID := types.TenantId(common.GetUniqueId(common.ID_TYPE_TENANT))
-	projectID := types.ProjectId(common.GetUniqueId(common.ID_TYPE_PROJECT))
+	tenantID := types.TenantId(catcommon.GetUniqueId(catcommon.ID_TYPE_TENANT))
+	projectID := types.ProjectId(catcommon.GetUniqueId(catcommon.ID_TYPE_PROJECT))
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -531,8 +531,8 @@ func TestUpdateView(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	require.NoError(t, db.DB(ctx).CreateTenant(ctx, tenantID))
 	defer db.DB(ctx).DeleteTenant(ctx, tenantID)
@@ -1640,8 +1640,8 @@ func TestDeleteView(t *testing.T) {
 
 	tenantID := types.TenantId("TABCDE")
 	projectID := types.ProjectId("P12345")
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	require.NoError(t, db.DB(ctx).CreateTenant(ctx, tenantID))
 	defer db.DB(ctx).DeleteTenant(ctx, tenantID)

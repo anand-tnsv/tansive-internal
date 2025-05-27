@@ -6,10 +6,9 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
@@ -23,7 +22,7 @@ func hydrateRequestContext(r *http.Request) (catalogmanager.RequestContext, erro
 
 	n := catalogmanager.RequestContext{}
 
-	catalogCtx := common.CatalogContextFromContext(ctx)
+	catalogCtx := catcommon.CatalogContextFromContext(ctx)
 	if catalogCtx != nil {
 		n.Catalog = catalogCtx.Catalog
 		n.CatalogID = catalogCtx.CatalogId
@@ -85,17 +84,6 @@ func getResourceNameFromPath(r *http.Request) string {
 	return resourceName
 }
 
-func getUUIDOrName(ref string) (string, uuid.UUID) {
-	if ref == "" {
-		return "", uuid.Nil
-	}
-	u, err := uuid.Parse(ref)
-	if err != nil {
-		return ref, uuid.Nil
-	}
-	return "", u
-}
-
 func validateRequest(reqJSON []byte, kind string) error {
 	if !gjson.ValidBytes(reqJSON) {
 		return httpx.ErrInvalidRequest("unable to parse request")
@@ -111,35 +99,4 @@ func validateRequest(reqJSON []byte, kind string) error {
 		return httpx.ErrInvalidRequest("invalid kind")
 	}
 	return nil
-}
-
-func hydrateObjectMetadata(n *catalogmanager.RequestContext, body []byte) {
-	result := gjson.GetBytes(body, "metadata")
-	if !result.Exists() {
-		return
-	}
-	val := result.Value()
-
-	metadata, ok := val.(map[string]interface{})
-	if !ok {
-		return
-	}
-	if n.Catalog == "" && n.CatalogID == uuid.Nil {
-		catalog, ok := metadata["catalog"].(string)
-		if ok {
-			n.Catalog = catalog
-		}
-	}
-	if n.Variant == "" && n.VariantID == uuid.Nil {
-		variant, ok := metadata["variant"].(string)
-		if ok {
-			n.Variant = variant
-		}
-	}
-	if n.Namespace == "" {
-		namespace, ok := metadata["namespace"].(string)
-		if ok {
-			n.Namespace = namespace
-		}
-	}
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -41,7 +41,7 @@ type namespaceManager struct {
 // var _ schemamanager.VariantManager = (*variantManager)(nil)
 
 func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog string, variant string) (schemamanager.NamespaceManager, apperrors.Error) {
-	projectID := common.ProjectIdFromContext(ctx)
+	projectID := catcommon.ProjectIdFromContext(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}
@@ -74,10 +74,10 @@ func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog strin
 		ns.Metadata.Variant = variant
 	}
 
-	catalogID := common.GetCatalogIdFromContext(ctx)
-	variantID := common.GetVariantIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogIdFromContext(ctx)
+	variantID := catcommon.GetVariantIdFromContext(ctx)
 
-	if catalogID == uuid.Nil || ns.Metadata.Catalog != common.GetCatalogFromContext(ctx) {
+	if catalogID == uuid.Nil || ns.Metadata.Catalog != catcommon.GetCatalogFromContext(ctx) {
 		var err apperrors.Error
 		// retrieve the catalogID
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, ns.Metadata.Catalog)
@@ -91,7 +91,7 @@ func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog strin
 	}
 
 	// retrieve the variantID
-	if variantID == uuid.Nil || ns.Metadata.Variant != common.GetVariantFromContext(ctx) {
+	if variantID == uuid.Nil || ns.Metadata.Variant != catcommon.GetVariantFromContext(ctx) {
 		var err apperrors.Error
 		variantID, err = db.DB(ctx).GetVariantIDFromName(ctx, catalogID, ns.Metadata.Variant)
 		if err != nil {

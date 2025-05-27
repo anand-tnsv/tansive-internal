@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -24,8 +24,8 @@ func TestCreateVariant(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -102,7 +102,7 @@ func TestCreateVariant(t *testing.T) {
 	assert.ErrorIs(t, err, dberror.ErrAlreadyExists)
 
 	// Test case: Missing tenant ID in context (should fail)
-	ctxWithoutTenant := common.SetTenantIdInContext(ctx, "")
+	ctxWithoutTenant := catcommon.SetTenantIdInContext(ctx, "")
 	err = DB(ctx).CreateVariant(ctxWithoutTenant, &variant)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrInvalidInput)
@@ -118,8 +118,8 @@ func TestGetVariant(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -173,7 +173,7 @@ func TestGetVariant(t *testing.T) {
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
 
 	// Test case: Missing tenant ID or project ID in context (should fail)
-	ctxWithoutTenant := common.SetTenantIdInContext(ctx, "")
+	ctxWithoutTenant := catcommon.SetTenantIdInContext(ctx, "")
 	_, err = DB(ctx).GetVariant(ctxWithoutTenant, catalog.CatalogID, variant.VariantID, "")
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrInvalidInput)
@@ -194,8 +194,8 @@ func TestUpdateVariant(t *testing.T) {
 	projectID := types.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -268,7 +268,7 @@ func TestUpdateVariant(t *testing.T) {
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
 
 	// Test case: Missing tenant ID in context (should fail)
-	ctxWithoutTenant := common.SetTenantIdInContext(ctx, "")
+	ctxWithoutTenant := catcommon.SetTenantIdInContext(ctx, "")
 	err = DB(ctx).UpdateVariant(ctxWithoutTenant, variant.VariantID, "", &updatedVariant)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrInvalidInput)
@@ -312,8 +312,8 @@ func TestDeleteVariant(t *testing.T) {
 	catalogID := uuid.New()
 
 	// Set the tenant ID and project ID in the context
-	ctx = common.SetTenantIdInContext(ctx, tenantID)
-	ctx = common.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -383,7 +383,7 @@ func TestDeleteVariant(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test case: Missing tenant ID in context (should fail)
-	ctxWithoutTenant := common.SetTenantIdInContext(ctx, "")
+	ctxWithoutTenant := catcommon.SetTenantIdInContext(ctx, "")
 	err = DB(ctx).DeleteVariant(ctxWithoutTenant, catalog.CatalogID, variant.VariantID, "")
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrInvalidInput)
