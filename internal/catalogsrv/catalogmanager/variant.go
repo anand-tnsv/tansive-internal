@@ -10,10 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
@@ -38,7 +37,7 @@ type variantManager struct {
 	variant models.Variant
 }
 
-var _ schemamanager.VariantManager = (*variantManager)(nil)
+var _ interfaces.VariantManager = (*variantManager)(nil)
 
 func (vs *variantSchema) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
@@ -80,7 +79,7 @@ func (vs *variantSchema) Validate() schemaerr.ValidationErrors {
 	return validationErrors
 }
 
-func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, catalog string) (schemamanager.VariantManager, apperrors.Error) {
+func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, catalog string) (interfaces.VariantManager, apperrors.Error) {
 	projectID := catcommon.ProjectIdFromContext(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
@@ -95,16 +94,16 @@ func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, ca
 		return nil, ErrInvalidSchema.Err(err)
 	}
 	if vs.Version != "v1" {
-		return nil, validationerrors.ErrInvalidVersion
+		return nil, ErrInvalidVersion
 	}
 	if vs.Kind != "Variant" {
-		return nil, validationerrors.ErrInvalidKind
+		return nil, ErrInvalidKind
 	}
 
 	// replace name and catalog if not empty
 	if name != "" {
 		if !schemavalidator.ValidateSchemaName(name) {
-			return nil, validationerrors.ErrInvalidNameFormat
+			return nil, ErrInvalidNameFormat
 		}
 		vs.Metadata.Name = name
 	}
@@ -164,7 +163,7 @@ func (vm *variantManager) CatalogID() uuid.UUID {
 	return vm.variant.CatalogID
 }
 
-func LoadVariantManager(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) (schemamanager.VariantManager, apperrors.Error) {
+func LoadVariantManager(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) (interfaces.VariantManager, apperrors.Error) {
 	if variantID == uuid.Nil && (catalogID == uuid.Nil || name == "") {
 		return nil, ErrInvalidVariant.Msg("variant ID or both catalog ID and name must be provided")
 	}
@@ -245,7 +244,7 @@ func DeleteVariant(ctx context.Context, catalogID, variantID uuid.UUID, name str
 
 type variantKind struct {
 	req RequestContext
-	vm  schemamanager.VariantManager
+	vm  interfaces.VariantManager
 }
 
 func (v *variantKind) Name() string {
@@ -256,7 +255,7 @@ func (v *variantKind) Location() string {
 	return "/variants/" + v.vm.Name()
 }
 
-func (v *variantKind) Manager() schemamanager.VariantManager {
+func (v *variantKind) Manager() interfaces.VariantManager {
 	return v.vm
 }
 
@@ -324,7 +323,7 @@ func (v *variantKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 	return nil, nil
 }
 
-func NewVariantKindHandler(ctx context.Context, reqCtx RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+func NewVariantKindHandler(ctx context.Context, reqCtx RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidVariant.Msg("catalog name and ID are required for variant creation")
 	}

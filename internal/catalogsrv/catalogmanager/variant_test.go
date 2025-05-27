@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -44,7 +43,7 @@ func TestNewVariantManager(t *testing.T) {
         "description": "Invalid version in variant"
     }
 }`,
-			expected: validationerrors.ErrInvalidVersion.Error(),
+			expected: ErrInvalidVersion.Error(),
 		},
 		{
 			name: "invalid kind",
@@ -58,7 +57,7 @@ func TestNewVariantManager(t *testing.T) {
         "description": "Invalid kind in variant"
     }
 }`,
-			expected: validationerrors.ErrInvalidKind.Error(),
+			expected: ErrInvalidKind.Error(),
 		},
 		{
 			name:     "empty JSON data",

@@ -43,16 +43,16 @@ func newConnectionManager(c dbmanager.ScopedConn) *connectionManager {
 	return &connectionManager{c: c}
 }
 
-func (cm *connectionManager) AddScopes(ctx context.Context, scopes map[string]string) {
-	cm.c.AddScopes(ctx, scopes)
+func (cm *connectionManager) AddScopes(ctx context.Context, scopes map[string]string) error {
+	return cm.c.AddScopes(ctx, scopes)
 }
 
 func (cm *connectionManager) DropScopes(ctx context.Context, scopes []string) error {
 	return cm.c.DropScopes(ctx, scopes)
 }
 
-func (cm *connectionManager) AddScope(ctx context.Context, scope, value string) {
-	cm.c.AddScope(ctx, scope, value)
+func (cm *connectionManager) AddScope(ctx context.Context, scope, value string) error {
+	return cm.c.AddScope(ctx, scope, value)
 }
 
 func (cm *connectionManager) DropScope(ctx context.Context, scope string) error {

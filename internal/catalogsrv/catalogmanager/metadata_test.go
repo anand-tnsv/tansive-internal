@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -15,7 +15,7 @@ func TestGetMetadata(t *testing.T) {
 		name          string
 		jsonInput     string
 		expectedError bool
-		expectedMeta  *schemamanager.SchemaMetadata
+		expectedMeta  *interfaces.SchemaMetadata
 	}{
 		{
 			name: "valid metadata",
@@ -30,7 +30,7 @@ func TestGetMetadata(t *testing.T) {
 				}
 			}`,
 			expectedError: false,
-			expectedMeta: &schemamanager.SchemaMetadata{
+			expectedMeta: &interfaces.SchemaMetadata{
 				Name:      "test-group",
 				Catalog:   "test-catalog",
 				Namespace: types.NullableStringFrom("default"),
@@ -88,9 +88,9 @@ func TestCanonicalizeMetadata(t *testing.T) {
 		name          string
 		jsonInput     string
 		kind          string
-		metadata      *schemamanager.SchemaMetadata
+		metadata      *interfaces.SchemaMetadata
 		expectedError bool
-		expectedMeta  *schemamanager.SchemaMetadata
+		expectedMeta  *interfaces.SchemaMetadata
 		checkJSON     func(t *testing.T, json []byte)
 	}{
 		{
@@ -106,14 +106,14 @@ func TestCanonicalizeMetadata(t *testing.T) {
 				}
 			}`,
 			kind: "ResourceGroup",
-			metadata: &schemamanager.SchemaMetadata{
+			metadata: &interfaces.SchemaMetadata{
 				Name:      "new-name",
 				Catalog:   "new-catalog",
 				Namespace: types.NullableStringFrom("new-namespace"),
 				Variant:   types.NullableStringFrom("new-variant"),
 			},
 			expectedError: false,
-			expectedMeta: &schemamanager.SchemaMetadata{
+			expectedMeta: &interfaces.SchemaMetadata{
 				Name:      "new-name",
 				Catalog:   "new-catalog",
 				Namespace: types.NullableStringFrom("new-namespace"),
@@ -139,11 +139,11 @@ func TestCanonicalizeMetadata(t *testing.T) {
 				}
 			}`,
 			kind: "ResourceGroup",
-			metadata: &schemamanager.SchemaMetadata{
+			metadata: &interfaces.SchemaMetadata{
 				Name: "new-name",
 			},
 			expectedError: false,
-			expectedMeta: &schemamanager.SchemaMetadata{
+			expectedMeta: &interfaces.SchemaMetadata{
 				Name:      "new-name",
 				Catalog:   "old-catalog",
 				Namespace: types.NullableStringFrom("old-namespace"),
@@ -167,7 +167,7 @@ func TestCanonicalizeMetadata(t *testing.T) {
 			kind:          "ResourceGroup",
 			metadata:      nil,
 			expectedError: false,
-			expectedMeta: &schemamanager.SchemaMetadata{
+			expectedMeta: &interfaces.SchemaMetadata{
 				Name:    "test-group",
 				Catalog: "test-catalog",
 				Variant: types.NullableStringFrom(catcommon.DefaultVariant),

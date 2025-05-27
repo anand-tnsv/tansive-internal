@@ -1,18 +1,16 @@
-package schemamanager
+package interfaces
 
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 )
 
-type NamespaceManager interface {
+type CatalogManager interface {
+	ID() uuid.UUID
 	Name() string
 	Description() string
-	Catalog() string
-	Variant() string
-	GetNamespaceModel() *models.Namespace
 	Save(context.Context) apperrors.Error
 	ToJson(context.Context) ([]byte, apperrors.Error)
 }

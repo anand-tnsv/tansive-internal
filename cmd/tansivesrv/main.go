@@ -57,7 +57,10 @@ func main() {
 }
 
 func createDefaultTenantAndProject() error {
-	ctx := db.ConnCtx(context.Background())
+	ctx, err := db.ConnCtx(context.Background())
+	if err != nil {
+		return err
+	}
 	defer db.DB(ctx).Close(ctx)
 	if err := db.DB(ctx).CreateTenant(ctx, catcommon.TenantId(config.Config().DefaultTenantID)); err != nil {
 		if err != dberror.ErrAlreadyExists {

@@ -1,4 +1,4 @@
-package schemamanager
+package interfaces
 
 import (
 	"encoding/json"

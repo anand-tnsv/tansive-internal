@@ -17,11 +17,11 @@ type ScopedDb interface {
 
 type ScopedConn interface {
 	// AddScopes adds the given scopes to the connection.
-	AddScopes(ctx context.Context, scopes map[string]string)
+	AddScopes(ctx context.Context, scopes map[string]string) error
 	// DropScopes drops the given scopes from the connection.
 	DropScopes(ctx context.Context, scopes []string) error
 	// AddScope adds the given scope with the given value to the connection.
-	AddScope(ctx context.Context, scope, value string)
+	AddScope(ctx context.Context, scope, value string) error
 	// DropScope drops the given scope from the connection.
 	DropScope(ctx context.Context, scope string) error
 	// DropAllScopes drops all scopes from the connection.

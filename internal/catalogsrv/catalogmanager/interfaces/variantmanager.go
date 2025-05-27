@@ -1,4 +1,4 @@
-package schemamanager
+package interfaces
 
 import (
 	"context"
@@ -7,15 +7,11 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
-type WorkspaceManager interface {
+type VariantManager interface {
 	ID() uuid.UUID
-	Label() string
+	Name() string
 	Description() string
-	VariantID() uuid.UUID
-	BaseVersion() int
-	ParametersDir() uuid.UUID
-	CollectionsDir() uuid.UUID
-	ValuesDir() uuid.UUID
+	CatalogID() uuid.UUID
 	Save(context.Context) apperrors.Error
 	ToJson(context.Context) ([]byte, apperrors.Error)
 }

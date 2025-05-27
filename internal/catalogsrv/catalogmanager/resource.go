@@ -8,9 +8,8 @@ import (
 	"github.com/google/uuid"
 	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -20,27 +19,27 @@ import (
 
 // NewResourceManager creates a new ResourceManager instance from the provided JSON schema and metadata.
 // It validates the schema and metadata before creating the manager.
-func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *schemamanager.SchemaMetadata) (schemamanager.ResourceManager, apperrors.Error) {
+func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *interfaces.SchemaMetadata) (interfaces.ResourceManager, apperrors.Error) {
 	if len(rsrcJSON) == 0 {
-		return nil, validationerrors.ErrEmptySchema
+		return nil, ErrEmptySchema
 	}
 
 	// Get the metadata, replace fields in JSON from provided metadata, and set defaults.
 	rsrcJSON, m, err := canonicalizeMetadata(rsrcJSON, catcommon.ResourceKind, m)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("Failed to canonicalize metadata")
-		return nil, validationerrors.ErrSchemaSerialization
+		return nil, ErrSchemaSerialization
 	}
 
 	var rsrc Resource
 	if err := json.Unmarshal(rsrcJSON, &rsrc); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("Failed to unmarshal resource")
-		return nil, validationerrors.ErrSchemaValidation
+		return nil, ErrSchemaValidation
 	}
 
 	if validationErrs := rsrc.Validate(); validationErrs != nil {
 		log.Ctx(ctx).Error().Err(validationErrs).Msg("Resource validation failed")
-		return nil, validationerrors.ErrSchemaValidation.Msg(validationErrs.Error())
+		return nil, ErrSchemaValidation.Msg(validationErrs.Error())
 	}
 
 	rsrc.Metadata = *m
@@ -48,7 +47,7 @@ func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *schemamanager.S
 	return &resourceManager{resource: rsrc}, nil
 }
 
-func LoadResourceManagerByHash(ctx context.Context, hash string, m *schemamanager.SchemaMetadata) (schemamanager.ResourceManager, apperrors.Error) {
+func LoadResourceManagerByHash(ctx context.Context, hash string, m *interfaces.SchemaMetadata) (interfaces.ResourceManager, apperrors.Error) {
 	// get the object from catalog object store
 	obj, err := db.DB(ctx).GetCatalogObject(ctx, hash)
 	if err != nil {
@@ -58,7 +57,7 @@ func LoadResourceManagerByHash(ctx context.Context, hash string, m *schemamanage
 }
 
 // LoadResourceManagerByPath loads a resource manager from the database by path.
-func LoadResourceManagerByPath(ctx context.Context, m *schemamanager.SchemaMetadata) (schemamanager.ResourceManager, apperrors.Error) {
+func LoadResourceManagerByPath(ctx context.Context, m *interfaces.SchemaMetadata) (interfaces.ResourceManager, apperrors.Error) {
 	if m == nil {
 		return nil, ErrInvalidObject.Msg("unable to infer object metadata")
 	}
@@ -91,15 +90,15 @@ func LoadResourceManagerByPath(ctx context.Context, m *schemamanager.SchemaMetad
 	return resourceManagerFromObject(ctx, obj, m)
 }
 
-func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m *schemamanager.SchemaMetadata) (schemamanager.ResourceManager, apperrors.Error) {
+func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m *interfaces.SchemaMetadata) (interfaces.ResourceManager, apperrors.Error) {
 	if obj == nil {
-		return nil, validationerrors.ErrEmptySchema
+		return nil, ErrEmptySchema
 	}
 
 	var storageRep objectstore.ObjectStorageRepresentation
 	if err := json.Unmarshal(obj.Data, &storageRep); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("Failed to unmarshal resource")
-		return nil, validationerrors.ErrSchemaValidation
+		return nil, ErrSchemaValidation
 	}
 
 	if storageRep.Type != catcommon.CatalogObjectTypeResource {
@@ -125,7 +124,7 @@ func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m
 // It handles CRUD operations for resources and maintains the request context.
 type resourceKindHandler struct {
 	req RequestContext
-	rm  schemamanager.ResourceManager
+	rm  interfaces.ResourceManager
 }
 
 // Name returns the name of the resource from the request context.
@@ -152,14 +151,14 @@ func (h *resourceKindHandler) Location() string {
 }
 
 // Manager returns the underlying ResourceManager instance.
-func (h *resourceKindHandler) Manager() schemamanager.ResourceManager {
+func (h *resourceKindHandler) Manager() interfaces.ResourceManager {
 	return h.rm
 }
 
 // Create creates a new resource from the provided JSON data.
 // It validates the input, saves the resource, and updates the request context with the new resource's metadata.
 func (h *resourceKindHandler) Create(ctx context.Context, rsrcJSON []byte) (string, apperrors.Error) {
-	m := &schemamanager.SchemaMetadata{
+	m := &interfaces.SchemaMetadata{
 		Catalog:   h.req.Catalog,
 		Variant:   types.NullableStringFrom(h.req.Variant),
 		Namespace: types.NullableStringFrom(h.req.Namespace),
@@ -196,7 +195,7 @@ func (h *resourceKindHandler) Create(ctx context.Context, rsrcJSON []byte) (stri
 // Get retrieves a resource by its path and returns it as JSON.
 // It validates the metadata and loads the resource from storage.
 func (h *resourceKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error) {
-	m := &schemamanager.SchemaMetadata{
+	m := &interfaces.SchemaMetadata{
 		Catalog:   h.req.Catalog,
 		Variant:   types.NullableStringFrom(h.req.Variant),
 		Namespace: types.NullableStringFrom(h.req.Namespace),
@@ -205,7 +204,7 @@ func (h *resourceKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error)
 	}
 
 	if err := m.Validate(); err != nil {
-		return nil, validationerrors.ErrSchemaValidation.Msg(err.Error())
+		return nil, ErrSchemaValidation.Msg(err.Error())
 	}
 
 	rm, err := LoadResourceManagerByPath(ctx, m)
@@ -224,7 +223,7 @@ func (h *resourceKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error)
 // Update updates an existing resource with new data.
 // It validates the input, checks for the resource's existence, and saves the changes.
 func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apperrors.Error {
-	m := &schemamanager.SchemaMetadata{
+	m := &interfaces.SchemaMetadata{
 		Catalog:   h.req.Catalog,
 		Variant:   types.NullableStringFrom(h.req.Variant),
 		Path:      h.req.ObjectPath,
@@ -233,7 +232,7 @@ func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apper
 	}
 
 	if err := m.Validate(); err != nil {
-		return validationerrors.ErrSchemaValidation.Msg(err.Error())
+		return ErrSchemaValidation.Msg(err.Error())
 	}
 
 	// Load the existing object
@@ -268,7 +267,7 @@ func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apper
 // Delete removes a resource from storage.
 // It validates the metadata and deletes the resource if it exists.
 func (h *resourceKindHandler) Delete(ctx context.Context) apperrors.Error {
-	m := &schemamanager.SchemaMetadata{
+	m := &interfaces.SchemaMetadata{
 		Catalog:   h.req.Catalog,
 		Variant:   types.NullableStringFrom(h.req.Variant),
 		Path:      h.req.ObjectPath,
@@ -297,7 +296,7 @@ func (h *resourceKindHandler) List(ctx context.Context) ([]byte, apperrors.Error
 
 	resourceList := make(map[string]json.RawMessage)
 	for _, resource := range resources {
-		m := &schemamanager.SchemaMetadata{
+		m := &interfaces.SchemaMetadata{
 			Catalog:   h.req.Catalog,
 			Variant:   types.NullableStringFrom(h.req.Variant),
 			Namespace: types.NullableStringFrom(h.req.Namespace),
@@ -326,7 +325,7 @@ func (h *resourceKindHandler) List(ctx context.Context) ([]byte, apperrors.Error
 	return j, nil
 }
 
-func NewResourceKindHandler(ctx context.Context, req RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+func NewResourceKindHandler(ctx context.Context, req RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	if req.Catalog == "" {
 		return nil, ErrInvalidCatalog
 	}

@@ -6,51 +6,75 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
+// Base catalog error
 var (
-	ErrCatalogError                           apperrors.Error = apperrors.New("catalog processing failed").SetStatusCode(http.StatusInternalServerError)
-	ErrCatalogNotFound                        apperrors.Error = ErrCatalogError.New("catalog not found").SetExpandError(true).SetStatusCode(http.StatusNotFound)
-	ErrObjectNotFound                         apperrors.Error = ErrCatalogError.New("object not found").SetStatusCode(http.StatusNotFound)
-	ErrParentCollectionSchemaNotFound         apperrors.Error = ErrCatalogError.New("parent collection schema not found").SetStatusCode(http.StatusNotFound)
-	ErrUnableToLoadObject                     apperrors.Error = ErrCatalogError.New("failed to load object").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToUpdateObject                   apperrors.Error = ErrCatalogError.New("failed to update object").SetExpandError(true).SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToDeleteObject                   apperrors.Error = ErrCatalogError.New("failed to delete object").SetStatusCode(http.StatusInternalServerError)
-	ErrAlreadyExists                          apperrors.Error = ErrCatalogError.New("object already exists").SetStatusCode(http.StatusConflict)
-	ErrEqualToExistingObject                  apperrors.Error = ErrCatalogError.New("object is identical to existing object").SetStatusCode(http.StatusConflict)
-	ErrInvalidSchema                          apperrors.Error = ErrCatalogError.New("invalid schema").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
-	ErrEmptyMetadata                          apperrors.Error = ErrCatalogError.New("metadata cannot be empty").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidProject                         apperrors.Error = ErrCatalogError.New("invalid project").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidCatalog                         apperrors.Error = ErrCatalogError.New("invalid catalog").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidVariant                         apperrors.Error = ErrCatalogError.New("invalid variant").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidNamespace                       apperrors.Error = ErrCatalogError.New("invalid namespace").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidWorkspace                       apperrors.Error = ErrCatalogError.New("invalid workspace").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidWorkspaceOrVariant              apperrors.Error = ErrCatalogError.New("invalid workspace or variant").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidObject                          apperrors.Error = ErrCatalogError.New("invalid object").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidVersion                         apperrors.Error = ErrCatalogError.New("invalid version").SetStatusCode(http.StatusBadRequest)
-	ErrVariantNotFound                        apperrors.Error = ErrCatalogError.New("variant not found").SetStatusCode(http.StatusNotFound)
-	ErrNamespaceNotFound                      apperrors.Error = ErrCatalogError.New("namespace not found").SetStatusCode(http.StatusNotFound)
-	ErrWorkspaceNotFound                      apperrors.Error = ErrCatalogError.New("workspace not found").SetStatusCode(http.StatusNotFound)
-	ErrInvalidVersionOrWorkspace              apperrors.Error = ErrCatalogError.New("invalid version or workspace").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidCollectionSchema                apperrors.Error = ErrCatalogError.New("invalid collection schema").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidCollection                      apperrors.Error = ErrCatalogError.New("invalid collection").SetStatusCode(http.StatusBadRequest)
-	ErrSchemaOfCollectionNotMutable           apperrors.Error = ErrCatalogError.New("collection schema cannot be modified").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidUUID                            apperrors.Error = ErrCatalogError.New("invalid UUID").SetStatusCode(http.StatusBadRequest)
-	ErrNoAncestorReferencesFound              apperrors.Error = ErrUnableToDeleteObject.New("no ancestor references found").SetStatusCode(http.StatusConflict)
-	ErrUnableToDeleteParameterWithReferences  apperrors.Error = ErrUnableToDeleteObject.New("parameter schema has existing references in collections").SetStatusCode(http.StatusConflict)
-	ErrUnableToDeleteCollectionWithReferences apperrors.Error = ErrUnableToDeleteObject.New("collection schema has existing references in collections").SetStatusCode(http.StatusConflict)
-	ErrInvalidParameter                       apperrors.Error = ErrCatalogError.New("invalid parameter").SetStatusCode(http.StatusBadRequest)
-	ErrUnableToSaveSchema                     apperrors.Error = ErrCatalogError.New("failed to save schema").SetStatusCode(http.StatusInternalServerError)
-	ErrSchemaConflict                         apperrors.Error = ErrCatalogError.New("schema conflicts with existing schema").SetStatusCode(http.StatusConflict)
-	ErrInvalidRequest                         apperrors.Error = ErrCatalogError.New("invalid request").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidView                            apperrors.Error = ErrCatalogError.New("invalid view").SetStatusCode(http.StatusBadRequest)
-	ErrViewNotFound                           apperrors.Error = ErrCatalogError.New("view not found").SetStatusCode(http.StatusNotFound)
-	ErrAmbiguousMatch                         apperrors.Error = ErrCatalogError.New("ambiguous resource match").SetStatusCode(http.StatusBadRequest)
-	ErrUnauthorizedToCreateView               apperrors.Error = ErrCatalogError.New("unauthorized to create view").SetStatusCode(http.StatusForbidden)
-	ErrUnableToGenerateSigningKey             apperrors.Error = ErrCatalogError.New("unable to generate signing key").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToParseTokenDuration             apperrors.Error = ErrCatalogError.New("unable to parse token duration").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToGenerateToken                  apperrors.Error = ErrCatalogError.New("unable to generate token").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToCreateView                     apperrors.Error = ErrCatalogError.New("unable to create view").SetStatusCode(http.StatusInternalServerError)
-	ErrDisallowedByPolicy                     apperrors.Error = ErrCatalogError.New("not allowed by policy").SetStatusCode(http.StatusForbidden)
-	ErrInvalidResourceValue                   apperrors.Error = ErrCatalogError.New("invalid resource value").SetStatusCode(http.StatusBadRequest)
-	ErrResourceGroupNotFound                  apperrors.Error = ErrCatalogError.New("resource group not found").SetStatusCode(http.StatusNotFound)
-	ErrInvalidResourceDefinition              apperrors.Error = ErrCatalogError.New("invalid resource definition").SetStatusCode(http.StatusBadRequest)
+	ErrCatalogError apperrors.Error = apperrors.New("catalog processing failed").SetStatusCode(http.StatusInternalServerError)
+)
+
+// Not found errors
+var (
+	ErrCatalogNotFound   apperrors.Error = ErrCatalogError.New("catalog not found").SetExpandError(true).SetStatusCode(http.StatusNotFound)
+	ErrObjectNotFound    apperrors.Error = ErrCatalogError.New("object not found").SetStatusCode(http.StatusNotFound)
+	ErrVariantNotFound   apperrors.Error = ErrCatalogError.New("variant not found").SetStatusCode(http.StatusNotFound)
+	ErrNamespaceNotFound apperrors.Error = ErrCatalogError.New("namespace not found").SetStatusCode(http.StatusNotFound)
+	ErrViewNotFound      apperrors.Error = ErrCatalogError.New("view not found").SetStatusCode(http.StatusNotFound)
+	ErrResourceNotFound  apperrors.Error = ErrCatalogError.New("resource not found").SetStatusCode(http.StatusNotFound)
+)
+
+// Operation errors
+var (
+	ErrUnableToLoadObject   apperrors.Error = ErrCatalogError.New("failed to load object").SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToUpdateObject apperrors.Error = ErrCatalogError.New("failed to update object").SetExpandError(true).SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToDeleteObject apperrors.Error = ErrCatalogError.New("failed to delete object").SetStatusCode(http.StatusInternalServerError)
+)
+
+// Conflict errors
+var (
+	ErrAlreadyExists         apperrors.Error = ErrCatalogError.New("object already exists").SetStatusCode(http.StatusConflict)
+	ErrEqualToExistingObject apperrors.Error = ErrCatalogError.New("object is identical to existing object").SetStatusCode(http.StatusConflict)
+)
+
+// Validation errors
+var (
+	ErrEmptyMetadata             apperrors.Error = ErrCatalogError.New("metadata cannot be empty").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidProject            apperrors.Error = ErrCatalogError.New("invalid project").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidCatalog            apperrors.Error = ErrCatalogError.New("invalid catalog").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidVariant            apperrors.Error = ErrCatalogError.New("invalid variant").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidNamespace          apperrors.Error = ErrCatalogError.New("invalid namespace").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidObject             apperrors.Error = ErrCatalogError.New("invalid object").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidVersion            apperrors.Error = ErrCatalogError.New("invalid version").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidUUID               apperrors.Error = ErrCatalogError.New("invalid UUID").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidRequest            apperrors.Error = ErrCatalogError.New("invalid request").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidView               apperrors.Error = ErrCatalogError.New("invalid view").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidResourceValue      apperrors.Error = ErrCatalogError.New("invalid resource value").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidResourceDefinition apperrors.Error = ErrCatalogError.New("invalid resource definition").SetStatusCode(http.StatusBadRequest)
+	ErrAmbiguousMatch            apperrors.Error = ErrCatalogError.New("ambiguous resource match").SetStatusCode(http.StatusBadRequest)
+)
+
+// Schema validation errors
+var (
+	ErrSchemaValidation    apperrors.Error = apperrors.New("error validating schema").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrEmptySchema         apperrors.Error = ErrSchemaValidation.New("empty schema").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrSchemaSerialization apperrors.Error = ErrSchemaValidation.New("error serializing schema").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrInvalidSchema       apperrors.Error = ErrSchemaValidation.New("invalid schema").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrInvalidNameFormat   apperrors.Error = ErrSchemaValidation.New("invalid name format").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrValueValidation     apperrors.Error = ErrSchemaValidation.New("error validating value").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrInvalidType         apperrors.Error = ErrSchemaValidation.New("invalid type").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrInvalidKind         apperrors.Error = ErrSchemaValidation.New("unsupported kind").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrValueInvalid        apperrors.Error = ErrSchemaValidation.New("value failed validation").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+)
+
+// Authorization errors
+var (
+	ErrAuthError                apperrors.Error = ErrCatalogError.New("authorization error").SetStatusCode(http.StatusForbidden)
+	ErrUnauthorizedToCreateView apperrors.Error = ErrAuthError.New("unauthorized to create view").SetStatusCode(http.StatusForbidden)
+	ErrDisallowedByPolicy       apperrors.Error = ErrAuthError.New("not allowed by policy").SetStatusCode(http.StatusForbidden)
+)
+
+var (
+	ErrViewPolicyError            apperrors.Error = ErrCatalogError.New("authorization error").SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToGenerateSigningKey apperrors.Error = ErrViewPolicyError.New("unable to generate signing key").SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToParseTokenDuration apperrors.Error = ErrViewPolicyError.New("unable to parse token duration").SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToGenerateToken      apperrors.Error = ErrViewPolicyError.New("unable to generate token").SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToCreateView         apperrors.Error = ErrViewPolicyError.New("unable to create view").SetStatusCode(http.StatusInternalServerError)
 )

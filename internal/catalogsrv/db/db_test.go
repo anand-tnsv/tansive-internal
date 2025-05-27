@@ -446,10 +446,17 @@ func TestDeleteCatalog(t *testing.T) {
 
 func newDb(c ...context.Context) context.Context {
 	var ctx context.Context
+	var err error
 	if len(c) > 0 {
-		ctx = ConnCtx(c[0])
+		ctx, err = ConnCtx(c[0])
+		if err != nil {
+			log.Ctx(ctx).Fatal().Err(err).Msg("unable to get db connection")
+		}
 	} else {
-		ctx = ConnCtx(context.Background())
+		ctx, err = ConnCtx(context.Background())
+		if err != nil {
+			log.Ctx(ctx).Fatal().Err(err).Msg("unable to get db connection")
+		}
 	}
 	return ctx
 }

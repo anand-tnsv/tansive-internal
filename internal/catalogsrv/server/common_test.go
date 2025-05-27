@@ -106,6 +106,9 @@ func setRequestBodyAndHeader(t *testing.T, req *http.Request, data interface{}) 
 
 func newDb() context.Context {
 	ctx := log.Logger.WithContext(context.Background())
-	ctx = db.ConnCtx(ctx)
+	ctx, err := db.ConnCtx(ctx)
+	if err != nil {
+		log.Ctx(ctx).Fatal().Err(err).Msg("unable to get db connection")
+	}
 	return ctx
 }

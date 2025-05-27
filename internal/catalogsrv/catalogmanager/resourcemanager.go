@@ -15,11 +15,10 @@ import (
 	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
@@ -32,20 +31,20 @@ import (
 // Resource represents a single resource in the catalog system.
 // It contains metadata, schema, and value information.
 type Resource struct {
-	Version  string                       `json:"version" validate:"required,requireVersionV1"`
-	Kind     string                       `json:"kind" validate:"required,oneof=Resource"`
-	Metadata schemamanager.SchemaMetadata `json:"metadata" validate:"required"`
-	Spec     ResourceSpec                 `json:"spec,omitempty"` // we can have empty collections
+	Version  string                    `json:"version" validate:"required,requireVersionV1"`
+	Kind     string                    `json:"kind" validate:"required,oneof=Resource"`
+	Metadata interfaces.SchemaMetadata `json:"metadata" validate:"required"`
+	Spec     ResourceSpec              `json:"spec,omitempty"` // we can have empty collections
 }
 
 // ResourceSpec defines the specification for a resource, including its schema,
 // value, policy, and annotations.
 type ResourceSpec struct {
-	Provider    ResourceProvider          `json:"-" validate:"required_without=Schema,omitempty,nameFormatValidator"`
-	Schema      json.RawMessage           `json:"schema" validate:"required_without=Provider,omitempty"`
-	Value       types.NullableAny         `json:"value" validate:"omitempty"`
-	Policy      string                    `json:"policy" validate:"omitempty,oneof=inherit override"`
-	Annotations schemamanager.Annotations `json:"annotations" validate:"omitempty,dive,keys,noSpaces,endkeys"`
+	Provider    ResourceProvider       `json:"-" validate:"required_without=Schema,omitempty,nameFormatValidator"`
+	Schema      json.RawMessage        `json:"schema" validate:"required_without=Provider,omitempty"`
+	Value       types.NullableAny      `json:"value" validate:"omitempty"`
+	Policy      string                 `json:"policy" validate:"omitempty,oneof=inherit override"`
+	Annotations interfaces.Annotations `json:"annotations" validate:"omitempty,dive,keys,noSpaces,endkeys"`
 }
 
 // ResourceProvider is a placeholder for the resource provider.
@@ -184,7 +183,7 @@ type resourceManager struct {
 }
 
 // Metadata returns the resource's metadata.
-func (rm *resourceManager) Metadata() schemamanager.SchemaMetadata {
+func (rm *resourceManager) Metadata() interfaces.SchemaMetadata {
 	return rm.resource.Metadata
 }
 
@@ -237,7 +236,7 @@ func (rm *resourceManager) GetStoragePath() string {
 }
 
 // getResourceStoragePath constructs the storage path for a resource based on its metadata.
-func getResourceStoragePath(m *schemamanager.SchemaMetadata) string {
+func getResourceStoragePath(m *interfaces.SchemaMetadata) string {
 	t := catcommon.CatalogObjectTypeResource
 	rsrcPath := m.GetStoragePath(t)
 	pathWithName := path.Clean(rsrcPath + "/" + m.Name)
@@ -248,7 +247,7 @@ func getResourceStoragePath(m *schemamanager.SchemaMetadata) string {
 // It handles the creation or update of both the resource and its associated catalog object.
 func (rm *resourceManager) Save(ctx context.Context) apperrors.Error {
 	if rm == nil {
-		return validationerrors.ErrEmptySchema
+		return ErrEmptySchema
 	}
 
 	t := catcommon.CatalogObjectTypeResource
@@ -307,7 +306,7 @@ func (rm *resourceManager) Save(ctx context.Context) apperrors.Error {
 }
 
 // DeleteResource deletes a resource from the database.
-func DeleteResource(ctx context.Context, m *schemamanager.SchemaMetadata) apperrors.Error {
+func DeleteResource(ctx context.Context, m *interfaces.SchemaMetadata) apperrors.Error {
 	if m == nil {
 		return ErrInvalidObject.Msg("unable to infer object metadata")
 	}

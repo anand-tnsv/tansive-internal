@@ -4,7 +4,6 @@ import (
 	"reflect"
 
 	json "github.com/json-iterator/go"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/validationerrors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
@@ -23,7 +22,7 @@ type ObjectStorageRepresentation struct {
 func (s *ObjectStorageRepresentation) Serialize() ([]byte, apperrors.Error) {
 	j, err := json.Marshal(s)
 	if err != nil {
-		return nil, validationerrors.ErrSchemaSerialization
+		return nil, apperrors.New("failed to serialize object storage representation")
 	}
 	return j, nil
 }

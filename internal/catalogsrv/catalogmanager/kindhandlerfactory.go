@@ -5,8 +5,8 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tidwall/gjson"
@@ -51,7 +51,7 @@ func RequestType(resourceJSON []byte) (kind string, err apperrors.Error) {
 	return "", ErrInvalidSchema.Msg("invalid kind or version")
 }
 
-type KindHandlerFactory func(context.Context, RequestContext) (schemamanager.KindHandler, apperrors.Error)
+type KindHandlerFactory func(context.Context, RequestContext) (interfaces.KindHandler, apperrors.Error)
 
 var kindHandlerFactories = map[string]KindHandlerFactory{
 	catcommon.CatalogKind:   NewCatalogKindHandler,
@@ -61,7 +61,7 @@ var kindHandlerFactories = map[string]KindHandlerFactory{
 	catcommon.ViewKind:      NewViewKindHandler,
 }
 
-func ResourceManagerForKind(ctx context.Context, kind string, name RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+func ResourceManagerForKind(ctx context.Context, kind string, name RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	factory, ok := kindHandlerFactories[kind]
 	if !ok {
 		return nil, ErrInvalidSchema.Msg("unsupported resource kind: " + kind)

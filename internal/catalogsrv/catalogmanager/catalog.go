@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
@@ -38,7 +38,7 @@ type catalogManager struct {
 	catalog models.Catalog
 }
 
-var _ schemamanager.CatalogManager = (*catalogManager)(nil)
+var _ interfaces.CatalogManager = (*catalogManager)(nil)
 
 // Validate performs validation on the catalog schema
 func (cs *catalogSchema) Validate() schemaerr.ValidationErrors {
@@ -82,7 +82,7 @@ func (cs *catalogSchema) Validate() schemaerr.ValidationErrors {
 }
 
 // NewCatalogManager creates a new catalog manager from JSON input
-func NewCatalogManager(ctx context.Context, resourceJSON []byte, name string) (schemamanager.CatalogManager, apperrors.Error) {
+func NewCatalogManager(ctx context.Context, resourceJSON []byte, name string) (interfaces.CatalogManager, apperrors.Error) {
 	projectID := catcommon.ProjectIdFromContext(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
@@ -130,7 +130,7 @@ func (cm *catalogManager) Description() string {
 }
 
 // LoadCatalogManagerByName loads a catalog manager by its name
-func LoadCatalogManagerByName(ctx context.Context, name string) (schemamanager.CatalogManager, apperrors.Error) {
+func LoadCatalogManagerByName(ctx context.Context, name string) (interfaces.CatalogManager, apperrors.Error) {
 	catalog, err := db.DB(ctx).GetCatalog(ctx, uuid.Nil, name)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
@@ -192,7 +192,7 @@ func DeleteCatalogByName(ctx context.Context, name string) apperrors.Error {
 // catalogKind implements the ResourceManager interface for catalogs
 type catalogKind struct {
 	req     RequestContext
-	manager schemamanager.CatalogManager
+	manager interfaces.CatalogManager
 }
 
 // Name returns the catalog name
@@ -206,7 +206,7 @@ func (c *catalogKind) Location() string {
 }
 
 // Manager returns the catalog manager
-func (c *catalogKind) Manager() schemamanager.CatalogManager {
+func (c *catalogKind) Manager() interfaces.CatalogManager {
 	return c.manager
 }
 
@@ -277,7 +277,7 @@ func (c *catalogKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // NewCatalogKindHandler creates a new catalog resource
-func NewCatalogKindHandler(ctx context.Context, requestContext RequestContext) (schemamanager.KindHandler, apperrors.Error) {
+func NewCatalogKindHandler(ctx context.Context, requestContext RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	return &catalogKind{
 		req: requestContext,
 	}, nil

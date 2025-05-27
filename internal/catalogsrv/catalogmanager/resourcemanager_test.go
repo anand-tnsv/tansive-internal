@@ -9,9 +9,8 @@ import (
 	json "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	_ "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schemamanager"
-	_ "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/v1/datatypes" // Import to register data types
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -228,7 +227,7 @@ func TestResourceManagerValueOperations(t *testing.T) {
 		}
 	}`
 
-	metadata := &schemamanager.SchemaMetadata{
+	metadata := &interfaces.SchemaMetadata{
 		Name:      "test-resource",
 		Catalog:   "test-catalog",
 		Namespace: types.NullableStringFrom("default"),
