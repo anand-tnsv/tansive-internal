@@ -191,7 +191,7 @@ func DeleteCatalogByName(ctx context.Context, name string) apperrors.Error {
 
 // catalogKind implements the ResourceManager interface for catalogs
 type catalogKind struct {
-	req     RequestContext
+	req     interfaces.RequestContext
 	manager interfaces.CatalogManager
 }
 
@@ -277,7 +277,7 @@ func (c *catalogKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // NewCatalogKindHandler creates a new catalog resource
-func NewCatalogKindHandler(ctx context.Context, requestContext RequestContext) (interfaces.KindHandler, apperrors.Error) {
+func NewCatalogKindHandler(ctx context.Context, requestContext interfaces.RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	return &catalogKind{
 		req: requestContext,
 	}, nil

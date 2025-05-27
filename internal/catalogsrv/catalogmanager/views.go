@@ -281,7 +281,7 @@ func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catal
 }
 
 type viewKind struct {
-	reqCtx RequestContext
+	reqCtx interfaces.RequestContext
 	view   *models.View
 }
 
@@ -421,7 +421,7 @@ func (v *viewKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 }
 
 // NewViewKindHandler creates a new view resource manager.
-func NewViewKindHandler(ctx context.Context, reqCtx RequestContext) (interfaces.KindHandler, apperrors.Error) {
+func NewViewKindHandler(ctx context.Context, reqCtx interfaces.RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}

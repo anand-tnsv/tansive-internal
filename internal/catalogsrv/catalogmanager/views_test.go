@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
@@ -1712,7 +1713,7 @@ func TestDeleteView(t *testing.T) {
 
 	t.Run("delete by label - success", func(t *testing.T) {
 		// Delete first view by label
-		reqCtx := RequestContext{
+		reqCtx := interfaces.RequestContext{
 			CatalogID:  catalogID,
 			Catalog:    "test-catalog",
 			ObjectName: "test-view-1",
@@ -1730,7 +1731,7 @@ func TestDeleteView(t *testing.T) {
 	})
 
 	t.Run("delete by label - non-existent view", func(t *testing.T) {
-		reqCtx := RequestContext{
+		reqCtx := interfaces.RequestContext{
 			CatalogID:  catalogID,
 			Catalog:    "test-catalog",
 			ObjectName: "non-existent-view",
@@ -1743,7 +1744,7 @@ func TestDeleteView(t *testing.T) {
 	})
 
 	t.Run("delete by label - invalid catalog ID", func(t *testing.T) {
-		reqCtx := RequestContext{
+		reqCtx := interfaces.RequestContext{
 			CatalogID:  uuid.Nil,
 			Catalog:    "test-catalog",
 			ObjectName: "test-view-2",
@@ -1754,7 +1755,7 @@ func TestDeleteView(t *testing.T) {
 	})
 
 	t.Run("delete by label - empty label", func(t *testing.T) {
-		reqCtx := RequestContext{
+		reqCtx := interfaces.RequestContext{
 			CatalogID:  catalogID,
 			Catalog:    "test-catalog",
 			ObjectName: "",
@@ -1769,7 +1770,7 @@ func TestDeleteView(t *testing.T) {
 
 	t.Run("delete by label - wrong catalog ID", func(t *testing.T) {
 		wrongCatalogID := uuid.New()
-		reqCtx := RequestContext{
+		reqCtx := interfaces.RequestContext{
 			CatalogID:  wrongCatalogID,
 			Catalog:    "test-catalog",
 			ObjectName: "test-view-2",

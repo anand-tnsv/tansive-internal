@@ -7,19 +7,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tidwall/gjson"
 )
 
-func hydrateRequestContext(r *http.Request) (catalogmanager.RequestContext, error) {
+func hydrateRequestContext(r *http.Request) (interfaces.RequestContext, error) {
 	ctx := r.Context()
 	viewName := chi.URLParam(r, "viewName")
 	resourcePath := chi.URLParam(r, "resourcePath")
 	resourceValue := chi.URLParam(r, "resourceValue")
 
-	n := catalogmanager.RequestContext{}
+	n := interfaces.RequestContext{}
 
 	catalogCtx := catcommon.CatalogContextFromContext(ctx)
 	if catalogCtx != nil {

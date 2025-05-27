@@ -273,7 +273,7 @@ func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) appe
 }
 
 type namespaceKind struct {
-	req RequestContext
+	req interfaces.RequestContext
 	nm  interfaces.NamespaceManager
 }
 
@@ -372,7 +372,7 @@ func (n *namespaceKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 	return nil, nil
 }
 
-func NewNamespaceKindHandler(ctx context.Context, reqCtx RequestContext) (interfaces.KindHandler, apperrors.Error) {
+func NewNamespaceKindHandler(ctx context.Context, reqCtx interfaces.RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidCatalog
 	}

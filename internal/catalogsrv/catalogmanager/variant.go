@@ -243,7 +243,7 @@ func DeleteVariant(ctx context.Context, catalogID, variantID uuid.UUID, name str
 // TODO Handle base variant and copy of data
 
 type variantKind struct {
-	req RequestContext
+	req interfaces.RequestContext
 	vm  interfaces.VariantManager
 }
 
@@ -323,7 +323,7 @@ func (v *variantKind) List(ctx context.Context) ([]byte, apperrors.Error) {
 	return nil, nil
 }
 
-func NewVariantKindHandler(ctx context.Context, reqCtx RequestContext) (interfaces.KindHandler, apperrors.Error) {
+func NewVariantKindHandler(ctx context.Context, reqCtx interfaces.RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	if reqCtx.Catalog == "" || reqCtx.CatalogID == uuid.Nil {
 		return nil, ErrInvalidVariant.Msg("catalog name and ID are required for variant creation")
 	}

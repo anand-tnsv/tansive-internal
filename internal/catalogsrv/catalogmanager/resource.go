@@ -123,7 +123,7 @@ func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m
 // resourceKindHandler implements the KindHandler interface for managing individual resources.
 // It handles CRUD operations for resources and maintains the request context.
 type resourceKindHandler struct {
-	req RequestContext
+	req interfaces.RequestContext
 	rm  interfaces.ResourceManager
 }
 
@@ -325,7 +325,7 @@ func (h *resourceKindHandler) List(ctx context.Context) ([]byte, apperrors.Error
 	return j, nil
 }
 
-func NewResourceKindHandler(ctx context.Context, req RequestContext) (interfaces.KindHandler, apperrors.Error) {
+func NewResourceKindHandler(ctx context.Context, req interfaces.RequestContext) (interfaces.KindHandler, apperrors.Error) {
 	if req.Catalog == "" {
 		return nil, ErrInvalidCatalog
 	}
