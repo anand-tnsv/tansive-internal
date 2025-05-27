@@ -6,11 +6,11 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
-	"strings"
 	"sync/atomic"
 	"time"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/lib/pq"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/config"
@@ -36,10 +36,9 @@ type postgresPool struct {
 // validScopeNameRegex ensures scope names are valid PostgreSQL identifiers
 var validScopeNameRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*$`)
 
-// formatSQLIdentifier formats a scope name for use in SQL.
-// This is a temporary solution until we can use proper parameterization.
+// formatSQLIdentifier formats a scope name for use in SQL using proper identifier quoting.
 func formatSQLIdentifier(name string) string {
-	return strings.ReplaceAll(name, "'", "''")
+	return pq.QuoteIdentifier(name)
 }
 
 // NewPostgresqlDb creates a new PostgreSQL database connection pool with the given configured scopes.
@@ -103,7 +102,9 @@ func (p *postgresPool) Conn(ctx context.Context) (ScopedConn, error) {
 	}
 
 	for param, value := range sessionParams {
-		_, err = conn.ExecContext(ctx, fmt.Sprintf("SET %s = '%s'", formatSQLIdentifier(param), value))
+		// For SET commands, we need to properly quote both the parameter and value
+		query := fmt.Sprintf("SET %s = %s", formatSQLIdentifier(param), pq.QuoteLiteral(value))
+		_, err = conn.ExecContext(ctx, query)
 		if err != nil {
 			cancel()
 			conn.Close()
@@ -192,7 +193,7 @@ func (h *postgresConn) AddScopes(ctx context.Context, scopes map[string]string) 
 
 	for scope, value := range scopes {
 		if h.IsConfiguredScope(scope) {
-			query := fmt.Sprintf("SET %s = '%s'", formatSQLIdentifier(scope), value)
+			query := fmt.Sprintf("SET %s = %s", formatSQLIdentifier(scope), pq.QuoteLiteral(value))
 			_, err := tx.ExecContext(ctx, query)
 			if err != nil {
 				return fmt.Errorf("failed to set scope %q: %w", scope, err)
@@ -219,7 +220,7 @@ func (h *postgresConn) AddScope(ctx context.Context, scope, value string) error 
 	}
 
 	if h.IsConfiguredScope(scope) {
-		query := fmt.Sprintf("SET %s = '%s'", formatSQLIdentifier(scope), value)
+		query := fmt.Sprintf("SET %s = %s", formatSQLIdentifier(scope), pq.QuoteLiteral(value))
 		_, err := h.conn.ExecContext(ctx, query)
 		if err != nil {
 			return fmt.Errorf("failed to set scope %q: %w", scope, err)

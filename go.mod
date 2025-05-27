@@ -1,6 +1,8 @@
 module github.com/tansive/tansive-internal
 
-go 1.21.6
+go 1.23.0
+
+toolchain go1.24.2
 
 require (
 	github.com/BurntSushi/toml v1.4.0
@@ -19,6 +21,7 @@ require (
 	github.com/jackc/pgtype v1.14.0
 	github.com/jackc/pgx/v4 v4.12.1-0.20210724153913-640aa07df17c
 	github.com/json-iterator/go v1.1.12
+	github.com/lib/pq v1.10.9
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/mugiliam/goja_nodejs v0.0.0-20250504204006-b218264da5cf
 	github.com/pkg/errors v0.9.1
@@ -28,8 +31,8 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.14.2
 	github.com/tidwall/sjson v1.2.5
-	golang.org/x/crypto v0.25.0
-	golang.org/x/text v0.16.0
+	golang.org/x/crypto v0.37.0
+	golang.org/x/text v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -48,7 +51,7 @@ require (
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.1.1 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
@@ -60,5 +63,5 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 )
