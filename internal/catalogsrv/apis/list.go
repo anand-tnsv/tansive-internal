@@ -12,7 +12,7 @@ func listObjects(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()
 	var kind string
 
-	reqContext, err := hydrateRequestContext(r, nil)
+	reqContext, err := hydrateRequestContext(r)
 	if err != nil {
 		return nil, err
 	}

@@ -1,10 +1,12 @@
 package apis
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
@@ -24,138 +26,141 @@ var userSessionHandlers = []httpx.ResponseHandlerParam{
 		Handler: createObject,
 	},
 }
+
+// resourceObjectHandlers defines the API routes and their authorization requirements.
+// Each route requires at least one of the listed actions to be authorized.
 var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 	{
-		Method:       http.MethodGet,
-		Path:         "/catalogs/{catalogName}",
-		Handler:      getObject,
-		PolicyAction: types.ActionCatalogList,
+		Method:         http.MethodGet,
+		Path:           "/catalogs/{catalogName}",
+		Handler:        getObject,
+		AllowedActions: []types.Action{types.ActionCatalogList},
 	},
 	{
-		Method:       http.MethodPut,
-		Path:         "/catalogs/{catalogName}",
-		Handler:      updateObject,
-		PolicyAction: types.ActionCatalogAdmin,
+		Method:         http.MethodPut,
+		Path:           "/catalogs/{catalogName}",
+		Handler:        updateObject,
+		AllowedActions: []types.Action{types.ActionCatalogAdmin},
 	},
 	{
-		Method:       http.MethodDelete,
-		Path:         "/catalogs/{catalogName}",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionCatalogAdmin,
+		Method:         http.MethodDelete,
+		Path:           "/catalogs/{catalogName}",
+		Handler:        deleteObject,
+		AllowedActions: []types.Action{types.ActionCatalogAdmin},
 	},
 	{
-		Method:       http.MethodPost,
-		Path:         "/variants",
-		Handler:      createObject,
-		PolicyAction: types.ActionVariantClone,
+		Method:         http.MethodPost,
+		Path:           "/variants",
+		Handler:        createObject,
+		AllowedActions: []types.Action{types.ActionVariantClone},
 	},
 	{
-		Method:       http.MethodGet,
-		Path:         "/variants/{variantName}",
-		Handler:      getObject,
-		PolicyAction: types.ActionVariantList,
+		Method:         http.MethodGet,
+		Path:           "/variants/{variantName}",
+		Handler:        getObject,
+		AllowedActions: []types.Action{types.ActionVariantList},
 	},
 	{
-		Method:       http.MethodPut,
-		Path:         "/variants/{variantName}",
-		Handler:      updateObject,
-		PolicyAction: types.ActionVariantAdmin,
+		Method:         http.MethodPut,
+		Path:           "/variants/{variantName}",
+		Handler:        updateObject,
+		AllowedActions: []types.Action{types.ActionVariantAdmin},
 	},
 	{
-		Method:       http.MethodDelete,
-		Path:         "/variants/{variantName}",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionVariantAdmin,
+		Method:         http.MethodDelete,
+		Path:           "/variants/{variantName}",
+		Handler:        deleteObject,
+		AllowedActions: []types.Action{types.ActionVariantAdmin},
 	},
 	{
-		Method:       http.MethodPost,
-		Path:         "/namespaces",
-		Handler:      createObject,
-		PolicyAction: types.ActionNamespaceCreate,
+		Method:         http.MethodPost,
+		Path:           "/namespaces",
+		Handler:        createObject,
+		AllowedActions: []types.Action{types.ActionNamespaceCreate},
 	},
 	{
-		Method:       http.MethodGet,
-		Path:         "/namespaces/{namespaceName}",
-		Handler:      getObject,
-		PolicyAction: types.ActionNamespaceList,
+		Method:         http.MethodGet,
+		Path:           "/namespaces/{namespaceName}",
+		Handler:        getObject,
+		AllowedActions: []types.Action{types.ActionNamespaceList},
 	},
 	{
-		Method:       http.MethodPut,
-		Path:         "/namespaces/{namespaceName}",
-		Handler:      updateObject,
-		PolicyAction: types.ActionNamespaceAdmin,
+		Method:         http.MethodPut,
+		Path:           "/namespaces/{namespaceName}",
+		Handler:        updateObject,
+		AllowedActions: []types.Action{types.ActionNamespaceAdmin},
 	},
 	{
-		Method:       http.MethodDelete,
-		Path:         "/namespaces/{namespaceName}",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionNamespaceAdmin,
+		Method:         http.MethodDelete,
+		Path:           "/namespaces/{namespaceName}",
+		Handler:        deleteObject,
+		AllowedActions: []types.Action{types.ActionNamespaceAdmin},
 	},
 	{
-		Method:       http.MethodPost,
-		Path:         "/views",
-		Handler:      createObject,
-		PolicyAction: types.ActionCatalogCreateView,
+		Method:         http.MethodPost,
+		Path:           "/views",
+		Handler:        createObject,
+		AllowedActions: []types.Action{types.ActionCatalogCreateView},
 	},
 	{
-		Method:       http.MethodGet,
-		Path:         "/views/{viewName}",
-		Handler:      getObject,
-		PolicyAction: types.ActionCatalogList,
+		Method:         http.MethodGet,
+		Path:           "/views/{viewName}",
+		Handler:        getObject,
+		AllowedActions: []types.Action{types.ActionCatalogList},
 	},
 	{
-		Method:       http.MethodPut,
-		Path:         "/views/{viewName}",
-		Handler:      updateObject,
-		PolicyAction: types.ActionViewAdmin,
+		Method:         http.MethodPut,
+		Path:           "/views/{viewName}",
+		Handler:        updateObject,
+		AllowedActions: []types.Action{types.ActionViewAdmin},
 	},
 	{
-		Method:       http.MethodDelete,
-		Path:         "/views/{viewName}",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionViewAdmin,
+		Method:         http.MethodDelete,
+		Path:           "/views/{viewName}",
+		Handler:        deleteObject,
+		AllowedActions: []types.Action{types.ActionViewAdmin},
 	},
 	{
-		Method:       http.MethodPost,
-		Path:         "/resources",
-		Handler:      createObject,
-		PolicyAction: types.ActionResourceCreate,
+		Method:         http.MethodPost,
+		Path:           "/resources",
+		Handler:        createObject,
+		AllowedActions: []types.Action{types.ActionResourceCreate},
 	},
 	{
-		Method:       http.MethodGet,
-		Path:         "/resources",
-		Handler:      listObjects,
-		PolicyAction: types.ActionResourceList,
+		Method:         http.MethodGet,
+		Path:           "/resources",
+		Handler:        listObjects,
+		AllowedActions: []types.Action{types.ActionResourceList},
 	},
 	{
-		Method:       http.MethodGet,
-		Path:         "/resources/{resourcePath:.+}/definition",
-		Handler:      getObject,
-		PolicyAction: types.ActionResourceRead,
+		Method:         http.MethodGet,
+		Path:           "/resources/{resourcePath:.+}/definition",
+		Handler:        getObject,
+		AllowedActions: []types.Action{types.ActionResourceRead, types.ActionResourceEdit},
 	},
 	{
-		Method:       http.MethodGet,
-		Path:         "/resources/{resourceValue:.+}",
-		Handler:      getObject,
-		PolicyAction: types.ActionResourceGet,
+		Method:         http.MethodGet,
+		Path:           "/resources/{resourceValue:.+}",
+		Handler:        getObject,
+		AllowedActions: []types.Action{types.ActionResourceGet, types.ActionResourcePut},
 	},
 	{
-		Method:       http.MethodPut,
-		Path:         "/resources/{resourceValue:.+}",
-		Handler:      updateObject,
-		PolicyAction: types.ActionResourcePut,
+		Method:         http.MethodPut,
+		Path:           "/resources/{resourceValue:.+}",
+		Handler:        updateObject,
+		AllowedActions: []types.Action{types.ActionResourcePut},
 	},
 	{
-		Method:       http.MethodPut,
-		Path:         "/resources/{resourcePath:.+}/definition",
-		Handler:      updateObject,
-		PolicyAction: types.ActionResourceUpdate,
+		Method:         http.MethodPut,
+		Path:           "/resources/{resourcePath:.+}/definition",
+		Handler:        updateObject,
+		AllowedActions: []types.Action{types.ActionResourceEdit},
 	},
 	{
-		Method:       http.MethodDelete,
-		Path:         "/resources/{resourcePath:.+}/definition",
-		Handler:      deleteObject,
-		PolicyAction: types.ActionResourceDelete,
+		Method:         http.MethodDelete,
+		Path:           "/resources/{resourcePath:.+}/definition",
+		Handler:        deleteObject,
+		AllowedActions: []types.Action{types.ActionResourceDelete},
 	},
 }
 
@@ -177,7 +182,9 @@ func Router(r chi.Router) chi.Router {
 		r.Use(middleware.LoadContext)
 		r.Use(LoadCatalogContext)
 		for _, handler := range resourceObjectHandlers {
-			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(EnforceViewPolicy(handler)))
+			//Wrap the request handler with view policy enforcement
+			policyEnforcedHandler := EnforceViewPolicy(handler)
+			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(policyEnforcedHandler))
 		}
 	})
 	return router
@@ -200,28 +207,17 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 			httpx.ErrUnAuthorized("missing or invalid authorization token").Send(w)
 			return
 		}
-		urlValues := r.URL.Query()
-		// Load Catalog
-		c, err := loadCatalogObject(ctx, c, urlValues)
+		c, err := loadContext(r)
 		if err != nil {
-			httpx.ErrInvalidCatalog().Send(w)
+			var maxErr *http.MaxBytesError
+			if errors.As(err, &maxErr) {
+				log.Ctx(ctx).Error().Msgf("request body too large (limit: %d bytes)", maxErr.Limit)
+				httpx.ErrRequestTooLarge(maxErr.Limit).Send(w)
+			} else {
+				httpx.ErrInvalidRequest(err.Error()).Send(w)
+			}
 			return
 		}
-
-		// Load Variant
-		c, err = loadVariantObject(ctx, c, urlValues)
-		if err != nil {
-			httpx.ErrInvalidVariant().Send(w)
-			return
-		}
-
-		// Load Namespace
-		c, err = loadNamespaceObject(ctx, c, urlValues)
-		if err != nil {
-			httpx.ErrInvalidNamespace().Send(w)
-			return
-		}
-
 		ctx = common.SetCatalogContext(ctx, c)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -262,7 +258,14 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 		}
 
 		// Validate against the policy
-		if !authorizedViewDef.Rules.IsActionAllowed(handler.PolicyAction, targetResource) {
+		allowed := false
+		for _, action := range handler.AllowedActions {
+			if authorizedViewDef.Rules.IsActionAllowed(action, targetResource) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
 			return nil, ErrBlockedByPolicy
 		}
 

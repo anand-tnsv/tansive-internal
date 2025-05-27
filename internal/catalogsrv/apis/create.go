@@ -23,7 +23,7 @@ func createObject(r *http.Request) (*httpx.Response, error) {
 		return nil, httpx.ErrUnableToReadRequest()
 	}
 
-	reqContext, err := hydrateRequestContext(r, req)
+	reqContext, err := hydrateRequestContext(r)
 	if err != nil {
 		return nil, err
 	}

@@ -73,8 +73,8 @@ func WrapHttpRsp(handler RequestHandler) http.HandlerFunc {
 }
 
 type ResponseHandlerParam struct {
-	Method       string
-	Path         string
-	Handler      RequestHandler
-	PolicyAction types.Action
+	Method         string
+	Path           string
+	Handler        RequestHandler
+	AllowedActions []types.Action
 }

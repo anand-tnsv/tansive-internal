@@ -94,6 +94,68 @@ func TestAdoptView(t *testing.T) {
 	err := json.Unmarshal(response.Body.Bytes(), &resourceResponse)
 	require.NoError(t, err)
 	require.Equal(t, 200, resourceResponse.Value)
+
+	// Try to update resource1 definition with read-write view token - should fail
+	httpReq, _ = http.NewRequest("PUT", "/resources/resource1/definition", nil)
+	req = `
+		{
+			"version": "v1",
+			"kind": "Resource",
+			"metadata": {
+				"name": "resource1",
+				"catalog": "test-catalog",
+				"variant": "test-variant",
+				"namespace": "",
+				"path": "/",
+				"description": "Updated test resource"
+			},
+			"spec": {
+				"schema": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
+						},
+						"value": {
+							"type": "integer"
+						}
+					}
+				},
+				"value": {
+					"name": "resource1",
+					"value": 42
+				},
+				"annotations": null,
+				"policy": ""
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+readWriteToken)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusForbidden, response.Code)
+
+	// Adopt the full-access view
+	fullAccessToken := adoptView(t, "test-catalog", "full-access-view", token)
+
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+fullAccessToken)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	// Verify the definition update was successful
+	httpReq, _ = http.NewRequest("GET", "/resources/resource1/definition", nil)
+	httpReq.Header.Set("Authorization", "Bearer "+fullAccessToken)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	var definitionResponse struct {
+		Metadata struct {
+			Description string `json:"description"`
+		} `json:"metadata"`
+	}
+	err = json.Unmarshal(response.Body.Bytes(), &definitionResponse)
+	require.NoError(t, err)
+	require.Equal(t, "Updated test resource", definitionResponse.Metadata.Description)
 }
 
 func setupTest(t *testing.T) *testSetup {
@@ -290,6 +352,36 @@ func setupObjects(t *testing.T, token string) {
 					"rules": [{
 						"intent": "Allow",
 						"actions": ["resource.get", "resource.put"],
+						"targets": ["res://resources/*"]
+					}]
+				}
+			}
+		}`
+	setRequestBodyAndHeader(t, httpReq, req)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	response = executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusCreated, response.Code)
+
+	// Create third view with full resource permissions
+	httpReq, _ = http.NewRequest("POST", "/views", nil)
+	req = `
+		{
+			"version": "v1",
+			"kind": "View",
+			"metadata": {
+				"name": "full-access-view",
+				"catalog": "test-catalog",
+				"description": "View with full resource access"
+			},
+			"spec": {
+				"definition": {
+					"scope": {
+						"catalog": "test-catalog",
+						"variant": "test-variant"
+					},
+					"rules": [{
+						"intent": "Allow",
+						"actions": ["resource.get", "resource.put", "resource.edit"],
 						"targets": ["res://resources/*"]
 					}]
 				}

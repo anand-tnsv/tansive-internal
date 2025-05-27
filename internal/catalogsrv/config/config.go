@@ -15,6 +15,7 @@ type ConfigParam struct {
 	ServerPort           string `toml:"server_port"`
 	EndpointPort         string `toml:"endpoint_port"`
 	HandleCORS           bool   `toml:"handle_cors"`
+	MaxRequestBodySize   int64  `toml:"max_request_body_size"`
 	KeyEncryptionPasswd  string `toml:"key_encryption_passwd"`
 	DefaultTokenValidity string `toml:"default_token_validity"`
 	SingleUserMode       bool   `toml:"single_user_mode"`
@@ -80,6 +81,9 @@ func LoadDefaultsIfNotSet(cfg *ConfigParam) {
 			panic("unable to obtain unique id to generate key passwd")
 		}
 		cfg.KeyEncryptionPasswd = id
+	}
+	if cfg.MaxRequestBodySize == 0 {
+		cfg.MaxRequestBodySize = 1024
 	}
 	cfg.SingleUserMode = true
 	// Default tenant and project for single user

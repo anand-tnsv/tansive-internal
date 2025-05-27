@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
 
@@ -102,6 +104,20 @@ func TestCatalogCreate(t *testing.T) {
 
 	// Check Location in header
 	assert.Contains(t, response.Header().Get("Location"), "/catalogs/valid-catalog")
+
+	// Test large request body
+	httpReq, _ = http.NewRequest("POST", "/catalogs", nil)
+	// Create a request body larger than the limit (1MB)
+	largeBody := make([]byte, 2*1024*1024) // 2MB
+	httpReq.Body = io.NopCloser(bytes.NewReader(largeBody))
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+
+	response = executeTestRequest(t, httpReq, nil, testContext)
+	if !assert.Equal(t, http.StatusRequestEntityTooLarge, response.Code) {
+		t.Logf("Response: %v", response.Body.String())
+		t.FailNow()
+	}
 }
 
 func TestGetUpdateDeleteCatalog(t *testing.T) {
@@ -443,7 +459,7 @@ func TestVariantCrud(t *testing.T) {
 	response = executeTestRequest(t, httpReq, nil, testContext)
 
 	// Check the response code
-	if !assert.Equal(t, http.StatusNotFound, response.Code) {
+	if !assert.Equal(t, http.StatusBadRequest, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
@@ -451,7 +467,7 @@ func TestVariantCrud(t *testing.T) {
 	// Get the variant
 	httpReq, _ = http.NewRequest("GET", "/variants/valid-variant", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
-	if !assert.Equal(t, http.StatusNotFound, response.Code) {
+	if !assert.Equal(t, http.StatusBadRequest, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}

@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -224,5 +225,19 @@ func ErrUnableToServeRequest() *Error {
 	return &Error{
 		Description: "unable to serve request",
 		StatusCode:  http.StatusInternalServerError,
+	}
+}
+
+func ErrRequestTimeout() *Error {
+	return &Error{
+		Description: "request timed out",
+		StatusCode:  http.StatusRequestTimeout,
+	}
+}
+
+func ErrRequestTooLarge(limit int64) *Error {
+	return &Error{
+		Description: fmt.Sprintf("request body too large (limit: %d bytes)", limit),
+		StatusCode:  http.StatusRequestEntityTooLarge,
 	}
 }

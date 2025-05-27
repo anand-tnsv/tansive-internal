@@ -29,7 +29,7 @@ const (
 	ActionNamespaceAdmin    Action = "namespace.admin"
 	ActionResourceCreate    Action = "resource.create"
 	ActionResourceRead      Action = "resource.read"
-	ActionResourceUpdate    Action = "resource.update"
+	ActionResourceEdit      Action = "resource.edit"
 	ActionResourceDelete    Action = "resource.delete"
 	ActionResourceGet       Action = "resource.get"
 	ActionResourcePut       Action = "resource.put"
@@ -49,7 +49,7 @@ var ValidActions = []Action{
 	ActionNamespaceAdmin,
 	ActionResourceCreate,
 	ActionResourceRead,
-	ActionResourceUpdate,
+	ActionResourceEdit,
 	ActionResourceDelete,
 	ActionResourceGet,
 	ActionResourcePut,

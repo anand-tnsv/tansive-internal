@@ -1,66 +1,48 @@
 package apis
 
 import (
-	"context"
+	"bytes"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tidwall/gjson"
 )
 
-// loadCatalogObject loads catalog information into the context
-func loadCatalogObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
-	if catalogCtx.CatalogId == uuid.Nil && catalogCtx.Catalog == "" {
-		catalogID := getURLValue(values, "catalog_id")
+func loadContext(r *http.Request) (*common.CatalogContext, error) {
+	ctx := r.Context()
+
+	catalogCtx := common.CatalogContextFromContext(ctx)
+
+	catalogCtx = loadMetadataFromParam(r, catalogCtx)
+	catalogCtx = loadMetadataFromQuery(r, catalogCtx)
+
+	if r.Method == http.MethodPost || r.Method == http.MethodPut {
 		var err error
-		if catalogID != "" {
-			catalogCtx.CatalogId, err = uuid.Parse(catalogID)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			catalog := getURLValue(values, "catalog")
-			if catalog != "" {
-				catalogCtx.Catalog = catalog
-			}
+		catalogCtx, err = loadMetadataFromBody(r, catalogCtx)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	if catalogCtx.CatalogId != uuid.Nil {
-		if catalogCtx.Catalog == "" {
-			catalog, err := db.DB(ctx).GetCatalog(ctx, catalogCtx.CatalogId, "")
-			if err != nil {
-				return nil, err
-			}
-			catalogCtx.Catalog = catalog.Name
-		}
-	} else if catalogCtx.Catalog != "" {
+	if catalogCtx.Catalog != "" {
 		catalog, err := db.DB(ctx).GetCatalog(ctx, uuid.Nil, catalogCtx.Catalog)
 		if err != nil {
 			return nil, err
 		}
 		catalogCtx.CatalogId = catalog.CatalogID
-	}
-	return catalogCtx, nil
-}
-
-// loadVariantObject loads variant information into the context
-func loadVariantObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
-	if catalogCtx.VariantId == uuid.Nil && catalogCtx.Variant == "" {
-		variantID := getURLValue(values, "variant_id")
-		var err error
-		if variantID != "" {
-			catalogCtx.VariantId, err = uuid.Parse(variantID)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			variant := getURLValue(values, "variant")
-			if variant != "" {
-				catalogCtx.Variant = variant
-			}
+	} else if catalogCtx.CatalogId != uuid.Nil {
+		catalog, err := db.DB(ctx).GetCatalog(ctx, catalogCtx.CatalogId, "")
+		if err != nil {
+			return nil, err
 		}
+		catalogCtx.Catalog = catalog.Name
 	}
 
 	if catalogCtx.VariantId != uuid.Nil {
@@ -78,15 +60,105 @@ func loadVariantObject(ctx context.Context, catalogCtx *common.CatalogContext, v
 		}
 		catalogCtx.VariantId = variant.VariantID
 	}
+
 	return catalogCtx, nil
 }
 
-// loadNamespaceObject loads namespace information into the context
-func loadNamespaceObject(ctx context.Context, catalogCtx *common.CatalogContext, values url.Values) (*common.CatalogContext, error) {
-	_ = ctx
-	if catalogCtx.Namespace == "" {
-		catalogCtx.Namespace = getURLValue(values, "namespace")
+func loadMetadataFromParam(r *http.Request, catalogCtx *common.CatalogContext) *common.CatalogContext {
+	if catalogCtx == nil {
+		return nil
 	}
+
+	catalogName := chi.URLParam(r, "catalogName")
+	variantName := chi.URLParam(r, "variantName")
+	namespace := chi.URLParam(r, "namespaceName")
+
+	if catalogName != "" {
+		catalogCtx.Catalog = catalogName
+	}
+	if variantName != "" {
+		catalogCtx.Variant = variantName
+	}
+	if namespace != "" {
+		catalogCtx.Namespace = namespace
+	}
+
+	return catalogCtx
+}
+
+func loadMetadataFromQuery(r *http.Request, catalogCtx *common.CatalogContext) *common.CatalogContext {
+	if catalogCtx == nil {
+		return nil
+	}
+
+	urlValues := r.URL.Query()
+
+	if catalogCtx.CatalogId == uuid.Nil && catalogCtx.Catalog == "" {
+		catalogID := getURLValue(urlValues, "catalog_id")
+		if catalogID != "" {
+			catalogUUID, err := uuid.Parse(catalogID)
+			if err == nil {
+				catalogCtx.CatalogId = catalogUUID
+			}
+		} else {
+			catalog := getURLValue(urlValues, "catalog")
+			if catalog != "" {
+				catalogCtx.Catalog = catalog
+			}
+		}
+	}
+
+	if catalogCtx.VariantId == uuid.Nil && catalogCtx.Variant == "" {
+		variantID := getURLValue(urlValues, "variant_id")
+		if variantID != "" {
+			variantUUID, err := uuid.Parse(variantID)
+			if err == nil {
+				catalogCtx.VariantId = variantUUID
+			}
+		} else {
+			variant := getURLValue(urlValues, "variant")
+			if variant != "" {
+				catalogCtx.Variant = variant
+			}
+		}
+	}
+
+	if catalogCtx.Namespace == "" {
+		namespace := getURLValue(urlValues, "namespace")
+		if namespace != "" {
+			catalogCtx.Namespace = namespace
+		}
+	}
+
+	return catalogCtx
+}
+
+func loadMetadataFromBody(r *http.Request, catalogCtx *common.CatalogContext) (*common.CatalogContext, error) {
+	if catalogCtx == nil || r.Body == nil {
+		return catalogCtx, nil
+	}
+	w := httptest.NewRecorder() // we need a fake response writer
+	r.Body = http.MaxBytesReader(w, r.Body, config.Config().MaxRequestBodySize)
+	body, err := io.ReadAll(r.Body)
+	_ = r.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	// Restore body for downstream handlers using the buffered content
+	r.Body = io.NopCloser(bytes.NewReader(body))
+
+	// Parse metadata
+	if catalogCtx.VariantId == uuid.Nil && catalogCtx.Variant == "" {
+		if result := gjson.GetBytes(body, "metadata.variant"); result.Exists() {
+			catalogCtx.Variant = result.String()
+		}
+	}
+	if catalogCtx.Namespace == "" {
+		if result := gjson.GetBytes(body, "metadata.namespace"); result.Exists() {
+			catalogCtx.Namespace = result.String()
+		}
+	}
+
 	return catalogCtx, nil
 }
 

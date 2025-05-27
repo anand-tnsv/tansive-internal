@@ -1562,12 +1562,12 @@ func TestValidateDerivedView(t *testing.T) {
 				Rules: types.Rules{
 					{
 						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceUpdate, types.ActionResourceGet},
+						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceEdit, types.ActionResourceGet},
 						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/*"},
 					},
 					{
 						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionResourceUpdate, types.ActionResourceGet},
+						Actions: []types.Action{types.ActionResourceEdit, types.ActionResourceGet},
 						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/sensitive/*"},
 					},
 				},
@@ -1595,12 +1595,12 @@ func TestValidateDerivedView(t *testing.T) {
 				Rules: types.Rules{
 					{
 						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceUpdate, types.ActionResourceGet},
+						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceEdit, types.ActionResourceGet},
 						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/*"},
 					},
 					{
 						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionResourceUpdate, types.ActionResourceGet},
+						Actions: []types.Action{types.ActionResourceEdit, types.ActionResourceGet},
 						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/sensitive/*"},
 					},
 				},
@@ -1612,7 +1612,7 @@ func TestValidateDerivedView(t *testing.T) {
 				Rules: types.Rules{
 					{
 						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceUpdate},
+						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceEdit},
 						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/*"},
 					},
 				},

@@ -26,4 +26,5 @@ func ToHTTPXError(err error) error {
 var (
 	ErrBadRequest      apperrors.Error = apperrors.New("Bad Request").SetStatusCode(http.StatusBadRequest)
 	ErrBlockedByPolicy apperrors.Error = ErrBadRequest.New("blocked by policy").SetStatusCode(http.StatusForbidden)
+	ErrEmptyCatalog    apperrors.Error = ErrBadRequest.New("no catalog provided").SetStatusCode(http.StatusBadRequest)
 )

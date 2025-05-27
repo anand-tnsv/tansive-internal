@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/common"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
@@ -14,37 +15,24 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func hydrateRequestContext(r *http.Request, body []byte) (catalogmanager.RequestContext, error) {
+func hydrateRequestContext(r *http.Request) (catalogmanager.RequestContext, error) {
 	ctx := r.Context()
-
-	catalogName := chi.URLParam(r, "catalogName")
-	variantName := chi.URLParam(r, "variantName")
-	namespace := chi.URLParam(r, "namespaceName")
 	viewName := chi.URLParam(r, "viewName")
 	resourcePath := chi.URLParam(r, "resourcePath")
 	resourceValue := chi.URLParam(r, "resourceValue")
 
 	n := catalogmanager.RequestContext{}
-	catalogContext := common.CatalogContextFromContext(ctx)
-	if variantName != "" {
-		n.Variant, n.VariantID = getUUIDOrName(variantName)
-	} else if catalogContext != nil {
-		n.Variant = catalogContext.Variant
-		n.VariantID = catalogContext.VariantId
-	}
-	if catalogName != "" {
-		n.Catalog = catalogName
-	} else if catalogContext != nil {
-		n.Catalog = catalogContext.Catalog
-		n.CatalogID = catalogContext.CatalogId
-	}
-	if namespace != "" {
-		n.Namespace = namespace
-	} else if catalogContext != nil {
-		n.Namespace = catalogContext.Namespace
-	}
 
-	hydrateObjectMetadata(&n, body)
+	catalogCtx := common.CatalogContextFromContext(ctx)
+	if catalogCtx != nil {
+		n.Catalog = catalogCtx.Catalog
+		n.CatalogID = catalogCtx.CatalogId
+		n.Variant = catalogCtx.Variant
+		n.VariantID = catalogCtx.VariantId
+		n.Namespace = catalogCtx.Namespace
+	} else {
+		log.Ctx(ctx).Error().Msg("no catalog context found")
+	}
 
 	if viewName != "" {
 		n.ObjectName = viewName
