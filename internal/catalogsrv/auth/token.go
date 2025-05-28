@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -20,6 +22,18 @@ var (
 	keyManagerInstance *keymanager.KeyManager
 	keyManagerOnce     sync.Once
 )
+
+// RequiredClaims is a list of claims that must be present in the token
+var RequiredClaims = []string{
+	"view_id",
+	"tenant_id",
+	"iss",
+	"aud",
+	"jti",
+	"exp",
+	"iat",
+	"ver",
+}
 
 // Token represents a JWT token with its associated claims and validation methods
 type Token struct {
@@ -35,8 +49,8 @@ func getKeyManager() *keymanager.KeyManager {
 	return keyManagerInstance
 }
 
-// NewToken creates a new Token instance from a JWT token string
-func NewToken(ctx context.Context, tokenString string) (*Token, apperrors.Error) {
+// ParseAndValidateToken parses and validates a JWT token string
+func ParseAndValidateToken(ctx context.Context, tokenString string) (*Token, apperrors.Error) {
 	signingKey, err := getKeyManager().GetActiveKey(ctx)
 	if err != nil {
 		return nil, err
@@ -54,31 +68,31 @@ func NewToken(ctx context.Context, tokenString string) (*Token, apperrors.Error)
 
 	if parseErr != nil {
 		log.Ctx(ctx).Error().Err(parseErr).Msg("failed to parse token")
-		return nil, ErrUnableToGenerateToken.Err(parseErr)
+		return nil, ErrUnableToParseToken.Err(parseErr)
 	}
 
 	if !token.Valid {
-		return nil, ErrUnableToGenerateToken
+		return nil, ErrUnableToParseToken
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, ErrUnableToGenerateToken
+		return nil, ErrUnableToParseToken
 	}
 
 	view_id, ok := claims["view_id"].(string)
 	if !ok {
-		return nil, ErrUnableToGenerateToken
+		return nil, ErrUnableToParseToken
 	}
 
 	viewID, parseUUIDErr := uuid.Parse(view_id)
 	if parseUUIDErr != nil {
-		return nil, ErrUnableToGenerateToken.Err(parseUUIDErr)
+		return nil, ErrUnableToParseToken.Err(parseUUIDErr)
 	}
 
 	tenantID, ok := claims["tenant_id"].(string)
 	if !ok {
-		return nil, ErrUnableToGenerateToken
+		return nil, ErrUnableToParseToken
 	}
 
 	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(tenantID))
@@ -88,70 +102,153 @@ func NewToken(ctx context.Context, tokenString string) (*Token, apperrors.Error)
 		return nil, err
 	}
 
-	return &Token{
+	if view.TenantID != catcommon.TenantId(tenantID) {
+		return nil, ErrInvalidToken.Msg(fmt.Sprintf("view tenant ID %s does not match token tenant ID %s", view.TenantID, tenantID))
+	}
+
+	tokenObj := &Token{
 		token:  token,
 		claims: claims,
 		view:   view,
-	}, nil
+	}
+
+	if err := tokenObj.Validate(ctx); err != nil {
+		return nil, err
+	}
+
+	return tokenObj, nil
 }
 
-// isTokenRevoked checks if a token has been revoked by its JWT ID (jti)
-// Currently a dummy implementation that always returns false
-func isTokenRevoked(jti string) bool {
-	_ = jti
-	return false
+// SetMaxTokenAge sets the maximum allowed age for tokens
+func SetMaxTokenAge(age time.Duration) {
+	if age <= 0 {
+		age = 24 * time.Hour
+	}
+	config.Config().Auth.MaxTokenAge = age
+}
+
+// SetClockSkew sets the allowed clock skew for time-based claims
+func SetClockSkew(skew time.Duration) {
+	if skew < 0 {
+		skew = 5 * time.Minute
+	}
+	config.Config().Auth.ClockSkew = skew
 }
 
 // Validate checks if the token is valid and not expired
-func (t *Token) Validate() bool {
-	if t.token == nil || !t.token.Valid {
-		return false
+func (t *Token) Validate(ctx context.Context) apperrors.Error {
+	// Check all required claims are present
+	for _, claim := range RequiredClaims {
+		if _, ok := t.claims[claim]; !ok {
+			log.Ctx(ctx).Debug().Str("claim", claim).Msg("missing required claim")
+			return ErrInvalidToken.Msg(fmt.Sprintf("missing required claim: %s", claim))
+		}
+	}
+
+	// Check version
+	ver, ok := t.claims["ver"].(string)
+	if !ok {
+		log.Ctx(ctx).Debug().Msg("token missing or invalid ver claim")
+		return ErrInvalidToken.Msg("missing or invalid ver claim")
+	}
+	if ver != string(TokenVersionV0_1) {
+		log.Ctx(ctx).Debug().Str("got", ver).Str("expected", string(TokenVersionV0_1)).Msg("invalid token version")
+		return ErrInvalidToken.Msg(fmt.Sprintf("invalid token version: got %s, expected %s", ver, TokenVersionV0_1))
 	}
 
 	now := time.Now()
 
-	// Check if token is expired
+	// Check expiration with skew
 	exp, ok := t.claims["exp"].(float64)
 	if !ok {
-		return false
+		log.Ctx(ctx).Debug().Msg("token missing or invalid exp claim")
+		return ErrInvalidToken.Msg("missing or invalid exp claim")
 	}
-	if time.Unix(int64(exp), 0).Before(now) {
-		return false
+	if now.After(time.Unix(int64(exp), 0).Add(config.Config().Auth.ClockSkew)) {
+		log.Ctx(ctx).Debug().Msg("token expired")
+		return ErrInvalidToken.Msg("token expired")
 	}
 
-	// Check if token is not yet valid (nbf)
-	if nbf, ok := t.claims["nbf"].(float64); ok {
-		if time.Unix(int64(nbf), 0).After(now) {
-			return false
+	// Check not before with skew
+	if nbf, ok := t.claims["nbf"]; ok {
+		nbfFloat, ok := nbf.(float64)
+		if !ok {
+			log.Ctx(ctx).Debug().Type("type", nbf).Msg("invalid nbf claim type")
+			return ErrInvalidToken.Msg("invalid nbf claim type")
+		}
+		if now.Before(time.Unix(int64(nbfFloat), 0).Add(-config.Config().Auth.ClockSkew)) {
+			log.Ctx(ctx).Debug().Msg("token not yet valid")
+			return ErrInvalidToken.Msg("token not yet valid")
 		}
 	}
 
-	// Check if token was issued too far in the past (iat)
-	if iat, ok := t.claims["iat"].(float64); ok {
-		// Reject tokens issued more than 24 hours ago
-		if time.Unix(int64(iat), 0).Before(now.Add(-24 * time.Hour)) {
-			return false
-		}
+	// Check if token is too old
+	iat, ok := t.claims["iat"].(float64)
+	if !ok {
+		log.Ctx(ctx).Debug().Msg("token missing or invalid iat claim")
+		return ErrInvalidToken.Msg("missing or invalid iat claim")
+	}
+	issuedAt := time.Unix(int64(iat), 0)
+	if time.Since(issuedAt) > config.Config().Auth.MaxTokenAge {
+		log.Ctx(ctx).Debug().Msg("token too old")
+		return ErrInvalidToken.Msg("token too old")
 	}
 
-	// Check required claims
-	requiredClaims := []string{"view_id", "tenant_id", "iss", "aud", "jti"}
-	for _, claim := range requiredClaims {
-		if _, ok := t.claims[claim]; !ok {
-			return false
-		}
+	// Check issuer
+	iss, ok := t.claims["iss"].(string)
+	if !ok {
+		log.Ctx(ctx).Debug().Msg("token missing or invalid iss claim")
+		return ErrInvalidToken.Msg("missing or invalid iss claim")
+	}
+	expectedIssuer := config.Config().ServerHostName + ":" + config.Config().ServerPort
+	if iss != expectedIssuer {
+		log.Ctx(ctx).Debug().Str("got", iss).Str("expected", expectedIssuer).Msg("invalid issuer")
+		return ErrInvalidToken.Msg(fmt.Sprintf("invalid issuer: got %s, expected %s", iss, expectedIssuer))
 	}
 
-	// Check if token has been revoked using its JWT ID
+	// Check audience
+	aud, ok := t.claims["aud"]
+	if !ok {
+		log.Ctx(ctx).Debug().Msg("token missing aud claim")
+		return ErrInvalidToken.Msg("missing aud claim")
+	}
+	expectedAudience := config.Config().ServerHostName + ":" + config.Config().ServerPort
+
+	switch v := aud.(type) {
+	case string:
+		if v != expectedAudience {
+			log.Ctx(ctx).Debug().Str("got", v).Str("expected", expectedAudience).Msg("invalid audience")
+			return ErrInvalidToken.Msg(fmt.Sprintf("invalid audience: got %s, expected %s", v, expectedAudience))
+		}
+	case []any:
+		found := false
+		for _, a := range v {
+			if s, ok := a.(string); ok && s == expectedAudience {
+				found = true
+				break
+			}
+		}
+		if !found {
+			log.Ctx(ctx).Debug().Interface("got", v).Str("expected", expectedAudience).Msg("invalid audience")
+			return ErrInvalidToken.Msg(fmt.Sprintf("invalid audience: got %v, expected %s", v, expectedAudience))
+		}
+	default:
+		log.Ctx(ctx).Debug().Type("type", v).Msg("invalid audience type")
+		return ErrInvalidToken.Msg("invalid audience type")
+	}
+
+	// Check JWT ID
 	jti, ok := t.claims["jti"].(string)
 	if !ok {
-		return false
+		log.Ctx(ctx).Debug().Msg("token missing or invalid jti claim")
+		return ErrInvalidToken.Msg("missing or invalid jti claim")
 	}
-	if isTokenRevoked(jti) {
-		return false
+	if revocationChecker.IsRevoked(jti) {
+		log.Ctx(ctx).Debug().Str("jti", jti).Msg("token revoked")
+		return ErrInvalidToken.Msg("token revoked")
 	}
 
-	return true
+	return nil
 }
 
 // Get retrieves a claim value from the token
@@ -178,7 +275,11 @@ func (t *Token) GetTokenUse() TokenType {
 	if !ok {
 		return UnknownTokenType
 	}
-	return TokenType(tokenType.(string))
+	s, ok := tokenType.(string)
+	if !ok {
+		return UnknownTokenType
+	}
+	return TokenType(s)
 }
 
 func (t *Token) GetSubject() string {
@@ -186,7 +287,11 @@ func (t *Token) GetSubject() string {
 	if !ok {
 		return ""
 	}
-	return subject.(string)
+	s, ok := subject.(string)
+	if !ok {
+		return ""
+	}
+	return s
 }
 
 func (t *Token) GetTenantID() string {
@@ -194,7 +299,11 @@ func (t *Token) GetTenantID() string {
 	if !ok {
 		return ""
 	}
-	return tenantID.(string)
+	s, ok := tenantID.(string)
+	if !ok {
+		return ""
+	}
+	return s
 }
 
 // GetUUID retrieves a UUID claim value from the token

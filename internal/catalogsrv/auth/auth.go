@@ -57,7 +57,11 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 		return nil, ErrViewNotFound.Err(err)
 	}
 
-	token, tokenExpiry, err := CreateToken(ctx, wantView, WithParentViewDefinition(ourViewDef))
+	token, tokenExpiry, err := CreateToken(ctx,
+		wantView,
+		WithParentViewDefinition(ourViewDef),
+		WithAdditionalClaims(getAccessTokenClaims(ctx)),
+	)
 	if err != nil {
 		return nil, ErrTokenGeneration.Err(err)
 	}
@@ -99,10 +103,7 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 	token, tokenExpiry, err := CreateToken(ctx,
 		wantView,
 		WithParentViewDefinition(&viewDef),
-		WithAdditionalClaims(map[string]any{
-			"token_use": IdentityTokenType,
-			"sub":       userContext.UserID,
-		}),
+		WithAdditionalClaims(getAccessTokenClaims(ctx)),
 	)
 	if err != nil {
 		return nil, ErrTokenGeneration.Err(err)
@@ -130,4 +131,32 @@ func getDefaultUserViewDefInCatalog(ctx context.Context, catalogID uuid.UUID) (*
 		return nil, ErrViewNotFound.Err(err)
 	}
 	return v, nil
+}
+
+func getIdentityTokenClaims(ctx context.Context) map[string]any {
+	userContext := catcommon.GetUserContext(ctx)
+	if userContext == nil || userContext.UserID == "" {
+		return nil
+	}
+
+	return map[string]any{
+		"token_use": IdentityTokenType,
+		"sub":       "user/" + userContext.UserID,
+	}
+}
+
+var _ = getIdentityTokenClaims
+
+func getAccessTokenClaims(ctx context.Context) map[string]any {
+	var subject string
+	userContext := catcommon.GetUserContext(ctx)
+	if userContext == nil || userContext.UserID == "" {
+		return nil
+	}
+	subject = "user/" + userContext.UserID
+
+	return map[string]any{
+		"token_use": AccessTokenType,
+		"sub":       subject,
+	}
 }

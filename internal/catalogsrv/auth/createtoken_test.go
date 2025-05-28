@@ -49,10 +49,10 @@ func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.Pro
 
 	// Set up test configuration
 	cfg := config.Config()
-	cfg.DefaultTokenValidity = "1h"
+	cfg.Auth.DefaultTokenValidity = "1h"
 	cfg.ServerHostName = "localhost"
 	cfg.ServerPort = "8080"
-	cfg.KeyEncryptionPasswd = "test-password"
+	cfg.Auth.KeyEncryptionPasswd = "test-password"
 
 	// Create a catalog for testing
 	var info pgtype.JSONB
@@ -110,7 +110,7 @@ func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.Pro
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
 
-	encKey, err := catcommon.Encrypt(priv, cfg.KeyEncryptionPasswd)
+	encKey, err := catcommon.Encrypt(priv, cfg.Auth.KeyEncryptionPasswd)
 	require.NoError(t, err)
 
 	signingKey := &models.SigningKey{

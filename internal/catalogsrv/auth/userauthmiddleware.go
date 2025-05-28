@@ -54,7 +54,7 @@ func UserAuthMiddleware(next http.Handler) http.Handler {
 
 // handleSingleUserMode processes authentication in single-user mode
 func handleSingleUserMode(ctx context.Context, token string) (context.Context, error) {
-	if token != config.Config().FakeSingleUserToken {
+	if token != config.Config().Auth.FakeSingleUserToken {
 		return nil, fmt.Errorf("invalid token in single user mode")
 	}
 

@@ -19,14 +19,18 @@ var (
 
 // Validation errors
 var (
-	ErrInvalidView    apperrors.Error = ErrAuth.New("invalid view").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidCatalog apperrors.Error = ErrAuth.New("invalid catalog").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidRequest apperrors.Error = ErrAuth.New("invalid request").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidView      apperrors.Error = ErrAuth.New("invalid view").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidCatalog   apperrors.Error = ErrAuth.New("invalid catalog").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidRequest   apperrors.Error = ErrAuth.New("invalid request").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidViewRules apperrors.Error = ErrAuth.New("invalid view rules").SetStatusCode(http.StatusBadRequest)
+	ErrMissingTenantID  apperrors.Error = ErrAuth.New("missing tenant ID").SetStatusCode(http.StatusBadRequest)
 )
 
 // Authorization errors
 var (
-	ErrUnauthorized apperrors.Error = ErrAuth.New("unauthorized access").SetStatusCode(http.StatusUnauthorized)
+	ErrUnauthorized       apperrors.Error = ErrAuth.New("unauthorized access").SetStatusCode(http.StatusUnauthorized)
+	ErrInvalidToken       apperrors.Error = ErrAuth.New("invalid token").SetStatusCode(http.StatusUnauthorized)
+	ErrUnableToParseToken apperrors.Error = ErrAuth.New("unable to parse token").SetStatusCode(http.StatusForbidden)
 )
 
 // Token errors
@@ -34,7 +38,6 @@ var (
 	ErrTokenGeneration            apperrors.Error = ErrAuth.New("failed to generate token").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToGenerateSigningKey apperrors.Error = ErrAuth.New("unable to generate signing key").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToParseTokenDuration apperrors.Error = ErrAuth.New("unable to parse token duration").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToGenerateToken      apperrors.Error = ErrAuth.New("unable to generate token").SetStatusCode(http.StatusInternalServerError)
 )
 
 // Ops errors

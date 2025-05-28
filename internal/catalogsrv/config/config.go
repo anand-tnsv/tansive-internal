@@ -19,15 +19,19 @@ type ConfigParam struct {
 	HandleCORS         bool   `toml:"handle_cors"`           // Whether to handle CORS
 	MaxRequestBodySize int64  `toml:"max_request_body_size"` // Maximum size of request body in bytes
 
-	// Security configuration
-	KeyEncryptionPasswd  string `toml:"key_encryption_passwd"`  // Password for key encryption
-	DefaultTokenValidity string `toml:"default_token_validity"` // Default token validity duration
+	// Auth configuration
+	Auth struct {
+		MaxTokenAge          time.Duration `toml:"max_token_age"`          // Maximum age for tokens
+		ClockSkew            time.Duration `toml:"clock_skew"`             // Allowed clock skew for time-based claims
+		KeyEncryptionPasswd  string        `toml:"key_encryption_passwd"`  // Password for key encryption
+		DefaultTokenValidity string        `toml:"default_token_validity"` // Default token validity duration
+		FakeSingleUserToken  string        `toml:"fake_single_user_token"` // Token for single user mode
+	} `toml:"auth"`
 
 	// Single user mode configuration
-	SingleUserMode      bool   `toml:"single_user_mode"`       // Whether to run in single user mode
-	DefaultTenantID     string `toml:"default_tenant_id"`      // Default tenant ID for single user mode
-	DefaultProjectID    string `toml:"default_project_id"`     // Default project ID for single user mode
-	FakeSingleUserToken string `toml:"fake_single_user_token"` // Token for single user mode
+	SingleUserMode   bool   `toml:"single_user_mode"`   // Whether to run in single user mode
+	DefaultTenantID  string `toml:"default_tenant_id"`  // Default tenant ID for single user mode
+	DefaultProjectID string `toml:"default_project_id"` // Default project ID for single user mode
 
 	// Database configuration
 	DB struct {
@@ -103,18 +107,24 @@ func LoadDefaultsIfNotSet(cfg *ConfigParam) {
 		cfg.MaxRequestBodySize = 1024
 	}
 
-	// Security defaults
-	if cfg.DefaultTokenValidity == "" {
-		cfg.DefaultTokenValidity = "3h"
+	// Auth defaults
+	if cfg.Auth.MaxTokenAge == 0 {
+		cfg.Auth.MaxTokenAge = 24 * time.Hour
 	}
-	if cfg.KeyEncryptionPasswd == "" {
+	if cfg.Auth.ClockSkew == 0 {
+		cfg.Auth.ClockSkew = 5 * time.Minute
+	}
+	if cfg.Auth.DefaultTokenValidity == "" {
+		cfg.Auth.DefaultTokenValidity = "3h"
+	}
+	if cfg.Auth.KeyEncryptionPasswd == "" {
 		// Signing keys should be encrypted and managed using KMS. This is for local usage and should never be used
 		// in production. If the user set no password, we generate a reproducible password based on the machine id.
 		id, err := machineid.ProtectedID("catalogsrv.tansive.io")
 		if err != nil {
 			panic("unable to obtain unique id to generate key passwd")
 		}
-		cfg.KeyEncryptionPasswd = id
+		cfg.Auth.KeyEncryptionPasswd = id
 	}
 
 	cfg.SingleUserMode = true
@@ -127,8 +137,8 @@ func LoadDefaultsIfNotSet(cfg *ConfigParam) {
 		if cfg.DefaultProjectID == "" {
 			cfg.DefaultProjectID = "PXYZABC"
 		}
-		if cfg.FakeSingleUserToken == "" {
-			cfg.FakeSingleUserToken = "single-user-fake-token"
+		if cfg.Auth.FakeSingleUserToken == "" {
+			cfg.Auth.FakeSingleUserToken = "single-user-fake-token"
 		}
 	}
 

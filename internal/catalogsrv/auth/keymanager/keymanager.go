@@ -74,7 +74,7 @@ func (km *KeyManager) retrieveOrCreateKey(ctx context.Context) (*SigningKey, app
 			return nil, apperrors.New("unable to generate signing key").Err(err)
 		}
 
-		encKey, err := catcommon.Encrypt(priv, config.Config().KeyEncryptionPasswd)
+		encKey, err := catcommon.Encrypt(priv, config.Config().Auth.KeyEncryptionPasswd)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("unable to encrypt signing key")
 			return nil, apperrors.New("unable to encrypt signing key").Err(err)
@@ -97,7 +97,7 @@ func (km *KeyManager) retrieveOrCreateKey(ctx context.Context) (*SigningKey, app
 		}
 	} else {
 		// Decrypt the existing key
-		decKey, err := catcommon.Decrypt(key.PrivateKey, config.Config().KeyEncryptionPasswd)
+		decKey, err := catcommon.Decrypt(key.PrivateKey, config.Config().Auth.KeyEncryptionPasswd)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("unable to decrypt signing key")
 			return nil, apperrors.New("unable to decrypt signing key").Err(err)

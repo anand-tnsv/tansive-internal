@@ -59,7 +59,7 @@ func TestResourceCrud(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -79,7 +79,7 @@ func TestResourceCrud(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -274,7 +274,7 @@ func TestResourceList(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	assert.Equal(t, http.StatusCreated, response.Code)
 	testContext.CatalogContext.Catalog = "list-catalog"
@@ -364,7 +364,7 @@ func TestResourceList(t *testing.T) {
 
 	// List resources
 	httpReq, _ = http.NewRequest("GET", "/resources?catalog=list-catalog&variant=list-variant", nil)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	require.Equal(t, http.StatusOK, response.Code)
 
@@ -422,7 +422,7 @@ func TestResourceValue(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	assert.Equal(t, http.StatusCreated, response.Code)
 	testContext.CatalogContext.Catalog = "value-catalog"

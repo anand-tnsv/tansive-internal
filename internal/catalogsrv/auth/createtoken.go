@@ -68,6 +68,7 @@ var reservedClaims = map[string]bool{
 	"nbf":       true,
 	"aud":       true,
 	"jti":       true,
+	"ver":       true,
 }
 
 // CreateToken creates a new JWT token for the given view
@@ -98,7 +99,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOpt
 		}
 	}
 
-	tokenDuration, goerr := config.ParseTokenDuration(config.Config().DefaultTokenValidity)
+	tokenDuration, goerr := config.ParseTokenDuration(config.Config().Auth.DefaultTokenValidity)
 	if goerr != nil {
 		log.Ctx(ctx).Error().Err(goerr).Msg("unable to parse token duration")
 		return "", time.Time{}, ErrUnableToParseTokenDuration.MsgErr("unable to parse token duration", goerr)
@@ -129,7 +130,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOpt
 	tokenString, goerr := token.SignedString(signingKey.PrivateKey)
 	if goerr != nil {
 		log.Ctx(ctx).Error().Err(goerr).Msg("unable to sign token")
-		return "", time.Time{}, ErrUnableToGenerateToken.MsgErr("unable to sign token", goerr)
+		return "", time.Time{}, ErrTokenGeneration.MsgErr("unable to sign token", goerr)
 	}
 
 	return tokenString, tokenExpiry, nil
@@ -171,6 +172,7 @@ func createTokenClaims(ctx context.Context, view *models.View, token *models.Vie
 		"nbf":       jwt.NewNumericDate(now.Add(-2 * time.Minute)), // 2-minute skew buffer
 		"aud":       []string{config.Config().ServerHostName + ":" + config.Config().ServerPort},
 		"jti":       token.TokenID.String(),
+		"ver":       string(TokenVersionV0_1),
 	}
 
 	for k, v := range additionalClaims {

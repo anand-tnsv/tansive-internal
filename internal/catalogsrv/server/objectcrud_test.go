@@ -91,7 +91,7 @@ func TestCatalogCreate(t *testing.T) {
 	}
 } `
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 
@@ -110,7 +110,7 @@ func TestCatalogCreate(t *testing.T) {
 	largeBody := make([]byte, 2*1024*1024) // 2MB
 	httpReq.Body = io.NopCloser(bytes.NewReader(largeBody))
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusRequestEntityTooLarge, response.Code) {
@@ -165,7 +165,7 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 	}
 } `
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -304,7 +304,7 @@ func TestVariantCrud(t *testing.T) {
 			}
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -519,7 +519,7 @@ func TestNamespaceCrud(t *testing.T) {
 			}
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code

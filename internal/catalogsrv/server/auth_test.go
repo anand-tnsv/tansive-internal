@@ -196,7 +196,7 @@ func setupTest(t *testing.T) *testSetup {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	response := executeTestRequest(t, httpReq, nil)
 	require.Equal(t, http.StatusCreated, response.Code)
 
@@ -394,7 +394,7 @@ func setupObjects(t *testing.T, token string) {
 
 func adoptDefaultView(t *testing.T, catalog string) string {
 	httpReq, _ := http.NewRequest("POST", "/auth/adopt-default-view/"+catalog, nil)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	response := executeTestRequest(t, httpReq, nil)
 	require.Equal(t, http.StatusOK, response.Code)
 

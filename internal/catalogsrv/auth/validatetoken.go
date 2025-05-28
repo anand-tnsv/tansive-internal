@@ -10,13 +10,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 )
 
-// Custom errors for better error handling
-var (
-	ErrInvalidToken     = fmt.Errorf("invalid token")
-	ErrInvalidViewRules = fmt.Errorf("invalid view rules")
-	ErrMissingTenantID  = fmt.Errorf("missing tenant ID")
-)
-
 // setCatalogContext creates and configures a new CatalogContext
 func setCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, tokenObj *Token) *catcommon.CatalogContext {
 	_ = ctx
@@ -46,16 +39,12 @@ func setProjectContext(ctx context.Context) context.Context {
 // ValidateToken validates the provided token and sets up the appropriate context
 func ValidateToken(ctx context.Context, token string) (context.Context, error) {
 	if token == "" {
-		return ctx, fmt.Errorf("%w: empty token", ErrInvalidToken)
+		return ctx, ErrInvalidToken.Msg("empty token")
 	}
 
-	tokenObj, err := NewToken(ctx, token)
+	tokenObj, err := ParseAndValidateToken(ctx, token)
 	if err != nil {
 		return ctx, fmt.Errorf("%w: %v", ErrInvalidToken, err)
-	}
-
-	if !tokenObj.Validate() {
-		return ctx, ErrInvalidToken
 	}
 
 	view := tokenObj.GetView()
