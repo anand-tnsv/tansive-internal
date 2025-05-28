@@ -163,13 +163,11 @@ func loadMetadataFromBody(r *http.Request, catalogCtx *catcommon.CatalogContext)
 }
 
 var urlKeyShorthand = map[string]string{
-	"catalog_id":   "c_id",
-	"catalog":      "c",
-	"variant_id":   "v_id",
-	"variant":      "v",
-	"workspace_id": "w_id",
-	"workspace":    "w",
-	"namespace":    "n",
+	"catalog_id": "c_id",
+	"catalog":    "c",
+	"variant_id": "v_id",
+	"variant":    "v",
+	"namespace":  "n",
 }
 
 // getURLValue retrieves a value from URL values, checking both full and shorthand keys

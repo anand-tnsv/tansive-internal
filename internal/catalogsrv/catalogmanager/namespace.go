@@ -39,11 +39,6 @@ type namespaceManager struct {
 // var _ schemamanager.VariantManager = (*variantManager)(nil)
 
 func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog string, variant string) (interfaces.NamespaceManager, apperrors.Error) {
-	projectID := catcommon.GetProjectID(ctx)
-	if projectID == "" {
-		return nil, ErrInvalidProject
-	}
-
 	if len(resourceJSON) == 0 {
 		return nil, ErrInvalidSchema
 	}
