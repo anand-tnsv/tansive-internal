@@ -2,7 +2,7 @@ package objectstore
 
 import (
 	"bytes"
-	"encoding/json"
+	json "github.com/json-iterator/go"
 	"sort"
 
 	"github.com/anand-gl/jsoncanonicalizer"

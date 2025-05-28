@@ -1,7 +1,7 @@
 package models
 
 import (
-	"encoding/json"
+	json "github.com/json-iterator/go"
 	"time"
 
 	"github.com/google/uuid"

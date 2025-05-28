@@ -1,10 +1,12 @@
 package interfaces
 
 import (
-	"encoding/json"
+	stdjson "encoding/json"
 	"path"
 	"reflect"
 	"strings"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -30,8 +32,8 @@ type IDS struct {
 	VariantID uuid.UUID
 }
 
-var _ json.Marshaler = SchemaMetadata{}
-var _ json.Marshaler = &SchemaMetadata{}
+var _ stdjson.Marshaler = SchemaMetadata{}
+var _ stdjson.Marshaler = &SchemaMetadata{}
 
 func (rs *SchemaMetadata) Validate() schemaerr.ValidationErrors {
 	var ves schemaerr.ValidationErrors

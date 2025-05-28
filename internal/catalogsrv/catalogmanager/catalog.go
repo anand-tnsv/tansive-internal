@@ -2,7 +2,7 @@ package catalogmanager
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/json-iterator/go"
 	"errors"
 	"reflect"
 

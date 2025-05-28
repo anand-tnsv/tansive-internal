@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	json "github.com/json-iterator/go"
 	"io"
 	"net/http"
 	"net/http/httptest"

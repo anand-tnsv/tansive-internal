@@ -1,7 +1,7 @@
 package policy
 
 import (
-	"encoding/json"
+	json "github.com/json-iterator/go"
 	"slices"
 	"strings"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"encoding/json"
+	json "github.com/json-iterator/go"
 	"testing"
 
 	"errors"

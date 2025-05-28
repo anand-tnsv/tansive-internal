@@ -3,7 +3,7 @@ package postgresql
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+	json "github.com/json-iterator/go"
 	"regexp"
 	"strings"
 
