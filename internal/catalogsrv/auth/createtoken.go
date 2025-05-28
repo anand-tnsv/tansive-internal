@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
@@ -119,7 +120,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOpt
 	claims := createTokenClaims(ctx, derivedView, v, tokenExpiry, options.AdditionalClaims)
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
 
-	signingKey, err := getKeyManager().GetActiveKey(ctx)
+	signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("unable to get active signing key")
 		return "", time.Time{}, err

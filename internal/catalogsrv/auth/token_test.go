@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 )
 
@@ -30,7 +31,7 @@ func TestNewToken(t *testing.T) {
 		"ver":       string(TokenVersionV0_1),
 	}
 
-	signingKey, err := getKeyManager().GetActiveKey(ctx)
+	signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, signingKey)
 
@@ -423,7 +424,7 @@ func TestTokenValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			signingKey, err := getKeyManager().GetActiveKey(ctx)
+			signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
 			require.NoError(t, err)
 			require.NotNil(t, signingKey)
 
@@ -494,7 +495,7 @@ func TestTokenGetters(t *testing.T) {
 		"ver":       string(TokenVersionV0_1),
 	}
 
-	signingKey, err := getKeyManager().GetActiveKey(ctx)
+	signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, signingKey)
 
@@ -535,4 +536,39 @@ func TestTokenGetters(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, viewID, id)
 	})
+}
+
+func TestParseAndValidateToken(t *testing.T) {
+	ctx, tenantID, _, viewID, _, _ := setupTest(t)
+
+	// Create a token
+	signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, signingKey)
+
+	serverAddr := config.Config().ServerHostName + ":" + config.Config().ServerPort
+	claims := jwt.MapClaims{
+		"view_id":   viewID.String(),
+		"tenant_id": string(tenantID),
+		"iss":       serverAddr,
+		"aud":       []string{serverAddr},
+		"jti":       uuid.New().String(),
+		"exp":       time.Now().Add(time.Hour).Unix(),
+		"iat":       time.Now().Unix(),
+		"nbf":       time.Now().Unix(),
+		"ver":       string(TokenVersionV0_1),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+	tokenString, goerr := token.SignedString(signingKey.PrivateKey)
+	if goerr != nil {
+		t.Fatalf("Failed to sign token: %v", goerr)
+	}
+
+	// Test parsing and validation
+	parsedToken, err := ParseAndValidateToken(ctx, tokenString)
+	require.NoError(t, err)
+	assert.NotNil(t, parsedToken)
+	assert.Equal(t, viewID, parsedToken.view.ViewID)
+	assert.Equal(t, tenantID, parsedToken.view.TenantID)
 }

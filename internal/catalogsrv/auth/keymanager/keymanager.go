@@ -18,6 +18,24 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
+// KeyManager defines the interface for key management operations
+type KeyManager interface {
+	GetActiveKey(ctx context.Context) (*SigningKey, apperrors.Error)
+}
+
+var (
+	keyManagerInstance *keyManager
+	keyManagerOnce     sync.Once
+)
+
+// GetKeyManager returns the singleton instance of KeyManager
+func GetKeyManager() KeyManager {
+	keyManagerOnce.Do(func() {
+		keyManagerInstance = &keyManager{}
+	})
+	return keyManagerInstance
+}
+
 // SigningKey represents a key pair used for signing tokens
 type SigningKey struct {
 	KeyID      uuid.UUID
@@ -31,19 +49,14 @@ func (sk *SigningKey) IsExpired() bool {
 	return sk.ExpiresAt.Before(time.Now())
 }
 
-// KeyManager handles the management of signing keys
-type KeyManager struct {
+// keyManager handles the management of signing keys
+type keyManager struct {
 	activeKey *SigningKey
 	mu        sync.RWMutex
 }
 
-// NewKeyManager creates a new KeyManager instance
-func NewKeyManager() *KeyManager {
-	return &KeyManager{}
-}
-
 // GetActiveKey retrieves the active signing key, creating a new one if necessary
-func (km *KeyManager) GetActiveKey(ctx context.Context) (*SigningKey, apperrors.Error) {
+func (km *keyManager) GetActiveKey(ctx context.Context) (*SigningKey, apperrors.Error) {
 	if km.activeKey != nil {
 		return km.activeKey, nil
 	}
@@ -51,7 +64,7 @@ func (km *KeyManager) GetActiveKey(ctx context.Context) (*SigningKey, apperrors.
 }
 
 // retrieveOrCreateKey retrieves an existing key or creates a new one
-func (km *KeyManager) retrieveOrCreateKey(ctx context.Context) (*SigningKey, apperrors.Error) {
+func (km *keyManager) retrieveOrCreateKey(ctx context.Context) (*SigningKey, apperrors.Error) {
 	km.mu.Lock()
 	defer km.mu.Unlock()
 

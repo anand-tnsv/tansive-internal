@@ -51,7 +51,7 @@ func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.Pro
 	cfg := config.Config()
 	cfg.Auth.DefaultTokenValidity = "1h"
 	cfg.ServerHostName = "localhost"
-	cfg.ServerPort = "8080"
+	cfg.ServerPort = "8194"
 	cfg.Auth.KeyEncryptionPasswd = "test-password"
 
 	// Create a catalog for testing

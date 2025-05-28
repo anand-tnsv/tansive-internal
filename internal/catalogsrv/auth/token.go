@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -16,11 +15,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-)
-
-var (
-	keyManagerInstance *keymanager.KeyManager
-	keyManagerOnce     sync.Once
 )
 
 // RequiredClaims is a list of claims that must be present in the token
@@ -42,16 +36,9 @@ type Token struct {
 	view   *models.View
 }
 
-func getKeyManager() *keymanager.KeyManager {
-	keyManagerOnce.Do(func() {
-		keyManagerInstance = keymanager.NewKeyManager()
-	})
-	return keyManagerInstance
-}
-
 // ParseAndValidateToken parses and validates a JWT token string
 func ParseAndValidateToken(ctx context.Context, tokenString string) (*Token, apperrors.Error) {
-	signingKey, err := getKeyManager().GetActiveKey(ctx)
+	signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
 	if err != nil {
 		return nil, err
 	}
