@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -58,7 +57,7 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 		return nil, ErrViewNotFound.Err(err)
 	}
 
-	token, tokenExpiry, err := catalogmanager.CreateToken(ctx, wantView, catalogmanager.WithParentViewDefinition(ourViewDef))
+	token, tokenExpiry, err := CreateToken(ctx, wantView, WithParentViewDefinition(ourViewDef))
 	if err != nil {
 		return nil, ErrTokenGeneration.Err(err)
 	}
@@ -97,10 +96,10 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 		return nil, ErrUnauthorized
 	}
 
-	token, tokenExpiry, err := catalogmanager.CreateToken(ctx,
+	token, tokenExpiry, err := CreateToken(ctx,
 		wantView,
-		catalogmanager.WithParentViewDefinition(&viewDef),
-		catalogmanager.WithAdditionalClaims(map[string]any{
+		WithParentViewDefinition(&viewDef),
+		WithAdditionalClaims(map[string]any{
 			"token_type": catcommon.TokenTypeIdentity,
 			"sub":        userContext.UserID,
 		}),

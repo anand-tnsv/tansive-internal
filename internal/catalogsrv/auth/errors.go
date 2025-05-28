@@ -31,5 +31,13 @@ var (
 
 // Token errors
 var (
-	ErrTokenGeneration apperrors.Error = ErrAuth.New("failed to generate token").SetStatusCode(http.StatusInternalServerError)
+	ErrTokenGeneration            apperrors.Error = ErrAuth.New("failed to generate token").SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToGenerateSigningKey apperrors.Error = ErrAuth.New("unable to generate signing key").SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToParseTokenDuration apperrors.Error = ErrAuth.New("unable to parse token duration").SetStatusCode(http.StatusInternalServerError)
+	ErrUnableToGenerateToken      apperrors.Error = ErrAuth.New("unable to generate token").SetStatusCode(http.StatusInternalServerError)
+)
+
+// Operation errors
+var (
+	ErrUnableToCreateView apperrors.Error = ErrAuth.New("unable to create view").SetStatusCode(http.StatusInternalServerError)
 )

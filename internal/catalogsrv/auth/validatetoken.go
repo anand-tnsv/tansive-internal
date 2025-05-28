@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
@@ -19,7 +18,7 @@ var (
 )
 
 // setupCatalogContext creates and configures a new CatalogContext
-func setupCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, tokenObj *catalogmanager.Token) *catcommon.CatalogContext {
+func setupCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, tokenObj *Token) *catcommon.CatalogContext {
 	_ = ctx
 	catalogContext := &catcommon.CatalogContext{
 		Catalog:   viewDef.Scope.Catalog,
@@ -50,7 +49,7 @@ func ValidateToken(ctx context.Context, token string) (context.Context, error) {
 		return ctx, fmt.Errorf("%w: empty token", ErrInvalidToken)
 	}
 
-	tokenObj, err := catalogmanager.NewToken(ctx, token)
+	tokenObj, err := NewToken(ctx, token)
 	if err != nil {
 		return ctx, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}

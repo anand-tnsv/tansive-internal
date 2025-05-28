@@ -70,11 +70,3 @@ var (
 	ErrUnauthorizedToCreateView apperrors.Error = ErrAuthError.New("unauthorized to create view").SetStatusCode(http.StatusForbidden)
 	ErrDisallowedByPolicy       apperrors.Error = ErrAuthError.New("not allowed by policy").SetStatusCode(http.StatusForbidden)
 )
-
-var (
-	ErrViewPolicyError            apperrors.Error = ErrCatalogError.New("authorization error").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToGenerateSigningKey apperrors.Error = ErrViewPolicyError.New("unable to generate signing key").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToParseTokenDuration apperrors.Error = ErrViewPolicyError.New("unable to parse token duration").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToGenerateToken      apperrors.Error = ErrViewPolicyError.New("unable to generate token").SetStatusCode(http.StatusInternalServerError)
-	ErrUnableToCreateView         apperrors.Error = ErrViewPolicyError.New("unable to create view").SetStatusCode(http.StatusInternalServerError)
-)
