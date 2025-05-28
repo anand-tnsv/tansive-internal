@@ -1,4 +1,4 @@
-package catalogmanager
+package policy
 
 import (
 	"context"
@@ -238,7 +238,7 @@ func CreateView(ctx context.Context, resourceJSON []byte, catalog string) (*mode
 			return nil, ErrAlreadyExists.New("view already exists: " + view.Metadata.Name)
 		}
 		log.Ctx(ctx).Error().Err(err).Msg("failed to create view")
-		return nil, ErrCatalogError.New("failed to create view: " + err.Error())
+		return nil, ErrViewError.New("failed to create view: " + err.Error())
 	}
 
 	return v, nil
@@ -274,7 +274,7 @@ func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catal
 			return nil, ErrViewNotFound.New("view not found: " + view.Metadata.Name)
 		}
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update view")
-		return nil, ErrCatalogError.New("failed to update view: " + err.Error())
+		return nil, ErrViewError.New("failed to update view: " + err.Error())
 	}
 
 	return v, nil

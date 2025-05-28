@@ -1,4 +1,4 @@
-package catalogmanager
+package policy
 
 import (
 	"testing"

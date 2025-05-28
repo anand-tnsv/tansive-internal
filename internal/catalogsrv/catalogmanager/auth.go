@@ -17,6 +17,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -95,7 +96,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 	}
 
 	// check if derived view can be created from creator view
-	if err := ValidateDerivedView(ctx, parentViewDef, derivedViewDef); err != nil {
+	if err := policy.ValidateDerivedView(ctx, parentViewDef, derivedViewDef); err != nil {
 		return "", tokenExpiry, err
 	}
 

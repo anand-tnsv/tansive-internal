@@ -6,6 +6,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tidwall/gjson"
 )
@@ -38,7 +39,7 @@ var kindHandlerFactories = map[string]interfaces.KindHandlerFactory{
 	catcommon.VariantKind:   NewVariantKindHandler,
 	catcommon.NamespaceKind: NewNamespaceKindHandler,
 	catcommon.ResourceKind:  NewResourceKindHandler,
-	catcommon.ViewKind:      NewViewKindHandler,
+	catcommon.ViewKind:      policy.NewViewKindHandler,
 }
 
 func ResourceManagerForKind(ctx context.Context, kind string, name interfaces.RequestContext) (interfaces.KindHandler, apperrors.Error) {

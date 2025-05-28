@@ -8,8 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -235,7 +235,7 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 		if c == nil {
 			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
 		}
-		authorizedViewDef := catalogmanager.CanonicalizeViewDefinition(auth.GetViewDefinition(ctx))
+		authorizedViewDef := policy.CanonicalizeViewDefinition(auth.GetViewDefinition(ctx))
 		if authorizedViewDef == nil {
 			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
 		}
@@ -246,7 +246,7 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 			Variant:   c.Variant,
 			Namespace: c.Namespace,
 		}
-		targetResource := catalogmanager.CanonicalizeResourcePath(targetScope, types.TargetResource("res://"+strings.TrimPrefix(r.URL.Path, "/")))
+		targetResource := policy.CanonicalizeResourcePath(targetScope, types.TargetResource("res://"+strings.TrimPrefix(r.URL.Path, "/")))
 		if targetResource == "" {
 			return nil, httpx.ErrApplicationError("unable to canonicalize resource path")
 		}
