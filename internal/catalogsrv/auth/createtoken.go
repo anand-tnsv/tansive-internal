@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"

@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"fmt"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
