@@ -30,8 +30,8 @@ func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.Pro
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)

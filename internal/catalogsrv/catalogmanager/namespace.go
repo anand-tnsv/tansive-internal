@@ -39,7 +39,7 @@ type namespaceManager struct {
 // var _ schemamanager.VariantManager = (*variantManager)(nil)
 
 func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog string, variant string) (interfaces.NamespaceManager, apperrors.Error) {
-	projectID := catcommon.ProjectIdFromContext(ctx)
+	projectID := catcommon.GetProjectID(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}
@@ -72,10 +72,10 @@ func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog strin
 		ns.Metadata.Variant = variant
 	}
 
-	catalogID := catcommon.GetCatalogIdFromContext(ctx)
-	variantID := catcommon.GetVariantIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogID(ctx)
+	variantID := catcommon.GetVariantID(ctx)
 
-	if catalogID == uuid.Nil || ns.Metadata.Catalog != catcommon.GetCatalogFromContext(ctx) {
+	if catalogID == uuid.Nil || ns.Metadata.Catalog != catcommon.GetCatalog(ctx) {
 		var err apperrors.Error
 		// retrieve the catalogID
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, ns.Metadata.Catalog)
@@ -89,7 +89,7 @@ func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog strin
 	}
 
 	// retrieve the variantID
-	if variantID == uuid.Nil || ns.Metadata.Variant != catcommon.GetVariantFromContext(ctx) {
+	if variantID == uuid.Nil || ns.Metadata.Variant != catcommon.GetVariant(ctx) {
 		var err apperrors.Error
 		variantID, err = db.DB(ctx).GetVariantIDFromName(ctx, catalogID, ns.Metadata.Variant)
 		if err != nil {

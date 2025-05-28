@@ -80,7 +80,7 @@ func (vs *variantSchema) Validate() schemaerr.ValidationErrors {
 }
 
 func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, catalog string) (interfaces.VariantManager, apperrors.Error) {
-	projectID := catcommon.ProjectIdFromContext(ctx)
+	projectID := catcommon.GetProjectID(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}
@@ -122,7 +122,7 @@ func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, ca
 	}
 
 	// Get catalog ID from context or resolve by name
-	catalogID := catcommon.GetCatalogIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogID(ctx)
 	if catalogID == uuid.Nil {
 		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, vs.Metadata.Catalog)
@@ -200,7 +200,7 @@ func (vm *variantManager) Save(ctx context.Context) apperrors.Error {
 
 func (vm *variantManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) {
 	// Get name of the catalog
-	catalog, err := db.DB(ctx).GetCatalog(ctx, vm.variant.CatalogID, "")
+	catalog, err := db.DB(ctx).GetCatalogByID(ctx, vm.variant.CatalogID)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return nil, ErrCatalogNotFound

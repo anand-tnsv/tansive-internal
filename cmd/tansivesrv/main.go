@@ -67,7 +67,7 @@ func createDefaultTenantAndProject() error {
 			return err
 		}
 	}
-	ctx = catcommon.SetTenantIdInContext(ctx, catcommon.TenantId(config.Config().DefaultTenantID))
+	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(config.Config().DefaultTenantID))
 	if err := db.DB(ctx).CreateProject(ctx, catcommon.ProjectId(config.Config().DefaultProjectID)); err != nil {
 		if err != dberror.ErrAlreadyExists {
 			return err

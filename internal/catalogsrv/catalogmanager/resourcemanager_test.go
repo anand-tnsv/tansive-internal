@@ -276,8 +276,8 @@ func TestResourceManagerSave(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -303,7 +303,7 @@ func TestResourceManagerSave(t *testing.T) {
 	defer db.DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
 
 	// Set catalog ID in context
-	ctx = catcommon.SetCatalogIdInContext(ctx, catalog.CatalogID)
+	ctx = catcommon.WithCatalogID(ctx, catalog.CatalogID)
 
 	// Create a variant for testing
 	variant := models.Variant{
@@ -317,8 +317,8 @@ func TestResourceManagerSave(t *testing.T) {
 	defer db.DB(ctx).DeleteVariant(ctx, catalog.CatalogID, variant.VariantID, "")
 
 	// Set variant ID and name in context
-	ctx = catcommon.SetVariantIdInContext(ctx, variant.VariantID)
-	ctx = catcommon.SetVariantInContext(ctx, variant.Name)
+	ctx = catcommon.WithVariantID(ctx, variant.VariantID)
+	ctx = catcommon.WithVariant(ctx, variant.Name)
 
 	t.Run("Save basic resource", func(t *testing.T) {
 		// Create a basic resource
@@ -537,8 +537,8 @@ func TestResourceManagerDelete(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -564,7 +564,7 @@ func TestResourceManagerDelete(t *testing.T) {
 	defer db.DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
 
 	// Set catalog ID in context
-	ctx = catcommon.SetCatalogIdInContext(ctx, catalog.CatalogID)
+	ctx = catcommon.WithCatalogID(ctx, catalog.CatalogID)
 
 	// Create a variant for testing
 	variant := models.Variant{
@@ -578,8 +578,8 @@ func TestResourceManagerDelete(t *testing.T) {
 	defer db.DB(ctx).DeleteVariant(ctx, catalog.CatalogID, variant.VariantID, "")
 
 	// Set variant ID and name in context
-	ctx = catcommon.SetVariantIdInContext(ctx, variant.VariantID)
-	ctx = catcommon.SetVariantInContext(ctx, variant.Name)
+	ctx = catcommon.WithVariantID(ctx, variant.VariantID)
+	ctx = catcommon.WithVariant(ctx, variant.Name)
 
 	t.Run("Delete existing resource", func(t *testing.T) {
 		// Create a resource

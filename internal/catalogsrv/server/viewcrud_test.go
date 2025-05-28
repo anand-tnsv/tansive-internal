@@ -25,8 +25,8 @@ func TestViewCrud(t *testing.T) {
 	config.Config().DefaultTenantID = string(tenantID)
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -227,8 +227,8 @@ func TestViewList(t *testing.T) {
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("PABCDE")
 
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	config.Config().DefaultProjectID = string(projectID)
 	config.Config().DefaultTenantID = string(tenantID)

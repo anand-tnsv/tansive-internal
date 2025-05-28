@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -17,9 +18,9 @@ func (mm *metadataManager) CreateViewToken(ctx context.Context, token *models.Vi
 		return dberror.ErrInvalidInput.Err(err)
 	}
 
-	tenantID, err := getTenantIdFromContext(ctx)
-	if err != nil {
-		return err
+	tenantID := catcommon.GetTenantID(ctx)
+	if tenantID == "" {
+		return dberror.ErrMissingTenantID
 	}
 
 	query := `
@@ -40,9 +41,9 @@ func (mm *metadataManager) CreateViewToken(ctx context.Context, token *models.Vi
 }
 
 func (mm *metadataManager) GetViewToken(ctx context.Context, tokenID uuid.UUID) (*models.ViewToken, apperrors.Error) {
-	tenantID, err := getTenantIdFromContext(ctx)
-	if err != nil {
-		return nil, err
+	tenantID := catcommon.GetTenantID(ctx)
+	if tenantID == "" {
+		return nil, dberror.ErrMissingTenantID
 	}
 
 	query := `
@@ -67,9 +68,9 @@ func (mm *metadataManager) GetViewToken(ctx context.Context, tokenID uuid.UUID) 
 }
 
 func (mm *metadataManager) UpdateViewTokenExpiry(ctx context.Context, tokenID uuid.UUID, expireAt time.Time) apperrors.Error {
-	tenantID, err := getTenantIdFromContext(ctx)
-	if err != nil {
-		return err
+	tenantID := catcommon.GetTenantID(ctx)
+	if tenantID == "" {
+		return dberror.ErrMissingTenantID
 	}
 
 	query := `
@@ -98,9 +99,9 @@ func (mm *metadataManager) UpdateViewTokenExpiry(ctx context.Context, tokenID uu
 }
 
 func (mm *metadataManager) DeleteViewToken(ctx context.Context, tokenID uuid.UUID) apperrors.Error {
-	tenantID, err := getTenantIdFromContext(ctx)
-	if err != nil {
-		return err
+	tenantID := catcommon.GetTenantID(ctx)
+	if tenantID == "" {
+		return dberror.ErrMissingTenantID
 	}
 
 	query := `

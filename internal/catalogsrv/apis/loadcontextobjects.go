@@ -18,7 +18,7 @@ import (
 func loadContext(r *http.Request) (*catcommon.CatalogContext, error) {
 	ctx := r.Context()
 
-	catalogCtx := catcommon.CatalogContextFromContext(ctx)
+	catalogCtx := catcommon.GetCatalogContext(ctx)
 
 	catalogCtx = loadMetadataFromParam(r, catalogCtx)
 	catalogCtx = loadMetadataFromQuery(r, catalogCtx)
@@ -32,13 +32,13 @@ func loadContext(r *http.Request) (*catcommon.CatalogContext, error) {
 	}
 
 	if catalogCtx.Catalog != "" {
-		catalog, err := db.DB(ctx).GetCatalog(ctx, uuid.Nil, catalogCtx.Catalog)
+		catalog, err := db.DB(ctx).GetCatalogByName(ctx, catalogCtx.Catalog)
 		if err != nil {
 			return nil, err
 		}
 		catalogCtx.CatalogId = catalog.CatalogID
 	} else if catalogCtx.CatalogId != uuid.Nil {
-		catalog, err := db.DB(ctx).GetCatalog(ctx, catalogCtx.CatalogId, "")
+		catalog, err := db.DB(ctx).GetCatalogByID(ctx, catalogCtx.CatalogId)
 		if err != nil {
 			return nil, err
 		}

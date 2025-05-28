@@ -100,7 +100,7 @@ func (mm *metadataManager) DeleteTenant(ctx context.Context, tenantID catcommon.
 
 // CreateProject inserts a new project into the database.
 func (mm *metadataManager) CreateProject(ctx context.Context, projectID catcommon.ProjectId) error {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 
 	// Validate tenantID to ensure it is not empty
 	if tenantID == "" {
@@ -133,7 +133,7 @@ func (mm *metadataManager) CreateProject(ctx context.Context, projectID catcommo
 
 // GetProject retrieves a project from the database.
 func (mm *metadataManager) GetProject(ctx context.Context, projectID catcommon.ProjectId) (*models.Project, error) {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 
 	// Validate tenantID to ensure it is not empty
 	if tenantID == "" {
@@ -170,7 +170,7 @@ func (mm *metadataManager) GetProject(ctx context.Context, projectID catcommon.P
 
 // DeleteProject deletes a project from the database. If the project does not exist, it does nothing.
 func (mm *metadataManager) DeleteProject(ctx context.Context, projectID catcommon.ProjectId) error {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 
 	// Validate tenantID to ensure it is not empty
 	if tenantID == "" {

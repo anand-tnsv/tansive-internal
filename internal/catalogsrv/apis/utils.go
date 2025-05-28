@@ -21,7 +21,7 @@ func hydrateRequestContext(r *http.Request) (interfaces.RequestContext, error) {
 
 	n := interfaces.RequestContext{}
 
-	catalogCtx := catcommon.CatalogContextFromContext(ctx)
+	catalogCtx := catcommon.GetCatalogContext(ctx)
 	if catalogCtx != nil {
 		n.Catalog = catalogCtx.Catalog
 		n.CatalogID = catalogCtx.CatalogId

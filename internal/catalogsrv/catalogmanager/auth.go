@@ -125,7 +125,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 
 	claims := jwt.MapClaims{
 		"view_id":   derivedView.ViewID.String(),
-		"tenant_id": catcommon.TenantIdFromContext(ctx),
+		"tenant_id": catcommon.GetTenantID(ctx),
 		"iss":       config.Config().ServerHostName + ":" + config.Config().ServerPort,
 		"exp":       jwt.NewNumericDate(tokenExpiry),
 		"iat":       jwt.NewNumericDate(time.Now()),

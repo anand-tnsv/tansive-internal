@@ -73,7 +73,7 @@ func NewToken(ctx context.Context, tokenString string) (*Token, apperrors.Error)
 		return nil, ErrUnableToGenerateToken
 	}
 
-	ctx = catcommon.SetTenantIdInContext(ctx, catcommon.TenantId(tenantID))
+	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(tenantID))
 
 	// Get the view from database
 	view, err := db.DB(ctx).GetView(ctx, viewID)

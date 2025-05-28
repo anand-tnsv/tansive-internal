@@ -83,7 +83,7 @@ func (cs *catalogSchema) Validate() schemaerr.ValidationErrors {
 
 // NewCatalogManager creates a new catalog manager from JSON input
 func NewCatalogManager(ctx context.Context, resourceJSON []byte, name string) (interfaces.CatalogManager, apperrors.Error) {
-	projectID := catcommon.ProjectIdFromContext(ctx)
+	projectID := catcommon.GetProjectID(ctx)
 	if projectID == "" {
 		return nil, ErrInvalidProject
 	}
@@ -131,7 +131,7 @@ func (cm *catalogManager) Description() string {
 
 // LoadCatalogManagerByName loads a catalog manager by its name
 func LoadCatalogManagerByName(ctx context.Context, name string) (interfaces.CatalogManager, apperrors.Error) {
-	catalog, err := db.DB(ctx).GetCatalog(ctx, uuid.Nil, name)
+	catalog, err := db.DB(ctx).GetCatalogByName(ctx, name)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return nil, ErrCatalogNotFound
@@ -252,7 +252,7 @@ func (c *catalogKind) Update(ctx context.Context, resourceJSON []byte) apperrors
 		return ErrInvalidSchema.Err(validationErrors)
 	}
 
-	catalog, err := db.DB(ctx).GetCatalog(ctx, uuid.Nil, schema.Metadata.Name)
+	catalog, err := db.DB(ctx).GetCatalogByName(ctx, schema.Metadata.Name)
 	if err != nil {
 		if errors.Is(err, dberror.ErrNotFound) {
 			return ErrCatalogNotFound

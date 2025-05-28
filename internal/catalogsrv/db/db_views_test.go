@@ -22,8 +22,8 @@ func TestCreateView(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -82,8 +82,8 @@ func TestGetView(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -130,8 +130,8 @@ func TestGetViewByLabel(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -182,8 +182,8 @@ func TestUpdateView(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -261,8 +261,8 @@ func TestDeleteView(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -309,8 +309,8 @@ func TestListViewsByCatalog(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)

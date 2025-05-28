@@ -25,8 +25,8 @@ func TestResourceOperations(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -126,7 +126,7 @@ func TestResourceOperations(t *testing.T) {
 	assert.ErrorIs(t, err, dberror.ErrInvalidInput)
 
 	// Test with missing tenant ID
-	ctxWithoutTenant := catcommon.SetTenantIdInContext(ctx, "")
+	ctxWithoutTenant := catcommon.WithTenantID(ctx, "")
 	_, err = DB(ctx).GetResource(ctxWithoutTenant, rg.Path, variant.VariantID, variant.ResourceDirectoryID)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrMissingTenantID)

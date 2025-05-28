@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -170,7 +170,7 @@ func Router(r chi.Router) chi.Router {
 	router := chi.NewRouter()
 	//Load the group that needs only user session/identity validation
 	router.Group(func(r chi.Router) {
-		r.Use(middleware.UserSessionValidator)
+		r.Use(auth.UserAuthMiddleware)
 		r.Use(LoadCatalogContext)
 		for _, handler := range userSessionHandlers {
 			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
@@ -179,7 +179,7 @@ func Router(r chi.Router) chi.Router {
 
 	//Load the group that needs session validation and catalog context
 	router.Group(func(r chi.Router) {
-		r.Use(middleware.LoadContext)
+		r.Use(auth.ContextMiddleware)
 		r.Use(LoadCatalogContext)
 		for _, handler := range resourceObjectHandlers {
 			//Wrap the request handler with view policy enforcement
@@ -196,13 +196,13 @@ func Router(r chi.Router) chi.Router {
 func LoadCatalogContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		tenantID := catcommon.TenantIdFromContext(ctx)
-		projectID := catcommon.ProjectIdFromContext(ctx)
+		tenantID := catcommon.GetTenantID(ctx)
+		projectID := catcommon.GetProjectID(ctx)
 		if tenantID == "" || projectID == "" {
 			httpx.ErrInvalidRequest().Send(w)
 			return
 		}
-		c := catcommon.CatalogContextFromContext(ctx)
+		c := catcommon.GetCatalogContext(ctx)
 		if c == nil {
 			httpx.ErrUnAuthorized("missing or invalid authorization token").Send(w)
 			return
@@ -218,7 +218,7 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 			}
 			return
 		}
-		ctx = catcommon.SetCatalogContext(ctx, c)
+		ctx = catcommon.WithCatalogContext(ctx, c)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -231,11 +231,11 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 		ctx := r.Context()
 
 		//Get allowed actions from Context. This is set from the token by validation middleware
-		c := catcommon.CatalogContextFromContext(ctx)
+		c := catcommon.GetCatalogContext(ctx)
 		if c == nil {
 			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
 		}
-		authorizedViewDef := catalogmanager.CanonicalizeViewDefinition(c.ViewDefinition)
+		authorizedViewDef := catalogmanager.CanonicalizeViewDefinition(auth.GetViewDefinition(ctx))
 		if authorizedViewDef == nil {
 			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
 		}

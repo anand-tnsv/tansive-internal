@@ -21,8 +21,8 @@ func TestCreateViewToken(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create test tenant
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -62,8 +62,8 @@ func TestGetViewToken(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create test tenant
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -103,8 +103,8 @@ func TestUpdateViewTokenExpiry(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create test tenant
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -147,8 +147,8 @@ func TestDeleteViewToken(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create test tenant
 	err := DB(ctx).CreateTenant(ctx, tenantID)

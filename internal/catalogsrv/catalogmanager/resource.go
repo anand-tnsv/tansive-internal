@@ -63,7 +63,7 @@ func LoadResourceManagerByPath(ctx context.Context, m *interfaces.SchemaMetadata
 	}
 
 	// Get the directory ID for the resource
-	catalogID := catcommon.GetCatalogIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogID(ctx)
 	var err apperrors.Error
 
 	if catalogID == uuid.Nil {

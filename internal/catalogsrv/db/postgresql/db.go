@@ -2,12 +2,7 @@
 package postgresql
 
 import (
-	"context"
-
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dbmanager"
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
 type hatchCatalogDb struct {
@@ -23,32 +18,4 @@ func NewHatchCatalogDb(c dbmanager.ScopedConn) (*metadataManager, *objectManager
 	h.cm = newConnectionManager(c)
 	h.om.m = h.mm
 	return h.mm, h.om, h.cm
-}
-
-// getTenantAndProjectFromContext extracts tenant and project IDs from the context
-func getTenantAndProjectFromContext(ctx context.Context) (catcommon.TenantId, catcommon.ProjectId, apperrors.Error) {
-	tenantID := catcommon.TenantIdFromContext(ctx)
-	projectID := catcommon.ProjectIdFromContext(ctx)
-
-	// Validate tenantID and projectID to ensure they are not empty
-	if tenantID == "" {
-		return "", "", dberror.ErrMissingTenantID.Err(dberror.ErrInvalidInput)
-	}
-	if projectID == "" {
-		return "", "", dberror.ErrMissingProjecID.Err(dberror.ErrInvalidInput)
-	}
-
-	return tenantID, projectID, nil
-}
-
-// getTenantIdFromContext extracts only the tenant ID from the context
-func getTenantIdFromContext(ctx context.Context) (catcommon.TenantId, apperrors.Error) {
-	tenantID := catcommon.TenantIdFromContext(ctx)
-
-	// Validate tenantID to ensure it is not empty
-	if tenantID == "" {
-		return "", dberror.ErrMissingTenantID.Err(dberror.ErrInvalidInput)
-	}
-
-	return tenantID, nil
 }

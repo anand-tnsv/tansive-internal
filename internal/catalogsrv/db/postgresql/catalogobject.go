@@ -14,7 +14,7 @@ import (
 )
 
 func (om *objectManager) CreateCatalogObject(ctx context.Context, obj *models.CatalogObject) apperrors.Error {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -67,7 +67,7 @@ func (om *objectManager) CreateCatalogObject(ctx context.Context, obj *models.Ca
 }
 
 func (om *objectManager) GetCatalogObject(ctx context.Context, hash string) (*models.CatalogObject, apperrors.Error) {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -107,7 +107,7 @@ func (om *objectManager) GetCatalogObject(ctx context.Context, hash string) (*mo
 }
 
 func (om *objectManager) DeleteCatalogObject(ctx context.Context, t catcommon.CatalogObjectType, hash string) apperrors.Error {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}

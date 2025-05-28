@@ -493,8 +493,8 @@ func TestCreateView(t *testing.T) {
 	require.NoError(t, goerr)
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, catcommon.TenantId(tenantID))
-	ctx = catcommon.SetProjectIdInContext(ctx, catcommon.ProjectId(projectID))
+	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(tenantID))
+	ctx = catcommon.WithProjectID(ctx, catcommon.ProjectId(projectID))
 
 	// Create the tenant and project for testing
 	err := db.DB(ctx).CreateTenant(ctx, catcommon.TenantId(tenantID))
@@ -535,8 +535,8 @@ func TestUpdateView(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	require.NoError(t, db.DB(ctx).CreateTenant(ctx, tenantID))
 	defer db.DB(ctx).DeleteTenant(ctx, tenantID)
@@ -1644,8 +1644,8 @@ func TestDeleteView(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	require.NoError(t, db.DB(ctx).CreateTenant(ctx, tenantID))
 	defer db.DB(ctx).DeleteTenant(ctx, tenantID)

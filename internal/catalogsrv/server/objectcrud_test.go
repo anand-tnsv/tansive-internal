@@ -33,7 +33,7 @@ func TestCreateTenantProject(t *testing.T) {
 	}
 
 	// Set the tenant ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
 
 	// Create the project for testing
 	err = db.DB(ctx).CreateProject(ctx, projectID)
@@ -58,8 +58,8 @@ func TestCatalogCreate(t *testing.T) {
 	config.Config().DefaultTenantID = string(tenantID)
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -132,8 +132,8 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 	config.Config().DefaultTenantID = string(tenantID)
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -270,8 +270,8 @@ func TestVariantCrud(t *testing.T) {
 	config.Config().DefaultTenantID = string(tenantID)
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)
@@ -485,8 +485,8 @@ func TestNamespaceCrud(t *testing.T) {
 	config.Config().DefaultTenantID = string(tenantID)
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)

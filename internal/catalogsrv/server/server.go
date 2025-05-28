@@ -3,12 +3,11 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/apis"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/apis/auth"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
@@ -29,7 +28,7 @@ func CreateNewServer() (*CatalogServer, error) {
 func (s *CatalogServer) MountHandlers() {
 	s.Router.Use(commonmiddleware.RequestLogger)
 	s.Router.Use(commonmiddleware.PanicHandler)
-	s.Router.Use(commonmiddleware.SetTimeout(5 * time.Second))
+	// s.Router.Use(commonmiddleware.SetTimeout(5 * time.Second))
 	if config.Config().HandleCORS {
 		s.Router.Use(s.HandleCORS)
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 func (mm *metadataManager) CreateNamespace(ctx context.Context, ns *models.Namespace) (err apperrors.Error) {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -85,7 +85,7 @@ func (mm *metadataManager) createNamespaceWithTransaction(ctx context.Context, n
 }
 
 func (mm *metadataManager) GetNamespace(ctx context.Context, name string, variantID uuid.UUID) (*models.Namespace, apperrors.Error) {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}
@@ -130,7 +130,7 @@ func (mm *metadataManager) GetNamespace(ctx context.Context, name string, varian
 }
 
 func (mm *metadataManager) UpdateNamespace(ctx context.Context, ns *models.Namespace) apperrors.Error {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -164,7 +164,7 @@ func (mm *metadataManager) UpdateNamespace(ctx context.Context, ns *models.Names
 }
 
 func (mm *metadataManager) DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) apperrors.Error {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
@@ -194,7 +194,7 @@ func (mm *metadataManager) DeleteNamespace(ctx context.Context, name string, var
 }
 
 func (mm *metadataManager) ListNamespacesByVariant(ctx context.Context, variantID uuid.UUID) ([]*models.Namespace, apperrors.Error) {
-	tenantID := catcommon.TenantIdFromContext(ctx)
+	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID
 	}

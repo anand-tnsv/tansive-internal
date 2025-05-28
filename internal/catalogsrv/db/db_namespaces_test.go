@@ -20,8 +20,8 @@ func TestCreateNamespace(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -85,8 +85,8 @@ func TestGetNamespace(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -131,8 +131,8 @@ func TestUpdateNamespace(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -181,8 +181,8 @@ func TestDeleteNamespace(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)
@@ -229,8 +229,8 @@ func TestListNamespacesByVariant(t *testing.T) {
 
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("P12345")
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	assert.NoError(t, DB(ctx).CreateTenant(ctx, tenantID))
 	defer DB(ctx).DeleteTenant(ctx, tenantID)

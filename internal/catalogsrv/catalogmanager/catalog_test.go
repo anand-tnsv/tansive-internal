@@ -69,8 +69,8 @@ func TestNewCatalogManager(t *testing.T) {
 	projectID := catcommon.ProjectId("PDEFGH")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant for testing
 	err := db.DB(ctx).CreateTenant(ctx, tenantID)

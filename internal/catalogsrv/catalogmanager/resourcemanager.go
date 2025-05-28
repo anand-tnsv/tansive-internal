@@ -272,7 +272,7 @@ func (rm *resourceManager) Save(ctx context.Context) apperrors.Error {
 	}
 
 	// Get the directory ID for the resource
-	catalogID := catcommon.GetCatalogIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogID(ctx)
 	if catalogID == uuid.Nil {
 		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, m.Catalog)
@@ -312,7 +312,7 @@ func DeleteResource(ctx context.Context, m *interfaces.SchemaMetadata) apperrors
 	}
 
 	// Get the directory ID for the resource
-	catalogID := catcommon.GetCatalogIdFromContext(ctx)
+	catalogID := catcommon.GetCatalogID(ctx)
 	if catalogID == uuid.Nil {
 		var err apperrors.Error
 		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, m.Catalog)

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
@@ -25,7 +24,7 @@ var authHandlers = []httpx.ResponseHandlerParam{
 // It sets up middleware and registers handlers for various HTTP methods and paths.
 func Router(r chi.Router) chi.Router {
 	router := chi.NewRouter()
-	router.Use(middleware.UserSessionValidator)
+	router.Use(UserAuthMiddleware)
 	for _, handler := range authHandlers {
 		router.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
 	}

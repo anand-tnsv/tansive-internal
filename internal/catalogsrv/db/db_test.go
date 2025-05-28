@@ -69,7 +69,7 @@ func TestCreateProject(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
 
 	// Create the tenant to associate with the project
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -87,7 +87,7 @@ func TestCreateProject(t *testing.T) {
 	assert.ErrorIs(t, err, dberror.ErrAlreadyExists)
 
 	// Test trying to create a project without a tenant ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, "")
+	ctx = catcommon.WithTenantID(ctx, "")
 	err = DB(ctx).CreateProject(ctx, projectID)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dberror.ErrDatabase)
@@ -103,7 +103,7 @@ func TestGetProject(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
 
 	// Create the tenant and project to test retrieval
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -139,7 +139,7 @@ func TestDeleteProject(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
 
 	// Create the tenant and project to test deletion
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -175,8 +175,8 @@ func TestCreateCatalog(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -241,8 +241,8 @@ func TestGetCatalog(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant and project to test retrieval
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -268,45 +268,29 @@ func TestGetCatalog(t *testing.T) {
 	defer DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
 
 	// Test successfully retrieving the created catalog by catalogID
-	retrievedCatalog, err := DB(ctx).GetCatalog(ctx, catalog.CatalogID, "")
+	retrievedCatalog, err := DB(ctx).GetCatalogByID(ctx, catalog.CatalogID)
 	assert.NoError(t, err)
 	assert.NotNil(t, retrievedCatalog)
 	assert.Equal(t, catalog.Name, retrievedCatalog.Name)
 	assert.Equal(t, catalog.Description, retrievedCatalog.Description)
 
 	// Test successfully retrieving the created catalog by name
-	retrievedCatalog, err = DB(ctx).GetCatalog(ctx, uuid.Nil, catalog.Name)
+	retrievedCatalog, err = DB(ctx).GetCatalogByName(ctx, catalog.Name)
 	if assert.NoError(t, err) {
 		assert.NotNil(t, retrievedCatalog)
 		assert.Equal(t, catalog.Name, retrievedCatalog.Name)
 		assert.Equal(t, catalog.Description, retrievedCatalog.Description)
 	}
 
-	// Test providing both catalogID and name (catalogID should take precedence)
-	newCatalog := models.Catalog{
-		Name:        "test_catalog_with_both",
-		Description: "A test catalog with both catalogID and name",
-		Info:        info,
-	}
-	err = DB(ctx).CreateCatalog(ctx, &newCatalog)
-	assert.NoError(t, err)
-	defer DB(ctx).DeleteCatalog(ctx, newCatalog.CatalogID, "")
-
-	retrievedCatalog, err = DB(ctx).GetCatalog(ctx, newCatalog.CatalogID, "different_name")
-	assert.NoError(t, err)
-	assert.NotNil(t, retrievedCatalog)
-	assert.Equal(t, newCatalog.Name, retrievedCatalog.Name)
-	assert.Equal(t, newCatalog.Description, retrievedCatalog.Description)
-
-	// Test trying to get a non-existent catalog (should return ErrNotFound)
+	// Test trying to get a non-existent catalog by ID (should return ErrNotFound)
 	nonExistentCatalogID := uuid.New()
-	retrievedCatalog, err = DB(ctx).GetCatalog(ctx, nonExistentCatalogID, "")
+	retrievedCatalog, err = DB(ctx).GetCatalogByID(ctx, nonExistentCatalogID)
 	assert.Error(t, err)
 	assert.Nil(t, retrievedCatalog)
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
 
-	// Test invalid input: both catalogID and name are empty
-	retrievedCatalog, err = DB(ctx).GetCatalog(ctx, uuid.Nil, "")
+	// Test trying to get a non-existent catalog by name (should return ErrNotFound)
+	retrievedCatalog, err = DB(ctx).GetCatalogByName(ctx, "non_existent_catalog")
 	assert.Error(t, err)
 	assert.Nil(t, retrievedCatalog)
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
@@ -322,8 +306,8 @@ func TestUpdateCatalog(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -354,7 +338,7 @@ func TestUpdateCatalog(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Retrieve the updated catalog and verify the changes
-	retrievedCatalog, err := DB(ctx).GetCatalog(ctx, catalog.CatalogID, "")
+	retrievedCatalog, err := DB(ctx).GetCatalogByID(ctx, catalog.CatalogID)
 	assert.NoError(t, err)
 	assert.NotNil(t, retrievedCatalog)
 	assert.Equal(t, "An updated description", retrievedCatalog.Description)
@@ -389,8 +373,8 @@ func TestDeleteCatalog(t *testing.T) {
 	projectID := catcommon.ProjectId("P12345")
 
 	// Set the tenant ID and project ID in the context
-	ctx = catcommon.SetTenantIdInContext(ctx, tenantID)
-	ctx = catcommon.SetProjectIdInContext(ctx, projectID)
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
 
 	// Create the tenant and project for testing
 	err := DB(ctx).CreateTenant(ctx, tenantID)
@@ -419,7 +403,7 @@ func TestDeleteCatalog(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Try to retrieve the deleted catalog (should return ErrNotFound)
-	retrievedCatalog, err := DB(ctx).GetCatalog(ctx, catalog.CatalogID, "")
+	retrievedCatalog, err := DB(ctx).GetCatalogByID(ctx, catalog.CatalogID)
 	assert.Error(t, err)
 	assert.Nil(t, retrievedCatalog)
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
@@ -433,7 +417,7 @@ func TestDeleteCatalog(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Try to retrieve the deleted catalog (should return ErrNotFound)
-	retrievedCatalog, err = DB(ctx).GetCatalog(ctx, uuid.Nil, catalog.Name)
+	retrievedCatalog, err = DB(ctx).GetCatalogByName(ctx, catalog.Name)
 	assert.Error(t, err)
 	assert.Nil(t, retrievedCatalog)
 	assert.ErrorIs(t, err, dberror.ErrNotFound)
