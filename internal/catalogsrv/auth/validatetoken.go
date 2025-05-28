@@ -17,8 +17,8 @@ var (
 	ErrMissingTenantID  = fmt.Errorf("missing tenant ID")
 )
 
-// setupCatalogContext creates and configures a new CatalogContext
-func setupCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, tokenObj *Token) *catcommon.CatalogContext {
+// setCatalogContext creates and configures a new CatalogContext
+func setCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, tokenObj *Token) *catcommon.CatalogContext {
 	_ = ctx
 	catalogContext := &catcommon.CatalogContext{
 		Catalog:   viewDef.Scope.Catalog,
@@ -26,7 +26,7 @@ func setupCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, to
 		Namespace: viewDef.Scope.Namespace,
 	}
 
-	if tokenObj.GetTokenType() == catcommon.TokenTypeIdentity {
+	if tokenObj.GetTokenUse() == IdentityTokenType {
 		catalogContext.UserContext = &catcommon.UserContext{
 			UserID: tokenObj.GetSubject(),
 		}
@@ -35,8 +35,8 @@ func setupCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, to
 	return catalogContext
 }
 
-// setupProjectContext adds project ID to context if in single user mode
-func setupProjectContext(ctx context.Context) context.Context {
+// setProjectContext adds project ID to context if in single user mode
+func setProjectContext(ctx context.Context) context.Context {
 	if config.Config().SingleUserMode {
 		return catcommon.WithProjectID(ctx, catcommon.ProjectId(config.Config().DefaultProjectID))
 	}
@@ -72,10 +72,10 @@ func ValidateToken(ctx context.Context, token string) (context.Context, error) {
 	ctx = WithViewDefinition(ctx, &viewDef)
 	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(tenantID))
 
-	catalogContext := setupCatalogContext(ctx, &viewDef, tokenObj)
+	catalogContext := setCatalogContext(ctx, &viewDef, tokenObj)
 	ctx = catcommon.WithCatalogContext(ctx, catalogContext)
 
-	ctx = setupProjectContext(ctx)
+	ctx = setProjectContext(ctx)
 
 	return ctx, nil
 }

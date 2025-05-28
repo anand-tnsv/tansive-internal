@@ -21,7 +21,7 @@ var (
 	ErrResourceNotFound  apperrors.Error = ErrCatalogError.New("resource not found").SetStatusCode(http.StatusNotFound)
 )
 
-// Operation errors
+// Ops errors
 var (
 	ErrUnableToLoadObject   apperrors.Error = ErrCatalogError.New("failed to load object").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToUpdateObject apperrors.Error = ErrCatalogError.New("failed to update object").SetExpandError(true).SetStatusCode(http.StatusInternalServerError)

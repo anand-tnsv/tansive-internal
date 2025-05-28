@@ -37,7 +37,7 @@ var (
 	ErrUnableToGenerateToken      apperrors.Error = ErrAuth.New("unable to generate token").SetStatusCode(http.StatusInternalServerError)
 )
 
-// Operation errors
+// Ops errors
 var (
 	ErrUnableToCreateView apperrors.Error = ErrAuth.New("unable to create view").SetStatusCode(http.StatusInternalServerError)
 )

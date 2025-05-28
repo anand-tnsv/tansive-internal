@@ -100,8 +100,8 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 		wantView,
 		WithParentViewDefinition(&viewDef),
 		WithAdditionalClaims(map[string]any{
-			"token_type": catcommon.TokenTypeIdentity,
-			"sub":        userContext.UserID,
+			"token_use": IdentityTokenType,
+			"sub":       userContext.UserID,
 		}),
 	)
 	if err != nil {

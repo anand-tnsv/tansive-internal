@@ -24,15 +24,6 @@ func (u CatalogId) IsNil() bool {
 	return u == CatalogId(uuid.Nil)
 }
 
-type TokenType string
-
-const (
-	TokenTypeIdentity TokenType = "identity"
-	TokenTypeSession  TokenType = "session"
-	TokenTypeService  TokenType = "service"
-	TokenTypeUnknown  TokenType = "unknown"
-)
-
 const (
 	CatalogKind          = "Catalog"
 	VariantKind          = "Variant"

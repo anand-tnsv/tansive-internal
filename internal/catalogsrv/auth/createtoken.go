@@ -2,11 +2,7 @@ package auth
 
 import (
 	"context"
-	"crypto/ed25519"
-	"crypto/rand"
 	"encoding/json"
-	"errors"
-	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,104 +11,100 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
-type createTokenOptions struct {
-	parentViewId      uuid.UUID
-	parentView        *policy.ViewDefinition
-	createDerivedView bool
-	additionalClaims  map[string]any
+// TokenOptions contains options for token creation
+type TokenOptions struct {
+	ParentViewID      uuid.UUID
+	ParentView        *policy.ViewDefinition
+	CreateDerivedView bool
+	AdditionalClaims  map[string]any
 }
 
-type createTokenOption func(*createTokenOptions)
+// TokenOption is a function that modifies TokenOptions
+type TokenOption func(*TokenOptions)
 
-func WithParentViewId(id uuid.UUID) createTokenOption {
-	return func(o *createTokenOptions) {
-		o.parentViewId = id
+// WithParentViewID sets the parent view ID
+func WithParentViewID(id uuid.UUID) TokenOption {
+	return func(o *TokenOptions) {
+		o.ParentViewID = id
 	}
 }
 
-func WithParentViewDefinition(view *policy.ViewDefinition) createTokenOption {
-	return func(o *createTokenOptions) {
-		o.parentView = view
+// WithParentViewDefinition sets the parent view definition
+func WithParentViewDefinition(view *policy.ViewDefinition) TokenOption {
+	return func(o *TokenOptions) {
+		o.ParentView = view
 	}
 }
 
-func WithAdditionalClaims(claims map[string]any) createTokenOption {
+// WithAdditionalClaims sets additional claims for the token
+func WithAdditionalClaims(claims map[string]any) TokenOption {
 	if claims == nil {
 		claims = make(map[string]any)
 	}
-	return func(o *createTokenOptions) {
-		o.additionalClaims = claims
+	return func(o *TokenOptions) {
+		o.AdditionalClaims = claims
 	}
 }
 
-func CreateDerivedView() createTokenOption {
-	return func(o *createTokenOptions) {
-		o.createDerivedView = true
+// CreateDerivedView indicates that a derived view should be created
+func CreateDerivedView() TokenOption {
+	return func(o *TokenOptions) {
+		o.CreateDerivedView = true
 	}
 }
 
-func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTokenOption) (string, time.Time, apperrors.Error) {
-	options := &createTokenOptions{}
+// Reserved JWT claims that cannot be overwritten
+var reservedClaims = map[string]bool{
+	"view_id":   true,
+	"tenant_id": true,
+	"iss":       true,
+	"exp":       true,
+	"iat":       true,
+	"nbf":       true,
+	"aud":       true,
+	"jti":       true,
+}
+
+// CreateToken creates a new JWT token for the given view
+func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOption) (string, time.Time, apperrors.Error) {
+	options := &TokenOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
-	tokenExpiry := time.Time{}
-	var parentViewDef *policy.ViewDefinition
-	// get parent view from database
-	if options.parentView != nil {
-		parentViewDef = options.parentView
-		if parentViewDef == nil {
-			return "", tokenExpiry, ErrUnableToCreateView
-		}
-	} else {
-		var p *models.View
-		var err apperrors.Error
-		if options.parentViewId != uuid.Nil {
-			p, err = db.DB(ctx).GetView(ctx, options.parentViewId)
-			if err != nil {
-				return "", tokenExpiry, err
-			}
-			parentViewDef = &policy.ViewDefinition{}
-			if err := json.Unmarshal(p.Rules, &parentViewDef); err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal parent view")
-				return "", tokenExpiry, ErrUnableToCreateView
-			}
-		} else {
-			return "", tokenExpiry, ErrUnableToCreateView
-		}
+
+	parentViewDef, err := getParentViewDefinition(ctx, options)
+	if err != nil {
+		return "", time.Time{}, err
 	}
 
 	derivedViewDef := &policy.ViewDefinition{}
 	if err := json.Unmarshal(derivedView.Rules, &derivedViewDef); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal derived view")
-		return "", tokenExpiry, ErrUnableToCreateView
+		return "", time.Time{}, ErrUnableToCreateView
 	}
 
-	// check if derived view can be created from creator view
 	if err := policy.ValidateDerivedView(ctx, parentViewDef, derivedViewDef); err != nil {
-		return "", tokenExpiry, err
+		return "", time.Time{}, err
 	}
 
-	if options.createDerivedView {
+	if options.CreateDerivedView {
 		if err := db.DB(ctx).CreateView(ctx, derivedView); err != nil {
-			return "", tokenExpiry, err
+			return "", time.Time{}, err
 		}
 	}
 
-	// create a signed jwt token
-	tokenDuration, errif := config.ParseTokenDuration(config.Config().DefaultTokenValidity)
-	if errif != nil {
-		log.Ctx(ctx).Error().Err(errif).Msg("unable to parse token duration")
-		return "", tokenExpiry, ErrUnableToParseTokenDuration
+	tokenDuration, goerr := config.ParseTokenDuration(config.Config().DefaultTokenValidity)
+	if goerr != nil {
+		log.Ctx(ctx).Error().Err(goerr).Msg("unable to parse token duration")
+		return "", time.Time{}, ErrUnableToParseTokenDuration.MsgErr("unable to parse token duration", goerr)
 	}
 
-	tokenExpiry = time.Now().Add(tokenDuration)
+	tokenExpiry := time.Now().Add(tokenDuration)
 
 	v := &models.ViewToken{
 		ViewID:   derivedView.ViewID,
@@ -120,141 +112,93 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 	}
 	if err := db.DB(ctx).CreateViewToken(ctx, v); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("unable to create view token")
-		return "", tokenExpiry, ErrUnableToCreateView
+		return "", time.Time{}, ErrUnableToCreateView
 	}
 
-	claims := jwt.MapClaims{
-		"view_id":   derivedView.ViewID.String(),
-		"tenant_id": catcommon.GetTenantID(ctx),
-		"iss":       config.Config().ServerHostName + ":" + config.Config().ServerPort,
-		"exp":       jwt.NewNumericDate(tokenExpiry),
-		"iat":       jwt.NewNumericDate(time.Now()),
-		"aud":       []string{config.Config().ServerHostName + ":" + config.Config().ServerPort},
-		"jti":       v.TokenID.String(),
-	}
-
-	for k, v := range options.additionalClaims {
-		claims[k] = v
-	}
-
+	claims := createTokenClaims(ctx, derivedView, v, tokenExpiry, options.AdditionalClaims)
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
 
-	signingKey, apperr := getActiveSigningKey(ctx)
-	if apperr != nil {
-		log.Ctx(ctx).Error().Err(apperr).Msg("unable to get active signing key")
-		return "", tokenExpiry, apperr
+	signingKey, err := getKeyManager().GetActiveKey(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to get active signing key")
+		return "", time.Time{}, err
 	}
 
-	tokenString, errif := token.SignedString(signingKey.PrivateKey)
-	if errif != nil {
-		log.Ctx(ctx).Error().Err(errif).Msg("unable to sign token")
-		return "", tokenExpiry, ErrUnableToGenerateToken
+	token.Header["kid"] = signingKey.KeyID.String()
+
+	tokenString, goerr := token.SignedString(signingKey.PrivateKey)
+	if goerr != nil {
+		log.Ctx(ctx).Error().Err(goerr).Msg("unable to sign token")
+		return "", time.Time{}, ErrUnableToGenerateToken.MsgErr("unable to sign token", goerr)
 	}
 
 	return tokenString, tokenExpiry, nil
 }
 
-type viewKeyType string
+// getParentViewDefinition retrieves the parent view definition
+func getParentViewDefinition(ctx context.Context, options *TokenOptions) (*policy.ViewDefinition, apperrors.Error) {
+	if options.ParentView != nil {
+		return options.ParentView, nil
+	}
 
-const viewKey viewKeyType = "TansiveView"
+	if options.ParentViewID == uuid.Nil {
+		return nil, ErrUnableToCreateView
+	}
 
-func addViewToContext(ctx context.Context, viewDefinition *policy.ViewDefinition) context.Context {
-	return context.WithValue(ctx, viewKey, viewDefinition)
+	p, err := db.DB(ctx).GetView(ctx, options.ParentViewID)
+	if err != nil {
+		return nil, err
+	}
+
+	parentViewDef := &policy.ViewDefinition{}
+	if err := json.Unmarshal(p.Rules, &parentViewDef); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal parent view")
+		return nil, ErrUnableToCreateView
+	}
+
+	return parentViewDef, nil
 }
 
-func getViewFromContext(ctx context.Context) *policy.ViewDefinition {
-	v, ok := ctx.Value(viewKey).(*policy.ViewDefinition)
+// createTokenClaims creates the JWT claims for the token
+func createTokenClaims(ctx context.Context, view *models.View, token *models.ViewToken, expiry time.Time, additionalClaims map[string]any) jwt.MapClaims {
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"view_id":   view.ViewID.String(),
+		"tenant_id": catcommon.GetTenantID(ctx),
+		"iss":       config.Config().ServerHostName + ":" + config.Config().ServerPort,
+		"exp":       jwt.NewNumericDate(expiry),
+		"iat":       jwt.NewNumericDate(now),
+		"nbf":       jwt.NewNumericDate(now.Add(-2 * time.Minute)), // 2-minute skew buffer
+		"aud":       []string{config.Config().ServerHostName + ":" + config.Config().ServerPort},
+		"jti":       token.TokenID.String(),
+	}
+
+	for k, v := range additionalClaims {
+		if reservedClaims[k] {
+			log.Ctx(ctx).Warn().Str("claim", k).Msg("attempt to override reserved claim ignored")
+			continue
+		}
+		claims[k] = v
+	}
+
+	return claims
+}
+
+// ViewContextKey is the key used to store view information in the context
+type ViewContextKey string
+
+const viewContextKey ViewContextKey = "TansiveView"
+
+// AddViewToContext adds a view definition to the context
+func AddViewToContext(ctx context.Context, viewDefinition *policy.ViewDefinition) context.Context {
+	return context.WithValue(ctx, viewContextKey, viewDefinition)
+}
+
+// GetViewFromContext retrieves a view definition from the context
+func GetViewFromContext(ctx context.Context) *policy.ViewDefinition {
+	v, ok := ctx.Value(viewContextKey).(*policy.ViewDefinition)
 	if !ok {
 		return nil
 	}
 	return v
-}
-
-var _ = getViewFromContext
-var _ = addViewToContext
-
-type signingKey struct {
-	KeyID      uuid.UUID
-	PrivateKey ed25519.PrivateKey
-	PublicKey  ed25519.PublicKey
-	ExpiresAt  time.Time
-}
-
-func (sk *signingKey) IsExpired() bool {
-	return sk.ExpiresAt.Before(time.Now())
-}
-
-var activeSigningKey *signingKey
-var activeSigningKeyMutex sync.Mutex
-
-// WARNING: FOR LOCAL DEVELOPMENT ONLY
-// This signing key management is NOT suitable for production use.
-// Production environments should use a proper KMS (Key Management Service).
-
-// getActiveSigningKey retrieves or creates a signing key for local development.
-// This implementation is NOT suitable for production use and should be replaced
-// with proper KMS integration in production environments.
-func getActiveSigningKey(ctx context.Context) (*signingKey, apperrors.Error) {
-	if activeSigningKey != nil {
-		return activeSigningKey, nil
-	}
-
-	return retrieveOrCreateSigningKey(ctx)
-}
-
-func retrieveOrCreateSigningKey(ctx context.Context) (*signingKey, apperrors.Error) {
-	activeSigningKeyMutex.Lock()
-	defer activeSigningKeyMutex.Unlock()
-
-	if activeSigningKey != nil {
-		return activeSigningKey, nil
-	}
-
-	key, err := db.DB(ctx).GetActiveSigningKey(ctx)
-	if err != nil {
-		if !errors.Is(err, dberror.ErrNotFound) {
-			return nil, err
-		}
-	}
-
-	if key == nil {
-		// Create new key pair
-		pub, priv, err := ed25519.GenerateKey(rand.Reader)
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("unable to generate signing key")
-			return nil, ErrUnableToGenerateSigningKey
-		}
-		encKey, err := catcommon.Encrypt(priv, config.Config().KeyEncryptionPasswd)
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("unable to encrypt signing key")
-			return nil, ErrUnableToGenerateSigningKey
-		}
-		key = &models.SigningKey{
-			PublicKey:  pub,
-			PrivateKey: encKey,
-			IsActive:   true,
-		}
-		if err := db.DB(ctx).CreateSigningKey(ctx, key); err != nil {
-			return nil, err
-		}
-		activeSigningKey = &signingKey{
-			KeyID:      key.KeyID,
-			PrivateKey: priv,
-			PublicKey:  pub,
-		}
-	} else {
-		// Decrypt the existing key
-		decKey, err := catcommon.Decrypt(key.PrivateKey, config.Config().KeyEncryptionPasswd)
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("unable to decrypt signing key")
-			return nil, ErrUnableToGenerateSigningKey
-		}
-		activeSigningKey = &signingKey{
-			KeyID:      key.KeyID,
-			PrivateKey: decKey,
-			PublicKey:  key.PublicKey,
-		}
-	}
-
-	return activeSigningKey, nil
 }
