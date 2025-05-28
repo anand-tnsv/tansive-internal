@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -22,6 +23,11 @@ import (
 type KeyManager interface {
 	GetActiveKey(ctx context.Context) (*SigningKey, apperrors.Error)
 }
+
+// The KeyManager implementation here is not intended for production use.
+// This is only for testing purposes. It uses a password stored in the config file
+// to encrypt a signing key which is stored in the database. Real production use
+// should use a KMS
 
 var (
 	keyManagerInstance *keyManager
@@ -72,11 +78,20 @@ func (km *keyManager) retrieveOrCreateKey(ctx context.Context) (*SigningKey, app
 		return km.activeKey, nil
 	}
 
-	key, err := db.DB(ctx).GetActiveSigningKey(ctx)
-	if err != nil {
-		if !errors.Is(err, dberror.ErrNotFound) {
-			return nil, err
+	var key *models.SigningKey
+	err := retry.Do(func() error {
+		var err error
+		key, err = db.DB(ctx).GetActiveSigningKey(ctx)
+		if err != nil {
+			if errors.Is(err, dberror.ErrNotFound) {
+				return nil
+			}
+			return retry.Unrecoverable(err)
 		}
+		return err
+	}, retry.Attempts(3), retry.Delay(1*time.Second), retry.DelayType(retry.BackOffDelay))
+	if err != nil {
+		return nil, apperrors.New("unable to retrieve signing key").Err(err)
 	}
 
 	if key == nil {
@@ -99,8 +114,11 @@ func (km *keyManager) retrieveOrCreateKey(ctx context.Context) (*SigningKey, app
 			IsActive:   true,
 		}
 
-		if err := db.DB(ctx).CreateSigningKey(ctx, key); err != nil {
-			return nil, err
+		err = retry.Do(func() error {
+			return db.DB(ctx).CreateSigningKey(ctx, key)
+		}, retry.Attempts(3), retry.Delay(1*time.Second), retry.DelayType(retry.BackOffDelay))
+		if err != nil {
+			return nil, apperrors.New("unable to create signing key").Err(err)
 		}
 
 		km.activeKey = &SigningKey{

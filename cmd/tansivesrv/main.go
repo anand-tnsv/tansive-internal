@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/rs/zerolog/log"
+	zerolog "github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
@@ -33,19 +33,18 @@ func main() {
 	defer cancel()
 
 	if err := run(ctx); err != nil {
-		log.Error().Err(err).Msg("server failed")
+		zerolog.Error().Err(err).Msg("server failed")
 		os.Exit(1)
 	}
 }
 
 func run(ctx context.Context) error {
-	slog := log.With().Str("state", "init").Logger()
+	log := zerolog.With().Str("state", "init").Logger()
 
-	// Parse command line flags
 	opt := parseFlags()
 
-	slog.Info().Str("config_file", opt.configFile).Msg("loading config file")
-	// load config file
+	log.Info().Str("config_file", opt.configFile).Msg("loading config file")
+
 	if err := config.LoadConfig(opt.configFile); err != nil {
 		return fmt.Errorf("loading config file: %w", err)
 	}
@@ -53,7 +52,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("server port not defined")
 	}
 	if config.Config().SingleUserMode {
-		slog.Info().Msg("single user mode enabled")
+		log.Info().Msg("single user mode enabled")
 		if err := createDefaultTenantAndProject(ctx); err != nil {
 			return fmt.Errorf("setting up single user mode: %w", err)
 		}
@@ -75,7 +74,7 @@ func run(ctx context.Context) error {
 
 	// Start the service listening for requests.
 	go func() {
-		slog.Info().Str("port", config.Config().ServerPort).Msg("server started")
+		log.Info().Str("port", config.Config().ServerPort).Msg("server started")
 		serverErrors <- srv.ListenAndServe()
 	}()
 
@@ -89,21 +88,21 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("server error: %w", err)
 
 	case sig := <-shutdown:
-		slog.Info().Str("signal", sig.String()).Msg("shutdown signal received")
+		log.Info().Str("signal", sig.String()).Msg("shutdown signal received")
 
 		// Give outstanding requests 5 seconds to complete.
 		shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
 		if err := srv.Shutdown(shutdownCtx); err != nil {
-			slog.Error().Err(err).Msg("could not stop server gracefully")
+			log.Error().Err(err).Msg("could not stop server gracefully")
 			if err := srv.Close(); err != nil {
-				slog.Error().Err(err).Msg("could not stop server")
+				log.Error().Err(err).Msg("could not stop server")
 			}
 		}
 	}
 
-	slog.Info().Msg("server stopped")
+	log.Info().Msg("server stopped")
 	return nil
 }
 
