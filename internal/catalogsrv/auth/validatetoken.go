@@ -8,7 +8,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 )
 
 // Custom errors for better error handling
@@ -19,7 +19,7 @@ var (
 )
 
 // setupCatalogContext creates and configures a new CatalogContext
-func setupCatalogContext(ctx context.Context, viewDef *types.ViewDefinition, tokenObj *catalogmanager.Token) *catcommon.CatalogContext {
+func setupCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, tokenObj *catalogmanager.Token) *catcommon.CatalogContext {
 	_ = ctx
 	catalogContext := &catcommon.CatalogContext{
 		Catalog:   viewDef.Scope.Catalog,
@@ -60,7 +60,7 @@ func ValidateToken(ctx context.Context, token string) (context.Context, error) {
 	}
 
 	view := tokenObj.GetView()
-	viewDef := types.ViewDefinition{}
+	viewDef := policy.ViewDefinition{}
 	if err := json.Unmarshal(view.Rules, &viewDef); err != nil {
 		return ctx, fmt.Errorf("%w: %v", ErrInvalidViewRules, err)
 	}

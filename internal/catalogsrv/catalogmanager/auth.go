@@ -19,12 +19,11 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 type createTokenOptions struct {
 	parentViewId      uuid.UUID
-	parentView        *types.ViewDefinition
+	parentView        *policy.ViewDefinition
 	createDerivedView bool
 	additionalClaims  map[string]any
 }
@@ -37,7 +36,7 @@ func WithParentViewId(id uuid.UUID) createTokenOption {
 	}
 }
 
-func WithParentViewDefinition(view *types.ViewDefinition) createTokenOption {
+func WithParentViewDefinition(view *policy.ViewDefinition) createTokenOption {
 	return func(o *createTokenOptions) {
 		o.parentView = view
 	}
@@ -64,7 +63,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 		opt(options)
 	}
 	tokenExpiry := time.Time{}
-	var parentViewDef *types.ViewDefinition
+	var parentViewDef *policy.ViewDefinition
 	// get parent view from database
 	if options.parentView != nil {
 		parentViewDef = options.parentView
@@ -79,7 +78,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 			if err != nil {
 				return "", tokenExpiry, err
 			}
-			parentViewDef = &types.ViewDefinition{}
+			parentViewDef = &policy.ViewDefinition{}
 			if err := json.Unmarshal(p.Rules, &parentViewDef); err != nil {
 				log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal parent view")
 				return "", tokenExpiry, ErrUnableToCreateView
@@ -89,7 +88,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...createTo
 		}
 	}
 
-	derivedViewDef := &types.ViewDefinition{}
+	derivedViewDef := &policy.ViewDefinition{}
 	if err := json.Unmarshal(derivedView.Rules, &derivedViewDef); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal derived view")
 		return "", tokenExpiry, ErrUnableToCreateView
@@ -159,12 +158,12 @@ type viewKeyType string
 
 const viewKey viewKeyType = "TansiveView"
 
-func addViewToContext(ctx context.Context, viewDefinition *types.ViewDefinition) context.Context {
+func addViewToContext(ctx context.Context, viewDefinition *policy.ViewDefinition) context.Context {
 	return context.WithValue(ctx, viewKey, viewDefinition)
 }
 
-func getViewFromContext(ctx context.Context) *types.ViewDefinition {
-	v, ok := ctx.Value(viewKey).(*types.ViewDefinition)
+func getViewFromContext(ctx context.Context) *policy.ViewDefinition {
+	v, ok := ctx.Value(viewKey).(*policy.ViewDefinition)
 	if !ok {
 		return nil
 	}

@@ -12,9 +12,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // adoptViewRsp represents the response structure for view adoption operations
@@ -87,7 +87,7 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 		return nil, err
 	}
 
-	viewDef := types.ViewDefinition{}
+	viewDef := policy.ViewDefinition{}
 	if err := json.Unmarshal(wantView.Rules, &viewDef); err != nil {
 		return nil, ErrInvalidView.Msg("invalid view definition").Err(err)
 	}

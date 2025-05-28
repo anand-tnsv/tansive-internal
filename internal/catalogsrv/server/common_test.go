@@ -15,7 +15,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 )
 
 type TestContext struct {
@@ -42,15 +42,15 @@ func executeTestRequest(t *testing.T, req *http.Request, apiKey *string, testCon
 		ctx = catcommon.WithTenantID(ctx, testContext[0].TenantId)
 		ctx = catcommon.WithProjectID(ctx, testContext[0].ProjectId)
 		catalogContext := &testContext[0].CatalogContext
-		vd := types.ViewDefinition{
-			Scope: types.Scope{
+		vd := policy.ViewDefinition{
+			Scope: policy.Scope{
 				Catalog: testContext[0].CatalogContext.Catalog,
 			},
-			Rules: []types.Rule{
+			Rules: []policy.Rule{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogAdmin},
-					Targets: []types.TargetResource{types.TargetResource("res://catalogs/" + testContext[0].CatalogContext.Catalog)},
+					Intent:  policy.IntentAllow,
+					Actions: []policy.Action{policy.ActionCatalogAdmin},
+					Targets: []policy.TargetResource{policy.TargetResource("res://catalogs/" + testContext[0].CatalogContext.Catalog)},
 				},
 			},
 		}

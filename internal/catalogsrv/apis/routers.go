@@ -11,7 +11,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 var userSessionHandlers = []httpx.ResponseHandlerParam{
@@ -34,133 +33,133 @@ var resourceObjectHandlers = []httpx.ResponseHandlerParam{
 		Method:         http.MethodGet,
 		Path:           "/catalogs/{catalogName}",
 		Handler:        getObject,
-		AllowedActions: []types.Action{types.ActionCatalogList},
+		AllowedActions: []policy.Action{policy.ActionCatalogList},
 	},
 	{
 		Method:         http.MethodPut,
 		Path:           "/catalogs/{catalogName}",
 		Handler:        updateObject,
-		AllowedActions: []types.Action{types.ActionCatalogAdmin},
+		AllowedActions: []policy.Action{policy.ActionCatalogAdmin},
 	},
 	{
 		Method:         http.MethodDelete,
 		Path:           "/catalogs/{catalogName}",
 		Handler:        deleteObject,
-		AllowedActions: []types.Action{types.ActionCatalogAdmin},
+		AllowedActions: []policy.Action{policy.ActionCatalogAdmin},
 	},
 	{
 		Method:         http.MethodPost,
 		Path:           "/variants",
 		Handler:        createObject,
-		AllowedActions: []types.Action{types.ActionVariantClone},
+		AllowedActions: []policy.Action{policy.ActionVariantClone},
 	},
 	{
 		Method:         http.MethodGet,
 		Path:           "/variants/{variantName}",
 		Handler:        getObject,
-		AllowedActions: []types.Action{types.ActionVariantList},
+		AllowedActions: []policy.Action{policy.ActionVariantList},
 	},
 	{
 		Method:         http.MethodPut,
 		Path:           "/variants/{variantName}",
 		Handler:        updateObject,
-		AllowedActions: []types.Action{types.ActionVariantAdmin},
+		AllowedActions: []policy.Action{policy.ActionVariantAdmin},
 	},
 	{
 		Method:         http.MethodDelete,
 		Path:           "/variants/{variantName}",
 		Handler:        deleteObject,
-		AllowedActions: []types.Action{types.ActionVariantAdmin},
+		AllowedActions: []policy.Action{policy.ActionVariantAdmin},
 	},
 	{
 		Method:         http.MethodPost,
 		Path:           "/namespaces",
 		Handler:        createObject,
-		AllowedActions: []types.Action{types.ActionNamespaceCreate},
+		AllowedActions: []policy.Action{policy.ActionNamespaceCreate},
 	},
 	{
 		Method:         http.MethodGet,
 		Path:           "/namespaces/{namespaceName}",
 		Handler:        getObject,
-		AllowedActions: []types.Action{types.ActionNamespaceList},
+		AllowedActions: []policy.Action{policy.ActionNamespaceList},
 	},
 	{
 		Method:         http.MethodPut,
 		Path:           "/namespaces/{namespaceName}",
 		Handler:        updateObject,
-		AllowedActions: []types.Action{types.ActionNamespaceAdmin},
+		AllowedActions: []policy.Action{policy.ActionNamespaceAdmin},
 	},
 	{
 		Method:         http.MethodDelete,
 		Path:           "/namespaces/{namespaceName}",
 		Handler:        deleteObject,
-		AllowedActions: []types.Action{types.ActionNamespaceAdmin},
+		AllowedActions: []policy.Action{policy.ActionNamespaceAdmin},
 	},
 	{
 		Method:         http.MethodPost,
 		Path:           "/views",
 		Handler:        createObject,
-		AllowedActions: []types.Action{types.ActionCatalogCreateView},
+		AllowedActions: []policy.Action{policy.ActionCatalogCreateView},
 	},
 	{
 		Method:         http.MethodGet,
 		Path:           "/views/{viewName}",
 		Handler:        getObject,
-		AllowedActions: []types.Action{types.ActionCatalogList},
+		AllowedActions: []policy.Action{policy.ActionCatalogList},
 	},
 	{
 		Method:         http.MethodPut,
 		Path:           "/views/{viewName}",
 		Handler:        updateObject,
-		AllowedActions: []types.Action{types.ActionViewAdmin},
+		AllowedActions: []policy.Action{policy.ActionViewAdmin},
 	},
 	{
 		Method:         http.MethodDelete,
 		Path:           "/views/{viewName}",
 		Handler:        deleteObject,
-		AllowedActions: []types.Action{types.ActionViewAdmin},
+		AllowedActions: []policy.Action{policy.ActionViewAdmin},
 	},
 	{
 		Method:         http.MethodPost,
 		Path:           "/resources",
 		Handler:        createObject,
-		AllowedActions: []types.Action{types.ActionResourceCreate},
+		AllowedActions: []policy.Action{policy.ActionResourceCreate},
 	},
 	{
 		Method:         http.MethodGet,
 		Path:           "/resources",
 		Handler:        listObjects,
-		AllowedActions: []types.Action{types.ActionResourceList},
+		AllowedActions: []policy.Action{policy.ActionResourceList},
 	},
 	{
 		Method:         http.MethodGet,
 		Path:           "/resources/{resourcePath:.+}/definition",
 		Handler:        getObject,
-		AllowedActions: []types.Action{types.ActionResourceRead, types.ActionResourceEdit},
+		AllowedActions: []policy.Action{policy.ActionResourceRead, policy.ActionResourceEdit},
 	},
 	{
 		Method:         http.MethodGet,
 		Path:           "/resources/{resourceValue:.+}",
 		Handler:        getObject,
-		AllowedActions: []types.Action{types.ActionResourceGet, types.ActionResourcePut},
+		AllowedActions: []policy.Action{policy.ActionResourceGet, policy.ActionResourcePut},
 	},
 	{
 		Method:         http.MethodPut,
 		Path:           "/resources/{resourceValue:.+}",
 		Handler:        updateObject,
-		AllowedActions: []types.Action{types.ActionResourcePut},
+		AllowedActions: []policy.Action{policy.ActionResourcePut},
 	},
 	{
 		Method:         http.MethodPut,
 		Path:           "/resources/{resourcePath:.+}/definition",
 		Handler:        updateObject,
-		AllowedActions: []types.Action{types.ActionResourceEdit},
+		AllowedActions: []policy.Action{policy.ActionResourceEdit},
 	},
 	{
 		Method:         http.MethodDelete,
 		Path:           "/resources/{resourcePath:.+}/definition",
 		Handler:        deleteObject,
-		AllowedActions: []types.Action{types.ActionResourceDelete},
+		AllowedActions: []policy.Action{policy.ActionResourceDelete},
 	},
 }
 
@@ -241,12 +240,12 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 		}
 
 		// Build the metadata path
-		targetScope := types.Scope{
+		targetScope := policy.Scope{
 			Catalog:   c.Catalog,
 			Variant:   c.Variant,
 			Namespace: c.Namespace,
 		}
-		targetResource := policy.CanonicalizeResourcePath(targetScope, types.TargetResource("res://"+strings.TrimPrefix(r.URL.Path, "/")))
+		targetResource := policy.CanonicalizeResourcePath(targetScope, policy.TargetResource("res://"+strings.TrimPrefix(r.URL.Path, "/")))
 		if targetResource == "" {
 			return nil, httpx.ErrApplicationError("unable to canonicalize resource path")
 		}
@@ -254,7 +253,7 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 		resourceName := getResourceNameFromPath(r)
 		// For resources, policies are applied to the resource path
 		if resourceName == catcommon.ResourceNameResources {
-			targetResource = types.TargetResource(strings.TrimSuffix(string(targetResource), "/definition"))
+			targetResource = policy.TargetResource(strings.TrimSuffix(string(targetResource), "/definition"))
 		}
 
 		// Validate against the policy

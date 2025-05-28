@@ -19,7 +19,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 )
 
 func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.ProjectId, uuid.UUID, uuid.UUID, *config.ConfigParam) {
@@ -71,15 +71,15 @@ func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.Pro
 	require.NoError(t, err)
 
 	// Create parent view
-	parentView := &types.ViewDefinition{
-		Scope: types.Scope{
+	parentView := &policy.ViewDefinition{
+		Scope: policy.Scope{
 			Catalog: "test-catalog",
 		},
-		Rules: types.Rules{
+		Rules: policy.Rules{
 			{
-				Intent:  types.IntentAllow,
-				Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-				Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+				Intent:  policy.IntentAllow,
+				Actions: []policy.Action{policy.ActionCatalogList, policy.ActionVariantList},
+				Targets: []policy.TargetResource{"res://catalogs/test-catalog"},
 			},
 		},
 	}
@@ -129,15 +129,15 @@ func TestCreateToken(t *testing.T) {
 
 	t.Run("successful token creation", func(t *testing.T) {
 		// Create and save the derived view first
-		derivedViewDef := &types.ViewDefinition{
-			Scope: types.Scope{
+		derivedViewDef := &policy.ViewDefinition{
+			Scope: policy.Scope{
 				Catalog: "test-catalog",
 			},
-			Rules: types.Rules{
+			Rules: policy.Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+					Intent:  policy.IntentAllow,
+					Actions: []policy.Action{policy.ActionCatalogList},
+					Targets: []policy.TargetResource{"res://catalogs/test-catalog"},
 				},
 			},
 		}
@@ -163,7 +163,7 @@ func TestCreateToken(t *testing.T) {
 		// Get the parent view definition
 		parentView, err := db.DB(ctx).GetView(ctx, testViewID)
 		require.NoError(t, err)
-		parentViewDef := &types.ViewDefinition{}
+		parentViewDef := &policy.ViewDefinition{}
 		err = json.Unmarshal(parentView.Rules, &parentViewDef)
 		require.NoError(t, err)
 

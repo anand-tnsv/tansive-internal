@@ -18,7 +18,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func TestCreateView(t *testing.T) {
@@ -730,7 +729,7 @@ func TestUpdateView(t *testing.T) {
 	retrieved, err = db.DB(ctx).GetViewByLabel(ctx, "test-view", catalogID)
 	require.NoError(t, err)
 
-	var definition types.ViewDefinition
+	var definition ViewDefinition
 	jsonErr := json.Unmarshal(retrieved.Rules, &definition)
 	require.NoError(t, jsonErr)
 
@@ -740,365 +739,365 @@ func TestUpdateView(t *testing.T) {
 	assert.Equal(t, 2, len(definition.Rules[0].Targets)) // Should have two unique resources
 
 	// Verify the order and content of deduplicated arrays
-	expectedOperations := []types.Action{types.ActionCatalogList, types.ActionVariantList, types.ActionNamespaceList}
+	expectedOperations := []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList}
 	assert.ElementsMatch(t, expectedOperations, definition.Rules[0].Actions)
 
-	expectedTargets := []types.TargetResource{"res://catalogs/test-catalog", "res://catalogs/test-catalog/variants/valid-variant"}
+	expectedTargets := []TargetResource{"res://catalogs/test-catalog", "res://catalogs/test-catalog/variants/valid-variant"}
 	assert.ElementsMatch(t, expectedTargets, definition.Rules[0].Targets)
 }
 
 func TestIsActionAllowed(t *testing.T) {
 	tests := []struct {
 		name           string
-		rules          types.Rules
-		action         types.Action
-		resource       types.TargetResource
+		rules          Rules
+		action         Action
+		resource       TargetResource
 		expectedResult bool
 	}{
 		{
 			name: "admin action",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogAdmin},
-					Targets: []types.TargetResource{"res://catalogs/*"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogAdmin},
+					Targets: []TargetResource{"res://catalogs/*"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test2",
 			expectedResult: true,
 		},
 		{
 			name: "admin action with specific resource",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogAdmin},
-					Targets: []types.TargetResource{"res://catalogs/test1"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogAdmin},
+					Targets: []TargetResource{"res://catalogs/test1"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test2",
 			expectedResult: false,
 		},
 		{
 			name: "incorrectadmin action with specific resource",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogAdmin},
-					Targets: []types.TargetResource{"res://catalogs/test1/variants/test2"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogAdmin},
+					Targets: []TargetResource{"res://catalogs/test1/variants/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test1",
 			expectedResult: false,
 		},
 		{
 			name: "incorrectadmin action with specific resource",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogAdmin},
-					Targets: []types.TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogAdmin},
+					Targets: []TargetResource{
 						"res://catalogs/test1/variants/test2",
 						"res://catalogs/*",
 					},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test1",
 			expectedResult: true,
 		},
 		{
 			name: "allow namespace with admin action",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionNamespaceAdmin},
-					Targets: []types.TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{
 						"res://catalogs/test1/variants/test2/namespaces/*",
 					},
 				},
 			},
-			action:         types.ActionNamespaceList,
+			action:         ActionNamespaceList,
 			resource:       "res://catalogs/test1/variants/test2/namespaces/test3",
 			expectedResult: true,
 		},
 		{
 			name: "allow namespace with admin action and deny rule",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionNamespaceAdmin},
-					Targets: []types.TargetResource{
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{
 						"res://catalogs/test1/variants/test2/namespaces/*",
 					},
 				},
 				{
-					Intent:  types.IntentDeny,
-					Actions: []types.Action{types.ActionNamespaceList},
-					Targets: []types.TargetResource{
+					Intent:  IntentDeny,
+					Actions: []Action{ActionNamespaceList},
+					Targets: []TargetResource{
 						"res://catalogs/test1/variants/test2/namespaces/test3",
 					},
 				},
 			},
-			action:         types.ActionNamespaceList,
+			action:         ActionNamespaceList,
 			resource:       "res://catalogs/test1/variants/test2/namespaces/test3",
 			expectedResult: false,
 		},
 		{
 			name: "simple allow rule",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test",
 			expectedResult: true,
 		},
 		{
 			name: "simple deny rule",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentDeny,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test"},
+					Intent:  IntentDeny,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 		{
 			name: "deny overrides allow",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 				{
-					Intent:  types.IntentDeny,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test"},
+					Intent:  IntentDeny,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 		{
 			name: "wildcard resource matching",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test/variants/*"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test/variants/*"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test/variants/variant1",
 			expectedResult: true,
 		},
 		{
 			name: "multiple actions in rule",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-					Targets: []types.TargetResource{"res://catalogs/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList, ActionVariantList},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
-			action:         types.ActionVariantList,
+			action:         ActionVariantList,
 			resource:       "res://catalogs/test",
 			expectedResult: true,
 		},
 		{
 			name: "action not in rule",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
-			action:         types.ActionVariantList,
+			action:         ActionVariantList,
 			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 		{
 			name: "resource not in rule",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/other",
 			expectedResult: false,
 		},
 		{
 			name: "multiple rules with different resources",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test1"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test1"},
 				},
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test2"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test2",
 			expectedResult: true,
 		},
 		{
 			name: "wildcard resource with deny rule",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test/*"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test/*"},
 				},
 				{
-					Intent:  types.IntentDeny,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/test/specific"},
+					Intent:  IntentDeny,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/test/specific"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test/specific",
 			expectedResult: false,
 		},
 		{
 			name:           "empty ruleset",
-			rules:          types.Rules{},
-			action:         types.ActionCatalogList,
+			rules:          Rules{},
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test",
 			expectedResult: false,
 		},
 		{
 			name: "mismatched action",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/*", "res://catalogs/test2"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/*", "res://catalogs/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/test2",
 			expectedResult: true,
 		},
 		{
 			name: "varying length of resource",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace/resources/some-schema",
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace/resources/some-schema",
 						"res://catalogs/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/my-catalog/variants/*/namespaces/my-namespace",
 			expectedResult: false,
 		},
 		{
 			name: "varying length of resource",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace/resources/some-schema",
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace/resources/some-schema",
 						"res://catalogs/test2"},
 				},
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionNamespaceAdmin},
-					Targets: []types.TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace"},
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace",
 			expectedResult: true,
 		},
 		{
 			name: "varying length of resource2",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace",
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace",
 						"res://catalogs/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
 			expectedResult: false,
 		},
 		{
 			name: "varying length of resource3",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionNamespaceList},
-					Targets: []types.TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceList},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
 						"res://catalogs/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
 			expectedResult: false,
 		},
 		{
 			name: "varying length of resource3",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionCatalogList},
-					Targets: []types.TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
+					Intent:  IntentAllow,
+					Actions: []Action{ActionCatalogList},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
 						"res://catalogs/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
 			expectedResult: true,
 		},
 		{
 			name: "varying length of resource3",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionNamespaceAdmin},
-					Targets: []types.TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
+					Intent:  IntentAllow,
+					Actions: []Action{ActionNamespaceAdmin},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
 						"res://catalogs/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
 			expectedResult: true,
 		},
 		{
 			name: "varying length of resource3",
-			rules: types.Rules{
+			rules: Rules{
 				{
-					Intent:  types.IntentAllow,
-					Actions: []types.Action{types.ActionVariantAdmin},
-					Targets: []types.TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
+					Intent:  IntentAllow,
+					Actions: []Action{ActionVariantAdmin},
+					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
 						"res://catalogs/test2"},
 				},
 			},
-			action:         types.ActionCatalogList,
+			action:         ActionCatalogList,
 			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
 			expectedResult: false,
 		},
@@ -1115,33 +1114,33 @@ func TestIsActionAllowed(t *testing.T) {
 func TestValidateDerivedView(t *testing.T) {
 	tests := []struct {
 		name        string
-		parent      types.ViewDefinition
-		child       types.ViewDefinition
+		parent      ViewDefinition
+		child       ViewDefinition
 		expectError bool
 	}{
 		{
 			name: "valid derived view",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://catalogs/test"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://catalogs/test"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test"},
 					},
 				},
 			},
@@ -1149,28 +1148,28 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "invalid derived view - different scope",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList},
-						Targets: []types.TargetResource{"res://catalogs/test"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 					Variant: "test-variant",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
@@ -1178,27 +1177,27 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - subset of actions",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList, types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
@@ -1206,27 +1205,27 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "invalid derivation - child has more actions",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
@@ -1234,27 +1233,27 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - parent with wildcard",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList},
-						Targets: []types.TargetResource{"res://catalogs/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/*"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
@@ -1262,37 +1261,37 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - parent with wildcard",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogAdoptView, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://variant/test-variant"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogAdoptView, ActionVariantList},
+						Targets: []TargetResource{"res://variant/test-variant"},
 					},
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogAdoptView},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogAdoptView},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogAdoptView},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogAdoptView},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionVariantClone},
-						Targets: []types.TargetResource{"res://variant/test-variant"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionVariantClone},
+						Targets: []TargetResource{"res://variant/test-variant"},
 					},
 				},
 			},
@@ -1300,27 +1299,27 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "invalid derivation - child with wildcard, parent specific",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList},
-						Targets: []types.TargetResource{"res://catalogs/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/*"},
 					},
 				},
 			},
@@ -1328,27 +1327,27 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - parent with admin permission",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogAdmin},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogAdmin},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
@@ -1356,37 +1355,37 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - with deny rules",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
 					},
 				},
 			},
@@ -1394,32 +1393,32 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - child doesn't need parent's deny rule",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList, types.ActionVariantList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList, ActionVariantList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionCatalogList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionCatalogList},
+						Targets: []TargetResource{"res://catalogs/test-catalog"},
 					},
 				},
 			},
@@ -1427,32 +1426,32 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "invalid derivation - child allows denied resource",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/restricted"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/restricted"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
 					},
 				},
 			},
@@ -1460,32 +1459,32 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - child respects parent's deny with specific allow",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/restricted"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/restricted"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/namespaces/allowed"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/allowed"},
 					},
 				},
 			},
@@ -1493,32 +1492,32 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - parent denies specific action in wildcard",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceAdmin},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceAdmin},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceList, types.ActionNamespaceCreate},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/allowed"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList, ActionNamespaceCreate},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/allowed"},
 					},
 				},
 			},
@@ -1526,32 +1525,32 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "invalid derivation - child allows denied action in wildcard",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceAdmin},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceAdmin},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionNamespaceList},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionNamespaceList},
+						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
 					},
 				},
 			},
@@ -1559,32 +1558,32 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "valid derivation - parent denies subset of allowed actions",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceEdit, types.ActionResourceGet},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead, ActionResourceEdit, ActionResourceGet},
+						Targets: []TargetResource{"res://catalogs/test-catalog/resources/*"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionResourceEdit, types.ActionResourceGet},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/sensitive/*"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionResourceEdit, ActionResourceGet},
+						Targets: []TargetResource{"res://catalogs/test-catalog/resources/sensitive/*"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionResourceRead},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead},
+						Targets: []TargetResource{"res://catalogs/test-catalog/resources/*"},
 					},
 				},
 			},
@@ -1592,32 +1591,32 @@ func TestValidateDerivedView(t *testing.T) {
 		},
 		{
 			name: "invalid derivation - child allows action denied for specific resource pattern",
-			parent: types.ViewDefinition{
-				Scope: types.Scope{
+			parent: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceEdit, types.ActionResourceGet},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead, ActionResourceEdit, ActionResourceGet},
+						Targets: []TargetResource{"res://catalogs/test-catalog/resources/*"},
 					},
 					{
-						Intent:  types.IntentDeny,
-						Actions: []types.Action{types.ActionResourceEdit, types.ActionResourceGet},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/sensitive/*"},
+						Intent:  IntentDeny,
+						Actions: []Action{ActionResourceEdit, ActionResourceGet},
+						Targets: []TargetResource{"res://catalogs/test-catalog/resources/sensitive/*"},
 					},
 				},
 			},
-			child: types.ViewDefinition{
-				Scope: types.Scope{
+			child: ViewDefinition{
+				Scope: Scope{
 					Catalog: "test-catalog",
 				},
-				Rules: types.Rules{
+				Rules: Rules{
 					{
-						Intent:  types.IntentAllow,
-						Actions: []types.Action{types.ActionResourceRead, types.ActionResourceEdit},
-						Targets: []types.TargetResource{"res://catalogs/test-catalog/resources/*"},
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead, ActionResourceEdit},
+						Targets: []TargetResource{"res://catalogs/test-catalog/resources/*"},
 					},
 				},
 			},
@@ -1795,20 +1794,20 @@ func TestMorphViewDefinition(t *testing.T) {
 				"targets": ["res://catalogs/*", "res://variants/my-variant/resources/coll-schema"]
 			}]
 		}`
-	vd := &types.ViewDefinition{}
+	vd := &ViewDefinition{}
 	err := json.Unmarshal([]byte(vdjson), &vd)
 	require.NoError(t, err)
 
 	vd = CanonicalizeViewDefinition(vd)
-	assert.Equal(t, &types.ViewDefinition{
-		Scope: types.Scope{
+	assert.Equal(t, &ViewDefinition{
+		Scope: Scope{
 			Catalog: "validcatalog",
 		},
-		Rules: types.Rules{
+		Rules: Rules{
 			{
-				Intent:  types.IntentAllow,
-				Actions: []types.Action{types.ActionCatalogList},
-				Targets: []types.TargetResource{"res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant/resources/coll-schema"},
+				Intent:  IntentAllow,
+				Actions: []Action{ActionCatalogList},
+				Targets: []TargetResource{"res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant/resources/coll-schema"},
 			},
 		},
 	}, vd)

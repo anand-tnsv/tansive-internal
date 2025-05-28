@@ -8,25 +8,24 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // validateViewRuleIntent checks if the effect is one of the allowed values.
 func validateViewRuleIntent(fl validator.FieldLevel) bool {
-	effect := types.Intent(fl.Field().String())
-	return effect == types.IntentAllow || effect == types.IntentDeny
+	effect := Intent(fl.Field().String())
+	return effect == IntentAllow || effect == IntentDeny
 }
 
 // validateViewRuleAction checks if the action is one of the allowed values.
 func validateViewRuleAction(fl validator.FieldLevel) bool {
-	action := types.Action(fl.Field().String())
-	return slices.Contains(types.ValidActions, action)
+	action := Action(fl.Field().String())
+	return slices.Contains(ValidActions, action)
 }
 
 // validateResourceURI checks if the resource URI follows the required structure.
 func validateResourceURI(fl validator.FieldLevel) bool {
 	uri := fl.Field().String()
-	segments, err := extractSegments(types.TargetResource(uri))
+	segments, err := extractSegments(TargetResource(uri))
 	if err != nil {
 		return false
 	}
@@ -46,12 +45,12 @@ func validateResourceURI(fl validator.FieldLevel) bool {
 	return true
 }
 
-func extractSegments(t types.TargetResource) ([]types.TargetResource, error) {
+func extractSegments(t TargetResource) ([]TargetResource, error) {
 	segments, _, err := extractSegmentsAndResourceName(t)
 	return segments, err
 }
 
-func extractSegmentsAndResourceName(t types.TargetResource) ([]types.TargetResource, string, error) {
+func extractSegmentsAndResourceName(t TargetResource) ([]TargetResource, string, error) {
 	const prefix = "res://"
 	s := string(t)
 	if !strings.HasPrefix(s, prefix) {
@@ -78,16 +77,16 @@ func extractSegmentsAndResourceName(t types.TargetResource) ([]types.TargetResou
 		}
 	}
 
-	segments := []types.TargetResource{}
+	segments := []TargetResource{}
 
 	if len(parts) > 0 {
-		segments = append(segments, types.TargetResource(parts[0]))
+		segments = append(segments, TargetResource(parts[0]))
 	}
 
 	if len(parts) == 2 {
 		if parts[1] != "" {
 			parts[1] = "/" + parts[1]
-			segments = append(segments, types.TargetResource(parts[1]))
+			segments = append(segments, TargetResource(parts[1]))
 		}
 	}
 

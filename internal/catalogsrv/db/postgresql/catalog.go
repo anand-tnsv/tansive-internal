@@ -3,7 +3,6 @@ package postgresql
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
@@ -12,7 +11,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // CreateCatalog inserts a new catalog into the database.
@@ -85,32 +83,27 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 	}
 
 	// create a default admin view
-	viewDef := &types.ViewDefinition{}
-	viewDef.Scope.Catalog = catalog.Name
-	viewDef.Rules = []types.Rule{
-		{
-			Intent: types.IntentAllow,
-			Actions: []types.Action{
-				types.ActionCatalogAdmin,
-			},
-			Targets: []types.TargetResource{
-				types.TargetResource("res://catalogs/" + catalog.Name),
-			},
+	viewDefJSON := `
+	{
+		"scope": {
+			"catalog": "` + catalog.Name + `"
 		},
+		"rules": [
+			{
+				"intent": "Allow",
+				"actions": ["catalog.admin"],
+				"targets": ["res://catalogs/` + catalog.Name + `"]
+			}
+		]
 	}
-	viewDefJSON, errif := json.Marshal(viewDef)
-	if errif != nil {
-		tx.Rollback()
-		err = dberror.ErrDatabase
-		return err
-	}
+	`
 
 	view := models.View{
 		Label:       catcommon.DefaultAdminViewLabel,
 		CatalogID:   catalog.CatalogID,
 		Description: "default admin view",
 		Info:        nil,
-		Rules:       viewDefJSON,
+		Rules:       []byte(viewDefJSON),
 	}
 	err = mm.createViewWithTransaction(ctx, &view, tx)
 

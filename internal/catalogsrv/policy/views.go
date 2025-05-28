@@ -19,7 +19,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // viewSchema represents the structure of a view definition
@@ -39,7 +38,7 @@ type viewMetadata struct {
 
 // viewSpec contains the spec of a view
 type viewSpec struct {
-	Definition types.ViewDefinition `json:"definition" validate:"required"`
+	Definition ViewDefinition `json:"definition" validate:"required"`
 }
 
 // Validate performs validation on the view schema and returns any validation errors.
@@ -97,7 +96,7 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 		case "viewRuleIntentValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleIntent(jsonFieldName))
 		case "viewRuleActionValidator":
-			fieldName, _ := e.Value().(types.Action)
+			fieldName, _ := e.Value().(Action)
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleAction(string(fieldName)))
 		default:
 			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
@@ -192,14 +191,14 @@ func removeDuplicates[T comparable](slice []T) []T {
 
 // deduplicateRules removes duplicate actions and targets from each rule in the ViewRuleSet.
 // Returns a new ViewRuleSet with all duplicates removed while preserving the original order.
-func deduplicateRules(rules types.Rules) types.Rules {
+func deduplicateRules(rules Rules) Rules {
 	if len(rules) == 0 {
 		return rules
 	}
 
-	result := make(types.Rules, len(rules))
+	result := make(Rules, len(rules))
 	for i, rule := range rules {
-		result[i] = types.Rule{
+		result[i] = Rule{
 			Intent:  rule.Intent,
 			Actions: removeDuplicates(rule.Actions),
 			Targets: removeDuplicates(rule.Targets),
@@ -334,7 +333,7 @@ func (v *viewKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	}
 
 	// Parse the rules from the view model
-	var definition types.ViewDefinition
+	var definition ViewDefinition
 	if err := json.Unmarshal(view.Rules, &definition); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal view rules")
 		return nil, ErrUnableToLoadObject.Msg("unable to unmarshal view rules")
@@ -433,7 +432,7 @@ func NewViewKindHandler(ctx context.Context, reqCtx interfaces.RequestContext) (
 // ValidateDerivedView ensures that a derived view is valid with respect to its parent view.
 // It ensures that the derived view's scope is the same as the parent's and that all rules in the derived view
 // are permissible by the parent view.
-func ValidateDerivedView(ctx context.Context, parent *types.ViewDefinition, child *types.ViewDefinition) apperrors.Error {
+func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *ViewDefinition) apperrors.Error {
 	if parent == nil || child == nil {
 		return ErrInvalidView
 	}
@@ -451,7 +450,7 @@ func ValidateDerivedView(ctx context.Context, parent *types.ViewDefinition, chil
 // CanonicalizeResourcePath transforms a resource string based on the provided scope.
 // It handles the conversion of resource paths and ensures proper formatting
 // of catalog, variant, workspace, and namespace components.
-func CanonicalizeResourcePath(scope types.Scope, resource types.TargetResource) types.TargetResource {
+func CanonicalizeResourcePath(scope Scope, resource TargetResource) TargetResource {
 	segments, resourceName, err := extractSegmentsAndResourceName(resource)
 	if err != nil && len(resource) > 0 {
 		return ""
@@ -512,11 +511,11 @@ func CanonicalizeResourcePath(scope types.Scope, resource types.TargetResource) 
 	}
 	if len(segments) > 1 {
 		path := strings.TrimPrefix(string(segments[1]), "/")
-		segments[1] = types.TargetResource(path)
+		segments[1] = TargetResource(path)
 		s.WriteString("/" + path)
 	}
 
-	canonicalized := types.TargetResource("res://" + s.String())
+	canonicalized := TargetResource("res://" + s.String())
 	return canonicalized
 }
 
@@ -540,13 +539,13 @@ func morphMetadata(scopeName string, pos int, resourceType string, resourceMetad
 }
 
 // CanonicalizeViewDefinition canonicalizes all targets in the view definition to its scope
-func CanonicalizeViewDefinition(vd *types.ViewDefinition) *types.ViewDefinition {
+func CanonicalizeViewDefinition(vd *ViewDefinition) *ViewDefinition {
 	if vd == nil {
 		return nil
 	}
 	for i, rule := range vd.Rules {
 		for j, target := range rule.Targets {
-			vd.Rules[i].Targets[j] = types.TargetResource(CanonicalizeResourcePath(vd.Scope, target))
+			vd.Rules[i].Targets[j] = TargetResource(CanonicalizeResourcePath(vd.Scope, target))
 		}
 	}
 	return vd

@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 func GetRequestData(r *http.Request, data any) error {
@@ -76,5 +76,5 @@ type ResponseHandlerParam struct {
 	Method         string
 	Path           string
 	Handler        RequestHandler
-	AllowedActions []types.Action
+	AllowedActions []policy.Action
 }

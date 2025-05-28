@@ -8,17 +8,16 @@ import (
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
-	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
 )
 
 // PolicyRequest represents a request to validate against a view policy
 type PolicyRequest struct {
-	ViewDefinition *types.ViewDefinition
+	ViewDefinition *ViewDefinition
 	Metadata       string
 	ResourceName   string
-	Action         types.Action
-	Target         types.TargetResource
+	Action         Action
+	Target         TargetResource
 	Params         url.Values
 	ResourceJSON   []byte // Moved here since it's a parameter of the original function
 }
@@ -60,7 +59,7 @@ func ValidateViewPolicy(ctx context.Context, req PolicyRequest) apperrors.Error 
 // by validating the action against the collection schema in case of instantiate action
 func validateCollectionPolicy(ctx context.Context, req PolicyRequest) apperrors.Error {
 	_ = ctx //future use for logging
-	if req.Action == types.ActionResourceCreate {
+	if req.Action == ActionResourceCreate {
 		if len(req.ResourceJSON) == 0 {
 			return ErrDisallowedByPolicy.Msg("empty collection")
 		}
@@ -69,7 +68,7 @@ func validateCollectionPolicy(ctx context.Context, req PolicyRequest) apperrors.
 			return ErrDisallowedByPolicy.Msg("invalid collection")
 		}
 		schemaPath := req.Metadata + "/collectionschemas/" + schema.String()
-		if !req.ViewDefinition.Rules.IsActionAllowed(req.Action, types.TargetResource(schemaPath)) {
+		if !req.ViewDefinition.Rules.IsActionAllowed(req.Action, TargetResource(schemaPath)) {
 			return ErrDisallowedByPolicy
 		}
 	} else {
@@ -92,7 +91,7 @@ func validateAttributePolicy(ctx context.Context, req PolicyRequest) apperrors.E
 		targetPath = strings.TrimPrefix(targetPath, "/")
 		collectionPath = "res://" + path.Dir(targetPath)
 	}
-	if !req.ViewDefinition.Rules.IsActionAllowed(req.Action, types.TargetResource(collectionPath)) {
+	if !req.ViewDefinition.Rules.IsActionAllowed(req.Action, TargetResource(collectionPath)) {
 		return ErrDisallowedByPolicy
 	}
 	return nil
