@@ -107,16 +107,9 @@ type ObjectManager interface {
 	GetSchemaDirectory(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID) (*models.SchemaDirectory, apperrors.Error)
 	GetObjectRefByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (*models.ObjectRef, apperrors.Error)
 	LoadObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (*models.CatalogObject, apperrors.Error)
-	UpdateObjectHashForPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, hash string) apperrors.Error
 	AddOrUpdateObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, obj models.ObjectRef) apperrors.Error
-	AddReferencesToObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, references models.References) apperrors.Error
-	GetAllReferences(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (models.References, apperrors.Error)
-	DeleteReferenceFromObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string, reference string) apperrors.Error
 	DeleteObjectByPath(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (catcommon.Hash, apperrors.Error)
-	FindClosestObject(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, targetName, startPath string) (string, *models.ObjectRef, apperrors.Error)
 	PathExists(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, path string) (bool, apperrors.Error)
-	DeleteTree(ctx context.Context, directoryIds models.DirectoryIDs, path string) ([]string, apperrors.Error)
-	DeleteObjectWithReferences(ctx context.Context, t catcommon.CatalogObjectType, dirIDs models.DirectoryIDs, delPath string, opts ...models.DirectoryObjectDeleteOptions) (string, apperrors.Error)
 	DeleteNamespaceObjects(ctx context.Context, t catcommon.CatalogObjectType, directoryID uuid.UUID, namespace string) ([]string, apperrors.Error)
 }
 
@@ -185,7 +178,7 @@ func Conn(ctx context.Context) (dbmanager.ScopedConn, error) {
 
 type ctxDbKeyType string
 
-const ctxDbKey ctxDbKeyType = "HatchCatalogDb"
+const ctxDbKey ctxDbKeyType = "TansiveCatalogDb"
 
 // ConnCtx adds a database connection to the context.
 // Returns an error if the connection cannot be established.
