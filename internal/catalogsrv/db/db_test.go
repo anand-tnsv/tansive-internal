@@ -442,5 +442,10 @@ func newDb(c ...context.Context) context.Context {
 			log.Ctx(ctx).Fatal().Err(err).Msg("unable to get db connection")
 		}
 	}
+	ctx = catcommon.WithCatalogContext(ctx, &catcommon.CatalogContext{
+		UserContext: &catcommon.UserContext{
+			UserID: "user/test_user",
+		},
+	})
 	return ctx
 }

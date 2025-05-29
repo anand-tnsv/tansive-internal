@@ -2,9 +2,10 @@ package catalogmanager
 
 import (
 	"context"
-	json "github.com/json-iterator/go"
 	"errors"
 	"reflect"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -54,15 +55,15 @@ func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog strin
 	}
 
 	if catalog != "" {
-		if !schemavalidator.ValidateSchemaName(catalog) {
+		if err := schemavalidator.V().Var(catalog, "resourceNameValidator"); err != nil {
 			return nil, ErrInvalidCatalog
 		}
 		ns.Metadata.Catalog = catalog
 	}
 
 	if variant != "" {
-		if !schemavalidator.ValidateSchemaName(variant) {
-			return nil, ErrInvalidNameFormat
+		if err := schemavalidator.V().Var(variant, "resourceNameValidator"); err != nil {
+			return nil, ErrInvalidVariant
 		}
 		ns.Metadata.Variant = variant
 	}
@@ -136,11 +137,12 @@ func (ns *namespaceSchema) Validate() schemaerr.ValidationErrors {
 		switch e.Tag() {
 		case "required":
 			validationErrors = append(validationErrors, schemaerr.ErrMissingRequiredAttribute(jsonFieldName))
-		case "nameFormatValidator":
-			val, _ := e.Value().(string)
-			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "kindValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind(jsonFieldName))
+		case "resourceNameValidator":
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, e.Value().(string)))
+		case "resourcePathValidator":
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidObjectPath(jsonFieldName))
 		case "requireVersionV1":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidVersion(jsonFieldName))
 		default:

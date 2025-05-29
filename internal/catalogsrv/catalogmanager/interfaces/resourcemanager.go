@@ -9,7 +9,7 @@ import (
 )
 
 type ResourceManager interface {
-	Metadata() SchemaMetadata
+	Metadata() Metadata
 	FullyQualifiedName() string
 	GetValue(ctx context.Context) types.NullableAny
 	GetValueJSON(ctx context.Context) ([]byte, apperrors.Error)

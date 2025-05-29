@@ -15,6 +15,11 @@ import (
 
 func (mm *metadataManager) CreateView(ctx context.Context, view *models.View) (err apperrors.Error) {
 
+	if view.CreatedBy == "" {
+		return dberror.ErrMissingUserContext.Msg("missing user context")
+	}
+	view.UpdatedBy = view.CreatedBy
+
 	tx, errStd := mm.conn().BeginTx(ctx, nil)
 	if errStd != nil {
 		log.Ctx(ctx).Error().Err(errStd).Msg("failed to begin transaction")
@@ -55,8 +60,8 @@ func (mm *metadataManager) createViewWithTransaction(ctx context.Context, view *
 	label := sql.NullString{String: view.Label, Valid: view.Label != ""}
 
 	query := `
-		INSERT INTO views (label, description, info, rules, catalog_id, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO views (label, description, info, rules, catalog_id, tenant_id, created_by, updated_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING view_id
 	`
 
@@ -67,6 +72,8 @@ func (mm *metadataManager) createViewWithTransaction(ctx context.Context, view *
 		view.Rules,
 		view.CatalogID,
 		view.TenantID,
+		view.CreatedBy,
+		view.UpdatedBy,
 	).Scan(&view.ViewID)
 
 	if err != nil {
@@ -171,6 +178,10 @@ func (mm *metadataManager) UpdateView(ctx context.Context, view *models.View) ap
 		return dberror.ErrMissingTenantID
 	}
 
+	if view.UpdatedBy == "" {
+		return dberror.ErrMissingUserContext.Msg("missing user context")
+	}
+
 	var query string
 	var args []interface{}
 
@@ -181,10 +192,11 @@ func (mm *metadataManager) UpdateView(ctx context.Context, view *models.View) ap
 			SET description = $3,
 				info = $4,
 				rules = $5,
+				updated_by = $6,
 				updated_at = NOW()
 			WHERE view_id = $1 AND tenant_id = $2
 		`
-		args = []interface{}{view.ViewID, tenantID, view.Description, view.Info, view.Rules}
+		args = []any{view.ViewID, tenantID, view.Description, view.Info, view.Rules, view.UpdatedBy}
 	} else if view.Label != "" && view.CatalogID != uuid.Nil {
 		// Update by label and catalog
 		query = `
@@ -192,10 +204,11 @@ func (mm *metadataManager) UpdateView(ctx context.Context, view *models.View) ap
 			SET description = $4,
 				info = $5,
 				rules = $6,
+				updated_by = $7,
 				updated_at = NOW()
 			WHERE label = $1 AND catalog_id = $2 AND tenant_id = $3
 		`
-		args = []interface{}{view.Label, view.CatalogID, tenantID, view.Description, view.Info, view.Rules}
+		args = []any{view.Label, view.CatalogID, tenantID, view.Description, view.Info, view.Rules, view.UpdatedBy}
 	} else {
 		return dberror.ErrNotFound.Msg("view not found: neither ID nor (label, catalog) provided")
 	}

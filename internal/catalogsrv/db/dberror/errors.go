@@ -79,5 +79,6 @@ var (
 	ErrInvalidVariant            apperrors.Error = ErrDatabase.New("invalid variant").SetStatusCode(http.StatusBadRequest)
 	ErrMissingTenantID           apperrors.Error = ErrInvalidInput.New("missing tenant ID").SetStatusCode(http.StatusBadRequest)
 	ErrMissingProjecID           apperrors.Error = ErrInvalidInput.New("missing project ID").SetStatusCode(http.StatusBadRequest)
+	ErrMissingUserContext        apperrors.Error = ErrInvalidInput.New("missing user context").SetStatusCode(http.StatusBadRequest)
 	ErrNoAncestorReferencesFound apperrors.Error = ErrDatabase.New("no ancestor references found").SetStatusCode(http.StatusBadRequest)
 )

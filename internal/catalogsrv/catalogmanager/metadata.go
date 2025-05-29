@@ -2,6 +2,7 @@ package catalogmanager
 
 import (
 	"context"
+
 	json "github.com/json-iterator/go"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
@@ -15,7 +16,7 @@ import (
 var _ = canonicalizeMetadata
 var _ = getMetadata
 
-func getMetadata(ctx context.Context, resourceJSON []byte) (*interfaces.SchemaMetadata, apperrors.Error) {
+func getMetadata(ctx context.Context, resourceJSON []byte) (*interfaces.Metadata, apperrors.Error) {
 	if len(resourceJSON) == 0 {
 		return nil, ErrEmptySchema
 	}
@@ -29,7 +30,7 @@ func getMetadata(ctx context.Context, resourceJSON []byte) (*interfaces.SchemaMe
 		return nil, ErrSchemaValidation
 	}
 
-	var schemaMetadata interfaces.SchemaMetadata
+	var schemaMetadata interfaces.Metadata
 	if err := json.Unmarshal([]byte(metadata.Raw), &schemaMetadata); err != nil {
 		return nil, ErrSchemaValidation
 	}
@@ -37,7 +38,7 @@ func getMetadata(ctx context.Context, resourceJSON []byte) (*interfaces.SchemaMe
 	return &schemaMetadata, nil
 }
 
-func canonicalizeMetadata(resourceJSON []byte, kind string, metadata *interfaces.SchemaMetadata) ([]byte, *interfaces.SchemaMetadata, apperrors.Error) {
+func canonicalizeMetadata(resourceJSON []byte, kind string, metadata *interfaces.Metadata) ([]byte, *interfaces.Metadata, apperrors.Error) {
 	if len(resourceJSON) == 0 {
 		return nil, nil, ErrEmptySchema
 	}
@@ -51,7 +52,7 @@ func canonicalizeMetadata(resourceJSON []byte, kind string, metadata *interfaces
 		return nil, nil, ErrSchemaValidation.Msg("missing metadata in resource schema")
 	}
 
-	var resourceMetadata interfaces.SchemaMetadata
+	var resourceMetadata interfaces.Metadata
 	if err := json.Unmarshal([]byte(metadataResult.Raw), &resourceMetadata); err != nil {
 		return nil, nil, ErrSchemaValidation.Msg("failed to unmarshal metadata")
 	}

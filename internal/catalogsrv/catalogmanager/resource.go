@@ -19,7 +19,7 @@ import (
 
 // NewResourceManager creates a new ResourceManager instance from the provided JSON schema and metadata.
 // It validates the schema and metadata before creating the manager.
-func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *interfaces.SchemaMetadata) (interfaces.ResourceManager, apperrors.Error) {
+func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Metadata) (interfaces.ResourceManager, apperrors.Error) {
 	if len(rsrcJSON) == 0 {
 		return nil, ErrEmptySchema
 	}
@@ -47,7 +47,7 @@ func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Sche
 	return &resourceManager{resource: rsrc}, nil
 }
 
-func LoadResourceManagerByHash(ctx context.Context, hash string, m *interfaces.SchemaMetadata) (interfaces.ResourceManager, apperrors.Error) {
+func LoadResourceManagerByHash(ctx context.Context, hash string, m *interfaces.Metadata) (interfaces.ResourceManager, apperrors.Error) {
 	// get the object from catalog object store
 	obj, err := db.DB(ctx).GetCatalogObject(ctx, hash)
 	if err != nil {
@@ -57,7 +57,7 @@ func LoadResourceManagerByHash(ctx context.Context, hash string, m *interfaces.S
 }
 
 // LoadResourceManagerByPath loads a resource manager from the database by path.
-func LoadResourceManagerByPath(ctx context.Context, m *interfaces.SchemaMetadata) (interfaces.ResourceManager, apperrors.Error) {
+func LoadResourceManagerByPath(ctx context.Context, m *interfaces.Metadata) (interfaces.ResourceManager, apperrors.Error) {
 	if m == nil {
 		return nil, ErrInvalidObject.Msg("unable to infer object metadata")
 	}
@@ -90,7 +90,7 @@ func LoadResourceManagerByPath(ctx context.Context, m *interfaces.SchemaMetadata
 	return resourceManagerFromObject(ctx, obj, m)
 }
 
-func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m *interfaces.SchemaMetadata) (interfaces.ResourceManager, apperrors.Error) {
+func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m *interfaces.Metadata) (interfaces.ResourceManager, apperrors.Error) {
 	if obj == nil {
 		return nil, ErrEmptySchema
 	}
@@ -135,7 +135,7 @@ func (h *resourceKindHandler) Name() string {
 // Location returns the fully qualified path to the resource, including any query parameters.
 // The path is constructed using the resource name and namespace (if present).
 func (h *resourceKindHandler) Location() string {
-	objName := catcommon.ResourceNameFromObjectType(h.req.ObjectType)
+	objName := catcommon.KindNameFromObjectType(h.req.ObjectType)
 	loc := path.Clean("/" + objName + h.rm.FullyQualifiedName())
 
 	q := url.Values{}
@@ -158,7 +158,7 @@ func (h *resourceKindHandler) Manager() interfaces.ResourceManager {
 // Create creates a new resource from the provided JSON data.
 // It validates the input, saves the resource, and updates the request context with the new resource's metadata.
 func (h *resourceKindHandler) Create(ctx context.Context, rsrcJSON []byte) (string, apperrors.Error) {
-	m := &interfaces.SchemaMetadata{
+	m := &interfaces.Metadata{
 		Catalog:   h.req.Catalog,
 		Variant:   types.NullableStringFrom(h.req.Variant),
 		Namespace: types.NullableStringFrom(h.req.Namespace),
@@ -195,7 +195,7 @@ func (h *resourceKindHandler) Create(ctx context.Context, rsrcJSON []byte) (stri
 // Get retrieves a resource by its path and returns it as JSON.
 // It validates the metadata and loads the resource from storage.
 func (h *resourceKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error) {
-	m := &interfaces.SchemaMetadata{
+	m := &interfaces.Metadata{
 		Catalog:   h.req.Catalog,
 		Variant:   types.NullableStringFrom(h.req.Variant),
 		Namespace: types.NullableStringFrom(h.req.Namespace),
@@ -223,7 +223,7 @@ func (h *resourceKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error)
 // Update updates an existing resource with new data.
 // It validates the input, checks for the resource's existence, and saves the changes.
 func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apperrors.Error {
-	m := &interfaces.SchemaMetadata{
+	m := &interfaces.Metadata{
 		Catalog:   h.req.Catalog,
 		Variant:   types.NullableStringFrom(h.req.Variant),
 		Path:      h.req.ObjectPath,
@@ -267,7 +267,7 @@ func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apper
 // Delete removes a resource from storage.
 // It validates the metadata and deletes the resource if it exists.
 func (h *resourceKindHandler) Delete(ctx context.Context) apperrors.Error {
-	m := &interfaces.SchemaMetadata{
+	m := &interfaces.Metadata{
 		Catalog:   h.req.Catalog,
 		Variant:   types.NullableStringFrom(h.req.Variant),
 		Path:      h.req.ObjectPath,
@@ -296,7 +296,7 @@ func (h *resourceKindHandler) List(ctx context.Context) ([]byte, apperrors.Error
 
 	resourceList := make(map[string]json.RawMessage)
 	for _, resource := range resources {
-		m := &interfaces.SchemaMetadata{
+		m := &interfaces.Metadata{
 			Catalog:   h.req.Catalog,
 			Variant:   types.NullableStringFrom(h.req.Variant),
 			Namespace: types.NullableStringFrom(h.req.Namespace),

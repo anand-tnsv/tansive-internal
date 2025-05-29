@@ -28,7 +28,7 @@ func RequestType(resourceJSON []byte) (kind string, err apperrors.Error) {
 	}
 	version := result.String()
 
-	if schemavalidator.ValidateSchemaKind(kind) && version == catcommon.VersionV1 {
+	if schemavalidator.ValidateKind(kind) && version == catcommon.VersionV1 {
 		return kind, nil
 	}
 	return "", ErrInvalidSchema.Msg("invalid kind or version")

@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
@@ -16,11 +15,7 @@ var validKinds = []string{
 	catcommon.CatalogKind,
 	catcommon.VariantKind,
 	catcommon.NamespaceKind,
-	catcommon.WorkspaceKind,
-	catcommon.ParameterSchemaKind,
-	catcommon.CollectionSchemaKind,
 	catcommon.ResourceKind,
-	catcommon.CollectionKind,
 	catcommon.ViewKind,
 }
 
@@ -28,23 +23,6 @@ var validKinds = []string{
 func kindValidator(fl validator.FieldLevel) bool {
 	kind := fl.Field().String()
 	return slices.Contains(validKinds, kind)
-}
-
-const nameRegex = `^[A-Za-z0-9_-]+$`
-
-// nameFormatValidator checks if the given name is alphanumeric with underscores and hyphens.
-func nameFormatValidator(fl validator.FieldLevel) bool {
-	var str string
-	if ns, ok := fl.Field().Interface().(types.NullableString); ok {
-		if ns.IsNil() {
-			return true
-		}
-		str = ns.String()
-	} else {
-		str = fl.Field().String()
-	}
-	re := regexp.MustCompile(nameRegex)
-	return re.MatchString(str)
 }
 
 const resourceNameRegex = `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
@@ -93,20 +71,17 @@ func resourcePathValidator(fl validator.FieldLevel) bool {
 		return false
 	}
 
-	// Split the path by slashes and check each collection name
-	collections := strings.Split(path, "/")[1:]
+	// Split the path by slashes and check each segment name
+	segments := strings.Split(path, "/")[1:]
 	re := regexp.MustCompile(resourceNameRegex)
 
-	for n, collection := range collections {
+	for _, segment := range segments {
 		// If a segment is empty, continue (e.g., trailing slash is allowed)
-		if collection == "" {
+		if segment == "" {
 			continue
 		}
-		if n == 0 && collection == catcommon.DefaultNamespace {
-			continue // Skip the first segment if it's the default namespace
-		}
 		// Validate each folder name using the regex
-		if !re.MatchString(collection) {
+		if !re.MatchString(segment) {
 			return false
 		}
 	}
@@ -114,36 +89,30 @@ func resourcePathValidator(fl validator.FieldLevel) bool {
 	return true
 }
 
-func workspaceNameValidator(fl validator.FieldLevel) bool {
-	name := fl.Field().String()
-	_, err := uuid.Parse(name)
-	if err == nil {
-		return true
-	}
-	return resourceNameValidator(fl)
-}
-
 func requireVersionV1(fl validator.FieldLevel) bool {
 	version := fl.Field().String()
 	return version == catcommon.VersionV1
 }
 
-func ValidateSchemaName(name string) bool {
+func ValidateKindName(name string) bool {
 	re := regexp.MustCompile(resourceNameRegex)
 	return re.MatchString(name)
 }
 
-func ValidateSchemaKind(kind string) bool {
+func ValidateKind(kind string) bool {
 	return slices.Contains(validKinds, kind)
+}
+
+func ValidatePathSegment(segment string) bool {
+	re := regexp.MustCompile(resourceNameRegex)
+	return re.MatchString(segment)
 }
 
 func init() {
 	V().RegisterValidation("kindValidator", kindValidator)
 	V().RegisterValidation("resourceNameValidator", resourceNameValidator)
-	V().RegisterValidation("nameFormatValidator", nameFormatValidator)
 	V().RegisterValidation("noSpaces", noSpacesValidator)
 	V().RegisterValidation("resourcePathValidator", resourcePathValidator)
 	V().RegisterValidation("notNull", notNull)
 	V().RegisterValidation("requireVersionV1", requireVersionV1)
-	V().RegisterValidation("workspaceNameValidator", workspaceNameValidator)
 }

@@ -38,6 +38,8 @@ type View struct {
 	CatalogID   uuid.UUID          `db:"catalog_id"`
 	TenantID    catcommon.TenantId `db:"tenant_id"`
 	Catalog     string             `db:"-"`
+	CreatedBy   string             `db:"created_by"`
+	UpdatedBy   string             `db:"updated_by"`
 	CreatedAt   time.Time          `db:"created_at"`
 	UpdatedAt   time.Time          `db:"updated_at"`
 }

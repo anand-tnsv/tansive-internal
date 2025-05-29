@@ -2,9 +2,10 @@ package catalogmanager
 
 import (
 	"context"
-	json "github.com/json-iterator/go"
 	"errors"
 	"reflect"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -102,14 +103,14 @@ func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, ca
 
 	// replace name and catalog if not empty
 	if name != "" {
-		if !schemavalidator.ValidateSchemaName(name) {
+		if !schemavalidator.ValidateKindName(name) {
 			return nil, ErrInvalidNameFormat
 		}
 		vs.Metadata.Name = name
 	}
 
 	if catalog != "" {
-		if !schemavalidator.ValidateSchemaName(catalog) {
+		if !schemavalidator.ValidateKindName(catalog) {
 			return nil, ErrInvalidCatalog
 		}
 		vs.Metadata.Catalog = catalog

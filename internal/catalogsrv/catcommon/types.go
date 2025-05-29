@@ -1,8 +1,6 @@
 package catcommon
 
 import (
-	"slices"
-
 	"github.com/google/uuid"
 )
 
@@ -25,51 +23,34 @@ func (u CatalogId) IsNil() bool {
 }
 
 const (
-	CatalogKind          = "Catalog"
-	VariantKind          = "Variant"
-	NamespaceKind        = "Namespace"
-	WorkspaceKind        = "Workspace"
-	ParameterSchemaKind  = "ParameterSchema"
-	CollectionSchemaKind = "CollectionSchema"
-	CollectionKind       = "Collection"
-	ResourceKind         = "Resource"
-	AttributeKind        = "Attribute"
-	ViewKind             = "View"
-	InvalidKind          = "InvalidKind"
+	CatalogKind   = "Catalog"
+	VariantKind   = "Variant"
+	NamespaceKind = "Namespace"
+	ResourceKind  = "Resource"
+	ViewKind      = "View"
+	InvalidKind   = "InvalidKind"
 )
 
 const (
-	ResourceNameCatalogs          = "catalogs"
-	ResourceNameVariants          = "variants"
-	ResourceNameNamespaces        = "namespaces"
-	ResourceNameWorkspaces        = "workspaces"
-	ResourceNameParameterSchemas  = "parameterschemas"
-	ResourceNameCollectionSchemas = "collectionschemas"
-	ResourceNameCollections       = "collections"
-	ResourceNameAttributes        = "attributes"
-	ResourceNameViews             = "views"
-	ResourceNameResources         = "resources"
+	KindNameCatalogs   = "catalogs"
+	KindNameVariants   = "variants"
+	KindNameNamespaces = "namespaces"
+	KindNameViews      = "views"
+	KindNameResources  = "resources"
 )
 
-func ResourceURIs() []string {
+func ValidKindNames() []string {
 	return []string{
-		ResourceNameParameterSchemas,
-		ResourceNameCollectionSchemas,
-		ResourceNameCollections,
-		ResourceNameAttributes,
-		ResourceNameViews,
-		ResourceNameResources,
+		KindNameCatalogs,
+		KindNameVariants,
+		KindNameNamespaces,
+		KindNameViews,
+		KindNameResources,
 	}
 }
 
 func Kind(t CatalogObjectType) string {
 	switch t {
-	case CatalogObjectTypeParameterSchema:
-		return ParameterSchemaKind
-	case CatalogObjectTypeCollectionSchema:
-		return CollectionSchemaKind
-	case CatalogObjectTypeCatalogCollection:
-		return CollectionKind
 	case CatalogObjectTypeResource:
 		return ResourceKind
 	default:
@@ -77,62 +58,30 @@ func Kind(t CatalogObjectType) string {
 	}
 }
 
-func KindFromResourceName(uri string) string {
+func KindFromKindName(uri string) string {
 	switch uri {
-	case ResourceNameCatalogs:
+	case KindNameCatalogs:
 		return CatalogKind
-	case ResourceNameVariants:
+	case KindNameVariants:
 		return VariantKind
-	case ResourceNameNamespaces:
+	case KindNameNamespaces:
 		return NamespaceKind
-	case ResourceNameWorkspaces:
-		return WorkspaceKind
-	case ResourceNameParameterSchemas:
-		return ParameterSchemaKind
-	case ResourceNameCollectionSchemas:
-		return CollectionSchemaKind
-	case ResourceNameCollections:
-		return CollectionKind
-	case ResourceNameAttributes:
-		return AttributeKind
-	case ResourceNameViews:
+	case KindNameViews:
 		return ViewKind
-	case ResourceNameResources:
+	case KindNameResources:
 		return ResourceKind
 	default:
 		return InvalidKind
 	}
 }
 
-func ResourceNameFromObjectType(t CatalogObjectType) string {
+func KindNameFromObjectType(t CatalogObjectType) string {
 	switch t {
-	case CatalogObjectTypeParameterSchema:
-		return "parameterschemas"
-	case CatalogObjectTypeCollectionSchema:
-		return "collectionschemas"
-	case CatalogObjectTypeCatalogCollection:
-		return "collections"
 	case CatalogObjectTypeResource:
 		return "resources"
 	default:
 		return ""
 	}
-}
-
-var validResourceNameAndMethod = map[string][]string{
-	ResourceNameCollections:       {"POST", "GET", "PUT", "DELETE"},
-	ResourceNameParameterSchemas:  {"POST", "GET", "PUT", "DELETE"},
-	ResourceNameCollectionSchemas: {"POST", "GET", "PUT", "DELETE"},
-	ResourceNameAttributes:        {"GET", "POST", "DELETE"},
-}
-
-func IsValidResourceNameAndMethod(r string, m string) bool {
-	if methods, ok := validResourceNameAndMethod[r]; ok {
-		if slices.Contains(methods, m) {
-			return true
-		}
-	}
-	return false
 }
 
 const (
@@ -142,23 +91,13 @@ const (
 type CatalogObjectType string
 
 const (
-	CatalogObjectTypeInvalid           CatalogObjectType = "invalid"
-	CatalogObjectTypeUnknown           CatalogObjectType = "unknown"
-	CatalogObjectTypeSchema            CatalogObjectType = "schema"
-	CatalogObjectTypeParameterSchema   CatalogObjectType = "parameter_schema"
-	CatalogObjectTypeCollectionSchema  CatalogObjectType = "collection_schema"
-	CatalogObjectTypeCatalogCollection CatalogObjectType = "collection"
-	CatalogObjectTypeResource          CatalogObjectType = "resource"
+	CatalogObjectTypeInvalid  CatalogObjectType = "invalid"
+	CatalogObjectTypeUnknown  CatalogObjectType = "unknown"
+	CatalogObjectTypeResource CatalogObjectType = "resource"
 )
 
 func CatalogObjectTypeFromKind(k string) CatalogObjectType {
 	switch k {
-	case ParameterSchemaKind:
-		return CatalogObjectTypeParameterSchema
-	case CollectionSchemaKind:
-		return CatalogObjectTypeCollectionSchema
-	case CollectionKind:
-		return CatalogObjectTypeCatalogCollection
 	case ResourceKind:
 		return CatalogObjectTypeResource
 	default:

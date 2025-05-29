@@ -2,11 +2,11 @@ package policy
 
 import (
 	"context"
-	json "github.com/json-iterator/go"
 	"errors"
 	"reflect"
-	"sort"
 	"strings"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -19,26 +19,20 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 // viewSchema represents the structure of a view definition
 type viewSchema struct {
-	Version  string       `json:"version" validate:"required,requireVersionV1"`
-	Kind     string       `json:"kind" validate:"required,kindValidator"`
-	Metadata viewMetadata `json:"metadata" validate:"required"`
-	Spec     viewSpec     `json:"spec" validate:"required"`
-}
-
-// viewMetadata contains metadata about a view
-type viewMetadata struct {
-	Name        string `json:"name" validate:"required,resourceNameValidator"`
-	Catalog     string `json:"catalog" validate:"required,resourceNameValidator"`
-	Description string `json:"description"`
+	Version  string              `json:"version" validate:"required,requireVersionV1"`
+	Kind     string              `json:"kind" validate:"required,kindValidator"`
+	Metadata interfaces.Metadata `json:"metadata" validate:"required"`
+	Spec     viewSpec            `json:"spec" validate:"required"`
 }
 
 // viewSpec contains the spec of a view
 type viewSpec struct {
-	Definition ViewDefinition `json:"definition" validate:"required"`
+	Rules Rules `json:"rules" validate:"required,dive"`
 }
 
 // Validate performs validation on the view schema and returns any validation errors.
@@ -50,20 +44,14 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 	err := schemavalidator.V().Struct(v)
 	if err == nil {
 		// Check for empty rules after struct validation
-		if len(v.Spec.Definition.Rules) == 0 {
+		if len(v.Spec.Rules) == 0 {
 			validationErrors = append(validationErrors, schemaerr.ErrMissingRequiredAttribute("spec.rules"))
 		}
-		for _, rule := range v.Spec.Definition.Rules {
-			if len(rule.Targets) == 0 {
-				m := CanonicalizeResourcePath(v.Spec.Definition.Scope, "")
-				if m == "" || schemavalidator.V().Var(m, "resourceURIValidator") != nil {
-					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI("null"))
-				}
-			}
-			for _, res := range rule.Targets {
-				m := CanonicalizeResourcePath(v.Spec.Definition.Scope, res)
-				if m == "" || schemavalidator.V().Var(m, "resourceURIValidator") != nil {
-					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI(string(res)))
+		for _, rule := range v.Spec.Rules {
+			for _, target := range rule.Targets {
+				err := validateResourceURI(string(target))
+				if err != nil {
+					validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI(string(target)+": "+err.Error()))
 				}
 			}
 		}
@@ -91,8 +79,6 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind(jsonFieldName))
 		case "requireVersionV1":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidVersion(jsonFieldName))
-		case "resourceURIValidator":
-			validationErrors = append(validationErrors, schemaerr.ErrInvalidResourceURI(jsonFieldName))
 		case "viewRuleIntentValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleIntent(jsonFieldName))
 		case "viewRuleActionValidator":
@@ -109,125 +95,118 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 // parseAndValidateView parses a JSON byte slice into a viewSchema, validates it,
 // and optionally overrides the name and catalog fields.
 // Returns an error if the JSON is invalid or the schema validation fails.
-func parseAndValidateView(resourceJSON []byte, viewName string, catalog string) (*viewSchema, apperrors.Error) {
+func parseAndValidateView(ctx context.Context, resourceJSON []byte, m *interfaces.Metadata) (*viewSchema, apperrors.Error) {
 	view := &viewSchema{}
 	if err := json.Unmarshal(resourceJSON, view); err != nil {
 		return nil, ErrInvalidView.Msg("failed to parse view spec")
 	}
 
-	if catalog != "" {
-		view.Metadata.Catalog = catalog
+	if m.Catalog != "" {
+		view.Metadata.Catalog = m.Catalog
 	}
 
-	if viewName != "" {
-		view.Metadata.Name = viewName
+	if !m.Variant.IsNil() {
+		view.Metadata.Variant = m.Variant
+	}
+
+	if !m.Namespace.IsNil() {
+		view.Metadata.Namespace = m.Namespace
 	}
 
 	if err := view.Validate(); err != nil {
 		return nil, ErrInvalidSchema.Err(err)
 	}
 
+	if err := resolveMetadataIDS(ctx, &view.Metadata); err != nil {
+		return nil, err
+	}
+
 	return view, nil
 }
 
-// resolveCatalogID resolves the catalog ID from context or by name.
-func resolveCatalogID(ctx context.Context, catalogName string) (uuid.UUID, apperrors.Error) {
-	catalogID := catcommon.GetCatalogID(ctx)
-	if catalogID == uuid.Nil {
+// resolveMetadataIDS resolves the catalogID and variantID
+func resolveMetadataIDS(ctx context.Context, m *interfaces.Metadata) apperrors.Error {
+	if m.IDS.CatalogID == uuid.Nil {
 		var err apperrors.Error
-		catalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, catalogName)
+		m.IDS.CatalogID, err = db.DB(ctx).GetCatalogIDByName(ctx, m.Catalog)
 		if err != nil {
 			if errors.Is(err, dberror.ErrNotFound) {
-				return uuid.Nil, ErrCatalogNotFound.New("catalog not found: " + catalogName)
+				return ErrCatalogNotFound.New("catalog not found: " + m.Catalog)
 			}
 			log.Ctx(ctx).Error().Err(err).Msg("failed to load catalog")
-			return uuid.Nil, err
+			return ErrUnableToLoadObject.Msg("unable to load catalog")
 		}
 	}
-	return catalogID, nil
+
+	if m.IDS.VariantID == uuid.Nil && !m.Variant.IsNil() {
+		var err apperrors.Error
+		variant, err := db.DB(ctx).GetVariant(ctx, m.IDS.CatalogID, uuid.Nil, m.Variant.String())
+		if err != nil {
+			if errors.Is(err, dberror.ErrNotFound) {
+				return ErrVariantNotFound.New("variant not found: " + m.Variant.String())
+			}
+			log.Ctx(ctx).Error().Err(err).Msg("failed to load variant")
+			return ErrUnableToLoadObject.Msg("unable to load variant")
+		}
+		m.IDS.VariantID = variant.VariantID
+	}
+	return nil
 }
 
 // createViewModel creates a view model from a view schema and catalog ID.
-func createViewModel(view *viewSchema, catalogID uuid.UUID) (*models.View, apperrors.Error) {
-	view.Spec.Definition.Scope.Catalog = view.Metadata.Catalog // ensure catalog in scope the same as the view
-	rulesJSON, err := view.Spec.Definition.ToJSON()
+// The view definition is bound to the view metadata.  The rules specified are relative to
+// the scope of the view definition.
+const (
+	ViewPurposeCreate = "create"
+	ViewPurposeUpdate = "update"
+)
+
+func createViewModel(ctx context.Context, view *viewSchema, purpose string) (*models.View, apperrors.Error) {
+	viewDef := ViewDefinition{}
+
+	viewDef.Scope.Catalog = view.Metadata.Catalog
+	viewDef.Scope.Variant = view.Metadata.Variant.String()
+	viewDef.Scope.Namespace = view.Metadata.Namespace.String()
+	viewDef.Rules = view.Spec.Rules
+
+	rulesJSON, err := viewDef.ToJSON()
 	if err != nil {
 		return nil, ErrInvalidView.New("failed to marshal rules: " + err.Error())
 	}
 
-	return &models.View{
+	userContext := catcommon.GetUserContext(ctx)
+	if userContext == nil || userContext.UserID == "" {
+		return nil, dberror.ErrMissingUserContext.Msg("missing user context")
+	}
+	principal := "user/" + userContext.UserID
+
+	viewModel := &models.View{
 		Label:       view.Metadata.Name,
 		Description: view.Metadata.Description,
 		Info:        nil,
 		Rules:       rulesJSON,
-		CatalogID:   catalogID,
-	}, nil
-}
-
-// removeDuplicates removes duplicate elements from a slice while preserving order.
-// Returns a new slice containing only unique elements in their original order.
-func removeDuplicates[T comparable](slice []T) []T {
-	if len(slice) == 0 {
-		return slice
+		CatalogID:   view.Metadata.IDS.CatalogID,
 	}
-
-	seen := make(map[T]struct{}, len(slice))
-	unique := make([]T, 0, len(slice))
-
-	for _, v := range slice {
-		if _, exists := seen[v]; !exists {
-			seen[v] = struct{}{}
-			unique = append(unique, v)
-		}
+	if purpose == ViewPurposeCreate {
+		viewModel.CreatedBy = principal
 	}
-
-	// If no duplicates were found, return the original slice
-	if len(unique) == len(slice) {
-		return slice
+	if purpose == ViewPurposeUpdate {
+		viewModel.UpdatedBy = principal
 	}
-
-	return unique
-}
-
-// deduplicateRules removes duplicate actions and targets from each rule in the ViewRuleSet.
-// Returns a new ViewRuleSet with all duplicates removed while preserving the original order.
-func deduplicateRules(rules Rules) Rules {
-	if len(rules) == 0 {
-		return rules
-	}
-
-	result := make(Rules, len(rules))
-	for i, rule := range rules {
-		result[i] = Rule{
-			Intent:  rule.Intent,
-			Actions: removeDuplicates(rule.Actions),
-			Targets: removeDuplicates(rule.Targets),
-		}
-	}
-	return result
+	return viewModel, nil
 }
 
 // CreateView creates a new view in the database.
-func CreateView(ctx context.Context, resourceJSON []byte, catalog string) (*models.View, apperrors.Error) {
-	projectID := catcommon.GetProjectID(ctx)
-	if projectID == "" {
-		return nil, ErrInvalidProject
-	}
-
-	view, err := parseAndValidateView(resourceJSON, "", catalog)
-	if err != nil {
+func CreateView(ctx context.Context, resourceJSON []byte, m *interfaces.Metadata) (*models.View, apperrors.Error) {
+	view, err := parseAndValidateView(ctx, resourceJSON, m)
+	if err != nil || view == nil {
 		return nil, err
 	}
 
 	// Remove duplicates from rules
-	view.Spec.Definition.Rules = deduplicateRules(view.Spec.Definition.Rules)
+	view.Spec.Rules = deduplicateRules(view.Spec.Rules)
 
-	catalogID, err := resolveCatalogID(ctx, view.Metadata.Catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	v, err := createViewModel(view, catalogID)
+	v, err := createViewModel(ctx, view, ViewPurposeCreate)
 	if err != nil {
 		return nil, err
 	}
@@ -244,26 +223,15 @@ func CreateView(ctx context.Context, resourceJSON []byte, catalog string) (*mode
 }
 
 // UpdateView updates an existing view in the database.
-func UpdateView(ctx context.Context, resourceJSON []byte, viewName string, catalog string) (*models.View, apperrors.Error) {
-	projectID := catcommon.GetProjectID(ctx)
-	if projectID == "" {
-		return nil, ErrInvalidProject
-	}
-
-	view, err := parseAndValidateView(resourceJSON, viewName, catalog)
+func UpdateView(ctx context.Context, resourceJSON []byte, m *interfaces.Metadata) (*models.View, apperrors.Error) {
+	view, err := parseAndValidateView(ctx, resourceJSON, m)
 	if err != nil {
 		return nil, err
 	}
 
-	// Remove duplicates from rules
-	view.Spec.Definition.Rules = deduplicateRules(view.Spec.Definition.Rules)
+	view.Spec.Rules = deduplicateRules(view.Spec.Rules)
 
-	catalogID, err := resolveCatalogID(ctx, view.Metadata.Catalog)
-	if err != nil {
-		return nil, err
-	}
-
-	v, err := createViewModel(view, catalogID)
+	v, err := createViewModel(ctx, view, ViewPurposeUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +264,18 @@ func (v *viewKind) Location() string {
 
 // Create creates a new view resource.
 func (v *viewKind) Create(ctx context.Context, resourceJSON []byte) (string, apperrors.Error) {
-	view, err := CreateView(ctx, resourceJSON, v.reqCtx.Catalog)
+	m := &interfaces.Metadata{}
+	m.Catalog = v.reqCtx.Catalog
+	if v.reqCtx.Variant != "" {
+		m.Variant = types.NullableStringFrom(v.reqCtx.Variant)
+	}
+	if v.reqCtx.Namespace != "" {
+		m.Namespace = types.NullableStringFrom(v.reqCtx.Namespace)
+	}
+	m.IDS.CatalogID = v.reqCtx.CatalogID
+	m.IDS.VariantID = v.reqCtx.VariantID
+
+	view, err := CreateView(ctx, resourceJSON, m)
 	if err != nil {
 		return "", err
 	}
@@ -325,20 +304,32 @@ func (v *viewKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	viewSchema := &viewSchema{
 		Version: catcommon.VersionV1,
 		Kind:    catcommon.ViewKind,
-		Metadata: viewMetadata{
+		Metadata: interfaces.Metadata{
 			Name:        view.Label,
-			Catalog:     v.reqCtx.Catalog,
 			Description: view.Description,
 		},
 	}
 
 	// Parse the rules from the view model
-	var definition ViewDefinition
-	if err := json.Unmarshal(view.Rules, &definition); err != nil {
+	var viewDef ViewDefinition
+	if err := json.Unmarshal(view.Rules, &viewDef); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal view rules")
 		return nil, ErrUnableToLoadObject.Msg("unable to unmarshal view rules")
 	}
-	viewSchema.Spec.Definition = definition
+
+	viewSchema.Spec.Rules = viewDef.Rules
+
+	if viewDef.Scope.Catalog != v.reqCtx.Catalog {
+		return nil, ErrInvalidView.New("view catalog does not match request catalog")
+	}
+
+	viewSchema.Metadata.Catalog = viewDef.Scope.Catalog
+	if viewDef.Scope.Variant != "" {
+		viewSchema.Metadata.Variant = types.NullableStringFrom(viewDef.Scope.Variant)
+	}
+	if viewDef.Scope.Namespace != "" {
+		viewSchema.Metadata.Namespace = types.NullableStringFrom(viewDef.Scope.Namespace)
+	}
 
 	jsonData, e := json.Marshal(viewSchema)
 	if e != nil {
@@ -369,11 +360,22 @@ func (v *viewKind) Delete(ctx context.Context) apperrors.Error {
 
 // Update modifies an existing view resource.
 func (v *viewKind) Update(ctx context.Context, resourceJSON []byte) apperrors.Error {
-	view, err := UpdateView(ctx, resourceJSON, v.reqCtx.ObjectName, v.reqCtx.Catalog)
+	m := &interfaces.Metadata{}
+	m.Catalog = v.reqCtx.Catalog
+	if v.reqCtx.Variant != "" {
+		m.Variant = types.NullableStringFrom(v.reqCtx.Variant)
+	}
+	if v.reqCtx.Namespace != "" {
+		m.Namespace = types.NullableStringFrom(v.reqCtx.Namespace)
+	}
+	m.IDS.CatalogID = v.reqCtx.CatalogID
+	m.IDS.VariantID = v.reqCtx.VariantID
+
+	_, err := UpdateView(ctx, resourceJSON, m)
 	if err != nil {
 		return err
 	}
-	v.view = view
+
 	return nil
 }
 
@@ -427,126 +429,4 @@ func NewViewKindHandler(ctx context.Context, reqCtx interfaces.RequestContext) (
 	return &viewKind{
 		reqCtx: reqCtx,
 	}, nil
-}
-
-// ValidateDerivedView ensures that a derived view is valid with respect to its parent view.
-// It ensures that the derived view's scope is the same as the parent's and that all rules in the derived view
-// are permissible by the parent view.
-func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *ViewDefinition) apperrors.Error {
-	if parent == nil || child == nil {
-		return ErrInvalidView
-	}
-
-	parent = CanonicalizeViewDefinition(parent)
-	child = CanonicalizeViewDefinition(child)
-
-	if !child.Rules.IsSubsetOf(parent.Rules) {
-		return ErrInvalidView.New("derived view rules must be a subset of parent view rules")
-	}
-
-	return nil
-}
-
-// CanonicalizeResourcePath transforms a resource string based on the provided scope.
-// It handles the conversion of resource paths and ensures proper formatting
-// of catalog, variant, workspace, and namespace components.
-func CanonicalizeResourcePath(scope Scope, resource TargetResource) TargetResource {
-	segments, resourceName, err := extractSegmentsAndResourceName(resource)
-	if err != nil && len(resource) > 0 {
-		return ""
-	}
-
-	var metadata string
-	if len(segments) > 0 {
-		metadata = string(segments[0])
-	}
-
-	resourceKV := extractKV(metadata)
-
-	var morphedMetadata = make(map[string]resourceMetadataValue)
-
-	morphedMetadata[catcommon.ResourceNameCatalogs] = morphMetadata(scope.Catalog, 0, catcommon.ResourceNameCatalogs, resourceKV)
-	morphedMetadata[catcommon.ResourceNameVariants] = morphMetadata(scope.Variant, 1, catcommon.ResourceNameVariants, resourceKV)
-	morphedMetadata[catcommon.ResourceNameNamespaces] = morphMetadata(scope.Namespace, 2, catcommon.ResourceNameNamespaces, resourceKV)
-
-	s := strings.Builder{}
-	s.WriteString(catcommon.ResourceNameCatalogs + "/" + morphedMetadata[catcommon.ResourceNameCatalogs].value)
-	if morphedMetadata[catcommon.ResourceNameVariants].value != "" {
-		s.WriteString("/" + catcommon.ResourceNameVariants + "/" + morphedMetadata[catcommon.ResourceNameVariants].value)
-	}
-	if morphedMetadata[catcommon.ResourceNameWorkspaces].value != "" {
-		s.WriteString("/" + catcommon.ResourceNameWorkspaces + "/" + morphedMetadata[catcommon.ResourceNameWorkspaces].value)
-	}
-	if morphedMetadata[catcommon.ResourceNameNamespaces].value != "" {
-		s.WriteString("/" + catcommon.ResourceNameNamespaces + "/" + morphedMetadata[catcommon.ResourceNameNamespaces].value)
-	}
-
-	// write remaining segments in metadata in sorted order. Usually this will end up as erroneous segments
-	// but, this will be caught by the validator and result in a meaningful error message.
-	type kv struct {
-		key   string
-		value resourceMetadataValue
-	}
-	var sorted []kv = make([]kv, len(resourceKV))
-	for k, v := range resourceKV {
-		sorted = append(sorted, kv{k, v})
-	}
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].value.pos < sorted[j].value.pos
-	})
-	for _, v := range sorted {
-		if v.key == "" {
-			continue
-		}
-		if v.value.value == "" {
-			s.WriteString("/" + v.key)
-		} else {
-			s.WriteString("/" + v.key + "/" + v.value.value)
-		}
-	}
-
-	if resourceName != "" {
-		resourceName = strings.TrimPrefix(resourceName, "/")
-		s.WriteString("/" + resourceName)
-	}
-	if len(segments) > 1 {
-		path := strings.TrimPrefix(string(segments[1]), "/")
-		segments[1] = TargetResource(path)
-		s.WriteString("/" + path)
-	}
-
-	canonicalized := TargetResource("res://" + s.String())
-	return canonicalized
-}
-
-// morphMetadata processes a single metadata field based on scope name and resource type.
-// Returns a resourceMetadataValue with the appropriate position and value.
-func morphMetadata(scopeName string, pos int, resourceType string, resourceMetadata map[string]resourceMetadataValue) resourceMetadataValue {
-	m := resourceMetadataValue{}
-	m.pos = pos
-	if scopeName == "" {
-		if v, ok := resourceMetadata[resourceType]; ok {
-			m.value = v.value
-			if v.value == "" {
-				return m
-			}
-		}
-	} else {
-		m.value = scopeName
-	}
-	delete(resourceMetadata, resourceType)
-	return m
-}
-
-// CanonicalizeViewDefinition canonicalizes all targets in the view definition to its scope
-func CanonicalizeViewDefinition(vd *ViewDefinition) *ViewDefinition {
-	if vd == nil {
-		return nil
-	}
-	for i, rule := range vd.Rules {
-		for j, target := range rule.Targets {
-			vd.Rules[i].Targets[j] = TargetResource(CanonicalizeResourcePath(vd.Scope, target))
-		}
-	}
-	return vd
 }

@@ -227,7 +227,7 @@ func TestResourceManagerValueOperations(t *testing.T) {
 		}
 	}`
 
-	metadata := &interfaces.SchemaMetadata{
+	metadata := &interfaces.Metadata{
 		Name:      "test-resource",
 		Catalog:   "test-catalog",
 		Namespace: types.NullableStringFrom("default"),

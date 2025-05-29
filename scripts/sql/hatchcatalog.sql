@@ -136,6 +136,8 @@ CREATE TABLE IF NOT EXISTS views (
   info JSONB,
   rules JSONB NOT NULL,
   catalog_id UUID NOT NULL,
+  created_by VARCHAR(128) NOT NULL,
+  updated_by VARCHAR(128) NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),

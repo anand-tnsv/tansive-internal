@@ -17,7 +17,7 @@ import (
 )
 
 // Modifying this struct should also change the json
-type SchemaMetadata struct {
+type Metadata struct {
 	Name        string               `json:"name" validate:"required,resourceNameValidator"`
 	Catalog     string               `json:"catalog" validate:"required,resourceNameValidator"`
 	Variant     types.NullableString `json:"variant,omitempty" validate:"resourceNameValidator"`
@@ -32,10 +32,10 @@ type IDS struct {
 	VariantID uuid.UUID
 }
 
-var _ stdjson.Marshaler = SchemaMetadata{}
-var _ stdjson.Marshaler = &SchemaMetadata{}
+var _ stdjson.Marshaler = Metadata{}
+var _ stdjson.Marshaler = &Metadata{}
 
-func (rs *SchemaMetadata) Validate() schemaerr.ValidationErrors {
+func (rs *Metadata) Validate() schemaerr.ValidationErrors {
 	var ves schemaerr.ValidationErrors
 	err := schemavalidator.V().Struct(rs)
 	if err == nil {
@@ -67,7 +67,7 @@ func (rs *SchemaMetadata) Validate() schemaerr.ValidationErrors {
 	return ves
 }
 
-func (s SchemaMetadata) MarshalJSON() ([]byte, error) {
+func (s Metadata) MarshalJSON() ([]byte, error) {
 	m := make(map[string]any)
 
 	m["name"] = s.Name
@@ -87,7 +87,7 @@ func (s SchemaMetadata) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
-func (m SchemaMetadata) GetStoragePath(t catcommon.CatalogObjectType) string {
+func (m Metadata) GetStoragePath(t catcommon.CatalogObjectType) string {
 	_ = t // unused
 	if m.Namespace.IsNil() {
 		return path.Clean("/" + catcommon.DefaultNamespace + "/" + m.Path)
@@ -96,12 +96,12 @@ func (m SchemaMetadata) GetStoragePath(t catcommon.CatalogObjectType) string {
 	}
 }
 
-func (m SchemaMetadata) GetEntropyBytes(t catcommon.CatalogObjectType) []byte {
+func (m Metadata) GetEntropyBytes(t catcommon.CatalogObjectType) []byte {
 	entropy := m.Catalog + ":" + string(t)
 	return []byte(entropy)
 }
 
-func (m *SchemaMetadata) SetNameAndPathFromStoragePath(storagePath string) {
+func (m *Metadata) SetNameAndPathFromStoragePath(storagePath string) {
 	m.Name = path.Base(storagePath)
 	m.Path = path.Dir(storagePath)
 	m.Path = strings.TrimPrefix(m.Path, "/"+catcommon.DefaultNamespace)

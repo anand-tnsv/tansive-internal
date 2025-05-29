@@ -21,6 +21,12 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 		return dberror.ErrMissingTenantID
 	}
 
+	userContext := catcommon.GetUserContext(ctx)
+	if userContext == nil || userContext.UserID == "" {
+		return dberror.ErrMissingUserContext.Msg("missing user context")
+	}
+	principal := "user/" + userContext.UserID
+
 	projectID := catcommon.GetProjectID(ctx)
 	if projectID == "" {
 		return dberror.ErrInvalidInput.Msg("project ID is required")
@@ -86,7 +92,7 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 	viewDefJSON := `
 	{
 		"scope": {
-			"catalog": "` + catalog.Name + `"
+			"catalog_id": "` + catalog.CatalogID.String() + `"
 		},
 		"rules": [
 			{
@@ -104,6 +110,8 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 		Description: "default admin view",
 		Info:        nil,
 		Rules:       []byte(viewDefJSON),
+		CreatedBy:   principal,
+		UpdatedBy:   principal,
 	}
 	err = mm.createViewWithTransaction(ctx, &view, tx)
 

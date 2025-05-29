@@ -70,7 +70,7 @@ func hydrateRequestContext(r *http.Request) (interfaces.RequestContext, error) {
 }
 
 func getResourceKind(r *http.Request) string {
-	return catcommon.KindFromResourceName(getResourceNameFromPath(r))
+	return catcommon.KindFromKindName(getResourceNameFromPath(r))
 }
 
 func getResourceNameFromPath(r *http.Request) string {

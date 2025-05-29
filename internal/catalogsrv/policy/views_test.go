@@ -1,8 +1,7 @@
 package policy
 
 import (
-	"context"
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -38,22 +37,17 @@ func TestCreateView(t *testing.T) {
 		        "description": "This is a valid view"
 		    },
 		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "validcatalog"
-		            },
-		            "rules": [{
-		                "intent": "Allow",
-		                "actions": ["catalog.list"],
-		                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant/resources/coll-schema"]
-		            }]
-		        }
+		        "rules": [{
+		            "intent": "Allow",
+		            "actions": ["catalog.list"],
+		            "targets": ["res://variants/my-variant/resources/coll-schema"]
+		        }]
 		    }
 		}`,
 			expected: nil,
 		},
 		{
-			name: "valid view",
+			name: "valid view 2",
 			jsonData: `
 		{
 		    "version": "v1",
@@ -64,19 +58,14 @@ func TestCreateView(t *testing.T) {
 		        "description": "This is a valid view"
 		    },
 		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "validcatalog"
-		            },
-		            "rules": [{
-		                "intent": "Allow",
-		                "actions": ["catalog.list"],
-		                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant/collectionschemas"]
-		            }]
-		        }
+		        "rules": [{
+		            "intent": "Allow",
+		            "actions": ["catalog.list"],
+		            "targets": ["res://variants/my-variant/collectionschemas"]
+		        }]
 		    }
 		}`,
-			expected: ErrInvalidSchema,
+			expected: nil,
 		},
 		{
 			name: "valid view",
@@ -90,16 +79,11 @@ func TestCreateView(t *testing.T) {
 		        "description": "This is a valid view"
 		    },
 		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "validcatalog"
-		            },
-		            "rules": [{
-		                "intent": "Allow",
-		                "actions": ["catalog.list"],
-		                "targets": ["res://catalogs/validcatalog", "res://resources/*"]
-		            }]
-		        }
+		        "rules": [{
+		            "intent": "Allow",
+		            "actions": ["catalog.list"],
+		            "targets": ["res://resources/*"]
+		        }]
 		    }
 		}`,
 			expected: nil,
@@ -116,16 +100,11 @@ func TestCreateView(t *testing.T) {
 		        "description": "This is a valid view"
 		    },
 		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "validcatalog"
-		            },
-		            "rules": [{
-		                "intent": "Allow",
-		                "actions": ["catalog.list"],
-		                "targets": ["res://catalogs/validcatalog", "res://resources/*"]
-		            }]
-		        }
+		        "rules": [{
+		            "intent": "Allow",
+		            "actions": ["catalog.list"],
+		            "targets": ["res://resources/*"]
+		        }]
 		    }
 		}`,
 			expected: nil,
@@ -142,12 +121,7 @@ func TestCreateView(t *testing.T) {
 				        "description": "View with empty rules"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": []
-				        }
+				        "rules": []
 				    }
 				}`,
 			expected: ErrInvalidSchema,
@@ -164,16 +138,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "Invalid version in view"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list"],
-				                "targets": ["res://catalogs/validcatalog"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Allow",
+				            "actions": ["catalog.list"],
+				            "targets": ["res://catalogs/validcatalog"]
+				        }]
 				    }
 				}`,
 			expected: ErrInvalidSchema,
@@ -190,16 +159,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "Invalid kind in view"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list"],
-				                "targets": ["res://catalogs/validcatalog"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Allow",
+				            "actions": ["catalog.list"],
+				            "targets": ["res://catalogs/validcatalog"]
+				        }]
 				    }
 				}`,
 			expected: ErrInvalidSchema,
@@ -216,16 +180,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "Invalid name format in view"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list"],
-				                "targets": ["res://catalogs/validcatalog"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Allow",
+				            "actions": ["catalog.list"],
+				            "targets": ["res://catalogs/validcatalog"]
+				        }]
 				    }
 				}`,
 			expected: ErrInvalidSchema,
@@ -242,16 +201,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "Invalid rule effect in view"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Invalid",
-				                "actions": ["catalog.list"],
-				                "targets": ["res://catalogs/validcatalog"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Invalid",
+				            "actions": ["catalog.list"],
+				            "targets": ["res://catalogs/validcatalog"]
+				        }]
 				    }
 				}`,
 			expected: ErrInvalidSchema,
@@ -268,16 +222,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "Invalid rule action in view"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["Invalid"],
-				                "targets": ["res://catalogs/validcatalog"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Allow",
+				            "actions": ["Invalid"],
+				            "targets": ["res://catalogs/validcatalog"]
+				        }]
 				    }
 				}`,
 			expected: ErrInvalidSchema,
@@ -294,16 +243,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "Invalid resource URI in view"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list"],
-				                "targets": ["invalid-uri", "res://invalid-format", "res://catalogs/InvalidCase"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Allow",
+				            "actions": ["catalog.list"],
+				            "targets": ["invalid-uri", "res://invalid-format", "res://InvalidCase"]
+				        }]
 				    }
 				}`,
 			expected: ErrInvalidSchema,
@@ -320,16 +264,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "This is a valid view with multiple actions"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list", "variant.list", "namespace.list"],
-				                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Allow",
+				            "actions": ["catalog.list", "variant.list", "namespace.list"],
+				            "targets": ["res://variants/my-variant"]
+				        }]
 				    }
 				}`,
 			expected: nil,
@@ -346,16 +285,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "View with mixed valid and invalid actions"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list", "InvalidAction", "variant.list"],
-				                "targets": ["res://catalogs/validcatalog"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Allow",
+				            "actions": ["catalog.list", "InvalidAction", "variant.list"],
+				            "targets": ["res://catalogs/validcatalog"]
+				        }]
 				    }
 				}`,
 			expected: ErrInvalidSchema,
@@ -372,16 +306,11 @@ func TestCreateView(t *testing.T) {
 				        "description": "Test view for deduplication"
 				    },
 				    "spec": {
-				        "definition": {
-				            "scope": {
-				                "catalog": "validcatalog"
-				            },
-				            "rules": [{
-				                "intent": "Allow",
-				                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-				                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant", "res://catalogs/validcatalog/variants/my-variant"]
-				            }]
-				        }
+				        "rules": [{
+				            "intent": "Allow",
+				            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+				            "targets": ["res://variants/my-variant"]
+				        }]
 				    }
 				}`,
 			expected: nil,
@@ -398,18 +327,11 @@ func TestCreateView(t *testing.T) {
 		        "description": "Test view for deduplication"
 		    },
 		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "validcatalog1",
-						"variant": "validvariant1",
-						"namespace": "validnamespace1"
-		            },
-		            "rules": [{
-		                "intent": "Allow",
-		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-		                "targets": ["res://catalogs/validcatalog", "res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant", "res://catalogs/validcatalog/variants/my-variant/resources/my-workspace"]
-		            }]
-		        }
+		        "rules": [{
+		            "intent": "Allow",
+		            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		            "targets": ["res://variants/my-variant/resources/my-workspace"]
+		        }]
 		    }
 		}`,
 			expected: nil,
@@ -426,23 +348,16 @@ func TestCreateView(t *testing.T) {
 		        "description": "Test view for deduplication"
 		    },
 		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "validcatalog1",
-						"variant": "validvariant1",
-						"namespace": "validnamespace1"
-		            },
-		            "rules": [{
-		                "intent": "Allow",
-		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-		                "targets": ["res://resources/my-collection", "res://namespaces/*/resources/a/b/c/d"]
-		            },
-					{
-		                "intent": "Allow",
-		                "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
-		                "targets": []
-		            }]
-		        }
+		        "rules": [{
+		            "intent": "Allow",
+		            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		            "targets": ["res://resources/my-collection", "res://namespaces/my-namespace/resources/a/b/c/d"]
+		        },
+				{
+		            "intent": "Allow",
+		            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		            "targets": []
+		        }]
 		    }
 		}`,
 			expected: nil,
@@ -459,23 +374,13 @@ func TestCreateView(t *testing.T) {
 		        "description": "Test view for deduplication"
 		    },
 		    "spec": {
-		        "definition": {
-		            "scope": {
-		                "catalog": "my-catalog"
-		            },
-		            "rules": [
+		        "rules": [
 					{
-		                "intent": "Allow",
-		                "actions": ["catalog.adoptView"],
-		                "targets": ["res://views/some-view/variants/test-variant"]
-		            },
-					{
-		                "intent": "Allow",
-		                "actions": ["catalog.admin"],
-		                "targets": []
-		            }
-					]
-		        }
+						"intent": "Allow",
+						"actions": ["catalog.adoptView"],
+						"targets": ["res://views/some-view/variants/test-variant"]
+					}
+				]
 		    }
 		}`,
 			expected: nil,
@@ -517,7 +422,16 @@ func TestCreateView(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := CreateView(ctx, []byte(tt.jsonData), "")
+			// Create metadata from the JSON data
+			var viewData map[string]any
+			err := json.Unmarshal([]byte(tt.jsonData), &viewData)
+			require.NoError(t, err)
+
+			metadata := &interfaces.Metadata{
+				Catalog: viewData["metadata"].(map[string]any)["catalog"].(string),
+			}
+
+			_, err = CreateView(ctx, []byte(tt.jsonData), metadata)
 			if tt.expected == nil {
 				assert.NoError(t, err)
 			} else {
@@ -564,22 +478,20 @@ func TestUpdateView(t *testing.T) {
 			"description": "Initial description"
 		},
 		"spec": {
-			"definition": {
-				"scope": {
-					"catalog": "test-catalog"
-				},
-				"rules": [
-					{
-						"intent": "Allow",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/test-catalog"]
-					}
-				]
-			}
+			"rules": [
+				{
+					"intent": "Allow",
+					"actions": ["catalog.list"],
+					"targets": []
+				}
+			]
 		}
 	}`
 
-	_, err = CreateView(ctx, []byte(initialView), "")
+	metadata := &interfaces.Metadata{
+		Catalog: "test-catalog",
+	}
+	_, err = CreateView(ctx, []byte(initialView), metadata)
 	require.NoError(t, err)
 
 	// Test successful update with multiple actions
@@ -592,28 +504,39 @@ func TestUpdateView(t *testing.T) {
 			"description": "Updated description"
 		},
 		"spec": {
-			"definition": {
-				"scope": {
-					"catalog": "test-catalog"
-				},
-				"rules": [
-					{
-						"intent": "Allow",
-						"actions": ["catalog.list", "variant.list", "namespace.list"],
-						"targets": ["res://catalogs/test-catalog"]
-					}
-				]
-			}
+			"rules": [
+				{
+					"intent": "Allow",
+					"actions": ["catalog.list", "variant.list", "namespace.list"],
+					"targets": []
+				}
+			]
 		}
 	}`
 
-	_, err = UpdateView(ctx, []byte(updateView), "test-view", "test-catalog")
+	_, err = UpdateView(ctx, []byte(updateView), metadata)
 	require.NoError(t, err)
 
 	// Verify the update
 	retrieved, err := db.DB(ctx).GetViewByLabel(ctx, "test-view", catalogID)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated description", retrieved.Description)
+
+	// Verify the ViewDefinition structure
+	var viewDef ViewDefinition
+	jsonErr := json.Unmarshal(retrieved.Rules, &viewDef)
+	require.NoError(t, jsonErr)
+
+	// Verify scope
+	assert.Equal(t, "test-catalog", viewDef.Scope.Catalog)
+	assert.Equal(t, "", viewDef.Scope.Variant)
+	assert.Equal(t, "", viewDef.Scope.Namespace)
+
+	// Verify rules
+	assert.Equal(t, 1, len(viewDef.Rules))
+	assert.Equal(t, IntentAllow, viewDef.Rules[0].Intent)
+	assert.ElementsMatch(t, []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList}, viewDef.Rules[0].Actions)
+	assert.Empty(t, viewDef.Rules[0].Targets)
 
 	// Test updating non-existent view
 	nonExistentView := `{
@@ -625,20 +548,15 @@ func TestUpdateView(t *testing.T) {
 			"description": "Should fail"
 		},
 		"spec": {
-			"definition": {
-				"scope": {
-					"catalog": "test-catalog"
-				},
-				"rules": [{
-						"intent": "Allow",
-						"actions": ["variant.list"],
-						"targets": ["res://catalogs/test-catalog"]
-					}]
-			}
+			"rules": [{
+				"intent": "Allow",
+				"actions": ["variant.list"],
+				"targets": []
+			}]
 		}
 	}`
 
-	_, err = UpdateView(ctx, []byte(nonExistentView), "", "test-catalog")
+	_, err = UpdateView(ctx, []byte(nonExistentView), metadata)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrViewNotFound))
 
@@ -652,20 +570,22 @@ func TestUpdateView(t *testing.T) {
 			"description": "Should fail"
 		},
 		"spec": {
-			"definition": {
-				"scope": {
-					"catalog": "non-existent-catalog"
-				},
-				"rules": []
-			}
+			"rules": [{
+				"intent": "Allow",
+				"actions": ["variant.list"],
+				"targets": []
+			}]
 		}
 	}`
 
-	_, err = UpdateView(ctx, []byte(invalidCatalogView), "", "test-catalog")
+	invalidMetadata := &interfaces.Metadata{
+		Catalog: "non-existent-catalog",
+	}
+	_, err = UpdateView(ctx, []byte(invalidCatalogView), invalidMetadata)
 	assert.Error(t, err)
 
 	// Test updating with invalid JSON
-	_, err = UpdateView(ctx, []byte("invalid json"), "", "test-catalog")
+	_, err = UpdateView(ctx, []byte("invalid json"), metadata)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrInvalidView))
 
@@ -678,22 +598,17 @@ func TestUpdateView(t *testing.T) {
 			"catalog": "test-catalog"
 		},
 		"spec": {
-			"definition": {
-				"scope": {
-					"catalog": "test-catalog"
-				},
-				"rules": [
-					{
-						"intent": "InvalidEffect",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/test-catalog"]
-					}
-				]
-			}
+			"rules": [
+				{
+					"intent": "InvalidEffect",
+					"actions": ["catalog.list"],
+					"targets": ["res://*"]
+				}
+			]
 		}
 	}`
 
-	_, err = UpdateView(ctx, []byte(invalidSchemaView), "", "test-catalog")
+	_, err = UpdateView(ctx, []byte(invalidSchemaView), metadata)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrInvalidSchema))
 
@@ -707,934 +622,43 @@ func TestUpdateView(t *testing.T) {
 			"description": "Updated description with duplicates"
 		},
 		"spec": {
-			"definition": {
-				"scope": {
-					"catalog": "test-catalog"
-				},
-				"rules": [
-					{
-						"intent": "Allow",
-						"actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
-						"targets": ["res://catalogs/test-catalog", "res://catalogs/test-catalog", "res://catalogs/test-catalog/variants/valid-variant"]
-					}
-				]
-			}
+			"rules": [
+				{
+					"intent": "Allow",
+					"actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
+					"targets": ["res://variants/valid-variant"]
+				}
+			]
 		}
 	}`
 
-	_, err = UpdateView(ctx, []byte(updateViewWithDuplicates), "test-view", "test-catalog")
+	_, err = UpdateView(ctx, []byte(updateViewWithDuplicates), metadata)
 	require.NoError(t, err)
 
 	// Verify the deduplication
 	retrieved, err = db.DB(ctx).GetViewByLabel(ctx, "test-view", catalogID)
 	require.NoError(t, err)
 
-	var definition ViewDefinition
-	jsonErr := json.Unmarshal(retrieved.Rules, &definition)
+	var viewDef2 ViewDefinition
+	jsonErr = json.Unmarshal(retrieved.Rules, &viewDef2)
 	require.NoError(t, jsonErr)
 
+	// Verify scope is preserved
+	assert.Equal(t, "test-catalog", viewDef2.Scope.Catalog)
+	assert.Equal(t, "", viewDef2.Scope.Variant)
+	assert.Equal(t, "", viewDef2.Scope.Namespace)
+
 	// Check that duplicates were removed
-	assert.Equal(t, 1, len(definition.Rules))
-	assert.Equal(t, 3, len(definition.Rules[0].Actions)) // Should have catalog.list, variant.list, namespace.list
-	assert.Equal(t, 2, len(definition.Rules[0].Targets)) // Should have two unique resources
+	assert.Equal(t, 1, len(viewDef2.Rules))
+	assert.Equal(t, 3, len(viewDef2.Rules[0].Actions)) // Should have catalog.list, variant.list, namespace.list
+	assert.Equal(t, 1, len(viewDef2.Rules[0].Targets)) // Should have one unique resource
 
 	// Verify the order and content of deduplicated arrays
-	expectedOperations := []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList}
-	assert.ElementsMatch(t, expectedOperations, definition.Rules[0].Actions)
+	expectedActions := []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList}
+	assert.ElementsMatch(t, expectedActions, viewDef2.Rules[0].Actions)
 
-	expectedTargets := []TargetResource{"res://catalogs/test-catalog", "res://catalogs/test-catalog/variants/valid-variant"}
-	assert.ElementsMatch(t, expectedTargets, definition.Rules[0].Targets)
-}
-
-func TestIsActionAllowed(t *testing.T) {
-	tests := []struct {
-		name           string
-		rules          Rules
-		action         Action
-		resource       TargetResource
-		expectedResult bool
-	}{
-		{
-			name: "admin action",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogAdmin},
-					Targets: []TargetResource{"res://catalogs/*"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test2",
-			expectedResult: true,
-		},
-		{
-			name: "admin action with specific resource",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogAdmin},
-					Targets: []TargetResource{"res://catalogs/test1"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test2",
-			expectedResult: false,
-		},
-		{
-			name: "incorrectadmin action with specific resource",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogAdmin},
-					Targets: []TargetResource{"res://catalogs/test1/variants/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test1",
-			expectedResult: false,
-		},
-		{
-			name: "incorrectadmin action with specific resource",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogAdmin},
-					Targets: []TargetResource{
-						"res://catalogs/test1/variants/test2",
-						"res://catalogs/*",
-					},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test1",
-			expectedResult: true,
-		},
-		{
-			name: "allow namespace with admin action",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionNamespaceAdmin},
-					Targets: []TargetResource{
-						"res://catalogs/test1/variants/test2/namespaces/*",
-					},
-				},
-			},
-			action:         ActionNamespaceList,
-			resource:       "res://catalogs/test1/variants/test2/namespaces/test3",
-			expectedResult: true,
-		},
-		{
-			name: "allow namespace with admin action and deny rule",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionNamespaceAdmin},
-					Targets: []TargetResource{
-						"res://catalogs/test1/variants/test2/namespaces/*",
-					},
-				},
-				{
-					Intent:  IntentDeny,
-					Actions: []Action{ActionNamespaceList},
-					Targets: []TargetResource{
-						"res://catalogs/test1/variants/test2/namespaces/test3",
-					},
-				},
-			},
-			action:         ActionNamespaceList,
-			resource:       "res://catalogs/test1/variants/test2/namespaces/test3",
-			expectedResult: false,
-		},
-		{
-			name: "simple allow rule",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test",
-			expectedResult: true,
-		},
-		{
-			name: "simple deny rule",
-			rules: Rules{
-				{
-					Intent:  IntentDeny,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test",
-			expectedResult: false,
-		},
-		{
-			name: "deny overrides allow",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test"},
-				},
-				{
-					Intent:  IntentDeny,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test",
-			expectedResult: false,
-		},
-		{
-			name: "wildcard resource matching",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test/variants/*"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test/variants/variant1",
-			expectedResult: true,
-		},
-		{
-			name: "multiple actions in rule",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList, ActionVariantList},
-					Targets: []TargetResource{"res://catalogs/test"},
-				},
-			},
-			action:         ActionVariantList,
-			resource:       "res://catalogs/test",
-			expectedResult: true,
-		},
-		{
-			name: "action not in rule",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test"},
-				},
-			},
-			action:         ActionVariantList,
-			resource:       "res://catalogs/test",
-			expectedResult: false,
-		},
-		{
-			name: "resource not in rule",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/other",
-			expectedResult: false,
-		},
-		{
-			name: "multiple rules with different resources",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test1"},
-				},
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test2",
-			expectedResult: true,
-		},
-		{
-			name: "wildcard resource with deny rule",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test/*"},
-				},
-				{
-					Intent:  IntentDeny,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/test/specific"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test/specific",
-			expectedResult: false,
-		},
-		{
-			name:           "empty ruleset",
-			rules:          Rules{},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test",
-			expectedResult: false,
-		},
-		{
-			name: "mismatched action",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/*", "res://catalogs/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/test2",
-			expectedResult: true,
-		},
-		{
-			name: "varying length of resource",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace/resources/some-schema",
-						"res://catalogs/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/my-catalog/variants/*/namespaces/my-namespace",
-			expectedResult: false,
-		},
-		{
-			name: "varying length of resource",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace/resources/some-schema",
-						"res://catalogs/test2"},
-				},
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionNamespaceAdmin},
-					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace",
-			expectedResult: true,
-		},
-		{
-			name: "varying length of resource2",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/my-namespace",
-						"res://catalogs/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
-			expectedResult: false,
-		},
-		{
-			name: "varying length of resource3",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionNamespaceList},
-					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
-						"res://catalogs/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
-			expectedResult: false,
-		},
-		{
-			name: "varying length of resource3",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionCatalogList},
-					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
-						"res://catalogs/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
-			expectedResult: true,
-		},
-		{
-			name: "varying length of resource3",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionNamespaceAdmin},
-					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
-						"res://catalogs/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
-			expectedResult: true,
-		},
-		{
-			name: "varying length of resource3",
-			rules: Rules{
-				{
-					Intent:  IntentAllow,
-					Actions: []Action{ActionVariantAdmin},
-					Targets: []TargetResource{"res://catalogs/my-catalog/variants/*/namespaces/*",
-						"res://catalogs/test2"},
-				},
-			},
-			action:         ActionCatalogList,
-			resource:       "res://catalogs/my-catalog/variants/my-variant/namespaces/my-namespace/resources/some-schema",
-			expectedResult: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tt.rules.IsActionAllowed(tt.action, tt.resource)
-			assert.Equal(t, tt.expectedResult, result, "IsActionAllowed(%v, %v) = %v, want %v", tt.action, tt.resource, result, tt.expectedResult)
-		})
-	}
-}
-
-func TestValidateDerivedView(t *testing.T) {
-	tests := []struct {
-		name        string
-		parent      ViewDefinition
-		child       ViewDefinition
-		expectError bool
-	}{
-		{
-			name: "valid derived view",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList},
-						Targets: []TargetResource{"res://catalogs/test"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList},
-						Targets: []TargetResource{"res://catalogs/test"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid derived view - different scope",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList},
-						Targets: []TargetResource{"res://catalogs/test"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-					Variant: "test-variant",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			expectError: true,
-		},
-		{
-			name: "valid derivation - subset of actions",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList, ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid derivation - child has more actions",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			expectError: true,
-		},
-		{
-			name: "valid derivation - parent with wildcard",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList},
-						Targets: []TargetResource{"res://catalogs/*"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "valid derivation - parent with wildcard",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogAdoptView, ActionVariantList},
-						Targets: []TargetResource{"res://variant/test-variant"},
-					},
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogAdoptView},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogAdoptView},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionVariantClone},
-						Targets: []TargetResource{"res://variant/test-variant"},
-					},
-				},
-			},
-			expectError: true,
-		},
-		{
-			name: "invalid derivation - child with wildcard, parent specific",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList},
-						Targets: []TargetResource{"res://catalogs/*"},
-					},
-				},
-			},
-			expectError: false, //TODO - Check this. It must be true
-		},
-		{
-			name: "valid derivation - parent with admin permission",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogAdmin},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "valid derivation - with deny rules",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "valid derivation - child doesn't need parent's deny rule",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList, ActionVariantList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionCatalogList},
-						Targets: []TargetResource{"res://catalogs/test-catalog"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid derivation - child allows denied resource",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/restricted"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
-					},
-				},
-			},
-			expectError: true,
-		},
-		{
-			name: "valid derivation - child respects parent's deny with specific allow",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/*"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/restricted"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/namespaces/allowed"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "valid derivation - parent denies specific action in wildcard",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionNamespaceAdmin},
-						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionNamespaceList, ActionNamespaceCreate},
-						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/allowed"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid derivation - child allows denied action in wildcard",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionNamespaceAdmin},
-						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/restricted"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionNamespaceList},
-						Targets: []TargetResource{"res://catalogs/test-catalog/variants/*/namespaces/*"},
-					},
-				},
-			},
-			expectError: true,
-		},
-		{
-			name: "valid derivation - parent denies subset of allowed actions",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionResourceRead, ActionResourceEdit, ActionResourceGet},
-						Targets: []TargetResource{"res://catalogs/test-catalog/resources/*"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionResourceEdit, ActionResourceGet},
-						Targets: []TargetResource{"res://catalogs/test-catalog/resources/sensitive/*"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionResourceRead},
-						Targets: []TargetResource{"res://catalogs/test-catalog/resources/*"},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid derivation - child allows action denied for specific resource pattern",
-			parent: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionResourceRead, ActionResourceEdit, ActionResourceGet},
-						Targets: []TargetResource{"res://catalogs/test-catalog/resources/*"},
-					},
-					{
-						Intent:  IntentDeny,
-						Actions: []Action{ActionResourceEdit, ActionResourceGet},
-						Targets: []TargetResource{"res://catalogs/test-catalog/resources/sensitive/*"},
-					},
-				},
-			},
-			child: ViewDefinition{
-				Scope: Scope{
-					Catalog: "test-catalog",
-				},
-				Rules: Rules{
-					{
-						Intent:  IntentAllow,
-						Actions: []Action{ActionResourceRead, ActionResourceEdit},
-						Targets: []TargetResource{"res://catalogs/test-catalog/resources/*"},
-					},
-				},
-			},
-			expectError: true,
-		},
-	}
-
-	ctx := context.Background()
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateDerivedView(ctx, &tt.parent, &tt.child)
-			if tt.expectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+	expectedTargets := []TargetResource{"res://variants/valid-variant"}
+	assert.ElementsMatch(t, expectedTargets, viewDef2.Rules[0].Targets)
 }
 
 func TestDeleteView(t *testing.T) {
@@ -1681,6 +705,10 @@ func TestDeleteView(t *testing.T) {
 		},
 	}
 
+	metadata := &interfaces.Metadata{
+		Catalog: "test-catalog",
+	}
+
 	for _, tv := range testViews {
 		view := `{
 			"version": "v1",
@@ -1691,22 +719,17 @@ func TestDeleteView(t *testing.T) {
 				"description": "%s"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "test-catalog"
-					},
-					"rules": [
-						{
-							"intent": "Allow",
-							"actions": ["catalog.list"],
-							"targets": ["res://catalogs/test-catalog"]
-						}
-					]
-				}
+				"rules": [
+					{
+						"intent": "Allow",
+						"actions": ["catalog.list"],
+						"targets": ["res://variants/my-variant"]
+					}
+				]
 			}
 		}`
 		viewJSON := fmt.Sprintf(view, tv.label, tv.description)
-		_, err = CreateView(ctx, []byte(viewJSON), "")
+		_, err = CreateView(ctx, []byte(viewJSON), metadata)
 		require.NoError(t, err)
 	}
 
@@ -1782,33 +805,171 @@ func TestDeleteView(t *testing.T) {
 	})
 }
 
-func TestMorphViewDefinition(t *testing.T) {
-	vdjson := `
-		{
-			"scope": {
-				"catalog": "validcatalog"
-			},
-			"rules": [{
-				"intent": "Allow",
-				"actions": ["catalog.list"],
-				"targets": ["res://catalogs/*", "res://variants/my-variant/resources/coll-schema"]
-			}]
-		}`
-	vd := &ViewDefinition{}
-	err := json.Unmarshal([]byte(vdjson), &vd)
+func TestGetView(t *testing.T) {
+	ctx := newDb()
+	defer db.DB(ctx).Close(ctx)
+
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
+
+	require.NoError(t, db.DB(ctx).CreateTenant(ctx, tenantID))
+	defer db.DB(ctx).DeleteTenant(ctx, tenantID)
+
+	require.NoError(t, db.DB(ctx).CreateProject(ctx, projectID))
+	defer db.DB(ctx).DeleteProject(ctx, projectID)
+
+	// Create a catalog first
+	catalogID := uuid.New()
+	err := db.DB(ctx).CreateCatalog(ctx, &models.Catalog{
+		CatalogID:   catalogID,
+		Name:        "test-catalog",
+		Description: "Test catalog",
+		ProjectID:   projectID,
+		Info:        pgtype.JSONB{Status: pgtype.Null},
+	})
 	require.NoError(t, err)
 
-	vd = CanonicalizeViewDefinition(vd)
-	assert.Equal(t, &ViewDefinition{
-		Scope: Scope{
-			Catalog: "validcatalog",
+	// Create test views
+	testViews := []struct {
+		name        string
+		label       string
+		description string
+		actions     []string
+		targets     []string
+	}{
+		{
+			name:        "view1",
+			label:       "test-view-1",
+			description: "Test view 1",
+			actions:     []string{"catalog.list", "variant.list"},
+			targets:     []string{"res://variants/my-variant"},
 		},
-		Rules: Rules{
-			{
-				Intent:  IntentAllow,
-				Actions: []Action{ActionCatalogList},
-				Targets: []TargetResource{"res://catalogs/validcatalog", "res://catalogs/validcatalog/variants/my-variant/resources/coll-schema"},
+		{
+			name:        "view2",
+			label:       "test-view-2",
+			description: "Test view 2",
+			actions:     []string{"namespace.list"},
+			targets:     []string{"res://namespaces/my-namespace"},
+		},
+	}
+
+	metadata := &interfaces.Metadata{
+		Catalog: "test-catalog",
+	}
+
+	for _, tv := range testViews {
+		view := `{
+			"version": "v1",
+			"kind": "View",
+			"metadata": {
+				"name": "%s",
+				"catalog": "test-catalog",
+				"description": "%s"
 			},
-		},
-	}, vd)
+			"spec": {
+				"rules": [
+					{
+						"intent": "Allow",
+						"actions": %s,
+						"targets": %s
+					}
+				]
+			}
+		}`
+		actionsJSON, _ := json.Marshal(tv.actions)
+		targetsJSON, _ := json.Marshal(tv.targets)
+		viewJSON := fmt.Sprintf(view, tv.label, tv.description, string(actionsJSON), string(targetsJSON))
+		_, err = CreateView(ctx, []byte(viewJSON), metadata)
+		require.NoError(t, err)
+	}
+
+	t.Run("get by label - success", func(t *testing.T) {
+		reqCtx := interfaces.RequestContext{
+			CatalogID:  catalogID,
+			Catalog:    "test-catalog",
+			ObjectName: "test-view-1",
+		}
+		vr, err := NewViewKindHandler(ctx, reqCtx)
+		require.NoError(t, err)
+
+		viewJSON, err := vr.Get(ctx)
+		require.NoError(t, err)
+
+		// Verify the returned JSON
+		var viewData map[string]any
+		jsonErr := json.Unmarshal(viewJSON, &viewData)
+		require.NoError(t, jsonErr)
+
+		// Check metadata
+		metadata := viewData["metadata"].(map[string]any)
+		assert.Equal(t, "test-view-1", metadata["name"])
+		assert.Equal(t, "test-catalog", metadata["catalog"])
+		assert.Equal(t, "Test view 1", metadata["description"])
+
+		// Check rules
+		spec := viewData["spec"].(map[string]any)
+		rules := spec["rules"].([]any)
+		assert.Equal(t, 1, len(rules))
+
+		rule := rules[0].(map[string]any)
+		assert.Equal(t, "Allow", rule["intent"])
+		assert.ElementsMatch(t, []any{"catalog.list", "variant.list"}, rule["actions"])
+		assert.ElementsMatch(t, []any{"res://variants/my-variant"}, rule["targets"])
+	})
+
+	t.Run("get by label - non-existent view", func(t *testing.T) {
+		reqCtx := interfaces.RequestContext{
+			CatalogID:  catalogID,
+			Catalog:    "test-catalog",
+			ObjectName: "non-existent-view",
+		}
+		vr, err := NewViewKindHandler(ctx, reqCtx)
+		require.NoError(t, err)
+
+		_, err = vr.Get(ctx)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrViewNotFound))
+	})
+
+	t.Run("get by label - invalid catalog ID", func(t *testing.T) {
+		reqCtx := interfaces.RequestContext{
+			CatalogID:  uuid.Nil,
+			Catalog:    "test-catalog",
+			ObjectName: "test-view-2",
+		}
+		_, err := NewViewKindHandler(ctx, reqCtx)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrInvalidCatalog))
+	})
+
+	t.Run("get by label - empty label", func(t *testing.T) {
+		reqCtx := interfaces.RequestContext{
+			CatalogID:  catalogID,
+			Catalog:    "test-catalog",
+			ObjectName: "",
+		}
+		vr, err := NewViewKindHandler(ctx, reqCtx)
+		require.NoError(t, err)
+
+		_, err = vr.Get(ctx)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrInvalidView))
+	})
+
+	t.Run("get by label - wrong catalog ID", func(t *testing.T) {
+		wrongCatalogID := uuid.New()
+		reqCtx := interfaces.RequestContext{
+			CatalogID:  wrongCatalogID,
+			Catalog:    "test-catalog",
+			ObjectName: "test-view-2",
+		}
+		vr, err := NewViewKindHandler(ctx, reqCtx)
+		require.NoError(t, err)
+
+		_, err = vr.Get(ctx)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrViewNotFound))
+	})
 }

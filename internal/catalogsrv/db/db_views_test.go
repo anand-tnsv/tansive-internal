@@ -51,6 +51,8 @@ func TestCreateView(t *testing.T) {
 		Info:        info.Bytes,
 		Rules:       rules.Bytes,
 		CatalogID:   catalog.CatalogID,
+		CreatedBy:   "test_user",
+		UpdatedBy:   "test_user",
 	}
 	err := DB(ctx).CreateView(ctx, &view)
 	assert.NoError(t, err)
@@ -107,6 +109,8 @@ func TestGetView(t *testing.T) {
 		Info:        info.Bytes,
 		Rules:       rules.Bytes,
 		CatalogID:   catalog.CatalogID,
+		CreatedBy:   "test_user",
+		UpdatedBy:   "test_user",
 	}
 	assert.NoError(t, DB(ctx).CreateView(ctx, &view))
 
@@ -155,6 +159,8 @@ func TestGetViewByLabel(t *testing.T) {
 		Info:        info.Bytes,
 		Rules:       rules.Bytes,
 		CatalogID:   catalog.CatalogID,
+		CreatedBy:   "test_user",
+		UpdatedBy:   "test_user",
 	}
 	assert.NoError(t, DB(ctx).CreateView(ctx, &view))
 
@@ -207,6 +213,8 @@ func TestUpdateView(t *testing.T) {
 		Info:        info.Bytes,
 		Rules:       rules.Bytes,
 		CatalogID:   catalog.CatalogID,
+		CreatedBy:   "test_user",
+		UpdatedBy:   "test_user",
 	}
 	assert.NoError(t, DB(ctx).CreateView(ctx, &view))
 
@@ -286,6 +294,8 @@ func TestDeleteView(t *testing.T) {
 		Info:        info.Bytes,
 		Rules:       rules.Bytes,
 		CatalogID:   catalog.CatalogID,
+		CreatedBy:   "test_user",
+		UpdatedBy:   "test_user",
 	}
 	assert.NoError(t, DB(ctx).CreateView(ctx, &view))
 
@@ -335,18 +345,24 @@ func TestListViewsByCatalog(t *testing.T) {
 			Info:      info.Bytes,
 			Rules:     rules.Bytes,
 			CatalogID: catalog.CatalogID,
+			CreatedBy: "test_user",
+			UpdatedBy: "test_user",
 		},
 		{
 			Label:     "view2",
 			Info:      info.Bytes,
 			Rules:     rules.Bytes,
 			CatalogID: catalog.CatalogID,
+			CreatedBy: "test_user",
+			UpdatedBy: "test_user",
 		},
 		{
 			Label:     "view3",
 			Info:      info.Bytes,
 			Rules:     rules.Bytes,
 			CatalogID: catalog.CatalogID,
+			CreatedBy: "test_user",
+			UpdatedBy: "test_user",
 		},
 	}
 

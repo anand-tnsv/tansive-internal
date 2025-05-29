@@ -252,7 +252,7 @@ func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler 
 
 		resourceName := getResourceNameFromPath(r)
 		// For resources, policies are applied to the resource path
-		if resourceName == catcommon.ResourceNameResources {
+		if resourceName == catcommon.KindNameResources {
 			targetResource = policy.TargetResource(strings.TrimSuffix(string(targetResource), "/definition"))
 		}
 

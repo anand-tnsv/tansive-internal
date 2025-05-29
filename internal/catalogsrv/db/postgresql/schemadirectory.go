@@ -3,9 +3,10 @@ package postgresql
 import (
 	"context"
 	"database/sql"
-	json "github.com/json-iterator/go"
 	"regexp"
 	"strings"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/golang/snappy"
 	"github.com/google/uuid"
@@ -377,12 +378,6 @@ func (om *objectManager) PathExists(ctx context.Context, t catcommon.CatalogObje
 
 func getSchemaDirectoryTableName(t catcommon.CatalogObjectType) string {
 	switch t {
-	case catcommon.CatalogObjectTypeCollectionSchema:
-		return "collections_directory"
-	case catcommon.CatalogObjectTypeParameterSchema:
-		return "parameters_directory"
-	case catcommon.CatalogObjectTypeCatalogCollection:
-		return "values_directory"
 	case catcommon.CatalogObjectTypeResource:
 		return "resource_directory"
 	default:

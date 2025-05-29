@@ -19,7 +19,7 @@ func TestResourceNewManager(t *testing.T) {
 	tests := []struct {
 		name          string
 		jsonInput     string
-		metadata      *interfaces.SchemaMetadata
+		metadata      *interfaces.Metadata
 		expectedError bool
 	}{
 		{
@@ -38,7 +38,7 @@ func TestResourceNewManager(t *testing.T) {
 					"value": 42
 				}
 			}`,
-			metadata: &interfaces.SchemaMetadata{
+			metadata: &interfaces.Metadata{
 				Name:      "test-resource",
 				Catalog:   "test-catalog",
 				Namespace: types.NullableStringFrom("default"),
@@ -64,7 +64,7 @@ func TestResourceNewManager(t *testing.T) {
 					"variant": "default"
 				}
 			}`,
-			metadata: &interfaces.SchemaMetadata{
+			metadata: &interfaces.Metadata{
 				Name:      "test-resource",
 				Catalog:   "test-catalog",
 				Namespace: types.NullableStringFrom("default"),
@@ -190,7 +190,7 @@ func TestLoadResourceManagerByPath(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create metadata for loading
-		metadata := &interfaces.SchemaMetadata{
+		metadata := &interfaces.Metadata{
 			Name:    "test-resource",
 			Catalog: "test-catalog",
 			Variant: types.NullableStringFrom("test-variant"),
@@ -219,7 +219,7 @@ func TestLoadResourceManagerByPath(t *testing.T) {
 
 	t.Run("Load non-existent resource", func(t *testing.T) {
 		// Create metadata for non-existent resource
-		metadata := &interfaces.SchemaMetadata{
+		metadata := &interfaces.Metadata{
 			Name:    "non-existent",
 			Catalog: "test-catalog",
 			Variant: types.NullableStringFrom("test-variant"),
@@ -234,7 +234,7 @@ func TestLoadResourceManagerByPath(t *testing.T) {
 
 	t.Run("Load resource with invalid variant", func(t *testing.T) {
 		// Create metadata for resource with invalid variant
-		metadata := &interfaces.SchemaMetadata{
+		metadata := &interfaces.Metadata{
 			Name:    "test-resource2",
 			Catalog: "test-catalog",
 			Variant: types.NullableStringFrom("invalid-variant"),

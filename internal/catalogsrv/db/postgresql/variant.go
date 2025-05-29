@@ -351,3 +351,31 @@ func (mm *metadataManager) DeleteVariant(ctx context.Context, catalogID, variant
 
 	return nil
 }
+
+func (mm *metadataManager) GetMetadataNames(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID) (string, string, apperrors.Error) {
+	tenantID := catcommon.GetTenantID(ctx)
+	if tenantID == "" {
+		return "", "", dberror.ErrMissingTenantID
+	}
+
+	query := `
+		SELECT catalog.name, variant.name
+		FROM catalog
+		JOIN variant ON catalog.catalog_id = variant.catalog_id
+		WHERE catalog.catalog_id = $1 AND variant.variant_id = $2 AND variant.tenant_id = $3;
+	`
+
+	var catalogName string
+	var variantName string
+	err := mm.conn().QueryRowContext(ctx, query, catalogID, variantID, tenantID).Scan(&catalogName, &variantName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Ctx(ctx).Info().Msg("variant not found")
+			return "", "", dberror.ErrNotFound.Msg("variant not found")
+		}
+		log.Ctx(ctx).Error().Err(err).Msg("failed to retrieve variant")
+		return "", "", dberror.ErrDatabase.Err(err)
+	}
+
+	return catalogName, variantName, nil
+}

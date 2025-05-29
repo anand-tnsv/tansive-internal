@@ -15,7 +15,7 @@ func TestGetMetadata(t *testing.T) {
 		name          string
 		jsonInput     string
 		expectedError bool
-		expectedMeta  *interfaces.SchemaMetadata
+		expectedMeta  *interfaces.Metadata
 	}{
 		{
 			name: "valid metadata",
@@ -30,7 +30,7 @@ func TestGetMetadata(t *testing.T) {
 				}
 			}`,
 			expectedError: false,
-			expectedMeta: &interfaces.SchemaMetadata{
+			expectedMeta: &interfaces.Metadata{
 				Name:      "test-group",
 				Catalog:   "test-catalog",
 				Namespace: types.NullableStringFrom("default"),
@@ -88,9 +88,9 @@ func TestCanonicalizeMetadata(t *testing.T) {
 		name          string
 		jsonInput     string
 		kind          string
-		metadata      *interfaces.SchemaMetadata
+		metadata      *interfaces.Metadata
 		expectedError bool
-		expectedMeta  *interfaces.SchemaMetadata
+		expectedMeta  *interfaces.Metadata
 		checkJSON     func(t *testing.T, json []byte)
 	}{
 		{
@@ -106,14 +106,14 @@ func TestCanonicalizeMetadata(t *testing.T) {
 				}
 			}`,
 			kind: "ResourceGroup",
-			metadata: &interfaces.SchemaMetadata{
+			metadata: &interfaces.Metadata{
 				Name:      "new-name",
 				Catalog:   "new-catalog",
 				Namespace: types.NullableStringFrom("new-namespace"),
 				Variant:   types.NullableStringFrom("new-variant"),
 			},
 			expectedError: false,
-			expectedMeta: &interfaces.SchemaMetadata{
+			expectedMeta: &interfaces.Metadata{
 				Name:      "new-name",
 				Catalog:   "new-catalog",
 				Namespace: types.NullableStringFrom("new-namespace"),
@@ -139,11 +139,11 @@ func TestCanonicalizeMetadata(t *testing.T) {
 				}
 			}`,
 			kind: "ResourceGroup",
-			metadata: &interfaces.SchemaMetadata{
+			metadata: &interfaces.Metadata{
 				Name: "new-name",
 			},
 			expectedError: false,
-			expectedMeta: &interfaces.SchemaMetadata{
+			expectedMeta: &interfaces.Metadata{
 				Name:      "new-name",
 				Catalog:   "old-catalog",
 				Namespace: types.NullableStringFrom("old-namespace"),
@@ -167,7 +167,7 @@ func TestCanonicalizeMetadata(t *testing.T) {
 			kind:          "ResourceGroup",
 			metadata:      nil,
 			expectedError: false,
-			expectedMeta: &interfaces.SchemaMetadata{
+			expectedMeta: &interfaces.Metadata{
 				Name:    "test-group",
 				Catalog: "test-catalog",
 				Variant: types.NullableStringFrom(catcommon.DefaultVariant),
