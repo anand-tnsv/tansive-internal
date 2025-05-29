@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
@@ -70,11 +69,4 @@ func WrapHttpRsp(handler RequestHandler) http.HandlerFunc {
 			ErrApplicationError("unsupported response type").Send(w)
 		}
 	})
-}
-
-type ResponseHandlerParam struct {
-	Method         string
-	Path           string
-	Handler        RequestHandler
-	AllowedActions []policy.Action
 }

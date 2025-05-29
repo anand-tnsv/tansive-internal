@@ -13,7 +13,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
-var userSessionHandlers = []httpx.ResponseHandlerParam{
+var userSessionHandlers = []policy.ResponseHandlerParam{
 	{
 		Method:  http.MethodGet,
 		Path:    "/views",
@@ -28,7 +28,7 @@ var userSessionHandlers = []httpx.ResponseHandlerParam{
 
 // resourceObjectHandlers defines the API routes and their authorization requirements.
 // Each route requires at least one of the listed actions to be authorized.
-var resourceObjectHandlers = []httpx.ResponseHandlerParam{
+var resourceObjectHandlers = []policy.ResponseHandlerParam{
 	{
 		Method:         http.MethodGet,
 		Path:           "/catalogs/{catalogName}",
@@ -225,7 +225,7 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 
 // EnforceViewPolicy is a middleware that enforces view-based access control policies.
 // It validates that the request is allowed based on the view definition and policy rules.
-func EnforceViewPolicy(handler httpx.ResponseHandlerParam) httpx.RequestHandler {
+func EnforceViewPolicy(handler policy.ResponseHandlerParam) httpx.RequestHandler {
 	return func(r *http.Request) (*httpx.Response, error) {
 		ctx := r.Context()
 

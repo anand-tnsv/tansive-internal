@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
-var authHandlers = []httpx.ResponseHandlerParam{
+var authHandlers = []policy.ResponseHandlerParam{
 	{
 		Method:  http.MethodPost,
 		Path:    "/adopt-view/{catalogRef}/{viewLabel}",

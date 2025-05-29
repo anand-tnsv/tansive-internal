@@ -2,6 +2,7 @@ package policy
 
 import (
 	json "github.com/json-iterator/go"
+	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
 type Intent string
@@ -82,4 +83,11 @@ type ViewDefinition struct {
 // ToJSON converts a ViewRuleSet to a JSON byte slice.
 func (v ViewDefinition) ToJSON() ([]byte, error) {
 	return json.Marshal(v)
+}
+
+type ResponseHandlerParam struct {
+	Method         string
+	Path           string
+	Handler        httpx.RequestHandler
+	AllowedActions []Action
 }

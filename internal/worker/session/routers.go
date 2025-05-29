@@ -7,7 +7,13 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
-var resourceObjectHandlers = []httpx.ResponseHandlerParam{
+type ResponseHandlerParam struct {
+	Method  string
+	Path    string
+	Handler httpx.RequestHandler
+}
+
+var resourceObjectHandlers = []ResponseHandlerParam{
 	{
 		Method:  http.MethodPost,
 		Path:    "/",
