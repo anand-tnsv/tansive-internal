@@ -24,9 +24,9 @@ func hydrateRequestContext(r *http.Request) (interfaces.RequestContext, error) {
 	catalogCtx := catcommon.GetCatalogContext(ctx)
 	if catalogCtx != nil {
 		n.Catalog = catalogCtx.Catalog
-		n.CatalogID = catalogCtx.CatalogId
+		n.CatalogID = catalogCtx.CatalogID
 		n.Variant = catalogCtx.Variant
-		n.VariantID = catalogCtx.VariantId
+		n.VariantID = catalogCtx.VariantID
 		n.Namespace = catalogCtx.Namespace
 	} else {
 		log.Ctx(ctx).Error().Msg("no catalog context found")

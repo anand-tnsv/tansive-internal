@@ -196,17 +196,19 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		tenantID := catcommon.GetTenantID(ctx)
-		projectID := catcommon.GetProjectID(ctx)
-		if tenantID == "" || projectID == "" {
+
+		if tenantID == "" {
 			httpx.ErrInvalidRequest().Send(w)
 			return
 		}
+
 		c := catcommon.GetCatalogContext(ctx)
 		if c == nil {
 			httpx.ErrUnAuthorized("missing or invalid authorization token").Send(w)
 			return
 		}
-		c, err := loadContext(r)
+
+		r, err := withContext(r)
 		if err != nil {
 			var maxErr *http.MaxBytesError
 			if errors.As(err, &maxErr) {
@@ -217,9 +219,8 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 			}
 			return
 		}
-		ctx = catcommon.WithCatalogContext(ctx, c)
 
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r)
 	})
 }
 

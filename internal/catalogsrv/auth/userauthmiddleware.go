@@ -57,20 +57,16 @@ func handleSingleUserMode(ctx context.Context, token string) (context.Context, e
 	if token != config.Config().Auth.FakeSingleUserToken {
 		return nil, fmt.Errorf("invalid token in single user mode")
 	}
-
 	ctx, err := setDefaultSingleUserContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set user context")
 	}
-
-	ctx = catcommon.WithProjectID(ctx, catcommon.ProjectId(config.Config().DefaultProjectID))
 	return ctx, nil
 }
 
 // setDefaultSingleUserContext sets up the context for single-user mode
 func setDefaultSingleUserContext(ctx context.Context) (context.Context, error) {
 	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(config.Config().DefaultTenantID))
-	ctx = catcommon.WithProjectID(ctx, catcommon.ProjectId(config.Config().DefaultProjectID))
 
 	catCtx := catcommon.GetCatalogContext(ctx)
 	if catCtx == nil {

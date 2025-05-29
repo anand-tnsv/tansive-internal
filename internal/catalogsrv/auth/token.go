@@ -293,6 +293,13 @@ func (t *Token) GetTenantID() string {
 	return s
 }
 
+func (t *Token) GetCatalogID() uuid.UUID {
+	if t.view == nil {
+		return uuid.Nil
+	}
+	return t.view.CatalogID
+}
+
 // GetUUID retrieves a UUID claim value from the token
 func (t *Token) GetUUID(key string) (uuid.UUID, bool) {
 	str, ok := t.GetString(key)

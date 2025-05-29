@@ -23,10 +23,10 @@ const (
 // CatalogContext represents the complete context for catalog operations.
 // It contains all necessary information about the catalog, variant, and user.
 type CatalogContext struct {
-	// CatalogId is the unique identifier for the catalog
-	CatalogId uuid.UUID
-	// VariantId is the unique identifier for the variant
-	VariantId uuid.UUID
+	// CatalogID is the unique identifier for the catalog
+	CatalogID uuid.UUID
+	// VariantID is the unique identifier for the variant
+	VariantID uuid.UUID
 	// Namespace is the namespace for the catalog
 	Namespace string
 	// Catalog is the name of the catalog
@@ -89,7 +89,7 @@ func WithCatalogID(ctx context.Context, catalogId uuid.UUID) context.Context {
 	if currContext == nil {
 		currContext = &CatalogContext{}
 	}
-	currContext.CatalogId = catalogId
+	currContext.CatalogID = catalogId
 	return WithCatalogContext(ctx, currContext)
 }
 
@@ -99,7 +99,7 @@ func WithVariantID(ctx context.Context, variantId uuid.UUID) context.Context {
 	if currContext == nil {
 		currContext = &CatalogContext{}
 	}
-	currContext.VariantId = variantId
+	currContext.VariantID = variantId
 	return WithCatalogContext(ctx, currContext)
 }
 
@@ -136,7 +136,7 @@ func WithVariant(ctx context.Context, variant string) context.Context {
 // GetCatalogID retrieves the catalog ID from the provided context.
 func GetCatalogID(ctx context.Context) uuid.UUID {
 	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
-		return catalogContext.CatalogId
+		return catalogContext.CatalogID
 	}
 	return uuid.Nil
 }
@@ -144,7 +144,7 @@ func GetCatalogID(ctx context.Context) uuid.UUID {
 // GetVariantID retrieves the variant ID from the provided context.
 func GetVariantID(ctx context.Context) uuid.UUID {
 	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
-		return catalogContext.VariantId
+		return catalogContext.VariantID
 	}
 	return uuid.Nil
 }

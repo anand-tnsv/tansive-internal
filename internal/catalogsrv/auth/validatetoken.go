@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 )
 
@@ -18,6 +17,7 @@ func setCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, toke
 		Catalog:   viewDef.Scope.Catalog,
 		Variant:   viewDef.Scope.Variant,
 		Namespace: viewDef.Scope.Namespace,
+		CatalogID: tokenObj.GetCatalogID(),
 	}
 
 	sub := tokenObj.GetSubject()
@@ -28,14 +28,6 @@ func setCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, toke
 	}
 
 	return catalogContext
-}
-
-// setProjectContext adds project ID to context if in single user mode
-func setProjectContext(ctx context.Context) context.Context {
-	if config.Config().SingleUserMode {
-		return catcommon.WithProjectID(ctx, catcommon.ProjectId(config.Config().DefaultProjectID))
-	}
-	return ctx
 }
 
 // ValidateToken validates the provided token and sets up the appropriate context
@@ -65,8 +57,6 @@ func ValidateToken(ctx context.Context, token string) (context.Context, error) {
 
 	catalogContext := setCatalogContext(ctx, &viewDef, tokenObj)
 	ctx = catcommon.WithCatalogContext(ctx, catalogContext)
-
-	ctx = setProjectContext(ctx)
 
 	return ctx, nil
 }

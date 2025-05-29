@@ -2,6 +2,8 @@ package apis
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,11 +17,18 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func loadContext(r *http.Request) (*catcommon.CatalogContext, error) {
+func withContext(r *http.Request) (*http.Request, error) {
 	ctx := r.Context()
 
-	catalogCtx := catcommon.GetCatalogContext(ctx)
+	// Get initial project ID
+	projectID := getProjectIDFromRequest(r)
 
+	catalogCtx := catcommon.GetCatalogContext(ctx)
+	if catalogCtx == nil {
+		catalogCtx = &catcommon.CatalogContext{}
+	}
+
+	// Load metadata from various sources
 	catalogCtx = loadMetadataFromParam(r, catalogCtx)
 	catalogCtx = loadMetadataFromQuery(r, catalogCtx)
 
@@ -27,41 +36,43 @@ func loadContext(r *http.Request) (*catcommon.CatalogContext, error) {
 		var err error
 		catalogCtx, err = loadMetadataFromBody(r, catalogCtx)
 		if err != nil {
-			return nil, err
+			return r, fmt.Errorf("failed to load metadata from body: %w", err)
 		}
 	}
 
-	if catalogCtx.Catalog != "" {
-		catalog, err := db.DB(ctx).GetCatalogByName(ctx, catalogCtx.Catalog)
+	// Try to resolve project ID and catalog info if needed
+	if projectID == "" {
+		var err error
+		projectID, err = resolveProjectIDFromCatalog(ctx, catalogCtx)
 		if err != nil {
-			return nil, err
+			return r, fmt.Errorf("failed to resolve project ID from catalog: %w", err)
 		}
-		catalogCtx.CatalogId = catalog.CatalogID
-	} else if catalogCtx.CatalogId != uuid.Nil {
-		catalog, err := db.DB(ctx).GetCatalogByID(ctx, catalogCtx.CatalogId)
-		if err != nil {
-			return nil, err
-		}
-		catalogCtx.Catalog = catalog.Name
 	}
 
-	if catalogCtx.VariantId != uuid.Nil {
-		if catalogCtx.Variant == "" {
-			variant, err := db.DB(ctx).GetVariant(ctx, catalogCtx.CatalogId, catalogCtx.VariantId, "")
-			if err != nil {
-				return nil, err
-			}
-			catalogCtx.Variant = variant.Name
-		}
-	} else if catalogCtx.Variant != "" {
-		variant, err := db.DB(ctx).GetVariant(ctx, catalogCtx.CatalogId, uuid.Nil, catalogCtx.Variant)
-		if err != nil {
-			return nil, err
-		}
-		catalogCtx.VariantId = variant.VariantID
+	// If we are in single user mode, use the default project ID
+	if projectID == "" && config.Config().SingleUserMode {
+		projectID = catcommon.ProjectId(config.Config().DefaultProjectID)
 	}
 
-	return catalogCtx, nil
+	if projectID != "" {
+		if err := resolveCatalogInfo(ctx, catalogCtx); err != nil {
+			return r, fmt.Errorf("failed to resolve catalog info: %w", err)
+		}
+	} else {
+		return r, fmt.Errorf("project ID is required and could not be resolved from catalog")
+	}
+
+	// Set project ID in context
+	ctx = catcommon.WithProjectID(ctx, projectID)
+
+	// Resolve variant information
+	if err := resolveVariantInfo(ctx, catalogCtx); err != nil {
+		return r, fmt.Errorf("failed to resolve variant info: %w", err)
+	}
+
+	// Set the final context
+	r = r.WithContext(catcommon.WithCatalogContext(ctx, catalogCtx))
+	return r, nil
 }
 
 func loadMetadataFromParam(r *http.Request, catalogCtx *catcommon.CatalogContext) *catcommon.CatalogContext {
@@ -93,12 +104,12 @@ func loadMetadataFromQuery(r *http.Request, catalogCtx *catcommon.CatalogContext
 
 	urlValues := r.URL.Query()
 
-	if catalogCtx.CatalogId == uuid.Nil && catalogCtx.Catalog == "" {
+	if catalogCtx.CatalogID == uuid.Nil && catalogCtx.Catalog == "" {
 		catalogID := getURLValue(urlValues, "catalog_id")
 		if catalogID != "" {
 			catalogUUID, err := uuid.Parse(catalogID)
 			if err == nil {
-				catalogCtx.CatalogId = catalogUUID
+				catalogCtx.CatalogID = catalogUUID
 			}
 		} else {
 			catalog := getURLValue(urlValues, "catalog")
@@ -108,12 +119,12 @@ func loadMetadataFromQuery(r *http.Request, catalogCtx *catcommon.CatalogContext
 		}
 	}
 
-	if catalogCtx.VariantId == uuid.Nil && catalogCtx.Variant == "" {
+	if catalogCtx.VariantID == uuid.Nil && catalogCtx.Variant == "" {
 		variantID := getURLValue(urlValues, "variant_id")
 		if variantID != "" {
 			variantUUID, err := uuid.Parse(variantID)
 			if err == nil {
-				catalogCtx.VariantId = variantUUID
+				catalogCtx.VariantID = variantUUID
 			}
 		} else {
 			variant := getURLValue(urlValues, "variant")
@@ -134,7 +145,10 @@ func loadMetadataFromQuery(r *http.Request, catalogCtx *catcommon.CatalogContext
 }
 
 func loadMetadataFromBody(r *http.Request, catalogCtx *catcommon.CatalogContext) (*catcommon.CatalogContext, error) {
-	if catalogCtx == nil || r.Body == nil {
+	if catalogCtx == nil {
+		return nil, nil
+	}
+	if r.Body == nil {
 		return catalogCtx, nil
 	}
 	w := httptest.NewRecorder() // we need a fake response writer
@@ -148,7 +162,7 @@ func loadMetadataFromBody(r *http.Request, catalogCtx *catcommon.CatalogContext)
 	r.Body = io.NopCloser(bytes.NewReader(body))
 
 	// Parse metadata
-	if catalogCtx.VariantId == uuid.Nil && catalogCtx.Variant == "" {
+	if catalogCtx.VariantID == uuid.Nil && catalogCtx.Variant == "" {
 		if result := gjson.GetBytes(body, "metadata.variant"); result.Exists() {
 			catalogCtx.Variant = result.String()
 		}
@@ -179,4 +193,77 @@ func getURLValue(values url.Values, key string) string {
 		}
 	}
 	return value
+}
+
+func getProjectIDFromRequest(r *http.Request) catcommon.ProjectId {
+	projectID := r.URL.Query().Get("project")
+	if projectID != "" {
+		return catcommon.ProjectId(projectID)
+	}
+	return ""
+}
+
+func resolveProjectIDFromCatalog(ctx context.Context, catalogCtx *catcommon.CatalogContext) (catcommon.ProjectId, error) {
+	if catalogCtx.CatalogID != uuid.Nil {
+		catalog, err := db.DB(ctx).GetCatalogByID(ctx, catalogCtx.CatalogID)
+		if err != nil {
+			return "", fmt.Errorf("failed to get catalog by ID: %w", err)
+		}
+		catalogCtx.Catalog = catalog.Name
+		return catalog.ProjectID, nil
+	}
+	return "", nil
+}
+
+// resolveCatalogInfo resolves catalog information using either name or ID
+// Only called when we already have a project ID
+func resolveCatalogInfo(ctx context.Context, catalogCtx *catcommon.CatalogContext) error {
+	if catalogCtx.Catalog != "" && catalogCtx.CatalogID == uuid.Nil {
+		catalog, err := db.DB(ctx).GetCatalogByName(ctx, catalogCtx.Catalog)
+		if err != nil {
+			return fmt.Errorf("failed to get catalog by name: %w", err)
+		}
+		catalogCtx.CatalogID = catalog.CatalogID
+	} else if catalogCtx.CatalogID != uuid.Nil && catalogCtx.Catalog == "" {
+		catalog, err := db.DB(ctx).GetCatalogByID(ctx, catalogCtx.CatalogID)
+		if err != nil {
+			return fmt.Errorf("failed to get catalog by ID: %w", err)
+		}
+		catalogCtx.Catalog = catalog.Name
+	}
+	return nil
+}
+
+// resolveVariantInfo resolves variant information using either name or ID
+func resolveVariantInfo(ctx context.Context, catalogCtx *catcommon.CatalogContext) error {
+	if catalogCtx == nil {
+		return nil
+	}
+
+	// If we have neither variant ID nor name, nothing to resolve
+	if catalogCtx.VariantID == uuid.Nil && catalogCtx.Variant == "" {
+		return nil
+	}
+
+	// If we have variant ID but no name, fetch the name
+	if catalogCtx.VariantID != uuid.Nil && catalogCtx.Variant == "" {
+		variant, err := db.DB(ctx).GetVariant(ctx, catalogCtx.CatalogID, catalogCtx.VariantID, "")
+		if err != nil {
+			return fmt.Errorf("failed to get variant by ID: %w", err)
+		}
+		catalogCtx.Variant = variant.Name
+		return nil
+	}
+
+	// If we have variant name but no ID, fetch the ID
+	if catalogCtx.VariantID == uuid.Nil && catalogCtx.Variant != "" {
+		variant, err := db.DB(ctx).GetVariant(ctx, catalogCtx.CatalogID, uuid.Nil, catalogCtx.Variant)
+		if err != nil {
+			return fmt.Errorf("failed to get variant by name: %w", err)
+		}
+		catalogCtx.VariantID = variant.VariantID
+		return nil
+	}
+
+	return nil
 }
