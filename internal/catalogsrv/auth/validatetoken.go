@@ -52,7 +52,7 @@ func ValidateToken(ctx context.Context, token string) (context.Context, error) {
 		return ctx, ErrMissingTenantID
 	}
 
-	ctx = WithViewDefinition(ctx, &viewDef)
+	ctx = policy.WithViewDefinition(ctx, &viewDef)
 	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(tenantID))
 
 	catalogContext := setCatalogContext(ctx, &viewDef, tokenObj)

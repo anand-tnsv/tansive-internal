@@ -3,7 +3,6 @@ package apis
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
@@ -182,7 +181,7 @@ func Router(r chi.Router) chi.Router {
 		r.Use(LoadCatalogContext)
 		for _, handler := range resourceObjectHandlers {
 			//Wrap the request handler with view policy enforcement
-			policyEnforcedHandler := EnforceViewPolicy(handler)
+			policyEnforcedHandler := policy.EnforceViewPolicy(handler)
 			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(policyEnforcedHandler))
 		}
 	})
@@ -222,54 +221,4 @@ func LoadCatalogContext(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-// EnforceViewPolicy is a middleware that enforces view-based access control policies.
-// It validates that the request is allowed based on the view definition and policy rules.
-func EnforceViewPolicy(handler policy.ResponseHandlerParam) httpx.RequestHandler {
-	return func(r *http.Request) (*httpx.Response, error) {
-		ctx := r.Context()
-
-		//Get allowed actions from Context. This is set from the token by validation middleware
-		c := catcommon.GetCatalogContext(ctx)
-		if c == nil {
-			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
-		}
-		authorizedViewDef := policy.CanonicalizeViewDefinition(auth.GetViewDefinition(ctx))
-		if authorizedViewDef == nil {
-			return nil, httpx.ErrUnAuthorized("missing or invalid authorization token")
-		}
-
-		// Build the metadata path
-		targetScope := policy.Scope{
-			Catalog:   c.Catalog,
-			Variant:   c.Variant,
-			Namespace: c.Namespace,
-		}
-		targetResource := policy.CanonicalizeResourcePath(targetScope, policy.TargetResource("res://"+strings.TrimPrefix(r.URL.Path, "/")))
-		if targetResource == "" {
-			return nil, httpx.ErrApplicationError("unable to canonicalize resource path")
-		}
-
-		resourceName := getResourceNameFromPath(r)
-		// For resources, policies are applied to the resource path
-		if resourceName == catcommon.KindNameResources {
-			targetResource = policy.TargetResource(strings.TrimSuffix(string(targetResource), "/definition"))
-		}
-
-		// Validate against the policy
-		allowed := false
-		for _, action := range handler.AllowedActions {
-			if authorizedViewDef.Rules.IsActionAllowed(action, targetResource) {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			return nil, ErrBlockedByPolicy
-		}
-
-		// If we get here, we are good to go, so call the handler
-		return handler.Handler(r)
-	}
 }

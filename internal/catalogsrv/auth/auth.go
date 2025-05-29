@@ -44,7 +44,7 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 	}
 
 	// Validate current context
-	ourViewDef := GetViewDefinition(ctx)
+	ourViewDef := policy.GetViewDefinition(ctx)
 	if ourViewDef == nil {
 		return nil, ErrInvalidView.Msg("no current view definition found")
 	}

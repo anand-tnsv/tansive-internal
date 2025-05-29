@@ -13,7 +13,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
@@ -59,7 +58,7 @@ func executeTestRequest(t *testing.T, req *http.Request, apiKey *string, testCon
 			UserID: "user/test_user",
 		}
 		catalogContext.UserContext = &u
-		ctx = auth.WithViewDefinition(ctx, &vd)
+		ctx = policy.WithViewDefinition(ctx, &vd)
 		ctx = catcommon.WithCatalogContext(ctx, catalogContext)
 		ctx = catcommon.WithTestContext(ctx, true)
 		req = req.WithContext(ctx)
