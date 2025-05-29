@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
@@ -19,9 +20,10 @@ func setCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, toke
 		Namespace: viewDef.Scope.Namespace,
 	}
 
-	if tokenObj.GetTokenUse() == IdentityTokenType {
+	sub := tokenObj.GetSubject()
+	if strings.HasPrefix(sub, "user/") {
 		catalogContext.UserContext = &catcommon.UserContext{
-			UserID: tokenObj.GetSubject(),
+			UserID: strings.TrimPrefix(sub, "user/"),
 		}
 	}
 

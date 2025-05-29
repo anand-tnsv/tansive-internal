@@ -1,11 +1,13 @@
 package server
 
 import (
-	json "github.com/json-iterator/go"
 	"net/http"
 	"testing"
 
+	json "github.com/json-iterator/go"
+
 	"github.com/stretchr/testify/require"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 func TestGetVersion(t *testing.T) {
@@ -14,6 +16,9 @@ func TestGetVersion(t *testing.T) {
 	testContext := TestContext{
 		TenantId:  "tenant1",
 		ProjectId: "project1",
+		CatalogContext: catcommon.CatalogContext{
+			Catalog: "test-catalog",
+		},
 	}
 	// Execute Request
 	response := executeTestRequest(t, req, nil, testContext)

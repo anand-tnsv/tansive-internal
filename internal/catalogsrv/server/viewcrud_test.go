@@ -1,9 +1,10 @@
 package server
 
 import (
-	json "github.com/json-iterator/go"
 	"net/http"
 	"testing"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,7 +89,7 @@ func TestViewCrud(t *testing.T) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
-	testContext.CatalogContext.Variant = "valid-variant"
+	//	testContext.CatalogContext.Variant = "valid-variant"
 
 	// Create a view
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
@@ -102,16 +103,11 @@ func TestViewCrud(t *testing.T) {
 				"description": "This is a valid view"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "valid-catalog"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/valid-catalog", "res://catalogs/valid-catalog/variants/valid-variant"]
-					}]
-				}
+				"rules": [{
+					"intent": "Allow",
+					"actions": ["catalog.list"],
+					"targets": ["res://variants/valid-variant"]
+				}]
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
@@ -152,16 +148,11 @@ func TestViewCrud(t *testing.T) {
 				"description": "This is a new description"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "valid-catalog"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/valid-catalog", "res://catalogs/valid-catalog/variants/valid-variant"]
-					}]
-				}
+				"rules": [{
+					"intent": "Allow",
+					"actions": ["catalog.list"],
+					"targets": ["res://variants/valid-variant"]
+				}]
 			}
 		}`
 	httpReq, _ = http.NewRequest("PUT", "/views/valid-view", nil)
@@ -285,16 +276,11 @@ func TestViewList(t *testing.T) {
 				"description": "` + v.Description + `"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "list-catalog"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["catalog.list"],
-						"targets": ["res://catalogs/list-catalog"]
-					}]
-				}
+				"rules": [{
+					"intent": "Allow",
+					"actions": ["catalog.list"],
+					"targets": []
+				}]
 			}
 		}`
 		httpReq, _ = http.NewRequest("POST", "/views", nil)
@@ -319,6 +305,5 @@ func TestViewList(t *testing.T) {
 	err = json.Unmarshal(response.Body.Bytes(), &result)
 	assert.NoError(t, err)
 
-	// Only the two non-internal views should be present
 	assert.Len(t, result.Views, 3)
 }

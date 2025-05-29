@@ -20,7 +20,6 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
 	}
-
 	userContext := catcommon.GetUserContext(ctx)
 	if userContext == nil || userContext.UserID == "" {
 		return dberror.ErrMissingUserContext.Msg("missing user context")
@@ -92,13 +91,13 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 	viewDefJSON := `
 	{
 		"scope": {
-			"catalog_id": "` + catalog.CatalogID.String() + `"
+			"catalog": "` + catalog.Name + `"
 		},
 		"rules": [
 			{
 				"intent": "Allow",
 				"actions": ["catalog.admin"],
-				"targets": ["res://catalogs/` + catalog.Name + `"]
+				"targets": []
 			}
 		]
 	}

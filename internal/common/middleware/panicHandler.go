@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"runtime/debug"
 
@@ -10,17 +11,21 @@ import (
 
 func PanicHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rw := httpx.NewResponseWriter(w)
 		defer func() {
 			if err := recover(); err != nil {
 				stack := debug.Stack()
 
 				log.Ctx(r.Context()).Error().
-					Str("stack", string(stack)).
-					Msgf("panic occurred: %v", err)
+					Str("panic", fmt.Sprintf("%v", err)).
+					Str("stack_trace", string(stack)).
+					Msg("panic occurred")
 
-				httpx.ErrApplicationError("unable to process request. please try again later.").Send(w)
+				if !rw.Written() {
+					httpx.ErrApplicationError("unable to process request").Send(rw)
+				}
 			}
 		}()
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(rw, r)
 	})
 }

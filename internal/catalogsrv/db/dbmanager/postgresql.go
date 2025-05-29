@@ -150,12 +150,9 @@ func (h *postgresConn) Close(ctx context.Context) {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to drop all scopes during connection close")
 	}
 
-	// Close the connection first to ensure no new operations
 	if h.conn != nil {
 		h.conn.Close()
 	}
-
-	// Then cancel the context
 	if h.cancel != nil {
 		h.cancel()
 	}

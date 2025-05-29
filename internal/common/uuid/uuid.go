@@ -13,6 +13,18 @@ func UUID7() uuid.UUID {
 	return uuidv7
 }
 
+func NewRandom() (uuid.UUID, error) {
+	return uuid.NewV7()
+}
+
+func New() uuid.UUID {
+	uuidv7, err := uuid.NewV7()
+	if err != nil {
+		panic(err)
+	}
+	return uuidv7
+}
+
 // IsUUIDv7 checks if the given UUID is a valid UUIDv7
 func IsUUIDv7(id uuid.UUID) bool {
 	return id.Version() == uuid.Version(7)

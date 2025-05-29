@@ -3,11 +3,12 @@ package server
 import (
 	"bytes"
 	"context"
-	json "github.com/json-iterator/go"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/rs/zerolog/log"
 
@@ -50,10 +51,14 @@ func executeTestRequest(t *testing.T, req *http.Request, apiKey *string, testCon
 				{
 					Intent:  policy.IntentAllow,
 					Actions: []policy.Action{policy.ActionCatalogAdmin},
-					Targets: []policy.TargetResource{policy.TargetResource("res://catalogs/" + testContext[0].CatalogContext.Catalog)},
+					Targets: []policy.TargetResource{},
 				},
 			},
 		}
+		u := catcommon.UserContext{
+			UserID: "user/test_user",
+		}
+		catalogContext.UserContext = &u
 		ctx = auth.WithViewDefinition(ctx, &vd)
 		ctx = catcommon.WithCatalogContext(ctx, catalogContext)
 		ctx = catcommon.WithTestContext(ctx, true)

@@ -2,9 +2,10 @@ package server
 
 import (
 	"context"
-	json "github.com/json-iterator/go"
 	"net/http"
 	"testing"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -310,20 +311,15 @@ func setupObjects(t *testing.T, token string) {
 			"metadata": {
 				"name": "read-only-view",
 				"catalog": "test-catalog",
+				"variant": "test-variant",
 				"description": "View with read-only access"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "test-catalog",
-						"variant": "test-variant"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["resource.get"],
-						"targets": ["res://resources/*"]
-					}]
-				}
+				"rules": [{
+					"intent": "Allow",
+					"actions": ["resource.get"],
+					"targets": ["res://resources/*"]
+				}]
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
@@ -340,20 +336,15 @@ func setupObjects(t *testing.T, token string) {
 			"metadata": {
 				"name": "read-write-view",
 				"catalog": "test-catalog",
+				"variant": "test-variant",
 				"description": "View with read and write access"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "test-catalog",
-						"variant": "test-variant"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["resource.get", "resource.put"],
-						"targets": ["res://resources/*"]
-					}]
-				}
+				"rules": [{
+					"intent": "Allow",
+					"actions": ["resource.get", "resource.put"],
+					"targets": ["res://resources/*"]
+				}]
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
@@ -370,20 +361,15 @@ func setupObjects(t *testing.T, token string) {
 			"metadata": {
 				"name": "full-access-view",
 				"catalog": "test-catalog",
+				"variant": "test-variant",
 				"description": "View with full resource access"
 			},
 			"spec": {
-				"definition": {
-					"scope": {
-						"catalog": "test-catalog",
-						"variant": "test-variant"
-					},
-					"rules": [{
-						"intent": "Allow",
-						"actions": ["resource.get", "resource.put", "resource.edit"],
-						"targets": ["res://resources/*"]
-					}]
-				}
+				"rules": [{
+					"intent": "Allow",
+					"actions": ["resource.get", "resource.put", "resource.edit"],
+					"targets": ["res://resources/*"]
+				}]
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)

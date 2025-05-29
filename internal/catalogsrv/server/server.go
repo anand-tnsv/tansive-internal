@@ -35,7 +35,7 @@ func CreateNewServer() (*CatalogServer, error) {
 func (s *CatalogServer) MountHandlers() {
 	s.Router.Use(commonmiddleware.RequestLogger)
 	s.Router.Use(commonmiddleware.PanicHandler)
-	// s.Router.Use(commonmiddleware.SetTimeout(5 * time.Second))
+	s.Router.Use(middleware.LoadScopedDB)
 	if config.Config().HandleCORS {
 		s.Router.Use(s.HandleCORS)
 	}
@@ -54,7 +54,6 @@ func (s *CatalogServer) MountHandlers() {
 }
 
 func (s *CatalogServer) mountResourceHandlers(r chi.Router) {
-	r.Use(middleware.LoadScopedDB) // Load the scoped db connection
 	r.Mount("/auth", auth.Router(r))
 	r.Mount("/", apis.Router(r))
 	r.Get("/version", s.getVersion)

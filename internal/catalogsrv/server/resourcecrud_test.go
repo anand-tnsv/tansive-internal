@@ -1,10 +1,11 @@
 package server
 
 import (
-	json "github.com/json-iterator/go"
 	"net/http"
 	"strconv"
 	"testing"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -299,12 +300,12 @@ func TestResourceList(t *testing.T) {
 	resources := []struct {
 		Name        string
 		Description string
-		Value       map[string]interface{}
+		Value       map[string]any
 	}{
 		{
 			"resource1",
 			"First test resource",
-			map[string]interface{}{
+			map[string]any{
 				"name":  "test1",
 				"value": 1,
 			},
@@ -312,7 +313,7 @@ func TestResourceList(t *testing.T) {
 		{
 			"resource2",
 			"Second test resource",
-			map[string]interface{}{
+			map[string]any{
 				"name":  "test2",
 				"value": 2,
 			},
@@ -320,7 +321,7 @@ func TestResourceList(t *testing.T) {
 		{
 			"internal",
 			"Internal resource",
-			map[string]interface{}{
+			map[string]any{
 				"name":  "internal",
 				"value": 3,
 			},
@@ -486,7 +487,7 @@ func TestResourceValue(t *testing.T) {
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	assert.Equal(t, http.StatusOK, response.Code)
 
-	var valueResponse map[string]interface{}
+	var valueResponse map[string]any
 	err = json.Unmarshal(response.Body.Bytes(), &valueResponse)
 	assert.NoError(t, err)
 	assert.Equal(t, "initial-value", valueResponse["name"])
