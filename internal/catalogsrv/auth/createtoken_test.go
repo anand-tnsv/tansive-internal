@@ -95,6 +95,8 @@ func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.Pro
 		Rules:       parentViewJSON,
 		CatalogID:   catalogID,
 		TenantID:    tenantID,
+		CreatedBy:   "user/test_user",
+		UpdatedBy:   "user/test_user",
 	}
 
 	// Store the parent view in the database
@@ -154,6 +156,8 @@ func TestCreateToken(t *testing.T) {
 			Info:        nil,
 			CatalogID:   catalogID,
 			TenantID:    catcommon.TenantId("TABCDE"),
+			CreatedBy:   "user/test_user",
+			UpdatedBy:   "user/test_user",
 		}
 
 		// Store the derived view in the database

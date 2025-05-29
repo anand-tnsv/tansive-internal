@@ -153,7 +153,7 @@ func TestResourceValidation(t *testing.T) {
 				}
 			}`,
 			expectedError: true,
-			errorTypes:    []string{"invalid name: validation failed"},
+			errorTypes:    []string{"invalid name"},
 		},
 		{
 			name: "invalid policy value",

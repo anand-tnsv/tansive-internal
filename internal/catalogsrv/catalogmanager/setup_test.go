@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 )
 
@@ -14,6 +15,11 @@ func newDb() context.Context {
 	if err != nil {
 		log.Ctx(ctx).Fatal().Err(err).Msg("unable to get db connection")
 	}
+	ctx = catcommon.WithCatalogContext(ctx, &catcommon.CatalogContext{
+		UserContext: &catcommon.UserContext{
+			UserID: "user/test_user",
+		},
+	})
 	return ctx
 }
 
