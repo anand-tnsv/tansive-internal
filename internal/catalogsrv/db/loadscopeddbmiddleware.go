@@ -1,4 +1,4 @@
-package middleware
+package db
 
 import (
 	"context"
@@ -6,20 +6,21 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
-func LoadScopedDB(next http.Handler) http.Handler {
+// LoadScopedDBMiddleware is a middleware that loads a scoped db connection from the request context
+// and closes it after the request is served.
+func LoadScopedDBMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, err := db.ConnCtx(r.Context())
+		ctx, err := ConnCtx(r.Context())
 		if err != nil {
 			log.Ctx(r.Context()).Fatal().Err(err).Msg("unable to get db connection")
 			httpx.ErrApplicationError("unable to service request at this time").Send(w)
 			return
 		}
 		defer func() {
-			if dbConn := db.DB(ctx); dbConn != nil {
+			if dbConn := DB(ctx); dbConn != nil {
 				log.Ctx(r.Context()).Info().Msg("closing db connection")
 				fmt.Println("closing db connection")
 				dbConn.Close(context.Background()) // use background to avoid canceled context

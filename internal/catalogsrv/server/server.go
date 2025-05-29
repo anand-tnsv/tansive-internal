@@ -11,7 +11,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/server/middleware"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/common/logtrace"
 	commonmiddleware "github.com/tansive/tansive-internal/internal/common/middleware"
@@ -35,7 +34,7 @@ func CreateNewServer() (*CatalogServer, error) {
 func (s *CatalogServer) MountHandlers() {
 	s.Router.Use(commonmiddleware.RequestLogger)
 	s.Router.Use(commonmiddleware.PanicHandler)
-	s.Router.Use(middleware.LoadScopedDB)
+	s.Router.Use(db.LoadScopedDBMiddleware)
 	if config.Config().HandleCORS {
 		s.Router.Use(s.HandleCORS)
 	}
