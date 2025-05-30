@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/BurntSushi/toml v1.4.0
-	github.com/anand-gl/jsoncanonicalizer v0.1.0
+	github.com/anand-gl/jsoncanonicalizer v1.0.0
 	github.com/anand-tan/goja_nodejs v0.0.0-20250530161030-18cd835e23dd
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/creack/pty v1.1.24

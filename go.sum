@@ -4,8 +4,8 @@ github.com/BurntSushi/toml v1.4.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/Masterminds/semver/v3 v3.2.1 h1:RN9w6+7QoMeJVGyfmbcgs28Br8cvmnucEXnY0rYXWg0=
 github.com/Masterminds/semver/v3 v3.2.1/go.mod h1:qvl/7zhW3nngYb5+80sSMF+FG2BjYrf8m9wsX0PNOMQ=
-github.com/anand-gl/jsoncanonicalizer v0.1.0 h1:N7GGD6jQXGLfG7pRHFHpDLtvQHTN5guf12ijQJmtZzM=
-github.com/anand-gl/jsoncanonicalizer v0.1.0/go.mod h1:MpgufeHDrz1D3ZSS66gZMde3tu6jJ8bSWBQtsmqqWAs=
+github.com/anand-gl/jsoncanonicalizer v1.0.0 h1:HMrsYsEUo4F0cS4w+YXxcC3h95flLnW+PIGpEZexfnI=
+github.com/anand-gl/jsoncanonicalizer v1.0.0/go.mod h1:MpgufeHDrz1D3ZSS66gZMde3tu6jJ8bSWBQtsmqqWAs=
 github.com/anand-tan/goja_nodejs v0.0.0-20250530161030-18cd835e23dd h1:EG7HoNKa5APAQZXEzP0E6VjKgwsv5HOL/U2MU5KX/wE=
 github.com/anand-tan/goja_nodejs v0.0.0-20250530161030-18cd835e23dd/go.mod h1:NsegwHOI7xiKAS9ZVOAtqQogo1IFu7YYGm9yfBQstVU=
 github.com/avast/retry-go/v4 v4.6.1 h1:VkOLRubHdisGrHnTu89g08aQEWEgRU7LVEop3GbIcMk=
