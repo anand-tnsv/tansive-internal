@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/pkg/types"

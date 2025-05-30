@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func (mm *metadataManager) CreateViewToken(ctx context.Context, token *models.ViewToken) apperrors.Error {
@@ -21,6 +21,10 @@ func (mm *metadataManager) CreateViewToken(ctx context.Context, token *models.Vi
 	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
+	}
+
+	if token.TokenID == uuid.Nil {
+		token.TokenID = uuid.New()
 	}
 
 	query := `

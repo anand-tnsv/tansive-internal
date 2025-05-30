@@ -10,7 +10,7 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"

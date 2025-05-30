@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
 	json "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"

@@ -2,13 +2,14 @@ package postgresql
 
 import (
 	"context"
+
 	json "github.com/json-iterator/go"
 
-	"github.com/google/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func (om *objectManager) UpsertResource(ctx context.Context, rg *models.Resource, directoryID uuid.UUID) apperrors.Error {
@@ -17,6 +18,10 @@ func (om *objectManager) UpsertResource(ctx context.Context, rg *models.Resource
 		return dberror.ErrMissingTenantID
 	}
 	rg.TenantID = tenantID
+
+	if rg.ID == uuid.Nil {
+		rg.ID = uuid.New()
+	}
 
 	if directoryID == uuid.Nil {
 		return dberror.ErrInvalidInput.Msg("invalid directory ID")

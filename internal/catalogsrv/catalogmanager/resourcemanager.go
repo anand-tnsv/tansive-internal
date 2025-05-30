@@ -11,7 +11,7 @@ import (
 	"slices"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"

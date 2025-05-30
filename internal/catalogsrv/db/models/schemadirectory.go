@@ -4,7 +4,7 @@ import (
 	json "github.com/json-iterator/go"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 

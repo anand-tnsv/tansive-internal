@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/jsonrpc"
 )

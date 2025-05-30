@@ -3,7 +3,7 @@ package interfaces
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 

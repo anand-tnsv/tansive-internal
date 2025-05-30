@@ -9,7 +9,7 @@ import (
 	json "github.com/json-iterator/go"
 
 	"github.com/golang/snappy"
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/config"

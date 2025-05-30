@@ -1,4 +1,4 @@
-package uuidv7utils
+package uuid
 
 import (
 	"encoding/binary"
@@ -7,19 +7,22 @@ import (
 	"github.com/google/uuid"
 )
 
+// UUID represents a UUID
+type UUID = uuid.UUID
+
 // UUID7 generates a new UUIDv7 and returns it
-func UUID7() uuid.UUID {
+func UUID7() UUID {
 	uuidv7, _ := uuid.NewV7()
 	return uuidv7
 }
 
 // NewRandom returns a new random (version 7) UUID
-func NewRandom() (uuid.UUID, error) {
+func NewRandom() (UUID, error) {
 	return uuid.NewV7()
 }
 
 // New returns a new random (version 7) UUID
-func New() uuid.UUID {
+func New() UUID {
 	uuidv7, err := uuid.NewV7()
 	if err != nil {
 		panic(err)
@@ -28,22 +31,22 @@ func New() uuid.UUID {
 }
 
 // Parse parses a UUID string
-func Parse(s string) (uuid.UUID, error) {
+func Parse(s string) (UUID, error) {
 	return uuid.Parse(s)
 }
 
 // MustParse parses a UUID string and panics if the string is not a valid UUID
-func MustParse(s string) uuid.UUID {
+func MustParse(s string) UUID {
 	return uuid.MustParse(s)
 }
 
 // IsUUIDv7 checks if the given UUID is a valid UUIDv7
-func IsUUIDv7(id uuid.UUID) bool {
+func IsUUIDv7(id UUID) bool {
 	return id.Version() == uuid.Version(7)
 }
 
 // GetTimestampFromUUID extracts the timestamp from a UUIDv7 and returns it as a time.Time
-func GetTimestampFromUUID(u uuid.UUID) time.Time {
+func GetTimestampFromUUID(u UUID) time.Time {
 	tsMillis := binary.BigEndian.Uint64(u[0:8]) >> 16 // Top 48 bits = timestamp in milliseconds
 	return time.UnixMilli(int64(tsMillis))
 }
@@ -54,8 +57,8 @@ func GetTimestampFromUUID(u uuid.UUID) time.Time {
 //	-1 if a was created before b
 //	 0 if a == b
 //	+1 if a was created after b
-func CompareUUIDv7(a, b uuid.UUID) int {
-	for i := 0; i < len(a); i++ {
+func CompareUUIDv7(a, b UUID) int {
+	for i := range a {
 		if a[i] < b[i] {
 			return -1
 		}
@@ -67,12 +70,12 @@ func CompareUUIDv7(a, b uuid.UUID) int {
 }
 
 // IsBefore returns true if a was created before b.
-func IsBefore(a, b uuid.UUID) bool {
+func IsBefore(a, b UUID) bool {
 	return CompareUUIDv7(a, b) == -1
 }
 
 // IsAfter returns true if a was created after b.
-func IsAfter(a, b uuid.UUID) bool {
+func IsAfter(a, b UUID) bool {
 	return CompareUUIDv7(a, b) == 1
 }
 

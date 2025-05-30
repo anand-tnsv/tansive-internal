@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"

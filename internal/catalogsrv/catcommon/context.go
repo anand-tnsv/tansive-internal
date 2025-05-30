@@ -5,7 +5,7 @@ package catcommon
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // ctxKeyType represents the type for all context keys

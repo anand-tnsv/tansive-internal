@@ -1,7 +1,7 @@
 package catcommon
 
 import (
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 type TenantId string

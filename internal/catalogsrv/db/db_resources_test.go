@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"

@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func (mm *metadataManager) CreateView(ctx context.Context, view *models.View) (err apperrors.Error) {
@@ -55,6 +55,7 @@ func (mm *metadataManager) createViewWithTransaction(ctx context.Context, view *
 
 	view.TenantID = tenantID
 	view.ViewID = uuid.New() // Override anything already set
+
 	// Treat empty string as NULL
 	description := sql.NullString{String: view.Description, Valid: view.Description != ""}
 	label := sql.NullString{String: view.Label, Valid: view.Label != ""}

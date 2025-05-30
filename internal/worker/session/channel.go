@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
