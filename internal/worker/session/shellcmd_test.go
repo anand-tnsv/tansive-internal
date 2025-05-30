@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/mugiliam/goja_nodejs/console"
-	"github.com/mugiliam/goja_nodejs/util"
+	"github.com/anand-tan/goja_nodejs/console"
+	"github.com/anand-tan/goja_nodejs/util"
 	"github.com/stretchr/testify/require"
 )
 
