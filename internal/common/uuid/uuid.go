@@ -13,16 +13,28 @@ func UUID7() uuid.UUID {
 	return uuidv7
 }
 
+// NewRandom returns a new random (version 7) UUID
 func NewRandom() (uuid.UUID, error) {
 	return uuid.NewV7()
 }
 
+// New returns a new random (version 7) UUID
 func New() uuid.UUID {
 	uuidv7, err := uuid.NewV7()
 	if err != nil {
 		panic(err)
 	}
 	return uuidv7
+}
+
+// Parse parses a UUID string
+func Parse(s string) (uuid.UUID, error) {
+	return uuid.Parse(s)
+}
+
+// MustParse parses a UUID string and panics if the string is not a valid UUID
+func MustParse(s string) uuid.UUID {
+	return uuid.MustParse(s)
 }
 
 // IsUUIDv7 checks if the given UUID is a valid UUIDv7
@@ -63,3 +75,6 @@ func IsBefore(a, b uuid.UUID) bool {
 func IsAfter(a, b uuid.UUID) bool {
 	return CompareUUIDv7(a, b) == 1
 }
+
+// Nil is the zero UUID
+var Nil = uuid.Nil
