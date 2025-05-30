@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/rs/zerolog/log"
@@ -21,12 +20,7 @@ func LoadScopedDBMiddleware(next http.Handler) http.Handler {
 		}
 		defer func() {
 			if dbConn := DB(ctx); dbConn != nil {
-				log.Ctx(r.Context()).Info().Msg("closing db connection")
-				fmt.Println("closing db connection")
 				dbConn.Close(context.Background()) // use background to avoid canceled context
-			} else {
-				log.Ctx(r.Context()).Info().Msg("db connection already closed")
-				fmt.Println("db connection already closed")
 			}
 		}()
 

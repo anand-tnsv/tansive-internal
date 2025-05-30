@@ -329,7 +329,7 @@ func TestRules_MatchesAdmin(t *testing.T) {
 			if tt.name == "matching catalog admin rule" {
 				fmt.Println("matching catalog admin rule")
 			}
-			if got := tt.rules.matchesAdmin(tt.resource); got != tt.want {
+			if got, _ := tt.rules.matchesAdmin(tt.resource); got != tt.want {
 				t.Errorf("Rules.matchesAdmin() = %v, want %v", got, tt.want)
 			}
 		})

@@ -373,7 +373,7 @@ func TestRules_IsActionAllowed(t *testing.T) {
 			if tt.name == "catalog admin overrides deny for list" {
 				fmt.Println("catalog admin overrides deny for list")
 			}
-			if got := tt.rules.IsActionAllowed(tt.action, tt.target); got != tt.want {
+			if got, _ := tt.rules.IsActionAllowed(tt.action, tt.target); got != tt.want {
 				t.Errorf("Rules.IsActionAllowed() = %v, want %v", got, tt.want)
 			}
 		})

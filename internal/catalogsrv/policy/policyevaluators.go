@@ -9,11 +9,15 @@ import (
 
 // IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
 // It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet Rules) IsActionAllowed(action Action, target TargetResource) bool {
+func (ruleSet Rules) IsActionAllowed(action Action, target TargetResource) (bool, map[Intent][]Rule) {
+	matchedRulesAllow := []Rule{}
+	matchedRulesDeny := []Rule{}
 	allowMatch := false
 	// check if there is an admin match
-	if ruleSet.matchesAdmin(string(target)) {
+	allowMatch, matchedRule := ruleSet.matchesAdmin(string(target))
+	if allowMatch {
 		allowMatch = true
+		matchedRulesAllow = append(matchedRulesAllow, matchedRule)
 	}
 	// check if there is a match for the action
 	for _, rule := range ruleSet {
@@ -22,17 +26,22 @@ func (ruleSet Rules) IsActionAllowed(action Action, target TargetResource) bool 
 				if rule.Intent == IntentAllow {
 					if res.matches(string(target)) {
 						allowMatch = true
+						matchedRulesAllow = append(matchedRulesAllow, rule)
 					}
 				} else if rule.Intent == IntentDeny {
 					if res.matches(string(target)) || // target is allowed by the rule
 						target.matches(string(res)) { // target is more permissive than the rule when we evaluate rule subsets
 						allowMatch = false
+						matchedRulesDeny = append(matchedRulesDeny, rule)
 					}
 				}
 			}
 		}
 	}
-	return allowMatch
+	return allowMatch, map[Intent][]Rule{
+		IntentAllow: matchedRulesAllow,
+		IntentDeny:  matchedRulesDeny,
+	}
 }
 
 // IsSubsetOf checks if this ViewRuleSet is a subset of another ViewRuleSet.
@@ -41,8 +50,11 @@ func (ruleSet Rules) IsSubsetOf(other Rules) bool {
 	for _, rule := range ruleSet {
 		for _, action := range rule.Actions {
 			for _, target := range rule.Targets {
-				if rule.Intent == IntentAllow && !other.IsActionAllowed(action, target) {
-					return false
+				if rule.Intent == IntentAllow {
+					allow, _ := other.IsActionAllowed(action, target)
+					if !allow {
+						return false
+					}
 				}
 			}
 		}

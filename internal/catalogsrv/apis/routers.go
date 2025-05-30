@@ -181,7 +181,7 @@ func Router(r chi.Router) chi.Router {
 		r.Use(LoadCatalogContext)
 		for _, handler := range resourceObjectHandlers {
 			//Wrap the request handler with view policy enforcement
-			policyEnforcedHandler := policy.EnforceViewPolicy(handler)
+			policyEnforcedHandler := policy.EnforceViewPolicyMiddleware(handler)
 			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(policyEnforcedHandler))
 		}
 	})

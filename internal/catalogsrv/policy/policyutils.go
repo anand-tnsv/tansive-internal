@@ -36,7 +36,7 @@ func checkAdminMatch(resourceType string, ruleSegments []string) bool {
 	return ruleSegments[lenRule-2] == resourceType
 }
 
-func (r Rules) matchesAdmin(resource string) bool {
+func (r Rules) matchesAdmin(resource string) (bool, Rule) {
 	for _, rule := range r {
 		if rule.Intent != IntentAllow {
 			continue
@@ -64,11 +64,11 @@ func (r Rules) matchesAdmin(resource string) bool {
 				isMatch = true
 			}
 			if isMatch && (strings.HasPrefix(resource, string(res)) || res.matches(resource)) {
-				return true
+				return true, rule
 			}
 		}
 	}
-	return false
+	return false, Rule{}
 }
 
 func (r TargetResource) matches(actualRes string) bool {
