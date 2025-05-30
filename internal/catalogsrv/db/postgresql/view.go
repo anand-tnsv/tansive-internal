@@ -115,12 +115,12 @@ func (mm *metadataManager) GetView(ctx context.Context, viewID uuid.UUID) (*mode
 		JOIN 
 			catalogs c ON v.catalog_id = c.catalog_id AND v.tenant_id = c.tenant_id
 		WHERE 
-			v.view_id = $1 AND 
-			v.tenant_id = $2;
+			v.tenant_id = $1 AND 
+			v.view_id = $2;
 	`
 
 	var view models.View
-	err := mm.conn().QueryRowContext(ctx, query, viewID, tenantID).
+	err := mm.conn().QueryRowContext(ctx, query, tenantID, viewID).
 		Scan(&view.ViewID, &view.Label, &view.Description, &view.Info, &view.Rules, &view.CatalogID, &view.TenantID, &view.Catalog)
 
 	if err != nil {
@@ -154,13 +154,13 @@ func (mm *metadataManager) GetViewByLabel(ctx context.Context, label string, cat
 		JOIN 
 			catalogs c ON v.catalog_id = c.catalog_id AND v.tenant_id = c.tenant_id
 		WHERE 
-			v.label = $1 AND 
+			v.tenant_id = $1 AND 
 			v.catalog_id = $2 AND 
-			v.tenant_id = $3;
+			v.label = $3;
 	`
 
 	var view models.View
-	err := mm.conn().QueryRowContext(ctx, query, label, catalogID, tenantID).
+	err := mm.conn().QueryRowContext(ctx, query, tenantID, catalogID, label).
 		Scan(&view.ViewID, &view.Label, &view.Description, &view.Info, &view.Rules, &view.CatalogID, &view.TenantID, &view.Catalog)
 
 	if err != nil {
@@ -195,9 +195,9 @@ func (mm *metadataManager) UpdateView(ctx context.Context, view *models.View) ap
 				rules = $5,
 				updated_by = $6,
 				updated_at = NOW()
-			WHERE view_id = $1 AND tenant_id = $2
+			WHERE tenant_id = $1 AND view_id = $2
 		`
-		args = []any{view.ViewID, tenantID, view.Description, view.Info, view.Rules, view.UpdatedBy}
+		args = []any{tenantID, view.ViewID, view.Description, view.Info, view.Rules, view.UpdatedBy}
 	} else if view.Label != "" && view.CatalogID != uuid.Nil {
 		// Update by label and catalog
 		query = `
@@ -207,9 +207,9 @@ func (mm *metadataManager) UpdateView(ctx context.Context, view *models.View) ap
 				rules = $6,
 				updated_by = $7,
 				updated_at = NOW()
-			WHERE label = $1 AND catalog_id = $2 AND tenant_id = $3
+			WHERE tenant_id = $1 AND catalog_id = $2 AND label = $3
 		`
-		args = []any{view.Label, view.CatalogID, tenantID, view.Description, view.Info, view.Rules, view.UpdatedBy}
+		args = []any{tenantID, view.CatalogID, view.Label, view.Description, view.Info, view.Rules, view.UpdatedBy}
 	} else {
 		return dberror.ErrNotFound.Msg("view not found: neither ID nor (label, catalog) provided")
 	}
@@ -239,10 +239,10 @@ func (mm *metadataManager) DeleteView(ctx context.Context, viewID uuid.UUID) app
 
 	query := `
 		DELETE FROM views
-		WHERE view_id = $1 AND tenant_id = $2
+		WHERE tenant_id = $1 AND view_id = $2
 	`
 
-	result, err := mm.conn().ExecContext(ctx, query, viewID, tenantID)
+	result, err := mm.conn().ExecContext(ctx, query, tenantID, viewID)
 	if err != nil {
 		return dberror.ErrDatabase.Err(err)
 	}
@@ -274,10 +274,10 @@ func (mm *metadataManager) DeleteViewByLabel(ctx context.Context, label string, 
 
 	query := `
 		DELETE FROM views
-		WHERE label = $1 AND catalog_id = $2 AND tenant_id = $3
+		WHERE tenant_id = $1 AND catalog_id = $2 AND label = $3
 	`
 
-	result, err := mm.conn().ExecContext(ctx, query, label, catalogID, tenantID)
+	result, err := mm.conn().ExecContext(ctx, query, tenantID, catalogID, label)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to delete view")
 		return dberror.ErrDatabase.Err(err)
@@ -306,11 +306,11 @@ func (mm *metadataManager) ListViewsByCatalog(ctx context.Context, catalogID uui
 	query := `
 		SELECT view_id, label, description, info, rules, catalog_id, tenant_id
 		FROM views
-		WHERE catalog_id = $1 AND tenant_id = $2
+		WHERE tenant_id = $1 AND catalog_id = $2
 		ORDER BY label ASC
 	`
 
-	rows, err := mm.conn().QueryContext(ctx, query, catalogID, tenantID)
+	rows, err := mm.conn().QueryContext(ctx, query, tenantID, catalogID)
 	if err != nil {
 		return nil, dberror.ErrDatabase.Err(err)
 	}

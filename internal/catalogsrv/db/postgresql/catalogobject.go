@@ -45,7 +45,7 @@ func (om *objectManager) CreateCatalogObject(ctx context.Context, obj *models.Ca
 	query := `
 		INSERT INTO catalog_objects (hash, type, version, tenant_id, data)
 		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (hash, tenant_id) DO NOTHING;
+		ON CONFLICT (tenant_id, hash) DO NOTHING;
 	`
 	result, err := om.conn().ExecContext(ctx, query, obj.Hash, obj.Type, obj.Version, tenantID, dataZ)
 	if err != nil {
@@ -79,9 +79,9 @@ func (om *objectManager) GetCatalogObject(ctx context.Context, hash string) (*mo
 	query := `
 		SELECT hash, type, version, tenant_id, data
 		FROM catalog_objects
-		WHERE hash = $1 AND tenant_id = $2
+		WHERE tenant_id = $1 AND hash = $2
 	`
-	row := om.conn().QueryRowContext(ctx, query, hash, tenantID)
+	row := om.conn().QueryRowContext(ctx, query, tenantID, hash)
 
 	var obj models.CatalogObject
 
@@ -127,12 +127,11 @@ func (om *objectManager) DeleteCatalogObject(ctx context.Context, t catcommon.Ca
 	query := `
 		SELECT 1
 		FROM ` + table + `
-		WHERE jsonb_path_query_array(directory, '$.*.hash') @> to_jsonb($1::text)
-		AND tenant_id = $2
+		WHERE tenant_id = $1 AND jsonb_path_query_array(directory, '$.*.hash') @> to_jsonb($2::text)
 		LIMIT 1;
 	`
 	var exists bool // we'll probably just hit the ErrNoRows case in case of false
-	dberr := om.conn().QueryRowContext(ctx, query, hash, tenantID).Scan(&exists)
+	dberr := om.conn().QueryRowContext(ctx, query, tenantID, hash).Scan(&exists)
 	if dberr != nil {
 		if dberr != sql.ErrNoRows {
 			return dberror.ErrDatabase.Err(dberr)
@@ -144,9 +143,9 @@ func (om *objectManager) DeleteCatalogObject(ctx context.Context, t catcommon.Ca
 	}
 	query = `
 		DELETE FROM catalog_objects
-		WHERE hash = $1 AND tenant_id = $2
+		WHERE tenant_id = $1 AND hash = $2
 	`
-	result, err := om.conn().ExecContext(ctx, query, hash, tenantID)
+	result, err := om.conn().ExecContext(ctx, query, tenantID, hash)
 	if err != nil {
 		return dberror.ErrDatabase.Err(err)
 	}

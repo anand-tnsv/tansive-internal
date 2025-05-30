@@ -111,7 +111,7 @@ func (mm *metadataManager) CreateProject(ctx context.Context, projectID catcommo
 	query := `
 		INSERT INTO projects (project_id, tenant_id)
 		VALUES ($1, $2)
-		ON CONFLICT (project_id, tenant_id) DO NOTHING
+		ON CONFLICT (tenant_id, project_id) DO NOTHING
 		RETURNING project_id;
 	`
 
@@ -144,11 +144,11 @@ func (mm *metadataManager) GetProject(ctx context.Context, projectID catcommon.P
 	query := `
 		SELECT project_id, tenant_id
 		FROM projects
-		WHERE project_id = $1 AND tenant_id = $2;
+		WHERE tenant_id = $1 AND project_id = $2;
 	`
 
 	// Query the project data
-	row := mm.conn().QueryRowContext(ctx, query, string(projectID), string(tenantID))
+	row := mm.conn().QueryRowContext(ctx, query, string(tenantID), string(projectID))
 
 	var project models.Project
 	err := row.Scan(&project.ProjectID, &project.TenantID)
@@ -180,9 +180,9 @@ func (mm *metadataManager) DeleteProject(ctx context.Context, projectID catcommo
 
 	query := `
 		DELETE FROM projects
-		WHERE project_id = $1 AND tenant_id = $2;
+		WHERE tenant_id = $1 AND project_id = $2;
 	`
-	_, err := mm.conn().ExecContext(ctx, query, string(projectID), string(tenantID))
+	_, err := mm.conn().ExecContext(ctx, query, string(tenantID), string(projectID))
 	if err != nil {
 		log.Ctx(ctx).Error().
 			Err(err).

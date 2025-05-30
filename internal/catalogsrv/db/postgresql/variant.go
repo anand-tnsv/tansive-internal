@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // CreateVariant creates a new variant in the database.
@@ -63,7 +63,7 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 	queryVariant := `
 		INSERT INTO variants (variant_id, name, description, info, catalog_id, resource_directory, tenant_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT (name, catalog_id, tenant_id) DO NOTHING
+		ON CONFLICT (tenant_id, catalog_id, name) DO NOTHING
 		RETURNING variant_id, name;
 	`
 
@@ -128,7 +128,7 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 	// Insert the schema directory into the database and get created uuid
 	query := ` INSERT INTO ` + tableName + ` (directory_id, variant_id, tenant_id, directory)
 		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (directory_id, tenant_id) DO NOTHING RETURNING directory_id;`
+		ON CONFLICT (tenant_id, directory_id) DO NOTHING RETURNING directory_id;`
 
 	var directoryID uuid.UUID
 	err = tx.QueryRowContext(ctx, query, dir.DirectoryID, dir.VariantID, dir.TenantID, dir.Directory).Scan(&directoryID)
@@ -162,16 +162,16 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 		query = `
 			SELECT variant_id, name, description, info, catalog_id, resource_directory
 			FROM variants
-			WHERE variant_id = $1 AND tenant_id = $2;
+			WHERE tenant_id = $1 AND variant_id = $2;
 		`
-		row = mm.conn().QueryRowContext(ctx, query, variantID, tenantID)
+		row = mm.conn().QueryRowContext(ctx, query, tenantID, variantID)
 	} else if name != "" {
 		query = `
 			SELECT variant_id, name, description, info, catalog_id, resource_directory
 			FROM variants
-			WHERE name = $1 AND catalog_id = $2 AND tenant_id = $3;
+			WHERE tenant_id = $1 AND catalog_id = $2 AND name = $3;
 		`
-		row = mm.conn().QueryRowContext(ctx, query, name, catalogID, tenantID)
+		row = mm.conn().QueryRowContext(ctx, query, tenantID, catalogID, name)
 	} else {
 		log.Ctx(ctx).Error().Msg("either variant ID or name must be provided")
 		return nil, dberror.ErrInvalidInput.Msg("either variant ID or name must be provided")
@@ -201,9 +201,9 @@ func (mm *metadataManager) GetVariantByID(ctx context.Context, variantID uuid.UU
 	query := `
 		SELECT variant_id, name, description, info, catalog_id, resource_directory
 		FROM variants
-		WHERE variant_id = $1 AND tenant_id = $2;
+		WHERE tenant_id = $1 AND variant_id = $2;
 	`
-	row := mm.conn().QueryRowContext(ctx, query, variantID, tenantID)
+	row := mm.conn().QueryRowContext(ctx, query, tenantID, variantID)
 	variant := &models.Variant{}
 	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceDirectoryID)
 	if err != nil {
@@ -227,11 +227,11 @@ func (mm *metadataManager) GetVariantIDFromName(ctx context.Context, catalogID u
 	query := `
 		SELECT variant_id
 		FROM variants
-		WHERE name = $1 AND catalog_id = $2 AND tenant_id = $3;
+		WHERE tenant_id = $1 AND catalog_id = $2 AND name = $3;
 	`
 
 	var variantID uuid.UUID
-	err := mm.conn().QueryRowContext(ctx, query, name, catalogID, tenantID).Scan(&variantID)
+	err := mm.conn().QueryRowContext(ctx, query, tenantID, catalogID, name).Scan(&variantID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Ctx(ctx).Info().Msg("variant not found")
@@ -261,19 +261,19 @@ func (mm *metadataManager) UpdateVariant(ctx context.Context, variantID uuid.UUI
 	if variantID != uuid.Nil {
 		query = `
 			UPDATE variants
-			SET name = $1, description = $2, info = $3
-			WHERE variant_id = $4 AND catalog_id = $5 AND tenant_id = $6
+			SET name = $4, description = $5, info = $6
+			WHERE tenant_id = $1 AND catalog_id = $2 AND variant_id = $3
 			RETURNING variant_id;
 		`
-		row = mm.conn().QueryRowContext(ctx, query, updatedVariant.Name, updatedVariant.Description, updatedVariant.Info, variantID, updatedVariant.CatalogID, tenantID)
+		row = mm.conn().QueryRowContext(ctx, query, tenantID, updatedVariant.CatalogID, variantID, updatedVariant.Name, updatedVariant.Description, updatedVariant.Info)
 	} else if name != "" {
 		query = `
 			UPDATE variants
-			SET name = $1, description = $2, info = $3
-			WHERE name = $4 AND catalog_id = $5 AND tenant_id = $6
+			SET name = $4, description = $5, info = $6
+			WHERE tenant_id = $1 AND catalog_id = $2 AND name = $3
 			RETURNING variant_id;
 		`
-		row = mm.conn().QueryRowContext(ctx, query, updatedVariant.Name, updatedVariant.Description, updatedVariant.Info, name, updatedVariant.CatalogID, tenantID)
+		row = mm.conn().QueryRowContext(ctx, query, tenantID, updatedVariant.CatalogID, name, updatedVariant.Name, updatedVariant.Description, updatedVariant.Info)
 	} else {
 		log.Ctx(ctx).Error().Msg("either variant ID or name must be provided")
 		return dberror.ErrInvalidInput.Msg("either variant ID or name must be provided")
@@ -287,7 +287,7 @@ func (mm *metadataManager) UpdateVariant(ctx context.Context, variantID uuid.UUI
 			return dberror.ErrNotFound.Msg("variant not found or no changes made")
 		}
 		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == "23505" && pgErr.ConstraintName == "variants_name_catalog_id_tenant_id_key" { // Unique constraint violation
+			if pgErr.Code == "23505" && pgErr.ConstraintName == "variants_tenant_id_catalog_id_name_key" { // Unique constraint violation
 				log.Ctx(ctx).Error().Msg("variant name already exists for the given catalog_id")
 				return dberror.ErrAlreadyExists.Msg("variant name already exists for the given catalog_id")
 			}
@@ -323,15 +323,15 @@ func (mm *metadataManager) DeleteVariant(ctx context.Context, catalogID, variant
 	if variantID != uuid.Nil {
 		query = `
 			DELETE FROM variants
-			WHERE variant_id = $1 AND catalog_id = $2 AND tenant_id = $3;
+			WHERE tenant_id = $1 AND catalog_id = $2 AND variant_id = $3;
 		`
-		result, err = mm.conn().ExecContext(ctx, query, variantID, catalogID, tenantID)
+		result, err = mm.conn().ExecContext(ctx, query, tenantID, catalogID, variantID)
 	} else {
 		query = `
 			DELETE FROM variants
-			WHERE name = $1 AND catalog_id = $2 AND tenant_id = $3;
+			WHERE tenant_id = $1 AND catalog_id = $2 AND name = $3;
 		`
-		result, err = mm.conn().ExecContext(ctx, query, name, catalogID, tenantID)
+		result, err = mm.conn().ExecContext(ctx, query, tenantID, catalogID, name)
 	}
 
 	if err != nil {
@@ -361,13 +361,13 @@ func (mm *metadataManager) GetMetadataNames(ctx context.Context, catalogID uuid.
 	query := `
 		SELECT catalog.name, variant.name
 		FROM catalog
-		JOIN variant ON catalog.catalog_id = variant.catalog_id
-		WHERE catalog.catalog_id = $1 AND variant.variant_id = $2 AND variant.tenant_id = $3;
+		JOIN variant ON catalog.catalog_id = variant.catalog_id AND catalog.tenant_id = variant.tenant_id
+		WHERE catalog.tenant_id = $1 AND catalog.catalog_id = $2 AND variant.variant_id = $3;
 	`
 
 	var catalogName string
 	var variantName string
-	err := mm.conn().QueryRowContext(ctx, query, catalogID, variantID, tenantID).Scan(&catalogName, &variantName)
+	err := mm.conn().QueryRowContext(ctx, query, tenantID, catalogID, variantID).Scan(&catalogName, &variantName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Ctx(ctx).Info().Msg("variant not found")

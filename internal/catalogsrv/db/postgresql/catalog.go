@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // CreateCatalog inserts a new catalog into the database.
@@ -54,7 +54,7 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 	query := `
 		INSERT INTO catalogs (catalog_id, name, description, info, tenant_id, project_id)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (name, project_id, tenant_id) DO NOTHING
+		ON CONFLICT (tenant_id, project_id, name) DO NOTHING
 		RETURNING catalog_id, name;
 	`
 
@@ -140,9 +140,9 @@ func (mm *metadataManager) GetCatalogIDByName(ctx context.Context, catalogName s
 	// Query to get the catalog_id by catalog name and tenant ID
 	query := `
 		SELECT catalog_id FROM catalogs 
-		WHERE name = $1 AND project_id = $2 AND tenant_id = $3;
+		WHERE tenant_id = $1 AND project_id = $2 AND name = $3;
 	`
-	errDb := mm.conn().QueryRowContext(ctx, query, catalogName, projectID, tenantID).Scan(&catalogID)
+	errDb := mm.conn().QueryRowContext(ctx, query, tenantID, projectID, catalogName).Scan(&catalogID)
 	if errDb != nil {
 		if errDb == sql.ErrNoRows {
 			log.Ctx(ctx).Info().Str("catalog_name", catalogName).Msg("catalog not found")
@@ -165,10 +165,10 @@ func (mm *metadataManager) GetCatalogByID(ctx context.Context, catalogID uuid.UU
 	query := `
         SELECT catalog_id, name, description, info, project_id
         FROM catalogs
-        WHERE catalog_id = $1 AND tenant_id = $2;
+        WHERE tenant_id = $1 AND catalog_id = $2;
     `
 
-	row := mm.conn().QueryRowContext(ctx, query, catalogID, tenantID)
+	row := mm.conn().QueryRowContext(ctx, query, tenantID, catalogID)
 
 	// Scan the result into the catalog model
 	var catalog models.Catalog
@@ -200,10 +200,10 @@ func (mm *metadataManager) GetCatalogByName(ctx context.Context, name string) (*
 	query := `
         SELECT catalog_id, name, description, info, project_id
         FROM catalogs
-        WHERE name = $1 AND project_id = $2 AND tenant_id = $3;
+        WHERE tenant_id = $1 AND project_id = $2 AND name = $3;
     `
 
-	row := mm.conn().QueryRowContext(ctx, query, name, projectID, tenantID)
+	row := mm.conn().QueryRowContext(ctx, query, tenantID, projectID, name)
 
 	// Scan the result into the catalog model
 	var catalog models.Catalog
@@ -248,11 +248,11 @@ func (mm *metadataManager) UpdateCatalog(ctx context.Context, catalog *models.Ca
 
 	var row *sql.Row
 	if catalog.CatalogID != uuid.Nil {
-		query += "catalog_id = $1 AND project_id = $2 AND tenant_id = $3 RETURNING catalog_id, name;"
-		row = mm.conn().QueryRowContext(ctx, query, catalog.CatalogID, projectID, tenantID, catalog.Description, catalog.Info)
+		query += "tenant_id = $1 AND project_id = $2 AND catalog_id = $3 RETURNING catalog_id, name;"
+		row = mm.conn().QueryRowContext(ctx, query, tenantID, projectID, catalog.CatalogID, catalog.Description, catalog.Info)
 	} else {
-		query += "name = $1 AND project_id = $2 AND tenant_id = $3 RETURNING catalog_id, name;"
-		row = mm.conn().QueryRowContext(ctx, query, catalog.Name, projectID, tenantID, catalog.Description, catalog.Info)
+		query += "tenant_id = $1 AND project_id = $2 AND name = $3 RETURNING catalog_id, name;"
+		row = mm.conn().QueryRowContext(ctx, query, tenantID, projectID, catalog.Name, catalog.Description, catalog.Info)
 	}
 
 	// Scan the updated values
@@ -295,15 +295,15 @@ func (mm *metadataManager) DeleteCatalog(ctx context.Context, catalogID uuid.UUI
 		WHERE `
 
 	if catalogID != uuid.Nil {
-		query += "catalog_id = $1 AND project_id = $2 AND tenant_id = $3;"
-		_, err := mm.conn().ExecContext(ctx, query, catalogID, projectID, tenantID)
+		query += "tenant_id = $1 AND project_id = $2 AND catalog_id = $3;"
+		_, err := mm.conn().ExecContext(ctx, query, tenantID, projectID, catalogID)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Str("catalog_id", catalogID.String()).Msg("failed to delete catalog")
 			return dberror.ErrDatabase.Err(err)
 		}
 	} else {
-		query += "name = $1 AND project_id = $2 AND tenant_id = $3;"
-		_, err := mm.conn().ExecContext(ctx, query, name, projectID, tenantID)
+		query += "tenant_id = $1 AND project_id = $2 AND name = $3;"
+		_, err := mm.conn().ExecContext(ctx, query, tenantID, projectID, name)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Str("name", name).Msg("failed to delete catalog")
 			return dberror.ErrDatabase.Err(err)

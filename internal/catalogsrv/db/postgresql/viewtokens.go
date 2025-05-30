@@ -53,10 +53,10 @@ func (mm *metadataManager) GetViewToken(ctx context.Context, tokenID uuid.UUID) 
 	query := `
 		SELECT token_id, view_id, tenant_id, expire_at, created_at, updated_at
 		FROM view_tokens
-		WHERE token_id = $1 AND tenant_id = $2`
+		WHERE tenant_id = $1 AND token_id = $2`
 
 	token := &models.ViewToken{}
-	errDb := mm.conn().QueryRowContext(ctx, query, tokenID, tenantID).
+	errDb := mm.conn().QueryRowContext(ctx, query, tenantID, tokenID).
 		Scan(&token.TokenID, &token.ViewID, &token.TenantID, &token.ExpireAt, &token.CreatedAt, &token.UpdatedAt)
 
 	if errDb != nil {
@@ -80,9 +80,9 @@ func (mm *metadataManager) UpdateViewTokenExpiry(ctx context.Context, tokenID uu
 	query := `
 		UPDATE view_tokens
 		SET expire_at = $1
-		WHERE token_id = $2 AND tenant_id = $3`
+		WHERE tenant_id = $2 AND token_id = $3`
 
-	result, errDb := mm.conn().ExecContext(ctx, query, expireAt, tokenID, tenantID)
+	result, errDb := mm.conn().ExecContext(ctx, query, expireAt, tenantID, tokenID)
 	if errDb != nil {
 		log.Ctx(ctx).Error().Err(errDb).Str("token_id", tokenID.String()).Msg("failed to update view token expiry")
 		return dberror.ErrDatabase.Err(errDb)
@@ -110,9 +110,9 @@ func (mm *metadataManager) DeleteViewToken(ctx context.Context, tokenID uuid.UUI
 
 	query := `
 		DELETE FROM view_tokens
-		WHERE token_id = $1 AND tenant_id = $2`
+		WHERE tenant_id = $1 AND token_id = $2`
 
-	result, errDb := mm.conn().ExecContext(ctx, query, tokenID, tenantID)
+	result, errDb := mm.conn().ExecContext(ctx, query, tenantID, tokenID)
 	if errDb != nil {
 		log.Ctx(ctx).Error().Err(errDb).Str("token_id", tokenID.String()).Msg("failed to delete view token")
 		return dberror.ErrDatabase.Err(errDb)

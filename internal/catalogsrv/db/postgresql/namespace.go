@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func (mm *metadataManager) CreateNamespace(ctx context.Context, ns *models.Namespace) (err apperrors.Error) {
@@ -110,13 +110,13 @@ func (mm *metadataManager) GetNamespace(ctx context.Context, name string, varian
 		JOIN 
 			catalogs c ON v.catalog_id = c.catalog_id AND v.tenant_id = c.tenant_id
 		WHERE 
-			n.name = $1 AND 
+			n.tenant_id = $1 AND 
 			n.variant_id = $2 AND 
-			n.tenant_id = $3;
+			n.name = $3;
 	`
 
 	var ns models.Namespace
-	err := mm.conn().QueryRowContext(ctx, query, name, variantID, tenantID).
+	err := mm.conn().QueryRowContext(ctx, query, tenantID, variantID, name).
 		Scan(&ns.Name, &ns.VariantID, &ns.TenantID, &ns.Description, &ns.Info, &ns.CatalogID, &ns.Catalog, &ns.Variant)
 
 	if err != nil {
@@ -143,10 +143,10 @@ func (mm *metadataManager) UpdateNamespace(ctx context.Context, ns *models.Names
 		SET description = $4,
 		    info = $5,
 		    updated_at = NOW()
-		WHERE name = $1 AND variant_id = $2 AND tenant_id = $3
+		WHERE tenant_id = $1 AND variant_id = $2 AND name = $3
 	`
 
-	result, err := mm.conn().ExecContext(ctx, query, ns.Name, ns.VariantID, tenantID, ns.Description, ns.Info)
+	result, err := mm.conn().ExecContext(ctx, query, tenantID, ns.VariantID, ns.Name, ns.Description, ns.Info)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update namespace")
 		return dberror.ErrDatabase.Err(err)
@@ -174,10 +174,10 @@ func (mm *metadataManager) DeleteNamespace(ctx context.Context, name string, var
 
 	query := `
 		DELETE FROM namespaces
-		WHERE name = $1 AND variant_id = $2 AND tenant_id = $3
+		WHERE tenant_id = $1 AND variant_id = $2 AND name = $3
 	`
 
-	result, err := mm.conn().ExecContext(ctx, query, name, variantID, tenantID)
+	result, err := mm.conn().ExecContext(ctx, query, tenantID, variantID, name)
 	if err != nil {
 		return dberror.ErrDatabase.Err(err)
 	}
@@ -202,11 +202,11 @@ func (mm *metadataManager) ListNamespacesByVariant(ctx context.Context, variantI
 	query := `
 		SELECT name, variant_id, tenant_id, description, info
 		FROM namespaces
-		WHERE variant_id = $1 AND tenant_id = $2
+		WHERE tenant_id = $1 AND variant_id = $2
 		ORDER BY name ASC
 	`
 
-	rows, err := mm.conn().QueryContext(ctx, query, variantID, tenantID)
+	rows, err := mm.conn().QueryContext(ctx, query, tenantID, variantID)
 	if err != nil {
 		return nil, dberror.ErrDatabase.Err(err)
 	}

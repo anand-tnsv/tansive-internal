@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS projects (
   tenant_id VARCHAR(10),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (project_id, tenant_id),
+  PRIMARY KEY (tenant_id, project_id),
   FOREIGN KEY (tenant_id) REFERENCES tenants(tenant_id) ON DELETE CASCADE
 );
 
@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS catalogs (
   tenant_id VARCHAR(10) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (name, project_id, tenant_id),
-  PRIMARY KEY (catalog_id, tenant_id),
-  FOREIGN KEY (project_id, tenant_id) REFERENCES projects(project_id, tenant_id) ON DELETE CASCADE,
+  UNIQUE (tenant_id, project_id, name),
+  PRIMARY KEY (tenant_id, catalog_id),
+  FOREIGN KEY (tenant_id, project_id) REFERENCES projects(tenant_id, project_id) ON DELETE CASCADE,
   CHECK (name ~ '^[A-Za-z0-9_-]+$') -- CHECK constraint to allow only alphanumeric and underscore in name
 );
 
@@ -65,9 +65,9 @@ CREATE TABLE IF NOT EXISTS variants (
   tenant_id VARCHAR(10) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (name, catalog_id, tenant_id),
-  PRIMARY KEY (variant_id, tenant_id),
-  FOREIGN KEY (catalog_id, tenant_id) REFERENCES catalogs(catalog_id, tenant_id) ON DELETE CASCADE,
+  UNIQUE (tenant_id, catalog_id, name),
+  PRIMARY KEY (tenant_id, variant_id),
+  FOREIGN KEY (tenant_id, catalog_id) REFERENCES catalogs(tenant_id, catalog_id) ON DELETE CASCADE,
   CHECK (name ~ '^[A-Za-z0-9_-]+$') -- CHECK constraint to allow only alphanumeric and underscore in name
 );
 
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS catalog_objects (
   data BYTEA NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (hash, tenant_id)
+  PRIMARY KEY (tenant_id, hash)
 );
 
 CREATE TRIGGER update_catalog_objects_updated_at
@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS resource_directory (
   directory JSONB NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (directory_id, tenant_id),
-  FOREIGN KEY (variant_id, tenant_id) REFERENCES variants(variant_id, tenant_id) ON DELETE CASCADE
+  PRIMARY KEY (tenant_id, directory_id),
+  FOREIGN KEY (tenant_id, variant_id) REFERENCES variants(tenant_id, variant_id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER update_resource_directory_updated_at
@@ -119,8 +119,8 @@ CREATE TABLE IF NOT EXISTS namespaces (
   info JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (name, variant_id, tenant_id),
-  FOREIGN KEY (variant_id, tenant_id) REFERENCES variants(variant_id, tenant_id) ON DELETE CASCADE,
+  PRIMARY KEY (tenant_id, variant_id, name),
+  FOREIGN KEY (tenant_id, variant_id) REFERENCES variants(tenant_id, variant_id) ON DELETE CASCADE,
   CHECK (name ~ '^[A-Za-z0-9_-]+$') -- CHECK constraint to allow only alphanumeric and underscore in name
 );
 
@@ -141,9 +141,9 @@ CREATE TABLE IF NOT EXISTS views (
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (label, catalog_id, tenant_id),
-  PRIMARY KEY (view_id, tenant_id),
-  FOREIGN KEY (catalog_id, tenant_id) REFERENCES catalogs(catalog_id, tenant_id) ON DELETE CASCADE,
+  UNIQUE (tenant_id, catalog_id, label),
+  PRIMARY KEY (tenant_id, view_id),
+  FOREIGN KEY (tenant_id, catalog_id) REFERENCES catalogs(tenant_id, catalog_id) ON DELETE CASCADE,
   CHECK (label IS NULL OR label ~ '^[A-Za-z0-9_-]+$')  -- CHECK constraint to allow only alphanumeric and underscore in label
 );
 
@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS view_tokens (
   expire_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (token_id, tenant_id)
+  PRIMARY KEY (tenant_id, token_id)
 );
 
 CREATE TRIGGER update_view_tokens_updated_at

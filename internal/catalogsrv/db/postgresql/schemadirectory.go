@@ -9,13 +9,13 @@ import (
 	json "github.com/json-iterator/go"
 
 	"github.com/golang/snappy"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func (om *objectManager) CreateSchemaDirectory(ctx context.Context, t catcommon.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error {
@@ -74,9 +74,9 @@ func (om *objectManager) SetDirectory(ctx context.Context, t catcommon.CatalogOb
 	query := `
 		UPDATE ` + tableName + `
 		SET directory = $1
-		WHERE directory_id = $2 AND tenant_id = $3;`
+		WHERE tenant_id = $2 AND directory_id = $3;`
 
-	_, err := om.conn().ExecContext(ctx, query, dir, id, tenantID)
+	_, err := om.conn().ExecContext(ctx, query, dir, tenantID, id)
 	if err != nil {
 		return dberror.ErrDatabase.Err(err)
 	}
@@ -97,10 +97,10 @@ func (om *objectManager) GetDirectory(ctx context.Context, t catcommon.CatalogOb
 	query := `
 		SELECT directory
 		FROM ` + tableName + `
-		WHERE directory_id = $1 AND tenant_id = $2;`
+		WHERE tenant_id = $1 AND directory_id = $2;`
 
 	var dir []byte
-	err := om.conn().QueryRowContext(ctx, query, id, tenantID).Scan(&dir)
+	err := om.conn().QueryRowContext(ctx, query, tenantID, id).Scan(&dir)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, dberror.ErrNotFound.Msg("directory not found")
@@ -122,7 +122,7 @@ func (om *objectManager) createSchemaDirectoryWithTransaction(ctx context.Contex
 	// Insert the schema directory into the database and get created uuid
 	query := ` INSERT INTO ` + tableName + ` (directory_id, variant_id, tenant_id, directory)
 		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (directory_id, tenant_id) DO NOTHING RETURNING directory_id;`
+		ON CONFLICT (tenant_id, directory_id) DO NOTHING RETURNING directory_id;`
 
 	var directoryID uuid.UUID
 	err := tx.QueryRowContext(ctx, query, dir.DirectoryID, dir.VariantID, dir.TenantID, dir.Directory).Scan(&directoryID)
@@ -151,10 +151,10 @@ func (om *objectManager) GetSchemaDirectory(ctx context.Context, t catcommon.Cat
 
 	query := `SELECT directory_id, variant_id, tenant_id, directory
 		FROM ` + tableName + `
-		WHERE directory_id = $1 AND tenant_id = $2;`
+		WHERE tenant_id = $1 AND directory_id = $2;`
 
 	dir := &models.SchemaDirectory{}
-	err := om.conn().QueryRowContext(ctx, query, directoryID, tenantID).Scan(&dir.DirectoryID, &dir.VariantID, &dir.TenantID, &dir.Directory)
+	err := om.conn().QueryRowContext(ctx, query, tenantID, directoryID).Scan(&dir.DirectoryID, &dir.VariantID, &dir.TenantID, &dir.Directory)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, dberror.ErrNotFound.Msg("schema directory not found")
@@ -177,10 +177,10 @@ func (om *objectManager) GetObjectRefByPath(ctx context.Context, t catcommon.Cat
 	query := `
 		SELECT directory-> $1 AS object
 		FROM ` + tableName + `
-		WHERE directory_id = $2 AND tenant_id = $3;`
+		WHERE tenant_id = $2 AND directory_id = $3;`
 
 	var objectData []byte
-	err := om.conn().QueryRowContext(ctx, query, path, directoryID, tenantID).Scan(&objectData)
+	err := om.conn().QueryRowContext(ctx, query, path, tenantID, directoryID).Scan(&objectData)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, dberror.ErrNotFound.Msg("object not found in directory")
@@ -215,7 +215,7 @@ func (om *objectManager) LoadObjectByPath(ctx context.Context, t catcommon.Catal
 		WITH hash_cte AS (
 			SELECT (directory-> $1 ->> 'hash') AS hash
 			FROM ` + tableName + `
-			WHERE directory_id = $2 AND tenant_id = $3
+			WHERE tenant_id = $2 AND directory_id = $3
 		)
 		SELECT
 			co.hash,
@@ -230,13 +230,13 @@ func (om *objectManager) LoadObjectByPath(ctx context.Context, t catcommon.Catal
 		ON
 			hash_cte.hash = co.hash
 		WHERE
-			co.tenant_id = $3;
+			co.tenant_id = $2;
 	`
 
 	var hash, version string
 	var objType catcommon.CatalogObjectType
 	var data []byte
-	err := om.conn().QueryRowContext(ctx, query, path, directoryID, tenantID).Scan(&hash, &objType, &version, &tenantID, &data)
+	err := om.conn().QueryRowContext(ctx, query, path, tenantID, directoryID).Scan(&hash, &objType, &version, &tenantID, &data)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, dberror.ErrNotFound.Msg("object not found in directory or catalog")
@@ -287,9 +287,9 @@ func (om *objectManager) AddOrUpdateObjectByPath(ctx context.Context, t catcommo
 	query := `
 		UPDATE ` + tableName + `
 		SET directory = jsonb_set(directory, ARRAY[$1], $2::jsonb)
-		WHERE directory_id = $3 AND tenant_id = $4;`
+		WHERE tenant_id = $3 AND directory_id = $4;`
 
-	result, err := om.conn().ExecContext(ctx, query, path, data, directoryID, tenantID)
+	result, err := om.conn().ExecContext(ctx, query, path, data, tenantID, directoryID)
 	if err != nil {
 		return dberror.ErrDatabase.Err(err)
 	}
@@ -330,16 +330,16 @@ func (om *objectManager) DeleteObjectByPath(ctx context.Context, t catcommon.Cat
 		WITH to_delete AS (
 			SELECT directory -> $1 ->> 'hash' AS deleted_hash
 			FROM ` + tableName + `
-			WHERE directory_id = $2 AND tenant_id = $3 AND directory ? $1
+			WHERE tenant_id = $2 AND directory_id = $3 AND directory ? $1
 		)
 		UPDATE ` + tableName + `
 		SET directory = directory - $1
-		WHERE directory_id = $2 AND tenant_id = $3 AND directory ? $1
+		WHERE tenant_id = $2 AND directory_id = $3 AND directory ? $1
 		RETURNING (SELECT deleted_hash FROM to_delete);
 
 	`
 	var result sql.NullString
-	err := om.conn().QueryRowContext(ctx, query, path, directoryID, tenantID).Scan(&result)
+	err := om.conn().QueryRowContext(ctx, query, path, tenantID, directoryID).Scan(&result)
 	if err == sql.ErrNoRows {
 		return hash, nil // Key did not exist, so nothing was removed
 	} else if err != nil {
@@ -365,10 +365,10 @@ func (om *objectManager) PathExists(ctx context.Context, t catcommon.CatalogObje
 	query := `
 		SELECT directory ? $1 AS exists
 		FROM ` + tableName + `
-		WHERE directory_id = $2 AND tenant_id = $3;`
+		WHERE tenant_id = $2 AND directory_id = $3;`
 
 	var exists bool
-	err := om.conn().QueryRowContext(ctx, query, path, directoryID, tenantID).Scan(&exists)
+	err := om.conn().QueryRowContext(ctx, query, path, tenantID, directoryID).Scan(&exists)
 	if err != nil {
 		return false, dberror.ErrDatabase.Err(err)
 	}
@@ -415,9 +415,9 @@ func (om *objectManager) DeleteNamespaceObjects(ctx context.Context, t catcommon
 	}()
 
 	// Get the current directory with FOR UPDATE lock
-	query := `SELECT directory FROM ` + tableName + ` WHERE directory_id = $1 AND tenant_id = $2 FOR UPDATE;`
+	query := `SELECT directory FROM ` + tableName + ` WHERE tenant_id = $1 AND directory_id = $2 FOR UPDATE;`
 	var dir []byte
-	err = tx.QueryRowContext(ctx, query, directoryID, tenantID).Scan(&dir)
+	err = tx.QueryRowContext(ctx, query, tenantID, directoryID).Scan(&dir)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, dberror.ErrNotFound.Msg("directory not found")

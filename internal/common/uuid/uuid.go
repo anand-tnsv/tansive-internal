@@ -7,10 +7,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// This package is a wrapper around the github.com/google/uuid package setting
+// the default UUID to version 7.
+
 // UUID represents a UUID
 type UUID = uuid.UUID
 
-// UUID7 generates a new UUIDv7 and returns it
+// UUID7 generates a new UUIDv7
 func UUID7() UUID {
 	uuidv7, _ := uuid.NewV7()
 	return uuidv7
