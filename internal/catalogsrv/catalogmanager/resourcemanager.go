@@ -11,7 +11,6 @@ import (
 	"slices"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -24,6 +23,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
 	"github.com/tidwall/gjson"
 )
@@ -43,7 +43,6 @@ type ResourceSpec struct {
 	Provider    ResourceProvider       `json:"-" validate:"required_without=Schema,omitempty,resourceNameValidator"`
 	Schema      json.RawMessage        `json:"schema" validate:"required_without=Provider,omitempty"`
 	Value       types.NullableAny      `json:"value" validate:"omitempty"`
-	Policy      string                 `json:"policy" validate:"omitempty,oneof=inherit override"`
 	Annotations interfaces.Annotations `json:"annotations" validate:"omitempty,dive,keys,noSpaces,endkeys"`
 }
 
