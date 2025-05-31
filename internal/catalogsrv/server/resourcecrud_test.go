@@ -118,8 +118,7 @@ func TestResourceCrud(t *testing.T) {
 					"name": "test-resource",
 					"value": 42
 				},
-				"annotations": null,
-				"policy": ""
+				"annotations": null
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
@@ -177,8 +176,7 @@ func TestResourceCrud(t *testing.T) {
 					"name": "updated-resource",
 					"value": 100
 				},
-				"annotations": null,
-				"policy": ""
+				"annotations": null
 			}
 		}`
 	httpReq, _ = http.NewRequest("PUT", "/resources/valid-resource/definition", nil)
@@ -474,8 +472,7 @@ func TestResourceValue(t *testing.T) {
 					"name": "initial-value",
 					"value": 42
 				},
-				"annotations": null,
-				"policy": ""
+				"annotations": null
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)

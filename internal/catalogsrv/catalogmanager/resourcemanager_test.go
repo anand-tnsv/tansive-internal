@@ -36,54 +36,8 @@ func TestResourceValidation(t *testing.T) {
 					"variant": "default"
 				},
 				"spec": {
-					"schema": {"type": "integer"},
-					"value": 42,
-					"annotations": {
-						"key1": "value1",
-						"mcp:description": "This is a test resource description"
-					}
-				}
-			}`,
-			expectedError: false,
-		},
-		{
-			name: "valid resource with schema, value and inherit policy",
-			jsonInput: `{
-				"version": "v1",
-				"kind": "Resource",
-				"metadata": {
-					"name": "test-resource",
-					"catalog": "test-catalog",
-					"namespace": "default",
-					"variant": "default"
-				},
-				"spec": {
-					"schema": {"type": "integer"},
-					"value": 42,
-					"policy": "inherit",
-					"annotations": {
-						"key1": "value1",
-						"mcp:description": "This is a test resource description"
-					}
-				}
-			}`,
-			expectedError: false,
-		},
-		{
-			name: "valid resource with schema, value and override policy",
-			jsonInput: `{
-				"version": "v1",
-				"kind": "Resource",
-				"metadata": {
-					"name": "test-resource",
-					"catalog": "test-catalog",
-					"namespace": "default",
-					"variant": "default"
-				},
-				"spec": {
-					"schema": {"type": "string"},
-					"value": "test",
-					"policy": "override",
+					"schema": {"type": "boolean"},
+					"value": true,
 					"annotations": {
 						"key1": "value1"
 					}
@@ -154,26 +108,6 @@ func TestResourceValidation(t *testing.T) {
 			}`,
 			expectedError: true,
 			errorTypes:    []string{"invalid name"},
-		},
-		{
-			name: "invalid policy value",
-			jsonInput: `{
-				"version": "v1",
-				"kind": "Resource",
-				"metadata": {
-					"name": "test-resource",
-					"catalog": "test-catalog",
-					"namespace": "default",
-					"variant": "default"
-				},
-				"spec": {
-					"schema": {"type": "integer"},
-					"value": 42,
-					"policy": "invalid"
-				}
-			}`,
-			expectedError: true,
-			errorTypes:    []string{"invalid schema"},
 		},
 	}
 
