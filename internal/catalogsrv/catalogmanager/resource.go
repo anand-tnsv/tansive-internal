@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
@@ -14,6 +13,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -119,6 +119,8 @@ func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m
 
 	return rm, nil
 }
+
+var _ interfaces.KindHandler = &resourceKindHandler{}
 
 // resourceKindHandler implements the KindHandler interface for managing individual resources.
 // It handles CRUD operations for resources and maintains the request context.

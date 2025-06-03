@@ -104,7 +104,7 @@ func LoadDefaultsIfNotSet(cfg *ConfigParam) {
 		cfg.EndpointPort = "9002"
 	}
 	if cfg.MaxRequestBodySize == 0 {
-		cfg.MaxRequestBodySize = 1024
+		cfg.MaxRequestBodySize = 1024 * 1024 // 1MB
 	}
 
 	// Auth defaults

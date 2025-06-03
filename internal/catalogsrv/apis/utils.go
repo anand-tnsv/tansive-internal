@@ -18,6 +18,7 @@ func hydrateRequestContext(r *http.Request) (interfaces.RequestContext, error) {
 	viewName := chi.URLParam(r, "viewName")
 	resourcePath := chi.URLParam(r, "resourcePath")
 	resourceValue := chi.URLParam(r, "resourceValue")
+	skillsetPath := chi.URLParam(r, "skillsetPath")
 
 	n := interfaces.RequestContext{}
 
@@ -62,6 +63,19 @@ func hydrateRequestContext(r *http.Request) (interfaces.RequestContext, error) {
 		n.ObjectPath = path.Clean("/" + n.ObjectPath)
 		n.ObjectType = catcommon.CatalogObjectTypeResource
 		n.ObjectProperty = catcommon.ResourcePropertyValue
+	}
+
+	if skillsetPath != "" {
+		n.ObjectName = path.Base(skillsetPath)
+		if n.ObjectName == "/" || n.ObjectName == "." {
+			n.ObjectName = ""
+		}
+		n.ObjectPath = path.Dir(skillsetPath)
+		if n.ObjectPath == "." {
+			n.ObjectPath = "/"
+		}
+		n.ObjectPath = path.Clean("/" + n.ObjectPath)
+		n.ObjectType = catcommon.CatalogObjectTypeSkillset
 	}
 
 	n.QueryParams = r.URL.Query()

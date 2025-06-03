@@ -33,6 +33,12 @@ const (
 	ActionResourceGet       Action = "resource.get"
 	ActionResourcePut       Action = "resource.put"
 	ActionResourceList      Action = "resource.list"
+	ActionSkillSetAdmin     Action = "skillset.admin"
+	ActionSkillSetCreate    Action = "skillset.create"
+	ActionSkillSetRead      Action = "skillset.read"
+	ActionSkillSetEdit      Action = "skillset.edit"
+	ActionSkillSetDelete    Action = "skillset.delete"
+	ActionSkillSetList      Action = "skillset.list"
 )
 
 var ValidActions = []Action{
@@ -53,6 +59,11 @@ var ValidActions = []Action{
 	ActionResourceGet,
 	ActionResourcePut,
 	ActionResourceList,
+	ActionSkillSetCreate,
+	ActionSkillSetRead,
+	ActionSkillSetEdit,
+	ActionSkillSetDelete,
+	ActionSkillSetList,
 }
 
 type Rule struct {
