@@ -3,8 +3,8 @@ package models
 import (
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 /*
@@ -16,6 +16,7 @@ import (
  description              | character varying(1024)  |           |          |
  info                     | jsonb                    |           |          |
  resource_directory       | uuid                     |           |          | uuid_nil()
+ skillset_directory       | uuid                     |           |          | uuid_nil()
  catalog_id               | uuid                     |           | not null |
  tenant_id                | character varying(10)    |           | not null |
  created_at               | timestamp with time zone |           |          | now()
@@ -42,6 +43,7 @@ type Variant struct {
 	Info                pgtype.JSONB `db:"info"`
 	CatalogID           uuid.UUID    `db:"catalog_id"`
 	ResourceDirectoryID uuid.UUID    `db:"resource_directory"`
+	SkillsetDirectoryID uuid.UUID    `db:"skillset_directory"`
 	CreatedAt           time.Time    `db:"created_at"`
 	UpdatedAt           time.Time    `db:"updated_at"`
 }

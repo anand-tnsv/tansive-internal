@@ -58,17 +58,19 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 		variantID = uuid.New()
 	}
 	rgDirID := uuid.New()
+	ssDirID := uuid.New()
 	variant.ResourceDirectoryID = rgDirID
+	variant.SkillsetDirectoryID = ssDirID
 	// Query to insert the variant
 	queryVariant := `
-		INSERT INTO variants (variant_id, name, description, info, catalog_id, resource_directory, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO variants (variant_id, name, description, info, catalog_id, resource_directory, skillset_directory, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (tenant_id, catalog_id, name) DO NOTHING
 		RETURNING variant_id, name;
 	`
 
 	// Execute variant insertion within the transaction
-	row := tx.QueryRowContext(ctx, queryVariant, variantID, variant.Name, variant.Description, variant.Info, variant.CatalogID, rgDirID, tenantID)
+	row := tx.QueryRowContext(ctx, queryVariant, variantID, variant.Name, variant.Description, variant.Info, variant.CatalogID, rgDirID, ssDirID, tenantID)
 	var insertedVariantID uuid.UUID
 	var insertedName string
 	err := row.Scan(&insertedVariantID, &insertedName)
@@ -112,7 +114,7 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 		return errDb
 	}
 
-	// Create the resourcegroups directory for the variant
+	// Create the resources directory for the variant
 	dir := models.SchemaDirectory{
 		DirectoryID: rgDirID,
 		VariantID:   variant.VariantID,
@@ -142,13 +144,41 @@ func (mm *metadataManager) createVariantWithTransaction(ctx context.Context, var
 	}
 	dir.DirectoryID = directoryID
 
+	// Create the skillset directory for the variant
+	ssDir := models.SchemaDirectory{
+		DirectoryID: ssDirID,
+		VariantID:   variant.VariantID,
+		TenantID:    tenantID,
+		Directory:   []byte("{}"),
+	}
+
+	tableName = getSchemaDirectoryTableName(catcommon.CatalogObjectTypeSkillset)
+	if tableName == "" {
+		return dberror.ErrInvalidInput.Msg("invalid catalog object type: skillset not supported")
+	}
+
+	// Insert the skillset directory into the database and get created uuid
+	query = ` INSERT INTO ` + tableName + ` (directory_id, variant_id, tenant_id, directory)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (tenant_id, directory_id) DO NOTHING RETURNING directory_id;`
+
+	err = tx.QueryRowContext(ctx, query, ssDir.DirectoryID, ssDir.VariantID, ssDir.TenantID, ssDir.Directory).Scan(&directoryID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Ctx(ctx).Info().Str("directory_id", ssDir.DirectoryID.String()).Msg("skillset directory already exists, skipping")
+			return nil
+		} else {
+			return dberror.ErrDatabase.Err(err)
+		}
+	}
+	ssDir.DirectoryID = directoryID
+
 	return nil
 }
 
 // GetVariant retrieves a variant from the database based on the variant ID or name.
 // If both variantID and name are provided, variantID takes precedence.
 // Returns the variant if found, or an error if the variant is not found or there is a database error.
-
 func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) (*models.Variant, apperrors.Error) {
 	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
@@ -160,14 +190,14 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 
 	if variantID != uuid.Nil {
 		query = `
-			SELECT variant_id, name, description, info, catalog_id, resource_directory
+			SELECT variant_id, name, description, info, catalog_id, resource_directory, skillset_directory
 			FROM variants
 			WHERE tenant_id = $1 AND variant_id = $2;
 		`
 		row = mm.conn().QueryRowContext(ctx, query, tenantID, variantID)
 	} else if name != "" {
 		query = `
-			SELECT variant_id, name, description, info, catalog_id, resource_directory
+			SELECT variant_id, name, description, info, catalog_id, resource_directory, skillset_directory
 			FROM variants
 			WHERE tenant_id = $1 AND catalog_id = $2 AND name = $3;
 		`
@@ -178,7 +208,7 @@ func (mm *metadataManager) GetVariant(ctx context.Context, catalogID uuid.UUID, 
 	}
 
 	variant := &models.Variant{}
-	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceDirectoryID)
+	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceDirectoryID, &variant.SkillsetDirectoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Ctx(ctx).Info().Msg("variant not found")
@@ -199,13 +229,13 @@ func (mm *metadataManager) GetVariantByID(ctx context.Context, variantID uuid.UU
 	}
 
 	query := `
-		SELECT variant_id, name, description, info, catalog_id, resource_directory
+		SELECT variant_id, name, description, info, catalog_id, resource_directory, skillset_directory
 		FROM variants
 		WHERE tenant_id = $1 AND variant_id = $2;
 	`
 	row := mm.conn().QueryRowContext(ctx, query, tenantID, variantID)
 	variant := &models.Variant{}
-	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceDirectoryID)
+	err := row.Scan(&variant.VariantID, &variant.Name, &variant.Description, &variant.Info, &variant.CatalogID, &variant.ResourceDirectoryID, &variant.SkillsetDirectoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Ctx(ctx).Info().Msg("variant not found")

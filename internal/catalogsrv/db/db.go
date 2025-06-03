@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dbmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/postgresql"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // Database is an interface for the database connection. It wraps the underlying sql.Conn interface while
@@ -100,6 +100,15 @@ type ObjectManager interface {
 	DeleteResource(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error)
 	UpsertResourceObject(ctx context.Context, rg *models.Resource, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error
 	ListResources(ctx context.Context, directoryID uuid.UUID) ([]models.Resource, apperrors.Error)
+
+	// Skillsets
+	UpsertSkillSet(ctx context.Context, ss *models.SkillSet, directoryID uuid.UUID) apperrors.Error
+	GetSkillSet(ctx context.Context, path string, variantID uuid.UUID, directoryID uuid.UUID) (*models.SkillSet, apperrors.Error)
+	GetSkillSetObject(ctx context.Context, path string, directoryID uuid.UUID) (*models.CatalogObject, apperrors.Error)
+	UpdateSkillSet(ctx context.Context, ss *models.SkillSet, directoryID uuid.UUID) apperrors.Error
+	DeleteSkillSet(ctx context.Context, path string, directoryID uuid.UUID) (string, apperrors.Error)
+	UpsertSkillSetObject(ctx context.Context, ss *models.SkillSet, obj *models.CatalogObject, directoryID uuid.UUID) apperrors.Error
+	ListSkillSets(ctx context.Context, directoryID uuid.UUID) ([]models.SkillSet, apperrors.Error)
 
 	// Schema Directory
 	CreateSchemaDirectory(ctx context.Context, t catcommon.CatalogObjectType, dir *models.SchemaDirectory) apperrors.Error

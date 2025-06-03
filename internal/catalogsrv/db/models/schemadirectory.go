@@ -1,11 +1,12 @@
 package models
 
 import (
-	json "github.com/json-iterator/go"
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
+	json "github.com/json-iterator/go"
+
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 /*
@@ -46,9 +47,9 @@ type DirectoryID struct {
 type DirectoryIDs []DirectoryID
 
 type ObjectRef struct {
-	Hash       string     `json:"hash"`
-	References References `json:"references"` // used for objects that reference other objects, e.g. schemas
-	BaseSchema string     `json:"base_schema"`
+	Hash       string          `json:"hash"`
+	References References      `json:"references"` // used for objects that reference other objects, e.g. schemas
+	Metadata   json.RawMessage `json:"metadata"`
 }
 
 // we'll keep Reference as a struct for future extensibility at the cost of increased storage space
