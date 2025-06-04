@@ -130,7 +130,7 @@ func TestResourceCrud(t *testing.T) {
 	assert.Contains(t, response.Header().Get("Location"), "/resources/valid-resource")
 
 	// Get the resource
-	httpReq, _ = http.NewRequest("GET", "/resources/valid-resource/definition", nil)
+	httpReq, _ = http.NewRequest("GET", "/resources/definition/valid-resource", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusOK, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -179,7 +179,7 @@ func TestResourceCrud(t *testing.T) {
 				"annotations": null
 			}
 		}`
-	httpReq, _ = http.NewRequest("PUT", "/resources/valid-resource/definition", nil)
+	httpReq, _ = http.NewRequest("PUT", "/resources/definition/valid-resource", nil)
 	setRequestBodyAndHeader(t, httpReq, req)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusOK, response.Code) {
@@ -188,7 +188,7 @@ func TestResourceCrud(t *testing.T) {
 	}
 
 	// Get the updated resource
-	httpReq, _ = http.NewRequest("GET", "/resources/valid-resource/definition", nil)
+	httpReq, _ = http.NewRequest("GET", "/resources/definition/valid-resource", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusOK, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -206,7 +206,7 @@ func TestResourceCrud(t *testing.T) {
 	assert.Equal(t, reqType, rspType)
 
 	// Delete the resource
-	httpReq, _ = http.NewRequest("DELETE", "/resources/valid-resource/definition", nil)
+	httpReq, _ = http.NewRequest("DELETE", "/resources/definition/valid-resource", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusNoContent, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -214,7 +214,7 @@ func TestResourceCrud(t *testing.T) {
 	}
 
 	// Try to get the deleted resource
-	httpReq, _ = http.NewRequest("GET", "/resources/valid-resource/definition", nil)
+	httpReq, _ = http.NewRequest("GET", "/resources/definition/valid-resource", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusNotFound, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -222,7 +222,7 @@ func TestResourceCrud(t *testing.T) {
 	}
 
 	// Try to update non-existing resource
-	httpReq, _ = http.NewRequest("PUT", "/resources/not-existing-resource/definition", nil)
+	httpReq, _ = http.NewRequest("PUT", "/resources/definition/not-existing-resource", nil)
 	setRequestBodyAndHeader(t, httpReq, req)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusNotFound, response.Code) {

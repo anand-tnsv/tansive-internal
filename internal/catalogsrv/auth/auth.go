@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // adoptViewRsp represents the response structure for view adoption operations
@@ -63,7 +63,7 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 		WithAdditionalClaims(getAccessTokenClaims(ctx)),
 	)
 	if err != nil {
-		return nil, ErrTokenGeneration.Err(err)
+		return nil, ErrTokenGeneration.Msg(err.Error())
 	}
 
 	return &httpx.Response{

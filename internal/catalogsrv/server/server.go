@@ -38,7 +38,8 @@ func (s *CatalogServer) MountHandlers() {
 	if config.Config().HandleCORS {
 		s.Router.Use(s.HandleCORS)
 	}
-	s.Router.Route("/", s.mountResourceHandlers)
+	//s.Router.Route("/", s.mountResourceHandlers)
+	s.mountResourceHandlers(s.Router)
 	if logtrace.IsTraceEnabled() {
 		//print all the routes in the router by transversing the tree and printing the patterns
 		fmt.Println("Routes in tenant router")
@@ -53,8 +54,8 @@ func (s *CatalogServer) MountHandlers() {
 }
 
 func (s *CatalogServer) mountResourceHandlers(r chi.Router) {
+	apis.Router(r)
 	r.Mount("/auth", auth.Router(r))
-	r.Mount("/", apis.Router(r))
 	r.Get("/version", s.getVersion)
 	r.Get("/ready", s.getReadiness)
 	r.Get("/.well-known/jwks.json", auth.GetJWKSHandler(s.km))

@@ -118,7 +118,9 @@ func (om *objectManager) DeleteCatalogObject(ctx context.Context, t catcommon.Ca
 	var table string
 	switch t {
 	case catcommon.CatalogObjectTypeResource:
-		table = "resources_directory"
+		table = "resource_directory"
+	case catcommon.CatalogObjectTypeSkillset:
+		table = "skillset_directory"
 	default:
 		return dberror.ErrInvalidInput.Msg("invalid catalog object type")
 	}

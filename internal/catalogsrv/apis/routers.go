@@ -132,66 +132,96 @@ var resourceObjectHandlers = []policy.ResponseHandlerParam{
 	},
 	{
 		Method:         http.MethodGet,
-		Path:           "/resources/{resourcePath:.+}/definition",
+		Path:           "/resources/definition/*",
 		Handler:        getObject,
 		AllowedActions: []policy.Action{policy.ActionResourceRead, policy.ActionResourceEdit},
 	},
 	{
-		Method:         http.MethodGet,
-		Path:           "/resources/{resourceValue:.+}",
-		Handler:        getObject,
-		AllowedActions: []policy.Action{policy.ActionResourceGet, policy.ActionResourcePut},
-	},
-	{
 		Method:         http.MethodPut,
-		Path:           "/resources/{resourceValue:.+}",
-		Handler:        updateObject,
-		AllowedActions: []policy.Action{policy.ActionResourcePut},
-	},
-	{
-		Method:         http.MethodPut,
-		Path:           "/resources/{resourcePath:.+}/definition",
+		Path:           "/resources/definition/*",
 		Handler:        updateObject,
 		AllowedActions: []policy.Action{policy.ActionResourceEdit},
 	},
 	{
 		Method:         http.MethodDelete,
-		Path:           "/resources/{resourcePath:.+}/definition",
+		Path:           "/resources/definition/*",
 		Handler:        deleteObject,
 		AllowedActions: []policy.Action{policy.ActionResourceDelete},
+	},
+	{
+		Method:         http.MethodGet,
+		Path:           "/resources/*",
+		Handler:        getObject,
+		AllowedActions: []policy.Action{policy.ActionResourceGet, policy.ActionResourcePut},
+	},
+	{
+		Method:         http.MethodPut,
+		Path:           "/resources/*",
+		Handler:        updateObject,
+		AllowedActions: []policy.Action{policy.ActionResourcePut},
+	},
+	{
+		Method:         http.MethodPost,
+		Path:           "/skillsets",
+		Handler:        createObject,
+		AllowedActions: []policy.Action{policy.ActionSkillSetCreate},
+	},
+	{
+		Method:         http.MethodGet,
+		Path:           "/skillsets",
+		Handler:        listObjects,
+		AllowedActions: []policy.Action{policy.ActionSkillSetList},
+	},
+	{
+		Method:         http.MethodGet,
+		Path:           "/skillsets/*",
+		Handler:        getObject,
+		AllowedActions: []policy.Action{policy.ActionSkillSetList},
+	},
+	{
+		Method:         http.MethodPut,
+		Path:           "/skillsets/*",
+		Handler:        updateObject,
+		AllowedActions: []policy.Action{policy.ActionSkillSetAdmin},
+	},
+	{
+		Method:         http.MethodDelete,
+		Path:           "/skillsets/*",
+		Handler:        deleteObject,
+		AllowedActions: []policy.Action{policy.ActionSkillSetAdmin},
 	},
 }
 
 // Router creates and configures a new router for catalog service API endpoints.
 // It sets up middleware and registers handlers for various HTTP methods and paths.
 func Router(r chi.Router) chi.Router {
-	router := chi.NewRouter()
+	//router := chi.NewRouter()
 	//Load the group that needs only user session/identity validation
-	router.Group(func(r chi.Router) {
+	r.Group(func(r chi.Router) {
 		r.Use(auth.UserAuthMiddleware)
-		r.Use(LoadCatalogContext)
+		r.Use(CatalogContextLoader)
 		for _, handler := range userSessionHandlers {
 			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
 		}
 	})
 
 	//Load the group that needs session validation and catalog context
-	router.Group(func(r chi.Router) {
+	r.Group(func(r chi.Router) {
 		r.Use(auth.ContextMiddleware)
-		r.Use(LoadCatalogContext)
+		r.Use(CatalogContextLoader)
 		for _, handler := range resourceObjectHandlers {
 			//Wrap the request handler with view policy enforcement
 			policyEnforcedHandler := policy.EnforceViewPolicyMiddleware(handler)
 			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(policyEnforcedHandler))
 		}
 	})
-	return router
+	return r
 }
 
-// LoadCatalogContext is a middleware that loads and validates catalog context information
+// CatalogContextLoader is a middleware that loads and validates catalog context information
 // from the request context and URL parameters. It ensures that tenant and project IDs
 // are present and loads related objects (catalog, variant, workspace, namespace).
-func LoadCatalogContext(next http.Handler) http.Handler {
+func CatalogContextLoader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		tenantID := catcommon.GetTenantID(ctx)

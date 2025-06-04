@@ -13,58 +13,78 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// processPath normalizes a path and returns the object name and path.
+// It handles edge cases like root paths and ensures consistent path formatting.
+func processPath(p string) (objectName, objectPath string) {
+	objectName = path.Base(p)
+	if objectName == "/" || objectName == "." {
+		objectName = ""
+	}
+	objectPath = path.Dir(p)
+	if objectPath == "." {
+		objectPath = "/"
+	}
+	objectPath = path.Clean("/" + objectPath)
+	return
+}
+
+// hydrateRequestContext processes an HTTP request to extract and structure catalog-related context information.
 func hydrateRequestContext(r *http.Request) (interfaces.RequestContext, error) {
-	ctx := r.Context()
-	viewName := chi.URLParam(r, "viewName")
-	resourcePath := chi.URLParam(r, "resourcePath")
-	resourceValue := chi.URLParam(r, "resourceValue")
-
-	n := interfaces.RequestContext{}
-
-	catalogCtx := catcommon.GetCatalogContext(ctx)
-	if catalogCtx != nil {
-		n.Catalog = catalogCtx.Catalog
-		n.CatalogID = catalogCtx.CatalogID
-		n.Variant = catalogCtx.Variant
-		n.VariantID = catalogCtx.VariantID
-		n.Namespace = catalogCtx.Namespace
-	} else {
-		log.Ctx(ctx).Error().Msg("no catalog context found")
+	if r == nil {
+		return interfaces.RequestContext{}, httpx.ErrInvalidRequest("request cannot be nil")
 	}
 
+	ctx := r.Context()
+	viewName := chi.URLParam(r, "viewName")
+	kindName := getResourceNameFromPath(r)
+
+	n := interfaces.RequestContext{
+		QueryParams: r.URL.Query(),
+	}
+
+	catalogCtx := catcommon.GetCatalogContext(ctx)
+	if catalogCtx == nil {
+		log.Ctx(ctx).Error().Msg("no catalog context found")
+		return n, httpx.ErrInvalidRequest("missing catalog context")
+	}
+
+	n.Catalog = catalogCtx.Catalog
+	n.CatalogID = catalogCtx.CatalogID
+	n.Variant = catalogCtx.Variant
+	n.VariantID = catalogCtx.VariantID
+	n.Namespace = catalogCtx.Namespace
+
+	// Handle view name
 	if viewName != "" {
 		n.ObjectName = viewName
 	}
 
-	if resourcePath != "" {
-		n.ObjectName = path.Base(resourcePath)
-		if n.ObjectName == "/" || n.ObjectName == "." {
-			n.ObjectName = ""
+	// Process resource paths
+	if kindName == catcommon.KindNameResources {
+		path := r.URL.Path
+		switch {
+		case strings.HasPrefix(path, "/"+catcommon.KindNameResources+"/definition"):
+			resourcePath := strings.TrimPrefix(path, "/"+catcommon.KindNameResources+"/definition")
+			resourcePath = strings.TrimPrefix(resourcePath, "/")
+			n.ObjectName, n.ObjectPath = processPath(resourcePath)
+			n.ObjectType = catcommon.CatalogObjectTypeResource
+			n.ObjectProperty = catcommon.ResourcePropertyDefinition
+		default:
+			resourceValue := strings.TrimPrefix(path, "/"+catcommon.KindNameResources)
+			resourceValue = strings.TrimPrefix(resourceValue, "/")
+			n.ObjectName, n.ObjectPath = processPath(resourceValue)
+			n.ObjectType = catcommon.CatalogObjectTypeResource
+			n.ObjectProperty = catcommon.ResourcePropertyValue
 		}
-		n.ObjectPath = path.Dir(resourcePath)
-		if n.ObjectPath == "." {
-			n.ObjectPath = "/"
-		}
-		n.ObjectPath = path.Clean("/" + n.ObjectPath)
-		n.ObjectType = catcommon.CatalogObjectTypeResource
-		n.ObjectProperty = catcommon.ResourcePropertyDefinition
 	}
 
-	if resourceValue != "" {
-		n.ObjectName = path.Base(resourceValue)
-		if n.ObjectName == "/" || n.ObjectName == "." {
-			n.ObjectName = ""
-		}
-		n.ObjectPath = path.Dir(resourceValue)
-		if n.ObjectPath == "." {
-			n.ObjectPath = "/"
-		}
-		n.ObjectPath = path.Clean("/" + n.ObjectPath)
-		n.ObjectType = catcommon.CatalogObjectTypeResource
-		n.ObjectProperty = catcommon.ResourcePropertyValue
+	// Process skillset paths
+	if kindName == catcommon.KindNameSkillsets {
+		skillsetPath := strings.TrimPrefix(r.URL.Path, "/"+catcommon.KindNameSkillsets)
+		skillsetPath = strings.TrimPrefix(skillsetPath, "/")
+		n.ObjectName, n.ObjectPath = processPath(skillsetPath)
+		n.ObjectType = catcommon.CatalogObjectTypeSkillset
 	}
-
-	n.QueryParams = r.URL.Query()
 
 	return n, nil
 }

@@ -10,10 +10,10 @@ import (
 	"net/url"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tidwall/gjson"
 )
 
@@ -49,21 +49,20 @@ func withContext(r *http.Request) (*http.Request, error) {
 		}
 	}
 
-	// If we are in single user mode, use the default project ID
-	if projectID == "" && config.Config().SingleUserMode {
-		projectID = catcommon.ProjectId(config.Config().DefaultProjectID)
-	}
-
-	if projectID != "" {
-		if err := resolveCatalogInfo(ctx, catalogCtx); err != nil {
-			return r, fmt.Errorf("failed to resolve catalog info: %w", err)
+	// If we are in single user mode, use the default project ID, otherwise return an error
+	if projectID == "" {
+		if config.Config().SingleUserMode {
+			projectID = catcommon.ProjectId(config.Config().DefaultProjectID)
+		} else {
+			return r, fmt.Errorf("project ID is required")
 		}
-	} else {
-		return r, fmt.Errorf("project ID is required and could not be resolved from catalog")
 	}
 
-	// Set project ID in context
 	ctx = catcommon.WithProjectID(ctx, projectID)
+
+	if err := resolveCatalogInfo(ctx, catalogCtx); err != nil {
+		return r, fmt.Errorf("failed to resolve catalog info: %w", err)
+	}
 
 	// Resolve variant information
 	if err := resolveVariantInfo(ctx, catalogCtx); err != nil {

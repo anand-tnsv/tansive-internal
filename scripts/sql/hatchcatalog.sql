@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS variants (
   description VARCHAR(1024),
   info JSONB,
   resource_directory UUID DEFAULT uuid_nil(),
+  skillset_directory UUID DEFAULT uuid_nil(),
   catalog_id UUID NOT NULL,
   tenant_id VARCHAR(10) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -78,7 +79,7 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE IF NOT EXISTS catalog_objects (
   hash CHAR(128) NOT NULL,
-  type VARCHAR(64) NOT NULL CHECK (type IN ('parameter_schema', 'collection_schema', 'collection', 'resource')),
+  type VARCHAR(64) NOT NULL CHECK (type IN ('resource', 'skillset')),
   version VARCHAR(16) NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   data BYTEA NOT NULL,
@@ -110,6 +111,25 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE INDEX IF NOT EXISTS idx_resource_directory_hash_gin
 ON resource_directory USING GIN (jsonb_path_query_array(directory, '$.*.hash'));
+
+CREATE TABLE IF NOT EXISTS skillset_directory ( 
+  directory_id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  variant_id UUID NOT NULL,
+  tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  directory JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (tenant_id, directory_id),
+  FOREIGN KEY (tenant_id, variant_id) REFERENCES variants(tenant_id, variant_id) ON DELETE CASCADE
+);
+
+CREATE TRIGGER update_skillset_directory_updated_at
+BEFORE UPDATE ON skillset_directory
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_skillset_directory_hash_gin
+ON skillset_directory USING GIN (jsonb_path_query_array(directory, '$.*.hash'));
 
 CREATE TABLE IF NOT EXISTS namespaces (
   name VARCHAR(128) NOT NULL,
@@ -193,6 +213,7 @@ GRANT ALL PRIVILEGES ON TABLE
 	variants,
   catalog_objects,
   resource_directory,
+  skillset_directory,
   namespaces,
   views,
   view_tokens,

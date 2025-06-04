@@ -16,6 +16,7 @@ var validKinds = []string{
 	catcommon.VariantKind,
 	catcommon.NamespaceKind,
 	catcommon.ResourceKind,
+	catcommon.SkillSetKind,
 	catcommon.ViewKind,
 }
 

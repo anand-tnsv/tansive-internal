@@ -8,6 +8,7 @@ type TenantId string
 type ProjectId string
 type CatalogId uuid.UUID
 type Hash string
+type RunnerID string
 
 const DefaultVariant = "default"
 const InitialVersionLabel = "init"
@@ -27,6 +28,7 @@ const (
 	VariantKind   = "Variant"
 	NamespaceKind = "Namespace"
 	ResourceKind  = "Resource"
+	SkillSetKind  = "SkillSet"
 	ViewKind      = "View"
 	InvalidKind   = "InvalidKind"
 )
@@ -37,6 +39,7 @@ const (
 	KindNameNamespaces = "namespaces"
 	KindNameViews      = "views"
 	KindNameResources  = "resources"
+	KindNameSkillsets  = "skillsets"
 )
 
 func ValidKindNames() []string {
@@ -46,6 +49,7 @@ func ValidKindNames() []string {
 		KindNameNamespaces,
 		KindNameViews,
 		KindNameResources,
+		KindNameSkillsets,
 	}
 }
 
@@ -53,6 +57,8 @@ func Kind(t CatalogObjectType) string {
 	switch t {
 	case CatalogObjectTypeResource:
 		return ResourceKind
+	case CatalogObjectTypeSkillset:
+		return SkillSetKind
 	default:
 		return ""
 	}
@@ -70,6 +76,8 @@ func KindFromKindName(uri string) string {
 		return ViewKind
 	case KindNameResources:
 		return ResourceKind
+	case KindNameSkillsets:
+		return SkillSetKind
 	default:
 		return InvalidKind
 	}
@@ -79,6 +87,8 @@ func KindNameFromObjectType(t CatalogObjectType) string {
 	switch t {
 	case CatalogObjectTypeResource:
 		return "resources"
+	case CatalogObjectTypeSkillset:
+		return "skillsets"
 	default:
 		return ""
 	}
@@ -94,12 +104,15 @@ const (
 	CatalogObjectTypeInvalid  CatalogObjectType = "invalid"
 	CatalogObjectTypeUnknown  CatalogObjectType = "unknown"
 	CatalogObjectTypeResource CatalogObjectType = "resource"
+	CatalogObjectTypeSkillset CatalogObjectType = "skillset"
 )
 
 func CatalogObjectTypeFromKind(k string) CatalogObjectType {
 	switch k {
 	case ResourceKind:
 		return CatalogObjectTypeResource
+	case SkillSetKind:
+		return CatalogObjectTypeSkillset
 	default:
 		return CatalogObjectTypeInvalid
 	}

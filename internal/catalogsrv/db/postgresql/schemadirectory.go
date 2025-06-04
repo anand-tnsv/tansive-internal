@@ -380,6 +380,8 @@ func getSchemaDirectoryTableName(t catcommon.CatalogObjectType) string {
 	switch t {
 	case catcommon.CatalogObjectTypeResource:
 		return "resource_directory"
+	case catcommon.CatalogObjectTypeSkillset:
+		return "skillset_directory"
 	default:
 		return ""
 	}

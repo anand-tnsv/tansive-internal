@@ -69,7 +69,7 @@ func LoadConfig(filename string) error {
 		ServerPort:     "8194",
 		EndpointPort:   "9002",
 		HandleCORS:     true,
-		SingleUserMode: false, // Default to multi-user mode
+		SingleUserMode: true, // Default to multi-user mode
 	}
 
 	if filename == "" {
@@ -104,8 +104,9 @@ func LoadDefaultsIfNotSet(cfg *ConfigParam) {
 		cfg.EndpointPort = "9002"
 	}
 	if cfg.MaxRequestBodySize == 0 {
-		cfg.MaxRequestBodySize = 1024
+		cfg.MaxRequestBodySize = 1024 * 1024 // 1MB
 	}
+	cfg.HandleCORS = true
 
 	// Auth defaults
 	if cfg.Auth.MaxTokenAge == 0 {

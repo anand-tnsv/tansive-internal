@@ -11,7 +11,6 @@ var (
 	deleteCatalog   string
 	deleteVariant   string
 	deleteNamespace string
-	deleteWorkspace string
 )
 
 var deleteCmd = &cobra.Command{
@@ -20,13 +19,13 @@ var deleteCmd = &cobra.Command{
 	Long: `Delete a resource by type and name. The format is <resourceType>/<resourceName>.
 Supported resource types include:
   - catalog/<catalog-name>
-  - collectionschema/<schema-name>
-  - collection/path/to/collection
+  - views/<view-name>
+  - resources/<path/to/resource>
 
 Example:
   tansive delete catalog/my-catalog
-  tansive delete collectionschema/my-schema
-  tansive delete collection/path/to/collection`,
+  tansive delete views/my-view
+  tansive delete resources/path/to/resource`,
 	Args: cobra.ExactArgs(1),
 	RunE: deleteResource,
 }
@@ -39,12 +38,6 @@ func deleteResource(cmd *cobra.Command, args []string) error {
 
 	resourceType := parts[0]
 	resourceName := parts[1]
-
-	// Check if resource type is not allowed for delete
-	if resourceType == "attribute" || resourceType == "attr" ||
-		resourceType == "attributeset" || resourceType == "attrset" {
-		return fmt.Errorf("delete operation is not supported for %s resource type", resourceType)
-	}
 
 	urlResourceType, err := MapResourceTypeToURL(resourceType)
 	if err != nil {
@@ -63,11 +56,13 @@ func deleteResource(cmd *cobra.Command, args []string) error {
 	if deleteNamespace != "" {
 		queryParams["namespace"] = deleteNamespace
 	}
-	if deleteWorkspace != "" {
-		queryParams["workspace"] = deleteWorkspace
+
+	objectType := ""
+	if urlResourceType == "resources" {
+		objectType = "definition"
 	}
 
-	err = client.DeleteResource(urlResourceType, resourceName, queryParams)
+	err = client.DeleteResource(urlResourceType, resourceName, queryParams, objectType)
 	if err != nil {
 		return err
 	}
@@ -82,5 +77,4 @@ func init() {
 	deleteCmd.Flags().StringVarP(&deleteCatalog, "catalog", "c", "", "Catalog name")
 	deleteCmd.Flags().StringVarP(&deleteVariant, "variant", "v", "", "Variant name")
 	deleteCmd.Flags().StringVarP(&deleteNamespace, "namespace", "n", "", "Namespace name")
-	deleteCmd.Flags().StringVarP(&deleteWorkspace, "workspace", "w", "", "Workspace name")
 }

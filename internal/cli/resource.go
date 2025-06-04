@@ -66,12 +66,10 @@ func GetResourceType(kind string) (string, error) {
 		return "workspaces", nil
 	case "View":
 		return "views", nil
-	case "CollectionSchema":
-		return "collectionschemas", nil
-	case "ParameterSchema":
-		return "parameterschemas", nil
-	case "Collection":
-		return "collections", nil
+	case "Resource":
+		return "resources", nil
+	case "SkillSet":
+		return "skillsets", nil
 	default:
 		return "", fmt.Errorf("unknown resource kind: %s", kind)
 	}
@@ -86,20 +84,12 @@ func MapResourceTypeToURL(resourceType string) (string, error) {
 		return "variants", nil
 	case "namespace", "ns", "namespaces":
 		return "namespaces", nil
-	case "workspace", "ws", "workspaces":
-		return "workspaces", nil
 	case "view", "v", "views":
 		return "views", nil
-	case "collectionschema", "cs", "collectionschemas":
-		return "collectionschemas", nil
-	case "parameterschema", "ps", "parameterschemas":
-		return "parameterschemas", nil
-	case "collection", "col", "collections":
-		return "collections", nil
-	case "attribute", "attr", "attributes":
-		return "attributes", nil
-	case "attributeset", "attrset":
-		return "attributes", nil
+	case "resource", "res", "resources":
+		return "resources", nil
+	case "skillset", "sk", "skillsets":
+		return "skillsets", nil
 	default:
 		return "", fmt.Errorf("unknown resource type: %s", resourceType)
 	}

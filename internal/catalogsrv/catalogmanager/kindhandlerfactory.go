@@ -39,6 +39,7 @@ var kindHandlerFactories = map[string]interfaces.KindHandlerFactory{
 	catcommon.VariantKind:   NewVariantKindHandler,
 	catcommon.NamespaceKind: NewNamespaceKindHandler,
 	catcommon.ResourceKind:  NewResourceKindHandler,
+	catcommon.SkillSetKind:  NewSkillSetKindHandler,
 	catcommon.ViewKind:      policy.NewViewKindHandler,
 }
 

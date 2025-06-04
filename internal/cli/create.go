@@ -11,7 +11,6 @@ var (
 	createCatalog   string
 	createVariant   string
 	createNamespace string
-	createWorkspace string
 )
 
 // createCmd represents the create command
@@ -23,13 +22,9 @@ Supported resource types include:
   - Catalogs
   - Variants
   - Namespaces
-  - Workspaces
   - Views
-  - CollectionSchemas
-  - ParameterSchemas
-  - Collections
-  - Attributes
-  - AttributeSets
+  - Resources
+  - Skillsets
 
 Example:
   tansive create -f catalog.yaml
@@ -68,9 +63,6 @@ func createResource(cmd *cobra.Command, args []string) error {
 	if createNamespace != "" {
 		queryParams["namespace"] = createNamespace
 	}
-	if createWorkspace != "" {
-		queryParams["workspace"] = createWorkspace
-	}
 
 	_, location, err := client.CreateResource(resourceType, jsonData, queryParams)
 	if err != nil {
@@ -100,7 +92,6 @@ func init() {
 	createCmd.Flags().StringVarP(&createCatalog, "catalog", "c", "", "Catalog name")
 	createCmd.Flags().StringVarP(&createVariant, "variant", "v", "", "Variant name")
 	createCmd.Flags().StringVarP(&createNamespace, "namespace", "n", "", "Namespace name")
-	createCmd.Flags().StringVarP(&createWorkspace, "workspace", "w", "", "Workspace name")
 
 	// Add the create command to the root command
 	rootCmd.AddCommand(createCmd)

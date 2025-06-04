@@ -46,6 +46,7 @@ var (
 	ErrInvalidUUID               apperrors.Error = ErrCatalogError.New("invalid UUID").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidRequest            apperrors.Error = ErrCatalogError.New("invalid request").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidView               apperrors.Error = ErrCatalogError.New("invalid view").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidSkillSetDefinition apperrors.Error = ErrCatalogError.New("invalid skillset definition").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidResourceValue      apperrors.Error = ErrCatalogError.New("invalid resource value").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidResourceDefinition apperrors.Error = ErrCatalogError.New("invalid resource definition").SetStatusCode(http.StatusBadRequest)
 	ErrAmbiguousMatch            apperrors.Error = ErrCatalogError.New("ambiguous resource match").SetStatusCode(http.StatusBadRequest)

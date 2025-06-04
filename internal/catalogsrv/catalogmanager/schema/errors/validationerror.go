@@ -38,7 +38,7 @@ func (ves ValidationErrors) Error() string {
 
 	for i := 0; i < len(ves); i++ {
 		buff.WriteString(ves[i].Error())
-		buff.WriteString("\n")
+		buff.WriteString("; ")
 	}
 
 	return strings.TrimSpace(buff.String())
