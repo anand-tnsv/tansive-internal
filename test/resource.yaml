@@ -1,0 +1,19 @@
+version: "v1"
+kind: Resource
+metadata:
+  name: example-resource
+  catalog: example-catalog
+  variant: example-variant
+  path: /path/to/resource
+  description: "Another example resource for testing purposes"
+spec:
+  schema:
+    type: object
+    properties:
+      name:
+        type: string
+      value:
+        type: integer
+  value:
+    name: example-resource
+    value: 42

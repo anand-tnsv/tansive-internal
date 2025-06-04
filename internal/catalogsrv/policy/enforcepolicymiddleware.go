@@ -85,18 +85,22 @@ func getResourceKindFromPath(resourcePath string) string {
 
 func normalizeResourcePath(resourceKind string, resource TargetResource) TargetResource {
 	if resourceKind == catcommon.KindNameResources {
-		return TargetResource(strings.TrimSuffix(string(resource), "/definition"))
+		const prefix = "/resources/definition"
+		if strings.HasPrefix(string(resource), prefix) {
+			// Rewrite /resources/definition/... → /resources/...
+			return TargetResource("/resources" + strings.TrimPrefix(string(resource), prefix))
+		}
 	}
 	return resource
 }
 
 func resolveTargetResource(scope Scope, resourcePath string) (TargetResource, error) {
-	targetResource := CanonicalizeResourcePath(scope, TargetResource("res://"+strings.TrimPrefix(resourcePath, "/")))
+	targetResource := TargetResource(resourcePath)
+	targetResource = normalizeResourcePath(getResourceKindFromPath(resourcePath), targetResource)
+	targetResource = CanonicalizeResourcePath(scope, TargetResource("res://"+strings.TrimPrefix(string(targetResource), "/")))
 	if targetResource == "" {
 		return "", httpx.ErrApplicationError("unable to canonicalize resource path")
 	}
-
-	targetResource = normalizeResourcePath(getResourceKindFromPath(resourcePath), targetResource)
 	return targetResource, nil
 }
 

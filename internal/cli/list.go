@@ -14,7 +14,6 @@ var (
 	listCatalog   string
 	listVariant   string
 	listNamespace string
-	listWorkspace string
 )
 
 // listCmd represents the list command
@@ -24,22 +23,18 @@ var listCmd = &cobra.Command{
 	Long: `List resources of a specific type. Supported resource types include:
   - catalogs
   - variants
-  - collectionschemas
   - namespaces
-  - workspaces
-  - collections
-  - attributes
-  - attributesets (or attrsets)
+  - views
+  - resources
+  - skillsets
 
 Examples:
   tansive list catalogs
   tansive list variants -c catalog
-  tansive list collectionschemas -c catalog -v variant
   tansive list namespaces -c catalog -v variant
-  tansive list namespaces -c catalog -v variant -w workspace
-  tansive list workspaces -c catalog -v variant
-  tansive list collections -c catalog -v variant -w workspace
-  tansive list attributes -c catalog -v variant -w workspace`,
+  tansive list views -c catalog -v variant
+  tansive list resources -c catalog -v variant
+  tansive list skillsets -c catalog -v variant`,
 	Args: cobra.ExactArgs(1),
 	RunE: listResources,
 }
@@ -64,9 +59,6 @@ func listResources(cmd *cobra.Command, args []string) error {
 	}
 	if listNamespace != "" {
 		queryParams["namespace"] = listNamespace
-	}
-	if listWorkspace != "" {
-		queryParams["workspace"] = listWorkspace
 	}
 
 	response, err := client.ListResources(urlResourceType, queryParams)
@@ -122,5 +114,4 @@ func init() {
 	listCmd.Flags().StringVarP(&listCatalog, "catalog", "c", "", "Catalog name")
 	listCmd.Flags().StringVarP(&listVariant, "variant", "v", "", "Variant name")
 	listCmd.Flags().StringVarP(&listNamespace, "namespace", "n", "", "Namespace name")
-	listCmd.Flags().StringVarP(&listWorkspace, "workspace", "w", "", "Workspace name")
 }

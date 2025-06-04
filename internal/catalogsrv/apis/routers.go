@@ -132,33 +132,33 @@ var resourceObjectHandlers = []policy.ResponseHandlerParam{
 	},
 	{
 		Method:         http.MethodGet,
-		Path:           "/resources/{resourcePath:.+}/definition",
+		Path:           "/resources/definition/*",
 		Handler:        getObject,
 		AllowedActions: []policy.Action{policy.ActionResourceRead, policy.ActionResourceEdit},
 	},
 	{
-		Method:         http.MethodGet,
-		Path:           "/resources/{resourceValue:.+}",
-		Handler:        getObject,
-		AllowedActions: []policy.Action{policy.ActionResourceGet, policy.ActionResourcePut},
-	},
-	{
 		Method:         http.MethodPut,
-		Path:           "/resources/{resourceValue:.+}",
-		Handler:        updateObject,
-		AllowedActions: []policy.Action{policy.ActionResourcePut},
-	},
-	{
-		Method:         http.MethodPut,
-		Path:           "/resources/{resourcePath:.+}/definition",
+		Path:           "/resources/definition/*",
 		Handler:        updateObject,
 		AllowedActions: []policy.Action{policy.ActionResourceEdit},
 	},
 	{
 		Method:         http.MethodDelete,
-		Path:           "/resources/{resourcePath:.+}/definition",
+		Path:           "/resources/definition/*",
 		Handler:        deleteObject,
 		AllowedActions: []policy.Action{policy.ActionResourceDelete},
+	},
+	{
+		Method:         http.MethodGet,
+		Path:           "/resources/*",
+		Handler:        getObject,
+		AllowedActions: []policy.Action{policy.ActionResourceGet, policy.ActionResourcePut},
+	},
+	{
+		Method:         http.MethodPut,
+		Path:           "/resources/*",
+		Handler:        updateObject,
+		AllowedActions: []policy.Action{policy.ActionResourcePut},
 	},
 	{
 		Method:         http.MethodPost,
@@ -195,9 +195,9 @@ var resourceObjectHandlers = []policy.ResponseHandlerParam{
 // Router creates and configures a new router for catalog service API endpoints.
 // It sets up middleware and registers handlers for various HTTP methods and paths.
 func Router(r chi.Router) chi.Router {
-	router := chi.NewRouter()
+	//router := chi.NewRouter()
 	//Load the group that needs only user session/identity validation
-	router.Group(func(r chi.Router) {
+	r.Group(func(r chi.Router) {
 		r.Use(auth.UserAuthMiddleware)
 		r.Use(CatalogContextLoader)
 		for _, handler := range userSessionHandlers {
@@ -206,7 +206,7 @@ func Router(r chi.Router) chi.Router {
 	})
 
 	//Load the group that needs session validation and catalog context
-	router.Group(func(r chi.Router) {
+	r.Group(func(r chi.Router) {
 		r.Use(auth.ContextMiddleware)
 		r.Use(CatalogContextLoader)
 		for _, handler := range resourceObjectHandlers {
@@ -215,7 +215,7 @@ func Router(r chi.Router) chi.Router {
 			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(policyEnforcedHandler))
 		}
 	})
-	return router
+	return r
 }
 
 // CatalogContextLoader is a middleware that loads and validates catalog context information

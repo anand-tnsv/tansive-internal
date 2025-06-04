@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -14,45 +13,23 @@ var (
 	getCatalog   string
 	getVariant   string
 	getNamespace string
-	getWorkspace string
 )
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
-	Use:   "get <resourceType>/<resourceName>",
-	Short: "Get a resource by type and name",
-	Long: `Get a resource by type and name. The format is <resourceType>/<resourceName>.
-Supported resource types include:
-  - catalogs/<catalog-name>
-  - collectionschemas/<schema-name>
-  - collections/<path/to/collection>
-  - attributes/<path/to/attribute>
-  - attributesets/<path/to/collection> (or attrsets/<path/to/collection>)
+	Use:   "get <resource-path>",
+	Short: "Get a resource value by path",
+	Long: `Get a resource value by path. The format is <resource-path>.
+This command only works with resources and returns their current values.
 
 Example:
-  tansive get catalogs/my-catalog
-  tansive get collectionschemas/my-schema
-  tansive get collections/path/to/collection
-  tansive get attributesets/path/to/collection`,
+  tansive get path/to/resource`,
 	Args: cobra.ExactArgs(1),
-	RunE: getResource,
+	RunE: getResourceByPath,
 }
 
-func getResource(cmd *cobra.Command, args []string) error {
-	// Split the argument into resource type and name
-	parts := strings.SplitN(args[0], "/", 2)
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid resource format. Expected <resourceType>/<resourceName>")
-	}
-
-	resourceType := parts[0]
-	resourceName := parts[1]
-
-	// Map the resource type to its URL format
-	urlResourceType, err := MapResourceTypeToURL(resourceType)
-	if err != nil {
-		return err
-	}
+func getResourceByPath(cmd *cobra.Command, args []string) error {
+	resourcePath := args[0]
 
 	client := NewHTTPClient(GetConfig())
 
@@ -66,16 +43,8 @@ func getResource(cmd *cobra.Command, args []string) error {
 	if getNamespace != "" {
 		queryParams["namespace"] = getNamespace
 	}
-	if getWorkspace != "" {
-		queryParams["workspace"] = getWorkspace
-	}
 
-	// Add collection=true for attributeset resource type
-	if resourceType == "attributeset" || resourceType == "attrset" {
-		queryParams["collection"] = "true"
-	}
-
-	response, err := client.GetResource(urlResourceType, resourceName, queryParams)
+	response, err := client.GetResource("resources", resourcePath, queryParams, "")
 	if err != nil {
 		return err
 	}
@@ -115,5 +84,4 @@ func init() {
 	getCmd.Flags().StringVarP(&getCatalog, "catalog", "c", "", "Catalog name")
 	getCmd.Flags().StringVarP(&getVariant, "variant", "v", "", "Variant name")
 	getCmd.Flags().StringVarP(&getNamespace, "namespace", "n", "", "Namespace name")
-	getCmd.Flags().StringVarP(&getWorkspace, "workspace", "w", "", "Workspace name")
 }

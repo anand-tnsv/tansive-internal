@@ -90,7 +90,6 @@ func preRunHandlePersistents(cmd *cobra.Command, args []string) {
 	}
 }
 
-// Example command implementation
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",

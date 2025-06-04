@@ -136,13 +136,19 @@ func (c *HTTPClient) CreateResource(resourceType string, data []byte, queryParam
 }
 
 // GetResource retrieves a resource using the given resource name
-func (c *HTTPClient) GetResource(resourceType string, resourceName string, queryParams map[string]string) ([]byte, error) {
+func (c *HTTPClient) GetResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) ([]byte, error) {
 	// Clean the path components to avoid spurious slashes
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
 	// Construct the path ensuring no double slashes
-	path := strings.TrimSuffix(resourceType, "/") + "/" + strings.TrimPrefix(resourceName, "/")
+	path := strings.TrimSuffix(resourceType, "/")
+
+	if objectType != "" {
+		path = path + "/" + objectType
+	}
+
+	path = path + "/" + resourceName
 
 	opts := RequestOptions{
 		Method:      http.MethodGet,
@@ -159,6 +165,10 @@ func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, qu
 	resourceName = strings.Trim(resourceName, "/")
 
 	path := strings.TrimSuffix(resourceType, "/") + "/" + strings.TrimPrefix(resourceName, "/")
+
+	if resourceType == "resources" {
+		path = path + ":definition"
+	}
 
 	opts := RequestOptions{
 		Method:      http.MethodDelete,
@@ -183,6 +193,10 @@ func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParam
 
 	// Construct the path ensuring no double slashes
 	path := strings.TrimSuffix(resourceType, "/") + "/" + strings.TrimPrefix(resourceName, "/")
+
+	if resourceType == "resources" {
+		path = path + ":definition"
+	}
 
 	opts := RequestOptions{
 		Method:      http.MethodPut,

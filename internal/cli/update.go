@@ -12,7 +12,6 @@ var (
 	updateCatalog   string
 	updateVariant   string
 	updateNamespace string
-	updateWorkspace string
 )
 
 // updateCmd represents the update command
@@ -27,13 +26,9 @@ Supported resource types include:
   - Catalogs
   - Variants
   - Namespaces
-  - Workspaces
   - Views
-  - CollectionSchemas
-  - ParameterSchemas
-  - Collections
-  - Attributes
-  - AttributeSets
+  - Resources
+  - Skillsets
 
 Example:
   tansive apply -f catalog.yaml
@@ -71,9 +66,6 @@ func updateResource(cmd *cobra.Command, args []string) error {
 	}
 	if updateNamespace != "" {
 		queryParams["namespace"] = updateNamespace
-	}
-	if updateWorkspace != "" {
-		queryParams["workspace"] = updateWorkspace
 	}
 
 	// First try to create the resource
@@ -122,7 +114,6 @@ func init() {
 	updateCmd.Flags().StringVarP(&updateCatalog, "catalog", "c", "", "Catalog name")
 	updateCmd.Flags().StringVarP(&updateVariant, "variant", "v", "", "Variant name")
 	updateCmd.Flags().StringVarP(&updateNamespace, "namespace", "n", "", "Namespace name")
-	updateCmd.Flags().StringVarP(&updateWorkspace, "workspace", "w", "", "Workspace name")
 
 	// Add the update command to the root command
 	rootCmd.AddCommand(updateCmd)

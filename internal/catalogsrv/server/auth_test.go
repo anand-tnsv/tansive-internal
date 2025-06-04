@@ -96,7 +96,7 @@ func TestAdoptView(t *testing.T) {
 	require.Equal(t, 200, resourceResponse.Value)
 
 	// Try to update resource1 definition with read-write view token - should fail
-	httpReq, _ = http.NewRequest("PUT", "/resources/resource1/definition", nil)
+	httpReq, _ = http.NewRequest("PUT", "/resources/definition/resource1", nil)
 	req = `
 		{
 			"version": "v1",
@@ -143,7 +143,7 @@ func TestAdoptView(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.Code)
 
 	// Verify the definition update was successful
-	httpReq, _ = http.NewRequest("GET", "/resources/resource1/definition", nil)
+	httpReq, _ = http.NewRequest("GET", "/resources/definition/resource1", nil)
 	httpReq.Header.Set("Authorization", "Bearer "+fullAccessToken)
 	response = executeTestRequest(t, httpReq, nil)
 	require.Equal(t, http.StatusOK, response.Code)
