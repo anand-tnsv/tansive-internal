@@ -15,5 +15,9 @@ func WithViewDefinition(ctx context.Context, viewDefinition *ViewDefinition) con
 }
 
 func GetViewDefinition(ctx context.Context) *ViewDefinition {
-	return ctx.Value(ViewDefinitionContextKey).(*ViewDefinition)
+	v, ok := ctx.Value(ViewDefinitionContextKey).(*ViewDefinition)
+	if !ok {
+		return nil
+	}
+	return v
 }

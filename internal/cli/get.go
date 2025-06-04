@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -23,13 +24,26 @@ var getCmd = &cobra.Command{
 This command only works with resources and returns their current values.
 
 Example:
-  tansive get path/to/resource`,
+  tansive get resources/path/to/resource`,
 	Args: cobra.ExactArgs(1),
-	RunE: getResourceByPath,
+	RunE: getResourceValue,
 }
 
-func getResourceByPath(cmd *cobra.Command, args []string) error {
-	resourcePath := args[0]
+func getResourceValue(cmd *cobra.Command, args []string) error {
+	// Split the argument into resource type and name
+	parts := strings.SplitN(args[0], "/", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid resource format. Expected <resourceType>/<resourceName>")
+	}
+
+	resourceType := parts[0]
+	resourcePath := parts[1]
+
+	// Map the resource type to its URL format
+	urlResourceType, err := MapResourceTypeToURL(resourceType)
+	if err != nil {
+		return err
+	}
 
 	client := NewHTTPClient(GetConfig())
 
@@ -44,7 +58,11 @@ func getResourceByPath(cmd *cobra.Command, args []string) error {
 		queryParams["namespace"] = getNamespace
 	}
 
-	response, err := client.GetResource("resources", resourcePath, queryParams, "")
+	if urlResourceType != "resources" {
+		return fmt.Errorf("invalid resource type. Expected resources")
+	}
+
+	response, err := client.GetResource(urlResourceType, resourcePath, queryParams, "")
 	if err != nil {
 		return err
 	}

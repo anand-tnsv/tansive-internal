@@ -160,15 +160,18 @@ func (c *HTTPClient) GetResource(resourceType string, resourceName string, query
 }
 
 // DeleteResource deletes a resource using the given resource name
-func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, queryParams map[string]string) error {
+func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) error {
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
-	path := strings.TrimSuffix(resourceType, "/") + "/" + strings.TrimPrefix(resourceName, "/")
+	// Construct the path ensuring no double slashes
+	path := strings.TrimSuffix(resourceType, "/")
 
-	if resourceType == "resources" {
-		path = path + ":definition"
+	if objectType != "" {
+		path = path + "/" + objectType
 	}
+
+	path = path + "/" + resourceName
 
 	opts := RequestOptions{
 		Method:      http.MethodDelete,
@@ -180,7 +183,7 @@ func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, qu
 }
 
 // UpdateResource updates an existing resource using the given JSON data
-func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, error) {
+func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParams map[string]string, objectType string) ([]byte, error) {
 	// Get the resource name from metadata.name
 	resourceName := gjson.GetBytes(data, "metadata.name").String()
 	if resourceName == "" {
@@ -192,15 +195,28 @@ func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParam
 	resourceName = strings.Trim(resourceName, "/")
 
 	// Construct the path ensuring no double slashes
-	path := strings.TrimSuffix(resourceType, "/") + "/" + strings.TrimPrefix(resourceName, "/")
+	path := strings.TrimSuffix(resourceType, "/")
 
-	if resourceType == "resources" {
-		path = path + ":definition"
+	if objectType != "" {
+		path = path + "/" + objectType
 	}
+
+	path = path + "/" + resourceName
 
 	opts := RequestOptions{
 		Method:      http.MethodPut,
 		Path:        path,
+		QueryParams: queryParams,
+		Body:        data,
+	}
+	body, _, err := c.DoRequest(opts)
+	return body, err
+}
+
+func (c *HTTPClient) UpdateResourceValue(resourcePath string, data []byte, queryParams map[string]string) ([]byte, error) {
+	opts := RequestOptions{
+		Method:      http.MethodPut,
+		Path:        resourcePath,
 		QueryParams: queryParams,
 		Body:        data,
 	}

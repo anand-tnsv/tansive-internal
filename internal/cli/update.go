@@ -73,7 +73,11 @@ func updateResource(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		// If we get a conflict, try to update instead
 		if httpErr, ok := err.(*HTTPError); ok && httpErr.StatusCode == http.StatusConflict {
-			_, err = client.UpdateResource(resourceType, jsonData, queryParams)
+			objectType := ""
+			if resourceType == "resources" {
+				objectType = "definition"
+			}
+			_, err = client.UpdateResource(resourceType, jsonData, queryParams, objectType)
 			if err != nil {
 				return fmt.Errorf("failed to update resource: %v", err)
 			}

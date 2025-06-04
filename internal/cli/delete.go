@@ -57,7 +57,12 @@ func deleteResource(cmd *cobra.Command, args []string) error {
 		queryParams["namespace"] = deleteNamespace
 	}
 
-	err = client.DeleteResource(urlResourceType, resourceName, queryParams)
+	objectType := ""
+	if urlResourceType == "resources" {
+		objectType = "definition"
+	}
+
+	err = client.DeleteResource(urlResourceType, resourceName, queryParams, objectType)
 	if err != nil {
 		return err
 	}

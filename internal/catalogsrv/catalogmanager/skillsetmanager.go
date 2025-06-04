@@ -453,7 +453,7 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 		jsonFieldName := schemavalidator.GetJSONFieldPath(value, typeOfCS, e.StructField())
 		switch e.Tag() {
 		case "required":
-			validationErrors = append(validationErrors, schemaerr.ErrMissingRequiredAttribute(jsonFieldName))
+			validationErrors = append(validationErrors, schemaerr.ErrMissingRequiredAttribute(e.StructNamespace()))
 		case "oneof":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidFieldSchema(jsonFieldName, e.Value().(string)))
 		case "resourceNameValidator":

@@ -174,19 +174,19 @@ var resourceObjectHandlers = []policy.ResponseHandlerParam{
 	},
 	{
 		Method:         http.MethodGet,
-		Path:           "/skillsets/{skillsetPath:.+}",
+		Path:           "/skillsets/*",
 		Handler:        getObject,
 		AllowedActions: []policy.Action{policy.ActionSkillSetList},
 	},
 	{
 		Method:         http.MethodPut,
-		Path:           "/skillsets/{skillsetPath:.+}",
+		Path:           "/skillsets/*",
 		Handler:        updateObject,
 		AllowedActions: []policy.Action{policy.ActionSkillSetAdmin},
 	},
 	{
 		Method:         http.MethodDelete,
-		Path:           "/skillsets/{skillsetPath:.+}",
+		Path:           "/skillsets/*",
 		Handler:        deleteObject,
 		AllowedActions: []policy.Action{policy.ActionSkillSetAdmin},
 	},

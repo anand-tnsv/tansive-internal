@@ -68,7 +68,7 @@ func GetResourceType(kind string) (string, error) {
 		return "views", nil
 	case "Resource":
 		return "resources", nil
-	case "Skillset":
+	case "SkillSet":
 		return "skillsets", nil
 	default:
 		return "", fmt.Errorf("unknown resource kind: %s", kind)
