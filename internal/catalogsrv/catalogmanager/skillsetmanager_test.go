@@ -103,7 +103,7 @@ func TestSkillSetValidation(t *testing.T) {
 				"kind": "SkillSet"
 			}`,
 			expectedError: true,
-			errorTypes:    []string{"metadata: missing required attribute"},
+			errorTypes:    []string{"SkillSet.Metadata: missing required attribute"},
 		},
 		{
 			name: "invalid skillset name format",
