@@ -7,6 +7,7 @@ import (
 type TenantId string
 type ProjectId string
 type CatalogId uuid.UUID
+type VariantId uuid.UUID
 type Hash string
 type RunnerID string
 

@@ -206,6 +206,37 @@ CREATE UNIQUE INDEX idx_active_signing_key
 ON signing_keys (is_active)
 WHERE is_active = true;
 
+CREATE TABLE IF NOT EXISTS sessions (
+  session_id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  skillset VARCHAR(128) NOT NULL,
+  skill VARCHAR(128) NOT NULL,
+  view_id UUID NOT NULL,
+  view_definition JSONB NOT NULL,
+  tangent_id UUID NOT NULL,
+  status_summary VARCHAR(128) NOT NULL,
+  status JSONB NOT NULL,
+  info JSONB,
+  user_id VARCHAR(128) NOT NULL,
+  catalog_id UUID NOT NULL,
+  variant_id UUID NOT NULL,
+  tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  started_at TIMESTAMPTZ NOT NULL,
+  ended_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (tenant_id, session_id),
+  FOREIGN KEY (tenant_id, catalog_id) REFERENCES catalogs(tenant_id, catalog_id) ON DELETE CASCADE
+);
+
+CREATE TRIGGER update_sessions_updated_at
+BEFORE UPDATE ON sessions
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_sessions_tenant_catalog_status
+ON sessions (tenant_id, catalog_id, status_summary);
+
 GRANT ALL PRIVILEGES ON TABLE
 	tenants,
 	projects,
@@ -217,5 +248,6 @@ GRANT ALL PRIVILEGES ON TABLE
   namespaces,
   views,
   view_tokens,
-  signing_keys
+  signing_keys,
+  sessions
 TO catalogrw;
