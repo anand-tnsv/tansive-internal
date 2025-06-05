@@ -3,8 +3,11 @@ package policy
 import (
 	"context"
 	"slices"
+	"strings"
 
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
 // IsActionAllowedOnResource checks if a given action is allowed for a specific resource based on the rule set.
@@ -80,30 +83,107 @@ func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *Vie
 	return nil
 }
 
-func AreActionsAllowed(ctx context.Context, vd *ViewDefinition, actions []Action) bool {
+func AreActionsAllowedOnResource(ctx context.Context, vd *ViewDefinition, resource string, actions []Action) (bool, apperrors.Error) {
 	if vd == nil {
-		return false
+		return false, ErrInvalidView.Msg("view definition is nil")
 	}
+	if resource == "" {
+		return false, ErrInvalidView.Msg("resource is empty")
+	}
+	if len(actions) == 0 {
+		return false, ErrInvalidView.Msg("actions are empty")
+	}
+
+	scope, err := resolveTargetScope(ctx)
+	if err != nil {
+		return false, ErrInvalidView.New(err.Error())
+	}
+	targetResource, err := resolveTargetResource(scope, resource)
+	if err != nil {
+		return false, ErrInvalidView.New(err.Error())
+	}
+
+	vd = canonicalizeViewDefinition(vd)
+
 	for _, action := range actions {
-		allowed := false
-		for _, rule := range vd.Rules {
-			if slices.Contains(rule.Actions, action) {
-				allowed = true
-				break
-			}
-		}
+		allowed, _ := vd.Rules.IsActionAllowedOnResource(action, targetResource)
 		if !allowed {
-			return false
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
-func CanAdoptView(ctx context.Context, authorizingViewDef *ViewDefinition, viewResourcePath TargetResource) (bool, apperrors.Error) {
-	if authorizingViewDef == nil {
-		return false, ErrInvalidView
+func CanAdoptView(ctx context.Context, view string) (bool, apperrors.Error) {
+	catalog := catcommon.GetCatalog(ctx)
+	if catalog == "" {
+		return false, ErrInvalidView.Msg("unable to resolve catalog")
 	}
-	authorizingViewDef = canonicalizeViewDefinition(authorizingViewDef)
-	allowed, _ := authorizingViewDef.Rules.IsActionAllowedOnResource(ActionCatalogAdoptView, viewResourcePath)
+	viewResource, _ := resolveTargetResource(Scope{Catalog: catalog}, "/views/"+view)
+	ourViewDef, err := resolveAuthorizedViewDef(ctx)
+	if err != nil {
+		return false, ErrInvalidView.New(err.Error())
+	}
+	if ourViewDef == nil {
+		return false, ErrInvalidView.Msg("unable to resolve view definition")
+	}
+	allowed, _ := ourViewDef.Rules.IsActionAllowedOnResource(ActionCatalogAdoptView, viewResource)
 	return allowed, nil
+}
+
+func getResourceKindFromPath(resourcePath string) string {
+	path := strings.Trim(resourcePath, "/")
+	segments := strings.Split(path, "/")
+	var resourceKind string
+	if len(segments) > 0 {
+		resourceKind = segments[0]
+	}
+	return resourceKind
+}
+
+func normalizeResourcePath(resourceKind string, resource TargetResource) TargetResource {
+	if resourceKind == catcommon.KindNameResources {
+		const prefix = "/resources/definition"
+		if strings.HasPrefix(string(resource), prefix) {
+			// Rewrite /resources/definition/... → /resources/...
+			return TargetResource("/resources" + strings.TrimPrefix(string(resource), prefix))
+		}
+	}
+	return resource
+}
+
+func resolveTargetResource(scope Scope, resourcePath string) (TargetResource, error) {
+	resourcePath = strings.TrimPrefix(resourcePath, "res://")
+	targetResource := TargetResource(resourcePath)
+	targetResource = normalizeResourcePath(getResourceKindFromPath(resourcePath), targetResource)
+	targetResource = canonicalizeResourcePath(scope, TargetResource("res://"+strings.TrimPrefix(string(targetResource), "/")))
+	if targetResource == "" {
+		return "", httpx.ErrApplicationError("unable to canonicalize resource path")
+	}
+	return targetResource, nil
+}
+
+func resolveAuthorizedViewDef(ctx context.Context) (*ViewDefinition, error) {
+	c := catcommon.GetCatalogContext(ctx)
+	if c == nil {
+		return nil, httpx.ErrUnAuthorized("missing request context")
+	}
+	// Get the authorized view definition from the context
+	authorizedViewDef := canonicalizeViewDefinition(GetViewDefinition(ctx))
+	if authorizedViewDef == nil {
+		return nil, httpx.ErrUnAuthorized("unable to resolve view definition")
+	}
+	return authorizedViewDef, nil
+}
+
+func resolveTargetScope(ctx context.Context) (Scope, error) {
+	c := catcommon.GetCatalogContext(ctx)
+	if c == nil {
+		return Scope{}, httpx.ErrUnAuthorized("missing request context")
+	}
+	return Scope{
+		Catalog:   c.Catalog,
+		Variant:   c.Variant,
+		Namespace: c.Namespace,
+	}, nil
 }

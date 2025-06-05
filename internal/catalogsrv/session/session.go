@@ -98,6 +98,11 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		return nil, ErrInvalidObject.Msg("invalid skill path")
 	}
 
+	// Validate view policy
+	if err := validateViewPolicy(ctx, sessionSpec.ViewName); err != nil {
+		return nil, err
+	}
+
 	// Initialize view manager
 	viewManager, err := resolveViewByLabel(ctx, sessionSpec.ViewName)
 	if err != nil {
@@ -109,15 +114,9 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 	if err != nil {
 		return nil, err
 	}
-
-	// Validate view policy
-	if err := validateViewPolicy(ctx, viewManager); err != nil {
+	viewDefJSON, err := viewManager.GetViewDefinitionJSON(ctx)
+	if err != nil {
 		return nil, err
-	}
-
-	viewDefJSON, goerr := viewDef.ToJSON()
-	if goerr != nil {
-		return nil, ErrInvalidObject.Msg("invalid view definition: " + goerr.Error())
 	}
 
 	// Initialize skill set manager
@@ -139,8 +138,12 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 
 	// Validate action permissions
 	exportedActions := skillSummary.ExportedActions
-	if !policy.AreActionsAllowed(ctx, viewDef, exportedActions) {
-		return nil, ErrInvalidObject.Msg("skill is not allowed to be used in this view")
+	allowed, err := policy.AreActionsAllowedOnResource(ctx, viewDef, skillSetManager.GetResourcePath(), exportedActions)
+	if err != nil {
+		return nil, err
+	}
+	if !allowed {
+		return nil, ErrDisallowedByPolicy.Msg("use of skill is blocked by policy")
 	}
 
 	// Create session
@@ -287,11 +290,8 @@ func (s *SessionSpec) Validate() schemaerr.ValidationErrors {
 	return validationErrors
 }
 
-// resolveViewByLabel creates a new view manager for the given view name with timeout
+// resolveViewByLabel creates a new view manager for the given view name
 func resolveViewByLabel(ctx context.Context, viewName string) (policy.ViewManager, apperrors.Error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
 	viewManager, err := policy.NewViewManagerByViewLabel(ctx, viewName)
 	if err != nil {
 		return nil, err
@@ -299,6 +299,7 @@ func resolveViewByLabel(ctx context.Context, viewName string) (policy.ViewManage
 	return viewManager, nil
 }
 
+// resolveViewByID creates a new view manager for the given view ID
 func resolveViewByID(ctx context.Context, viewID uuid.UUID) (policy.ViewManager, apperrors.Error) {
 	viewManager, err := policy.NewViewManagerByViewID(ctx, viewID)
 	if err != nil {
@@ -307,7 +308,7 @@ func resolveViewByID(ctx context.Context, viewID uuid.UUID) (policy.ViewManager,
 	return viewManager, nil
 }
 
-// resolveSkillSet creates a new skill set manager for the given path with timeout
+// resolveSkillSet creates a new skill set manager for the given path
 func resolveSkillSet(ctx context.Context, skillSetPath string) (catalogmanager.SkillSetManager, apperrors.Error) {
 	if skillSetPath == "" {
 		return nil, ErrInvalidObject.Msg("skillset path is required")
@@ -345,25 +346,17 @@ func compileSchema(schema string) (*jsonschema.Schema, error) {
 	return compiledSchema, nil
 }
 
-func validateViewPolicy(ctx context.Context, viewManager policy.ViewManager) apperrors.Error {
-	if viewManager == nil {
-		return ErrInvalidObject.Msg("view manager is required")
-	}
-	ourViewDef := policy.GetViewDefinition(ctx)
-	if ourViewDef == nil {
-		return ErrInvalidView.Msg("no current view definition found")
-	}
-	viewResourcePath, err := viewManager.GetViewResourcePath(ctx)
-	if err != nil {
-		return err
+func validateViewPolicy(ctx context.Context, view string) apperrors.Error {
+	if view == "" {
+		return ErrInvalidObject.Msg("view is required")
 	}
 
-	allowed, err := policy.CanAdoptView(ctx, ourViewDef, viewResourcePath)
+	allowed, err := policy.CanAdoptView(ctx, view)
 	if err != nil {
 		return err
 	}
 	if !allowed {
-		return ErrInvalidObject.Msg("view is not allowed to be adopted")
+		return ErrDisallowedByPolicy.Msg("view is not allowed to be adopted")
 	}
 
 	return nil

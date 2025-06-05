@@ -95,6 +95,10 @@ func KindNameFromObjectType(t CatalogObjectType) string {
 	}
 }
 
+func IsCatalogLevelKind(kind string) bool {
+	return kind == KindNameViews
+}
+
 const (
 	VersionV1 = "v1"
 )

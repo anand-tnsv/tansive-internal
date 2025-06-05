@@ -315,6 +315,16 @@ func TestCanonicalizeResourcePath(t *testing.T) {
 			want:     "res://catalogs/my-catalog/variants/my-variant/resources/my-resource/properties/definition",
 		},
 		{
+			name: "view resource",
+			scope: Scope{
+				Catalog:   "my-catalog",
+				Variant:   "my-variant",
+				Namespace: "my-namespace",
+			},
+			resource: "/views/my-view",
+			want:     "res://catalogs/my-catalog/views/my-view",
+		},
+		{
 			name:     "empty scope with empty resource",
 			scope:    Scope{},
 			resource: "",

@@ -308,7 +308,7 @@ func TestNewSession(t *testing.T) {
 				}
 			}`,
 			wantErr: true,
-			errType: policy.ErrViewNotFound,
+			errType: ErrDisallowedByPolicy,
 		},
 	}
 

@@ -18,10 +18,12 @@ type ViewManager interface {
 	ID() uuid.UUID
 	Name() string
 	GetViewDefinition(ctx context.Context) (*ViewDefinition, apperrors.Error)
-	GetViewResourcePath(ctx context.Context) (TargetResource, apperrors.Error)
+	GetViewDefinitionJSON(ctx context.Context) ([]byte, apperrors.Error)
+	GetResourcePath(ctx context.Context) (string, apperrors.Error)
 }
 type viewManager struct {
-	view *models.View
+	view    *models.View
+	viewDef *ViewDefinition
 }
 
 func NewViewManagerByViewLabel(ctx context.Context, viewLabel string) (ViewManager, apperrors.Error) {
@@ -38,8 +40,12 @@ func NewViewManagerByViewLabel(ctx context.Context, viewLabel string) (ViewManag
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load view")
 		return nil, ErrUnableToLoadObject.Msg("unable to load view")
 	}
+	viewDef, err := unmarshalViewDefinition(view)
+	if err != nil {
+		return nil, err
+	}
 
-	viewManager := &viewManager{view: view}
+	viewManager := &viewManager{view: view, viewDef: viewDef}
 	return viewManager, nil
 }
 
@@ -52,7 +58,11 @@ func NewViewManagerByViewID(ctx context.Context, viewID uuid.UUID) (ViewManager,
 		log.Ctx(ctx).Error().Err(err).Msg("failed to load view")
 		return nil, ErrUnableToLoadObject.Msg("unable to load view")
 	}
-	return &viewManager{view: view}, nil
+	viewDef, err := unmarshalViewDefinition(view)
+	if err != nil {
+		return nil, err
+	}
+	return &viewManager{view: view, viewDef: viewDef}, nil
 }
 
 func (v *viewManager) ID() uuid.UUID {
@@ -64,20 +74,31 @@ func (v *viewManager) Name() string {
 }
 
 func (v *viewManager) GetViewDefinition(ctx context.Context) (*ViewDefinition, apperrors.Error) {
+	return v.viewDef, nil
+}
+
+func (v *viewManager) GetViewDefinitionJSON(ctx context.Context) ([]byte, apperrors.Error) {
+	if v.viewDef == nil {
+		return nil, ErrInvalidView.Msg("view definition is nil")
+	}
+	json, err := v.viewDef.ToJSON()
+	if err != nil {
+		return nil, ErrInvalidView.Msg("unable to marshal view definition")
+	}
+	return json, nil
+}
+
+func (v *viewManager) GetResourcePath(ctx context.Context) (string, apperrors.Error) {
+	return "/views/" + v.view.Label, nil
+}
+
+func unmarshalViewDefinition(view *models.View) (*ViewDefinition, apperrors.Error) {
+	if view == nil {
+		return nil, ErrInvalidView.Msg("view is nil")
+	}
 	var viewDef ViewDefinition
-	if err := json.Unmarshal(v.view.Rules, &viewDef); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal view rules")
+	if err := json.Unmarshal(view.Rules, &viewDef); err != nil {
 		return nil, ErrUnableToLoadObject.Msg("unable to unmarshal view rules")
 	}
 	return &viewDef, nil
-}
-
-func (v *viewManager) GetViewResourcePath(ctx context.Context) (TargetResource, apperrors.Error) {
-	viewDef, err := v.GetViewDefinition(ctx)
-	if err != nil {
-		return "", err
-	}
-	s := "res://views/" + v.view.Label
-	path := canonicalizeResourcePath(viewDef.Scope, TargetResource(s))
-	return path, nil
 }

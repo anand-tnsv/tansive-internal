@@ -239,6 +239,10 @@ func (sm *skillSetManager) GetStoragePath() string {
 	return getSkillSetStoragePath(&m)
 }
 
+func (sm *skillSetManager) GetResourcePath() string {
+	return "/skillsets/" + sm.Metadata().GetFullyQualifiedName()
+}
+
 // getSkillSetStoragePath constructs the storage path for a skillset based on its metadata.
 func getSkillSetStoragePath(m *interfaces.Metadata) string {
 	t := catcommon.CatalogObjectTypeSkillset

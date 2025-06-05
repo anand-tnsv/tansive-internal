@@ -3,6 +3,8 @@ package policy
 import (
 	"path"
 	"strings"
+
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 // removeDuplicates removes duplicate elements from a slice while preserving order.
@@ -55,16 +57,17 @@ func canonicalizeResourcePath(scope Scope, resource TargetResource) TargetResour
 	s := string(resource)
 	s = strings.TrimPrefix(s, "res://")
 	s = strings.TrimPrefix(s, "/") // just in case, the res:// prefix was missing
+	catalogLevel := catcommon.IsCatalogLevelKind(getResourceKindFromPath(s))
 	metadataPath := strings.Builder{}
 	if scope.Catalog != "" {
 		metadataPath.WriteString("catalogs/")
 		metadataPath.WriteString(scope.Catalog + "/")
 	}
-	if scope.Variant != "" {
+	if scope.Variant != "" && !catalogLevel {
 		metadataPath.WriteString("variants/")
 		metadataPath.WriteString(scope.Variant + "/")
 	}
-	if scope.Namespace != "" {
+	if scope.Namespace != "" && !catalogLevel {
 		metadataPath.WriteString("namespaces/")
 		metadataPath.WriteString(scope.Namespace + "/")
 	}

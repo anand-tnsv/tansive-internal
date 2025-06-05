@@ -9,10 +9,10 @@ import (
 	json "github.com/json-iterator/go"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -99,6 +99,10 @@ func (m Metadata) GetStoragePath(t catcommon.CatalogObjectType) string {
 func (m Metadata) GetEntropyBytes(t catcommon.CatalogObjectType) []byte {
 	entropy := m.Catalog + ":" + string(t)
 	return []byte(entropy)
+}
+
+func (m Metadata) GetFullyQualifiedName() string {
+	return path.Clean(m.Path + "/" + m.Name)
 }
 
 func (m *Metadata) SetNameAndPathFromStoragePath(storagePath string) {

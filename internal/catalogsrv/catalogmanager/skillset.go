@@ -29,6 +29,7 @@ type SkillSetManager interface {
 	GetStoragePath() string
 	StorageRepresentation() *objectstore.ObjectStorageRepresentation
 	GetSkillMetadata() (SkillMetadata, apperrors.Error)
+	GetResourcePath() string
 }
 
 // NewSkillSetManager creates a new Sk sillSetManager instance from the pro vided JSON schema and metadata.

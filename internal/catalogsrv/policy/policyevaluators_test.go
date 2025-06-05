@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"testing"
+
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 // These tests cover a mixture of scenarios several of which are not even valid
@@ -680,95 +682,202 @@ func TestRules_IsSubsetOf(t *testing.T) {
 	}
 }
 
-func TestAreActionsAllowed(t *testing.T) {
+func TestAreActionsAllowedOnResource(t *testing.T) {
 	tests := []struct {
-		name     string
-		vd       *ViewDefinition
-		actions  []Action
-		expected bool
+		name           string
+		viewDefinition *ViewDefinition
+		resource       string
+		actions        []Action
+		want           bool
+		wantErr        bool
 	}{
 		{
 			name: "empty actions",
-			vd: &ViewDefinition{
+			viewDefinition: &ViewDefinition{
+				Scope: Scope{
+					Catalog:   "test-catalog",
+					Variant:   "test-variant",
+					Namespace: "test-namespace",
+				},
 				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionResourceRead},
-						Targets: []TargetResource{"res://catalogs/test"},
+						Targets: []TargetResource{"res://resources/test-resource"},
 					},
 				},
 			},
+			resource: "/resources/test-resource",
 			actions:  []Action{},
-			expected: true,
+			want:     false,
+			wantErr:  true,
 		},
 		{
 			name: "all actions allowed",
-			vd: &ViewDefinition{
+			viewDefinition: &ViewDefinition{
+				Scope: Scope{
+					Catalog:   "test-catalog",
+					Variant:   "test-variant",
+					Namespace: "test-namespace",
+				},
 				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionResourceRead, ActionResourceEdit},
-						Targets: []TargetResource{"res://catalogs/test"},
+						Targets: []TargetResource{"res://resources/test-resource"},
 					},
 				},
 			},
+			resource: "/resources/test-resource",
 			actions:  []Action{ActionResourceRead, ActionResourceEdit},
-			expected: true,
+			want:     true,
+			wantErr:  false,
 		},
 		{
 			name: "some actions not allowed",
-			vd: &ViewDefinition{
+			viewDefinition: &ViewDefinition{
+				Scope: Scope{
+					Catalog:   "test-catalog",
+					Variant:   "test-variant",
+					Namespace: "test-namespace",
+				},
 				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionResourceRead},
-						Targets: []TargetResource{"res://catalogs/test"},
+						Targets: []TargetResource{"res://resources/test-resource"},
 					},
 				},
 			},
+			resource: "/resources/test-resource",
 			actions:  []Action{ActionResourceRead, ActionResourceEdit},
-			expected: false,
+			want:     false,
+			wantErr:  false,
 		},
 		{
 			name: "actions split across multiple rules",
-			vd: &ViewDefinition{
+			viewDefinition: &ViewDefinition{
+				Scope: Scope{
+					Catalog:   "test-catalog",
+					Variant:   "test-variant",
+					Namespace: "test-namespace",
+				},
 				Rules: Rules{
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionResourceRead},
-						Targets: []TargetResource{"res://catalogs/test"},
+						Targets: []TargetResource{"res://resources/test-resource"},
 					},
 					{
 						Intent:  IntentAllow,
 						Actions: []Action{ActionResourceEdit},
-						Targets: []TargetResource{"res://catalogs/test"},
+						Targets: []TargetResource{"res://resources/test-resource"},
 					},
 				},
 			},
+			resource: "/resources/test-resource",
 			actions:  []Action{ActionResourceRead, ActionResourceEdit},
-			expected: true,
+			want:     true,
+			wantErr:  false,
 		},
 		{
-			name:     "nil view definition",
-			vd:       nil,
-			actions:  []Action{ActionResourceRead},
-			expected: false,
+			name: "deny rule takes precedence",
+			viewDefinition: &ViewDefinition{
+				Scope: Scope{
+					Catalog:   "test-catalog",
+					Variant:   "test-variant",
+					Namespace: "test-namespace",
+				},
+				Rules: Rules{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead, ActionResourceEdit},
+						Targets: []TargetResource{"res://resources/test-resource"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionResourceEdit},
+						Targets: []TargetResource{"res://resources/test-resource"},
+					},
+				},
+			},
+			resource: "/resources/test-resource",
+			actions:  []Action{ActionResourceRead, ActionResourceEdit},
+			want:     false,
+			wantErr:  false,
+		},
+		{
+			name: "deny rule with wildcard target",
+			viewDefinition: &ViewDefinition{
+				Scope: Scope{
+					Catalog:   "test-catalog",
+					Variant:   "test-variant",
+					Namespace: "test-namespace",
+				},
+				Rules: Rules{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead, ActionResourceEdit},
+						Targets: []TargetResource{"res://resources/*"},
+					},
+					{
+						Intent:  IntentDeny,
+						Actions: []Action{ActionResourceEdit},
+						Targets: []TargetResource{"res://resources/test-resource"},
+					},
+				},
+			},
+			resource: "/resources/test-resource",
+			actions:  []Action{ActionResourceRead, ActionResourceEdit},
+			want:     false,
+			wantErr:  false,
+		},
+		{
+			name:           "nil view definition",
+			viewDefinition: nil,
+			resource:       "/resources/test-resource",
+			actions:        []Action{ActionResourceRead},
+			want:           false,
+			wantErr:        true,
 		},
 		{
 			name: "empty rules",
-			vd: &ViewDefinition{
+			viewDefinition: &ViewDefinition{
+				Scope: Scope{
+					Catalog:   "test-catalog",
+					Variant:   "test-variant",
+					Namespace: "test-namespace",
+				},
 				Rules: Rules{},
 			},
+			resource: "/resources/test-resource",
 			actions:  []Action{ActionResourceRead},
-			expected: false,
+			want:     false,
+			wantErr:  false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := AreActionsAllowed(context.Background(), tt.vd, tt.actions)
-			if got != tt.expected {
-				t.Errorf("AreActionsAllowed() = %v, want %v", got, tt.expected)
+			ctx := context.Background()
+			ctx = catcommon.WithCatalogContext(ctx, &catcommon.CatalogContext{
+				Catalog:   "test-catalog",
+				Variant:   "test-variant",
+				Namespace: "test-namespace",
+			})
+
+			// Debug output for canonicalized resource and rule target
+			if tt.name == "some actions not allowed" {
+				t.Logf("some actions not allowed")
+			}
+
+			got, err := AreActionsAllowedOnResource(ctx, tt.viewDefinition, tt.resource, tt.actions)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("AreActionsAllowedOnResource() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("AreActionsAllowedOnResource() = %v, want %v", got, tt.want)
 			}
 		})
 	}
