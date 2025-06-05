@@ -153,7 +153,7 @@ func TestNewSession(t *testing.T) {
 		"spec": {
 			"rules": [{
 				"intent": "Allow",
-				"actions": ["catalog.list", "variant.list", "namespace.list"],
+				"actions": ["system.catalog.list", "system.variant.list", "system.namespace.list", "test.action"],
 				"targets": ["res://variants/test-variant/*"]
 			}]
 		}
@@ -540,7 +540,7 @@ func TestSessionSaveAndGet(t *testing.T) {
 		"spec": {
 			"rules": [{
 				"intent": "Allow",
-				"actions": ["catalog.list", "variant.list", "namespace.list"],
+				"actions": ["system.catalog.list", "system.variant.list", "system.namespace.list", "test.action"],
 				"targets": ["res://variants/test-variant/*"]
 			}]
 		}

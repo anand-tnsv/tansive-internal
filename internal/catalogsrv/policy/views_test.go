@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,6 +16,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func TestCreateView(t *testing.T) {
@@ -39,7 +39,7 @@ func TestCreateView(t *testing.T) {
 		    "spec": {
 		        "rules": [{
 		            "intent": "Allow",
-		            "actions": ["catalog.list"],
+		            "actions": ["system.catalog.list"],
 		            "targets": ["res://variants/my-variant/resources/coll-schema"]
 		        }]
 		    }
@@ -60,7 +60,7 @@ func TestCreateView(t *testing.T) {
 		    "spec": {
 		        "rules": [{
 		            "intent": "Allow",
-		            "actions": ["catalog.list"],
+		            "actions": ["system.catalog.list"],
 		            "targets": ["res://variants/my-variant/collectionschemas"]
 		        }]
 		    }
@@ -81,7 +81,7 @@ func TestCreateView(t *testing.T) {
 		    "spec": {
 		        "rules": [{
 		            "intent": "Allow",
-		            "actions": ["catalog.list"],
+		            "actions": ["system.catalog.list"],
 		            "targets": ["res://resources/*"]
 		        }]
 		    }
@@ -102,7 +102,7 @@ func TestCreateView(t *testing.T) {
 		    "spec": {
 		        "rules": [{
 		            "intent": "Allow",
-		            "actions": ["catalog.list"],
+		            "actions": ["system.catalog.list"],
 		            "targets": ["res://resources/*"]
 		        }]
 		    }
@@ -140,7 +140,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Allow",
-				            "actions": ["catalog.list"],
+				            "actions": ["system.catalog.list"],
 				            "targets": ["res://catalogs/validcatalog"]
 				        }]
 				    }
@@ -161,7 +161,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Allow",
-				            "actions": ["catalog.list"],
+				            "actions": ["system.catalog.list"],
 				            "targets": ["res://catalogs/validcatalog"]
 				        }]
 				    }
@@ -182,7 +182,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Allow",
-				            "actions": ["catalog.list"],
+				            "actions": ["system.catalog.list"],
 				            "targets": ["res://catalogs/validcatalog"]
 				        }]
 				    }
@@ -203,7 +203,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Invalid",
-				            "actions": ["catalog.list"],
+				            "actions": ["system.catalog.list"],
 				            "targets": ["res://catalogs/validcatalog"]
 				        }]
 				    }
@@ -224,7 +224,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Allow",
-				            "actions": ["Invalid"],
+				            "actions": ["system.Invalid"],
 				            "targets": ["res://catalogs/validcatalog"]
 				        }]
 				    }
@@ -245,7 +245,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Allow",
-				            "actions": ["catalog.list"],
+				            "actions": ["system.catalog.list"],
 				            "targets": ["invalid-uri", "res://invalid-format", "res://InvalidCase"]
 				        }]
 				    }
@@ -266,7 +266,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Allow",
-				            "actions": ["catalog.list", "variant.list", "namespace.list"],
+				            "actions": ["system.catalog.list", "system.variant.list", "system.namespace.list"],
 				            "targets": ["res://variants/my-variant"]
 				        }]
 				    }
@@ -287,7 +287,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Allow",
-				            "actions": ["catalog.list", "InvalidAction", "variant.list"],
+				            "actions": ["system.catalog.list", "system.InvalidAction", "system.variant.list"],
 				            "targets": ["res://catalogs/validcatalog"]
 				        }]
 				    }
@@ -308,7 +308,7 @@ func TestCreateView(t *testing.T) {
 				    "spec": {
 				        "rules": [{
 				            "intent": "Allow",
-				            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+				            "actions": ["system.catalog.list", "system.variant.list", "system.catalog.list", "system.namespace.list", "system.variant.list", "system.namespace.list"],
 				            "targets": ["res://variants/my-variant"]
 				        }]
 				    }
@@ -329,7 +329,7 @@ func TestCreateView(t *testing.T) {
 		    "spec": {
 		        "rules": [{
 		            "intent": "Allow",
-		            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		            "actions": ["system.catalog.list", "system.variant.list", "system.catalog.list", "system.namespace.list", "system.variant.list", "system.namespace.list"],
 		            "targets": ["res://variants/my-variant/resources/my-workspace"]
 		        }]
 		    }
@@ -350,12 +350,12 @@ func TestCreateView(t *testing.T) {
 		    "spec": {
 		        "rules": [{
 		            "intent": "Allow",
-		            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		            "actions": ["system.catalog.list", "system.variant.list", "system.catalog.list", "system.namespace.list", "system.variant.list", "system.namespace.list"],
 		            "targets": ["res://resources/my-collection", "res://namespaces/my-namespace/resources/a/b/c/d"]
 		        },
 				{
 		            "intent": "Allow",
-		            "actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list", "namespace.list"],
+		            "actions": ["system.catalog.list", "system.variant.list", "system.catalog.list", "system.namespace.list", "system.variant.list", "system.namespace.list"],
 		            "targets": []
 		        }]
 		    }
@@ -377,7 +377,7 @@ func TestCreateView(t *testing.T) {
 		        "rules": [
 					{
 						"intent": "Allow",
-						"actions": ["catalog.adoptView"],
+						"actions": ["system.catalog.adoptView"],
 						"targets": ["res://views/some-view/variants/test-variant"]
 					}
 				]
@@ -481,7 +481,7 @@ func TestUpdateView(t *testing.T) {
 			"rules": [
 				{
 					"intent": "Allow",
-					"actions": ["catalog.list"],
+					"actions": ["system.catalog.list"],
 					"targets": []
 				}
 			]
@@ -507,7 +507,7 @@ func TestUpdateView(t *testing.T) {
 			"rules": [
 				{
 					"intent": "Allow",
-					"actions": ["catalog.list", "variant.list", "namespace.list"],
+					"actions": ["system.catalog.list", "system.variant.list", "system.namespace.list"],
 					"targets": []
 				}
 			]
@@ -550,7 +550,7 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [{
 				"intent": "Allow",
-				"actions": ["variant.list"],
+				"actions": ["system.variant.list"],
 				"targets": []
 			}]
 		}
@@ -572,7 +572,7 @@ func TestUpdateView(t *testing.T) {
 		"spec": {
 			"rules": [{
 				"intent": "Allow",
-				"actions": ["variant.list"],
+				"actions": ["system.variant.list"],
 				"targets": []
 			}]
 		}
@@ -601,7 +601,7 @@ func TestUpdateView(t *testing.T) {
 			"rules": [
 				{
 					"intent": "InvalidEffect",
-					"actions": ["catalog.list"],
+					"actions": ["system.catalog.list"],
 					"targets": ["res://*"]
 				}
 			]
@@ -625,7 +625,7 @@ func TestUpdateView(t *testing.T) {
 			"rules": [
 				{
 					"intent": "Allow",
-					"actions": ["catalog.list", "variant.list", "catalog.list", "namespace.list", "variant.list"],
+					"actions": ["system.catalog.list", "system.variant.list", "system.catalog.list", "system.namespace.list", "system.variant.list"],
 					"targets": ["res://variants/valid-variant"]
 				}
 			]
@@ -722,7 +722,7 @@ func TestDeleteView(t *testing.T) {
 				"rules": [
 					{
 						"intent": "Allow",
-						"actions": ["catalog.list"],
+						"actions": ["system.catalog.list"],
 						"targets": ["res://variants/my-variant"]
 					}
 				]
@@ -843,14 +843,14 @@ func TestGetView(t *testing.T) {
 			name:        "view1",
 			label:       "test-view-1",
 			description: "Test view 1",
-			actions:     []string{"catalog.list", "variant.list"},
+			actions:     []string{"system.catalog.list", "system.variant.list"},
 			targets:     []string{"res://variants/my-variant"},
 		},
 		{
 			name:        "view2",
 			label:       "test-view-2",
 			description: "Test view 2",
-			actions:     []string{"namespace.list"},
+			actions:     []string{"system.namespace.list"},
 			targets:     []string{"res://namespaces/my-namespace"},
 		},
 	}
@@ -915,7 +915,7 @@ func TestGetView(t *testing.T) {
 
 		rule := rules[0].(map[string]any)
 		assert.Equal(t, "Allow", rule["intent"])
-		assert.ElementsMatch(t, []any{"catalog.list", "variant.list"}, rule["actions"])
+		assert.ElementsMatch(t, []any{"system.catalog.list", "system.variant.list"}, rule["actions"])
 		assert.ElementsMatch(t, []any{"res://variants/my-variant"}, rule["targets"])
 	})
 

@@ -105,7 +105,7 @@ func TestViewCrud(t *testing.T) {
 			"spec": {
 				"rules": [{
 					"intent": "Allow",
-					"actions": ["catalog.list"],
+					"actions": ["system.catalog.list"],
 					"targets": ["res://variants/valid-variant"]
 				}]
 			}
@@ -150,7 +150,7 @@ func TestViewCrud(t *testing.T) {
 			"spec": {
 				"rules": [{
 					"intent": "Allow",
-					"actions": ["catalog.list"],
+					"actions": ["system.catalog.list"],
 					"targets": ["res://variants/valid-variant"]
 				}]
 			}
@@ -278,7 +278,7 @@ func TestViewList(t *testing.T) {
 			"spec": {
 				"rules": [{
 					"intent": "Allow",
-					"actions": ["catalog.list"],
+					"actions": ["system.catalog.list"],
 					"targets": []
 				}]
 			}

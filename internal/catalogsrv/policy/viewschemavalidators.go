@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 )
 
 var validKinds map[string]struct{}
@@ -32,7 +32,13 @@ func validateViewRuleIntent(fl validator.FieldLevel) bool {
 // validateViewRuleAction checks if the action is one of the allowed values.
 func validateViewRuleAction(fl validator.FieldLevel) bool {
 	action := Action(fl.Field().String())
-	return slices.Contains(ValidActions, action)
+	if action == "" {
+		return false
+	}
+	if strings.HasPrefix(string(action), "system.") {
+		return slices.Contains(ValidActions, action)
+	}
+	return true
 }
 
 // validateResourceURI validates that a resource URI follows the required structure.

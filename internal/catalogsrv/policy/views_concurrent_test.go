@@ -112,7 +112,7 @@ func TestViewOperations(t *testing.T) {
 						"spec": {
 							"rules": [{
 								"intent": "Allow",
-								"actions": ["catalog.list"],
+								"actions": ["system.catalog.list"],
 								"targets": ["res://variants/my-variant"]
 							}]
 						}
@@ -161,7 +161,7 @@ func TestViewOperations(t *testing.T) {
 				"spec": {
 					"rules": [{
 						"intent": "Allow",
-						"actions": ["catalog.list"],
+						"actions": ["system.catalog.list"],
 						"targets": ["res://variants/my-variant"]
 					}]
 				}
@@ -196,7 +196,7 @@ func TestViewOperations(t *testing.T) {
 						"spec": {
 							"rules": [{
 								"intent": "Allow",
-								"actions": ["catalog.list", "variant.list"],
+								"actions": ["system.catalog.list", "system.variant.list"],
 								"targets": ["res://variants/my-variant"]
 							}]
 						}
@@ -250,7 +250,7 @@ func TestViewOperations(t *testing.T) {
 				"spec": {
 					"rules": [{
 						"intent": "Allow",
-						"actions": ["catalog.list"],
+						"actions": ["system.catalog.list"],
 						"targets": ["res://variants/my-variant"]
 					}]
 				}
@@ -348,7 +348,7 @@ func TestViewOperations(t *testing.T) {
 						"spec": {
 							"rules": [{
 								"intent": "Allow",
-								"actions": ["catalog.list"],
+								"actions": ["system.catalog.list"],
 								"targets": ["res://variants/my-variant"]
 							}]
 						}
@@ -402,7 +402,7 @@ func TestViewOperations(t *testing.T) {
 				"spec": {
 					"rules": [{
 						"intent": "Allow",
-						"actions": ["catalog.list"],
+						"actions": ["system.catalog.list"],
 						"targets": ["res://variants/my-variant"]
 					}]
 				}
@@ -438,7 +438,7 @@ func TestViewOperations(t *testing.T) {
 						"spec": {
 							"rules": [{
 								"intent": "Allow",
-								"actions": ["catalog.list", "variant.list"],
+								"actions": ["system.catalog.list", "system.variant.list"],
 								"targets": ["res://variants/my-variant"]
 							}]
 						}
