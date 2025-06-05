@@ -10,8 +10,19 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
-// IsActionAllowedOnResource checks if a given action is allowed for a specific resource based on the rule set.
-// It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
+// IsActionAllowedOnResource evaluates whether a given action is permitted on a specific resource based on the rule set.
+// It implements a deny-takes-precedence policy where deny rules override allow rules.
+//
+// Parameters:
+//   - action: The Action to be evaluated
+//   - target: The TargetResource to check permissions against
+//
+// Returns:
+//   - bool: true if the action is allowed, false if denied
+//   - map[Intent][]Rule: A map containing matched rules grouped by their intent (allow/deny)
+//
+// Note: This function first checks for admin matches, then evaluates regular rules.
+// Deny rules take precedence over allow rules in case of conflicts.
 func (ruleSet Rules) IsActionAllowedOnResource(action Action, target TargetResource) (bool, map[Intent][]Rule) {
 	matchedRulesAllow := []Rule{}
 	matchedRulesDeny := []Rule{}
@@ -47,8 +58,18 @@ func (ruleSet Rules) IsActionAllowedOnResource(action Action, target TargetResou
 	}
 }
 
-// IsSubsetOf checks if this ViewRuleSet is a subset of another ViewRuleSet.
-// Returns true if every action and target in this set is permissible by the other set.
+// IsSubsetOf determines if this RuleSet is a proper subset of another RuleSet.
+// A RuleSet is considered a subset if all its actions and targets are permissible
+// under the other set's rules.
+//
+// Parameters:
+//   - other: The RuleSet to compare against
+//
+// Returns:
+//   - bool: true if this RuleSet is a subset of the other set, false otherwise
+//
+// Note: This function only considers allow rules in the comparison.
+// All actions and targets in this set must be explicitly allowed by the other set.
 func (ruleSet Rules) IsSubsetOf(other Rules) bool {
 	for _, rule := range ruleSet {
 		for _, action := range rule.Actions {
@@ -66,8 +87,21 @@ func (ruleSet Rules) IsSubsetOf(other Rules) bool {
 }
 
 // ValidateDerivedView ensures that a derived view is valid with respect to its parent view.
-// It ensures that the derived view's scope is the same as the parent's and that all rules in the derived view
-// are permissible by the parent view.
+// It performs two key validations:
+// 1. Ensures the derived view's scope matches the parent's scope
+// 2. Verifies that all rules in the derived view are permissible by the parent view
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - parent: The parent ViewDefinition to validate against
+//   - child: The derived ViewDefinition to validate
+//
+// Returns:
+//   - apperrors.Error: nil if validation succeeds, otherwise returns an appropriate error
+//
+// Note: Both parent and child views are canonicalized before validation.
+// Returns ErrInvalidView if either view is nil or if the derived view's rules
+// are not a subset of the parent view's rules.
 func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *ViewDefinition) apperrors.Error {
 	if parent == nil || child == nil {
 		return ErrInvalidView
@@ -83,6 +117,22 @@ func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *Vie
 	return nil
 }
 
+// AreActionsAllowedOnResource checks if a set of actions are permitted on a specific resource
+// according to the given view definition.
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - vd: The ViewDefinition containing the rules to evaluate
+//   - resource: The resource path to check permissions for
+//   - actions: The list of actions to validate
+//
+// Returns:
+//   - bool: true if all actions are allowed, false if any action is denied
+//   - apperrors.Error: nil if the check succeeds, otherwise returns an appropriate error
+//
+// Note: The function validates that the view definition, resource, and actions are non-empty.
+// It resolves the target scope and resource before performing the permission check.
+// All actions must be allowed for the function to return true.
 func AreActionsAllowedOnResource(ctx context.Context, vd *ViewDefinition, resource string, actions []Action) (bool, apperrors.Error) {
 	if vd == nil {
 		return false, ErrInvalidView.Msg("view definition is nil")
@@ -114,6 +164,19 @@ func AreActionsAllowedOnResource(ctx context.Context, vd *ViewDefinition, resour
 	return true, nil
 }
 
+// CanAdoptView determines if the current view has permission to adopt another view
+// within the catalog context.
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - view: The name of the view to check adoption permissions for
+//
+// Returns:
+//   - bool: true if the current view can adopt the specified view, false otherwise
+//   - apperrors.Error: nil if the check succeeds, otherwise returns an appropriate error
+//
+// Note: This function requires a valid catalog context and an authorized view definition.
+// It checks if the current view has the ActionCatalogAdoptView permission for the target view.
 func CanAdoptView(ctx context.Context, view string) (bool, apperrors.Error) {
 	catalog := catcommon.GetCatalog(ctx)
 	if catalog == "" {

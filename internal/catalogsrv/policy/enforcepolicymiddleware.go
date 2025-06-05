@@ -7,6 +7,27 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
+// EnforceViewPolicyMiddleware creates a middleware that enforces view-based access control policies.
+// It evaluates whether the current request is allowed based on the authorized view definition,
+// target scope, and requested resource path.
+//
+// The middleware performs the following steps:
+// 1. Resolves the authorized view definition from the request context
+// 2. Determines the target scope (catalog, variant, namespace)
+// 3. Resolves the target resource from the request URL path
+// 4. Evaluates each allowed action against the policy rules
+// 5. Logs the policy decision with detailed information
+//
+// Parameters:
+//   - handler: ResponseHandlerParam containing the allowed actions and the actual request handler
+//
+// Returns:
+//   - httpx.RequestHandler: A middleware function that enforces the policy
+//
+// Note: The middleware implements a first-match policy where access is granted if any
+// of the allowed actions are permitted. It logs detailed policy decisions including
+// matched allow and deny rules for auditing purposes.
+// Returns ErrDisallowedByPolicy if no allowed actions are permitted by the policy.
 func EnforceViewPolicyMiddleware(handler ResponseHandlerParam) httpx.RequestHandler {
 	return func(r *http.Request) (*httpx.Response, error) {
 		ctx := r.Context()

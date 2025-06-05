@@ -72,6 +72,8 @@ func init() {
 
 // NewSession creates a new session with the given specification. It validates the session spec,
 // checks permissions, and initializes the session with the provided configuration.
+// The function requires valid catalog ID, variant ID, and user ID in the context.
+// Returns a SessionManager interface and any error that occurred during creation.
 func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors.Error) {
 	// Validate required IDs first
 	catalogID := catcommon.GetCatalogID(ctx)
@@ -173,6 +175,8 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 	}, nil
 }
 
+// Save persists the session to the database.
+// Returns an error if the save operation fails.
 func (s *sessionManager) Save(ctx context.Context) apperrors.Error {
 	err := db.DB(ctx).CreateSession(ctx, s.session)
 	if err != nil {
@@ -181,6 +185,8 @@ func (s *sessionManager) Save(ctx context.Context) apperrors.Error {
 	return nil
 }
 
+// GetSession retrieves an existing session by its ID.
+// Returns a SessionManager interface and any error that occurred during retrieval.
 func GetSession(ctx context.Context, sessionID uuid.UUID) (SessionManager, apperrors.Error) {
 	session, err := db.DB(ctx).GetSession(ctx, sessionID)
 	if err != nil {
@@ -273,7 +279,9 @@ func validateSessionSpecFields(s *SessionSpec) schemaerr.ValidationErrors {
 	return validationErrors
 }
 
-// Validate validates the session specification
+// Validate validates the session specification against required rules and constraints.
+// Checks both the struct fields and session variables for validity.
+// Returns a collection of validation errors if any are found.
 func (s *SessionSpec) Validate() schemaerr.ValidationErrors {
 	var validationErrors schemaerr.ValidationErrors
 
