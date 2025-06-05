@@ -17,9 +17,22 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
+type ResourceManager interface {
+	Metadata() interfaces.Metadata
+	FullyQualifiedName() string
+	GetValue(ctx context.Context) types.NullableAny
+	GetValueJSON(ctx context.Context) ([]byte, apperrors.Error)
+	SetValue(ctx context.Context, value types.NullableAny) apperrors.Error
+	StorageRepresentation() *objectstore.ObjectStorageRepresentation
+	Save(ctx context.Context) apperrors.Error
+	GetStoragePath() string
+	JSON(ctx context.Context) ([]byte, apperrors.Error)
+	SpecJSON(ctx context.Context) ([]byte, apperrors.Error)
+}
+
 // NewResourceManager creates a new ResourceManager instance from the provided JSON schema and metadata.
 // It validates the schema and metadata before creating the manager.
-func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Metadata) (interfaces.ResourceManager, apperrors.Error) {
+func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Metadata) (ResourceManager, apperrors.Error) {
 	if len(rsrcJSON) == 0 {
 		return nil, ErrEmptySchema
 	}
@@ -47,7 +60,7 @@ func NewResourceManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Meta
 	return &resourceManager{resource: rsrc}, nil
 }
 
-func LoadResourceManagerByHash(ctx context.Context, hash string, m *interfaces.Metadata) (interfaces.ResourceManager, apperrors.Error) {
+func LoadResourceManagerByHash(ctx context.Context, hash string, m *interfaces.Metadata) (ResourceManager, apperrors.Error) {
 	// get the object from catalog object store
 	obj, err := db.DB(ctx).GetCatalogObject(ctx, hash)
 	if err != nil {
@@ -57,7 +70,7 @@ func LoadResourceManagerByHash(ctx context.Context, hash string, m *interfaces.M
 }
 
 // LoadResourceManagerByPath loads a resource manager from the database by path.
-func LoadResourceManagerByPath(ctx context.Context, m *interfaces.Metadata) (interfaces.ResourceManager, apperrors.Error) {
+func LoadResourceManagerByPath(ctx context.Context, m *interfaces.Metadata) (ResourceManager, apperrors.Error) {
 	if m == nil {
 		return nil, ErrInvalidObject.Msg("unable to infer object metadata")
 	}
@@ -90,7 +103,7 @@ func LoadResourceManagerByPath(ctx context.Context, m *interfaces.Metadata) (int
 	return resourceManagerFromObject(ctx, obj, m)
 }
 
-func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m *interfaces.Metadata) (interfaces.ResourceManager, apperrors.Error) {
+func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m *interfaces.Metadata) (ResourceManager, apperrors.Error) {
 	if obj == nil {
 		return nil, ErrEmptySchema
 	}
@@ -126,7 +139,7 @@ var _ interfaces.KindHandler = &resourceKindHandler{}
 // It handles CRUD operations for resources and maintains the request context.
 type resourceKindHandler struct {
 	req interfaces.RequestContext
-	rm  interfaces.ResourceManager
+	rm  ResourceManager
 }
 
 // Name returns the name of the resource from the request context.
@@ -153,7 +166,7 @@ func (h *resourceKindHandler) Location() string {
 }
 
 // Manager returns the underlying ResourceManager instance.
-func (h *resourceKindHandler) Manager() interfaces.ResourceManager {
+func (h *resourceKindHandler) Manager() ResourceManager {
 	return h.rm
 }
 

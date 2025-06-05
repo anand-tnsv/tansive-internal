@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"context"
 	"fmt"
 	"testing"
 )
@@ -373,7 +374,7 @@ func TestRules_IsActionAllowed(t *testing.T) {
 			if tt.name == "catalog admin overrides deny for list" {
 				fmt.Println("catalog admin overrides deny for list")
 			}
-			if got, _ := tt.rules.IsActionAllowed(tt.action, tt.target); got != tt.want {
+			if got, _ := tt.rules.IsActionAllowedOnResource(tt.action, tt.target); got != tt.want {
 				t.Errorf("Rules.IsActionAllowed() = %v, want %v", got, tt.want)
 			}
 		})
@@ -674,6 +675,100 @@ func TestRules_IsSubsetOf(t *testing.T) {
 			got := tt.child.IsSubsetOf(tt.parent)
 			if got != tt.expected {
 				t.Errorf("IsSubsetOf() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestAreActionsAllowed(t *testing.T) {
+	tests := []struct {
+		name     string
+		vd       *ViewDefinition
+		actions  []Action
+		expected bool
+	}{
+		{
+			name: "empty actions",
+			vd: &ViewDefinition{
+				Rules: Rules{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead},
+						Targets: []TargetResource{"res://catalogs/test"},
+					},
+				},
+			},
+			actions:  []Action{},
+			expected: true,
+		},
+		{
+			name: "all actions allowed",
+			vd: &ViewDefinition{
+				Rules: Rules{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead, ActionResourceEdit},
+						Targets: []TargetResource{"res://catalogs/test"},
+					},
+				},
+			},
+			actions:  []Action{ActionResourceRead, ActionResourceEdit},
+			expected: true,
+		},
+		{
+			name: "some actions not allowed",
+			vd: &ViewDefinition{
+				Rules: Rules{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead},
+						Targets: []TargetResource{"res://catalogs/test"},
+					},
+				},
+			},
+			actions:  []Action{ActionResourceRead, ActionResourceEdit},
+			expected: false,
+		},
+		{
+			name: "actions split across multiple rules",
+			vd: &ViewDefinition{
+				Rules: Rules{
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceRead},
+						Targets: []TargetResource{"res://catalogs/test"},
+					},
+					{
+						Intent:  IntentAllow,
+						Actions: []Action{ActionResourceEdit},
+						Targets: []TargetResource{"res://catalogs/test"},
+					},
+				},
+			},
+			actions:  []Action{ActionResourceRead, ActionResourceEdit},
+			expected: true,
+		},
+		{
+			name:     "nil view definition",
+			vd:       nil,
+			actions:  []Action{ActionResourceRead},
+			expected: false,
+		},
+		{
+			name: "empty rules",
+			vd: &ViewDefinition{
+				Rules: Rules{},
+			},
+			actions:  []Action{ActionResourceRead},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := AreActionsAllowed(context.Background(), tt.vd, tt.actions)
+			if got != tt.expected {
+				t.Errorf("AreActionsAllowed() = %v, want %v", got, tt.expected)
 			}
 		})
 	}

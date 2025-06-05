@@ -7,9 +7,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
-// IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
+// IsActionAllowedOnResource checks if a given action is allowed for a specific resource based on the rule set.
 // It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet Rules) IsActionAllowed(action Action, target TargetResource) (bool, map[Intent][]Rule) {
+func (ruleSet Rules) IsActionAllowedOnResource(action Action, target TargetResource) (bool, map[Intent][]Rule) {
 	matchedRulesAllow := []Rule{}
 	matchedRulesDeny := []Rule{}
 	allowMatch := false
@@ -51,7 +51,7 @@ func (ruleSet Rules) IsSubsetOf(other Rules) bool {
 		for _, action := range rule.Actions {
 			for _, target := range rule.Targets {
 				if rule.Intent == IntentAllow {
-					allow, _ := other.IsActionAllowed(action, target)
+					allow, _ := other.IsActionAllowedOnResource(action, target)
 					if !allow {
 						return false
 					}
@@ -78,4 +78,23 @@ func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *Vie
 	}
 
 	return nil
+}
+
+func AreActionsAllowed(ctx context.Context, vd *ViewDefinition, actions []Action) bool {
+	if vd == nil {
+		return false
+	}
+	for _, action := range actions {
+		allowed := false
+		for _, rule := range vd.Rules {
+			if slices.Contains(rule.Actions, action) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return false
+		}
+	}
+	return true
 }

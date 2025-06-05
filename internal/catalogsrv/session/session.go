@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
@@ -52,7 +51,7 @@ var variableSchemaCompiled *jsonschema.Schema
 // sessionManager implements the SessionManager interface
 type sessionManager struct {
 	session         *models.Session
-	skillSetManager interfaces.SkillSetManager
+	skillSetManager catalogmanager.SkillSetManager
 	viewManager     policy.ViewManager
 }
 
@@ -110,7 +109,21 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 	if err != nil {
 		return nil, err
 	}
-	//skillSetMetadata, err := skillSetManager.GetSkillMetadata(ctx)
+
+	skillSetMetadata, err := skillSetManager.GetSkillMetadata()
+	if err != nil {
+		return nil, err
+	}
+	skillSummary, ok := skillSetMetadata.GetSkill(skill)
+	if !ok {
+		return nil, ErrInvalidObject.Msg("skill not found in skillset")
+	}
+
+	exportedActions := skillSummary.ExportedActions
+
+	if !policy.AreActionsAllowed(ctx, viewDef, exportedActions) {
+		return nil, ErrInvalidObject.Msg("skill is not allowed to be used in this view")
+	}
 
 	userID := catcommon.GetUserID(ctx)
 	if userID == "" {
@@ -206,7 +219,7 @@ func resolveViewByID(ctx context.Context, viewID uuid.UUID) (policy.ViewManager,
 }
 
 // resolveSkillSet creates a new skill set manager for the given path
-func resolveSkillSet(ctx context.Context, skillSetPath string) (interfaces.SkillSetManager, apperrors.Error) {
+func resolveSkillSet(ctx context.Context, skillSetPath string) (catalogmanager.SkillSetManager, apperrors.Error) {
 	if skillSetPath == "" {
 		return nil, ErrInvalidObject.Msg("skillset path is required")
 	}

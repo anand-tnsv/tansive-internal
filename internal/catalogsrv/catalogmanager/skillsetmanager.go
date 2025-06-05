@@ -90,6 +90,15 @@ type SkillSummary struct {
 	ExportedActions []policy.Action `json:"exportedActions"`
 }
 
+func (m *SkillMetadata) GetSkill(name string) (SkillSummary, bool) {
+	for _, skill := range m.Skills {
+		if skill.Name == name {
+			return skill, true
+		}
+	}
+	return SkillSummary{}, false
+}
+
 // Sample YAML:
 /*
 version: v1

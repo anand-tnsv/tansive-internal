@@ -39,7 +39,7 @@ func EnforceViewPolicyMiddleware(handler ResponseHandlerParam) httpx.RequestHand
 			IntentDeny:  {},
 		}
 		for _, action := range handler.AllowedActions {
-			isAllowed, ruleSet := authorizedViewDef.Rules.IsActionAllowed(action, targetResource)
+			isAllowed, ruleSet := authorizedViewDef.Rules.IsActionAllowedOnResource(action, targetResource)
 
 			// Track rules
 			for intent, rules := range ruleSet {
