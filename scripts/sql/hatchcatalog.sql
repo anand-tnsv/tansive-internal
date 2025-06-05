@@ -213,6 +213,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   view_id UUID NOT NULL,
   view_definition JSONB NOT NULL,
   tangent_id UUID NOT NULL,
+  variables JSONB,
   status_summary VARCHAR(128) NOT NULL,
   status JSONB NOT NULL,
   info JSONB,

@@ -2,6 +2,7 @@ package catalogmanager
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"path"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
@@ -46,6 +48,36 @@ func NewSkillSetManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Meta
 	return &skillSetManager{skillSet: skillset}, nil
 }
 
+// GetSkillSetManager gets a skillset manager given a skillset path.
+func GetSkillSetManager(ctx context.Context, skillSetPath string) (interfaces.SkillSetManager, apperrors.Error) {
+	if skillSetPath == "" {
+		return nil, ErrInvalidObject.Msg("skillset path is required")
+	}
+
+	m := &interfaces.Metadata{
+		Catalog: catcommon.GetCatalog(ctx),
+	}
+	if v := catcommon.GetVariant(ctx); v != "" {
+		m.Variant = types.NullableStringFrom(v)
+	}
+	if n := catcommon.GetNamespace(ctx); n != "" {
+		m.Namespace = types.NullableStringFrom(n)
+	}
+	skillSetName := path.Base(skillSetPath)
+	if skillSetName == "" {
+		return nil, ErrInvalidObject.Msg("skillset name is required")
+	}
+	skillSetPath = path.Dir(skillSetPath)
+	m.Name = skillSetName
+	m.Path = skillSetPath
+
+	skillSetManager, err := LoadSkillSetManagerByPath(ctx, m)
+	if err != nil {
+		return nil, err
+	}
+	return skillSetManager, nil
+}
+
 // LoadSkillSetManagerByPath loads a skillset manager from the database by path.
 func LoadSkillSetManagerByPath(ctx context.Context, m *interfaces.Metadata) (interfaces.SkillSetManager, apperrors.Error) {
 	if m == nil {
@@ -74,6 +106,9 @@ func LoadSkillSetManagerByPath(ctx context.Context, m *interfaces.Metadata) (int
 
 	obj, err := db.DB(ctx).GetSkillSetObject(ctx, pathWithName, variant.SkillsetDirectoryID)
 	if err != nil {
+		if errors.Is(err, dberror.ErrNotFound) {
+			return nil, ErrObjectNotFound.Msg("skillset not found")
+		}
 		return nil, err
 	}
 

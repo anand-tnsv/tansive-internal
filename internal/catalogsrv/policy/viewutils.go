@@ -78,10 +78,11 @@ func CanonicalizeResourcePath(scope Scope, resource TargetResource) TargetResour
 }
 
 // CanonicalizeViewDefinition canonicalizes all targets in the view definition to its scope
-func CanonicalizeViewDefinition(vd *ViewDefinition) *ViewDefinition {
-	if vd == nil {
+func CanonicalizeViewDefinition(v *ViewDefinition) *ViewDefinition {
+	if v == nil {
 		return nil
 	}
+	vd := v.DeepCopy()
 	for i, rule := range vd.Rules {
 		if len(rule.Targets) == 0 {
 			rule.Targets = []TargetResource{""}
@@ -91,5 +92,5 @@ func CanonicalizeViewDefinition(vd *ViewDefinition) *ViewDefinition {
 			vd.Rules[i].Targets[j] = TargetResource(CanonicalizeResourcePath(vd.Scope, target))
 		}
 	}
-	return vd
+	return &vd
 }

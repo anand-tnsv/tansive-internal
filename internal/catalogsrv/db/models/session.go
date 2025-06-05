@@ -14,6 +14,7 @@ type Session struct {
 	Skill          string             `db:"skill"`
 	ViewID         uuid.UUID          `db:"view_id"`
 	ViewDefinition json.RawMessage    `db:"view_definition"`
+	Variables      json.RawMessage    `db:"variables"`
 	TangentID      uuid.UUID          `db:"tangent_id"`
 	StatusSummary  string             `db:"status_summary"`
 	Status         json.RawMessage    `db:"status"`

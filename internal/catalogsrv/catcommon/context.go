@@ -181,6 +181,13 @@ func GetUserContext(ctx context.Context) *UserContext {
 	return nil
 }
 
+func GetUserID(ctx context.Context) string {
+	if userContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
+		return userContext.UserContext.UserID
+	}
+	return ""
+}
+
 // WithTestContext sets the test context in the provided context.
 func WithTestContext(ctx context.Context, isTest bool) context.Context {
 	return context.WithValue(ctx, ctxTestContextKey, isTest)

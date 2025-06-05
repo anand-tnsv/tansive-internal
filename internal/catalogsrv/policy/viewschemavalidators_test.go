@@ -3,7 +3,7 @@ package policy
 import (
 	"testing"
 
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 )
 
 func TestResourceURIValidator(t *testing.T) {

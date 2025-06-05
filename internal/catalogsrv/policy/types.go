@@ -91,6 +91,35 @@ type ViewDefinition struct {
 	Rules Rules `json:"rules" validate:"required,dive"`
 }
 
+func (v ViewDefinition) DeepCopy() ViewDefinition {
+	return ViewDefinition{
+		Scope: v.Scope, // Scope is a struct of strings (safe to copy)
+		Rules: v.Rules.DeepCopy(),
+	}
+}
+
+func (r Rules) DeepCopy() Rules {
+	copied := make(Rules, len(r))
+	for i, rule := range r {
+		copied[i] = rule.DeepCopy()
+	}
+	return copied
+}
+
+func (r Rule) DeepCopy() Rule {
+	actionsCopy := make([]Action, len(r.Actions))
+	copy(actionsCopy, r.Actions)
+
+	targetsCopy := make([]TargetResource, len(r.Targets))
+	copy(targetsCopy, r.Targets)
+
+	return Rule{
+		Intent:  r.Intent,
+		Actions: actionsCopy,
+		Targets: targetsCopy,
+	}
+}
+
 // ToJSON converts a ViewRuleSet to a JSON byte slice.
 func (v ViewDefinition) ToJSON() ([]byte, error) {
 	return json.Marshal(v)

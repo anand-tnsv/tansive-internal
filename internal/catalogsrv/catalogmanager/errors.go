@@ -43,6 +43,7 @@ var (
 	ErrInvalidNamespace          apperrors.Error = ErrCatalogError.New("invalid namespace").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidObject             apperrors.Error = ErrCatalogError.New("invalid object").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidVersion            apperrors.Error = ErrCatalogError.New("invalid version").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidSession            apperrors.Error = ErrCatalogError.New("invalid session").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidUUID               apperrors.Error = ErrCatalogError.New("invalid UUID").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidRequest            apperrors.Error = ErrCatalogError.New("invalid request").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidView               apperrors.Error = ErrCatalogError.New("invalid view").SetStatusCode(http.StatusBadRequest)

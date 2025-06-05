@@ -57,9 +57,9 @@ func (mm *metadataManager) createSessionWithTransaction(ctx context.Context, ses
 		INSERT INTO sessions (
 			session_id, skillset, skill, view_id, view_definition, 
 			tangent_id, status_summary, status, info, user_id, catalog_id, 
-			variant_id, tenant_id, started_at, ended_at, expires_at
+			variant_id, tenant_id, started_at, ended_at, expires_at, variables
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 		RETURNING session_id
 	`
 
@@ -80,6 +80,7 @@ func (mm *metadataManager) createSessionWithTransaction(ctx context.Context, ses
 		session.StartedAt,
 		session.EndedAt,
 		session.ExpiresAt,
+		session.Variables,
 	).Scan(&session.SessionID)
 
 	if err != nil {
@@ -122,7 +123,8 @@ func (mm *metadataManager) GetSession(ctx context.Context, sessionID uuid.UUID) 
 			s.started_at,
 			s.ended_at,
 			s.updated_at,
-			s.expires_at
+			s.expires_at,
+			s.variables
 		FROM 
 			sessions s
 		WHERE 
@@ -151,6 +153,7 @@ func (mm *metadataManager) GetSession(ctx context.Context, sessionID uuid.UUID) 
 			&session.EndedAt,
 			&session.UpdatedAt,
 			&session.ExpiresAt,
+			&session.Variables,
 		)
 
 	if err != nil {
@@ -317,7 +320,7 @@ func (mm *metadataManager) ListSessionsByCatalog(ctx context.Context, catalogID 
 			session_id, skillset, skill, view_id, view_definition,
 			tangent_id, status_summary, status, info, user_id, catalog_id,
 			variant_id, tenant_id, created_at, started_at,
-			ended_at, updated_at, expires_at
+			ended_at, updated_at, expires_at, variables
 		FROM sessions
 		WHERE tenant_id = $1 AND catalog_id = $2
 		ORDER BY created_at DESC
@@ -352,6 +355,7 @@ func (mm *metadataManager) ListSessionsByCatalog(ctx context.Context, catalogID 
 			&session.EndedAt,
 			&session.UpdatedAt,
 			&session.ExpiresAt,
+			&session.Variables,
 		)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("failed to scan session row")

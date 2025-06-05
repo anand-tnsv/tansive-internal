@@ -41,6 +41,9 @@ func TestCreateSession(t *testing.T) {
 	var viewDef pgtype.JSONB
 	assert.NoError(t, viewDef.Set(`{"view": "test"}`))
 
+	var variables pgtype.JSONB
+	assert.NoError(t, variables.Set(`{"var1": "value1", "var2": 123}`))
+
 	catalog := models.Catalog{
 		Name:        "test_catalog_session",
 		Description: "Catalog for session test",
@@ -74,8 +77,9 @@ func TestCreateSession(t *testing.T) {
 		ViewID:         view.ViewID,
 		ViewDefinition: viewDef.Bytes,
 		TangentID:      uuid.New(),
-		Status:         status.Bytes,
-		Info:           info.Bytes,
+		Status:         nil,
+		Info:           nil,
+		Variables:      nil,
 		UserID:         "test_user",
 		CatalogID:      catalog.CatalogID,
 		VariantID:      variant.VariantID,
@@ -111,6 +115,7 @@ func TestGetSession(t *testing.T) {
 	rawInfo := json.RawMessage(`{"meta": "get_test"}`)
 	rawStatus := json.RawMessage(`{"state": "active"}`)
 	rawViewDef := json.RawMessage(`{"view": "test"}`)
+	rawVariables := json.RawMessage(`{"var1": "value1", "var2": 123}`)
 
 	var info pgtype.JSONB
 	require.NoError(t, info.Set(`{"meta": "get_test"}`))
@@ -147,6 +152,7 @@ func TestGetSession(t *testing.T) {
 		TangentID:      uuid.New(),
 		Status:         rawStatus,
 		Info:           rawInfo,
+		Variables:      rawVariables,
 		UserID:         "test_user",
 		CatalogID:      catalog.CatalogID,
 		VariantID:      variant.VariantID,
@@ -169,6 +175,7 @@ func TestGetSession(t *testing.T) {
 	assert.JSONEq(t, string(session.Info), string(retrieved.Info))
 	assert.JSONEq(t, string(session.Status), string(retrieved.Status))
 	assert.JSONEq(t, string(session.ViewDefinition), string(retrieved.ViewDefinition))
+	assert.JSONEq(t, string(session.Variables), string(retrieved.Variables))
 
 	// Negative case
 	_, err = db.GetSession(ctx, uuid.New())
@@ -200,6 +207,9 @@ func TestUpdateSessionStatus(t *testing.T) {
 	var viewDef pgtype.JSONB
 	assert.NoError(t, viewDef.Set(`{"view": "test"}`))
 
+	var variables pgtype.JSONB
+	assert.NoError(t, variables.Set(`{"var1": "value1", "var2": 123}`))
+
 	catalog := models.Catalog{Name: "test_catalog", Info: info}
 	assert.NoError(t, DB(ctx).CreateCatalog(ctx, &catalog))
 	defer DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
@@ -229,6 +239,7 @@ func TestUpdateSessionStatus(t *testing.T) {
 		TangentID:      uuid.New(),
 		Status:         status.Bytes,
 		Info:           info.Bytes,
+		Variables:      variables.Bytes,
 		UserID:         "test_user",
 		CatalogID:      catalog.CatalogID,
 		VariantID:      variant.VariantID,
@@ -279,6 +290,9 @@ func TestUpdateSessionEnd(t *testing.T) {
 	var viewDef pgtype.JSONB
 	assert.NoError(t, viewDef.Set(`{"view": "test"}`))
 
+	var variables pgtype.JSONB
+	assert.NoError(t, variables.Set(`{"var1": "value1", "var2": 123}`))
+
 	catalog := models.Catalog{Name: "test_catalog", Info: info}
 	assert.NoError(t, DB(ctx).CreateCatalog(ctx, &catalog))
 	defer DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
@@ -308,6 +322,7 @@ func TestUpdateSessionEnd(t *testing.T) {
 		TangentID:      uuid.New(),
 		Status:         status.Bytes,
 		Info:           info.Bytes,
+		Variables:      variables.Bytes,
 		UserID:         "test_user",
 		CatalogID:      catalog.CatalogID,
 		VariantID:      variant.VariantID,
@@ -360,6 +375,9 @@ func TestUpdateSessionInfo(t *testing.T) {
 	var viewDef pgtype.JSONB
 	assert.NoError(t, viewDef.Set(`{"view": "test"}`))
 
+	var variables pgtype.JSONB
+	assert.NoError(t, variables.Set(`{"var1": "value1", "var2": 123}`))
+
 	catalog := models.Catalog{Name: "test_catalog", Info: info}
 	assert.NoError(t, DB(ctx).CreateCatalog(ctx, &catalog))
 	defer DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
@@ -389,6 +407,7 @@ func TestUpdateSessionInfo(t *testing.T) {
 		TangentID:      uuid.New(),
 		Status:         status.Bytes,
 		Info:           info.Bytes,
+		Variables:      variables.Bytes,
 		UserID:         "test_user",
 		CatalogID:      catalog.CatalogID,
 		VariantID:      variant.VariantID,
@@ -438,6 +457,9 @@ func TestDeleteSession(t *testing.T) {
 	var viewDef pgtype.JSONB
 	assert.NoError(t, viewDef.Set(`{"view": "test"}`))
 
+	var variables pgtype.JSONB
+	assert.NoError(t, variables.Set(`{"var1": "value1", "var2": 123}`))
+
 	catalog := models.Catalog{Name: "test_catalog", Info: info}
 	assert.NoError(t, DB(ctx).CreateCatalog(ctx, &catalog))
 	defer DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
@@ -467,6 +489,7 @@ func TestDeleteSession(t *testing.T) {
 		TangentID:      uuid.New(),
 		Status:         status.Bytes,
 		Info:           info.Bytes,
+		Variables:      variables.Bytes,
 		UserID:         "test_user",
 		CatalogID:      catalog.CatalogID,
 		VariantID:      variant.VariantID,
@@ -514,6 +537,9 @@ func TestListSessionsByCatalog(t *testing.T) {
 	var viewDef pgtype.JSONB
 	assert.NoError(t, viewDef.Set(`{"view": "test"}`))
 
+	var variables pgtype.JSONB
+	assert.NoError(t, variables.Set(`{"var1": "value1", "var2": 123}`))
+
 	catalog := models.Catalog{Name: "test_catalog", Info: info}
 	assert.NoError(t, DB(ctx).CreateCatalog(ctx, &catalog))
 	defer DB(ctx).DeleteCatalog(ctx, catalog.CatalogID, "")
@@ -545,6 +571,7 @@ func TestListSessionsByCatalog(t *testing.T) {
 			TangentID:      uuid.New(),
 			Status:         status.Bytes,
 			Info:           info.Bytes,
+			Variables:      variables.Bytes,
 			UserID:         "test_user",
 			CatalogID:      catalog.CatalogID,
 			VariantID:      variant.VariantID,
@@ -560,6 +587,7 @@ func TestListSessionsByCatalog(t *testing.T) {
 			TangentID:      uuid.New(),
 			Status:         status.Bytes,
 			Info:           info.Bytes,
+			Variables:      variables.Bytes,
 			UserID:         "test_user",
 			CatalogID:      catalog.CatalogID,
 			VariantID:      variant.VariantID,
@@ -575,6 +603,7 @@ func TestListSessionsByCatalog(t *testing.T) {
 			TangentID:      uuid.New(),
 			Status:         status.Bytes,
 			Info:           info.Bytes,
+			Variables:      variables.Bytes,
 			UserID:         "test_user",
 			CatalogID:      catalog.CatalogID,
 			VariantID:      variant.VariantID,
