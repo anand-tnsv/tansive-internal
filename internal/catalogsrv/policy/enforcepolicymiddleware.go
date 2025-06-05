@@ -1,15 +1,33 @@
 package policy
 
 import (
-	"context"
 	"net/http"
-	"strings"
 
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
+// EnforceViewPolicyMiddleware creates a middleware that enforces view-based access control policies.
+// It evaluates whether the current request is allowed based on the authorized view definition,
+// target scope, and requested resource path.
+//
+// The middleware performs the following steps:
+// 1. Resolves the authorized view definition from the request context
+// 2. Determines the target scope (catalog, variant, namespace)
+// 3. Resolves the target resource from the request URL path
+// 4. Evaluates each allowed action against the policy rules
+// 5. Logs the policy decision with detailed information
+//
+// Parameters:
+//   - handler: ResponseHandlerParam containing the allowed actions and the actual request handler
+//
+// Returns:
+//   - httpx.RequestHandler: A middleware function that enforces the policy
+//
+// Note: The middleware implements a first-match policy where access is granted if any
+// of the allowed actions are permitted. It logs detailed policy decisions including
+// matched allow and deny rules for auditing purposes.
+// Returns ErrDisallowedByPolicy if no allowed actions are permitted by the policy.
 func EnforceViewPolicyMiddleware(handler ResponseHandlerParam) httpx.RequestHandler {
 	return func(r *http.Request) (*httpx.Response, error) {
 		ctx := r.Context()
@@ -39,7 +57,7 @@ func EnforceViewPolicyMiddleware(handler ResponseHandlerParam) httpx.RequestHand
 			IntentDeny:  {},
 		}
 		for _, action := range handler.AllowedActions {
-			isAllowed, ruleSet := authorizedViewDef.Rules.IsActionAllowed(action, targetResource)
+			isAllowed, ruleSet := authorizedViewDef.Rules.IsActionAllowedOnResource(action, targetResource)
 
 			// Track rules
 			for intent, rules := range ruleSet {
@@ -71,60 +89,4 @@ func EnforceViewPolicyMiddleware(handler ResponseHandlerParam) httpx.RequestHand
 		// If we get here, we are good to go, so call the handler
 		return handler.Handler(r)
 	}
-}
-
-func getResourceKindFromPath(resourcePath string) string {
-	path := strings.Trim(resourcePath, "/")
-	segments := strings.Split(path, "/")
-	var resourceKind string
-	if len(segments) > 0 {
-		resourceKind = segments[0]
-	}
-	return resourceKind
-}
-
-func normalizeResourcePath(resourceKind string, resource TargetResource) TargetResource {
-	if resourceKind == catcommon.KindNameResources {
-		const prefix = "/resources/definition"
-		if strings.HasPrefix(string(resource), prefix) {
-			// Rewrite /resources/definition/... → /resources/...
-			return TargetResource("/resources" + strings.TrimPrefix(string(resource), prefix))
-		}
-	}
-	return resource
-}
-
-func resolveTargetResource(scope Scope, resourcePath string) (TargetResource, error) {
-	targetResource := TargetResource(resourcePath)
-	targetResource = normalizeResourcePath(getResourceKindFromPath(resourcePath), targetResource)
-	targetResource = CanonicalizeResourcePath(scope, TargetResource("res://"+strings.TrimPrefix(string(targetResource), "/")))
-	if targetResource == "" {
-		return "", httpx.ErrApplicationError("unable to canonicalize resource path")
-	}
-	return targetResource, nil
-}
-
-func resolveAuthorizedViewDef(ctx context.Context) (*ViewDefinition, error) {
-	c := catcommon.GetCatalogContext(ctx)
-	if c == nil {
-		return nil, httpx.ErrUnAuthorized("missing request context")
-	}
-	// Get the authorized view definition from the context
-	authorizedViewDef := CanonicalizeViewDefinition(GetViewDefinition(ctx))
-	if authorizedViewDef == nil {
-		return nil, httpx.ErrUnAuthorized("unable to resolve view definition")
-	}
-	return authorizedViewDef, nil
-}
-
-func resolveTargetScope(ctx context.Context) (Scope, error) {
-	c := catcommon.GetCatalogContext(ctx)
-	if c == nil {
-		return Scope{}, httpx.ErrUnAuthorized("missing request context")
-	}
-	return Scope{
-		Catalog:   c.Catalog,
-		Variant:   c.Variant,
-		Namespace: c.Namespace,
-	}, nil
 }

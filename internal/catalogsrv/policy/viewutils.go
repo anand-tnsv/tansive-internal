@@ -3,6 +3,8 @@ package policy
 import (
 	"path"
 	"strings"
+
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 )
 
 // removeDuplicates removes duplicate elements from a slice while preserving order.
@@ -48,23 +50,24 @@ func deduplicateRules(rules Rules) Rules {
 	return result
 }
 
-// CanonicalizeResourcePath transforms a resource string based on the provided scope.
+// canonicalizeResourcePath transforms a resource string based on the provided scope.
 // It handles the conversion of resource paths and ensures proper formatting
 // of catalog, variant, workspace, and namespace components.
-func CanonicalizeResourcePath(scope Scope, resource TargetResource) TargetResource {
+func canonicalizeResourcePath(scope Scope, resource TargetResource) TargetResource {
 	s := string(resource)
 	s = strings.TrimPrefix(s, "res://")
 	s = strings.TrimPrefix(s, "/") // just in case, the res:// prefix was missing
+	catalogLevel := catcommon.IsCatalogLevelKind(getResourceKindFromPath(s))
 	metadataPath := strings.Builder{}
 	if scope.Catalog != "" {
 		metadataPath.WriteString("catalogs/")
 		metadataPath.WriteString(scope.Catalog + "/")
 	}
-	if scope.Variant != "" {
+	if scope.Variant != "" && !catalogLevel {
 		metadataPath.WriteString("variants/")
 		metadataPath.WriteString(scope.Variant + "/")
 	}
-	if scope.Namespace != "" {
+	if scope.Namespace != "" && !catalogLevel {
 		metadataPath.WriteString("namespaces/")
 		metadataPath.WriteString(scope.Namespace + "/")
 	}
@@ -77,19 +80,20 @@ func CanonicalizeResourcePath(scope Scope, resource TargetResource) TargetResour
 	return TargetResource(canonicalized)
 }
 
-// CanonicalizeViewDefinition canonicalizes all targets in the view definition to its scope
-func CanonicalizeViewDefinition(vd *ViewDefinition) *ViewDefinition {
-	if vd == nil {
+// canonicalizeViewDefinition canonicalizes all targets in the view definition to its scope
+func canonicalizeViewDefinition(v *ViewDefinition) *ViewDefinition {
+	if v == nil {
 		return nil
 	}
+	vd := v.DeepCopy()
 	for i, rule := range vd.Rules {
 		if len(rule.Targets) == 0 {
 			rule.Targets = []TargetResource{""}
 			vd.Rules[i] = rule
 		}
 		for j, target := range rule.Targets {
-			vd.Rules[i].Targets[j] = TargetResource(CanonicalizeResourcePath(vd.Scope, target))
+			vd.Rules[i].Targets[j] = TargetResource(canonicalizeResourcePath(vd.Scope, target))
 		}
 	}
-	return vd
+	return &vd
 }

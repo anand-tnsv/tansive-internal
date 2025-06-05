@@ -9,16 +9,16 @@ import (
 	json "github.com/json-iterator/go"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
-	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
+	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/schema/errors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 

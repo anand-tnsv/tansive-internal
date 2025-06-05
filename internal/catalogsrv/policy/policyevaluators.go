@@ -3,13 +3,27 @@ package policy
 import (
 	"context"
 	"slices"
+	"strings"
 
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
-// IsActionAllowed checks if a given action is allowed for a specific resource based on the rule set.
-// It returns true if the action is allowed, false otherwise. Deny rules take precedence over allow rules.
-func (ruleSet Rules) IsActionAllowed(action Action, target TargetResource) (bool, map[Intent][]Rule) {
+// IsActionAllowedOnResource evaluates whether a given action is permitted on a specific resource based on the rule set.
+// It implements a deny-takes-precedence policy where deny rules override allow rules.
+//
+// Parameters:
+//   - action: The Action to be evaluated
+//   - target: The TargetResource to check permissions against
+//
+// Returns:
+//   - bool: true if the action is allowed, false if denied
+//   - map[Intent][]Rule: A map containing matched rules grouped by their intent (allow/deny)
+//
+// Note: This function first checks for admin matches, then evaluates regular rules.
+// Deny rules take precedence over allow rules in case of conflicts.
+func (ruleSet Rules) IsActionAllowedOnResource(action Action, target TargetResource) (bool, map[Intent][]Rule) {
 	matchedRulesAllow := []Rule{}
 	matchedRulesDeny := []Rule{}
 	allowMatch := false
@@ -44,14 +58,24 @@ func (ruleSet Rules) IsActionAllowed(action Action, target TargetResource) (bool
 	}
 }
 
-// IsSubsetOf checks if this ViewRuleSet is a subset of another ViewRuleSet.
-// Returns true if every action and target in this set is permissible by the other set.
+// IsSubsetOf determines if this RuleSet is a proper subset of another RuleSet.
+// A RuleSet is considered a subset if all its actions and targets are permissible
+// under the other set's rules.
+//
+// Parameters:
+//   - other: The RuleSet to compare against
+//
+// Returns:
+//   - bool: true if this RuleSet is a subset of the other set, false otherwise
+//
+// Note: This function only considers allow rules in the comparison.
+// All actions and targets in this set must be explicitly allowed by the other set.
 func (ruleSet Rules) IsSubsetOf(other Rules) bool {
 	for _, rule := range ruleSet {
 		for _, action := range rule.Actions {
 			for _, target := range rule.Targets {
 				if rule.Intent == IntentAllow {
-					allow, _ := other.IsActionAllowed(action, target)
+					allow, _ := other.IsActionAllowedOnResource(action, target)
 					if !allow {
 						return false
 					}
@@ -63,19 +87,166 @@ func (ruleSet Rules) IsSubsetOf(other Rules) bool {
 }
 
 // ValidateDerivedView ensures that a derived view is valid with respect to its parent view.
-// It ensures that the derived view's scope is the same as the parent's and that all rules in the derived view
-// are permissible by the parent view.
+// It performs two key validations:
+// 1. Ensures the derived view's scope matches the parent's scope
+// 2. Verifies that all rules in the derived view are permissible by the parent view
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - parent: The parent ViewDefinition to validate against
+//   - child: The derived ViewDefinition to validate
+//
+// Returns:
+//   - apperrors.Error: nil if validation succeeds, otherwise returns an appropriate error
+//
+// Note: Both parent and child views are canonicalized before validation.
+// Returns ErrInvalidView if either view is nil or if the derived view's rules
+// are not a subset of the parent view's rules.
 func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *ViewDefinition) apperrors.Error {
 	if parent == nil || child == nil {
 		return ErrInvalidView
 	}
 
-	parent = CanonicalizeViewDefinition(parent)
-	child = CanonicalizeViewDefinition(child)
+	parent = canonicalizeViewDefinition(parent)
+	child = canonicalizeViewDefinition(child)
 
 	if !child.Rules.IsSubsetOf(parent.Rules) {
 		return ErrInvalidView.New("derived view rules must be a subset of parent view rules")
 	}
 
 	return nil
+}
+
+// AreActionsAllowedOnResource checks if a set of actions are permitted on a specific resource
+// according to the given view definition.
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - vd: The ViewDefinition containing the rules to evaluate
+//   - resource: The resource path to check permissions for
+//   - actions: The list of actions to validate
+//
+// Returns:
+//   - bool: true if all actions are allowed, false if any action is denied
+//   - apperrors.Error: nil if the check succeeds, otherwise returns an appropriate error
+//
+// Note: The function validates that the view definition, resource, and actions are non-empty.
+// It resolves the target scope and resource before performing the permission check.
+// All actions must be allowed for the function to return true.
+func AreActionsAllowedOnResource(ctx context.Context, vd *ViewDefinition, resource string, actions []Action) (bool, apperrors.Error) {
+	if vd == nil {
+		return false, ErrInvalidView.Msg("view definition is nil")
+	}
+	if resource == "" {
+		return false, ErrInvalidView.Msg("resource is empty")
+	}
+	if len(actions) == 0 {
+		return false, ErrInvalidView.Msg("actions are empty")
+	}
+
+	scope, err := resolveTargetScope(ctx)
+	if err != nil {
+		return false, ErrInvalidView.New(err.Error())
+	}
+	targetResource, err := resolveTargetResource(scope, resource)
+	if err != nil {
+		return false, ErrInvalidView.New(err.Error())
+	}
+
+	vd = canonicalizeViewDefinition(vd)
+
+	for _, action := range actions {
+		allowed, _ := vd.Rules.IsActionAllowedOnResource(action, targetResource)
+		if !allowed {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// CanAdoptView determines if the current view has permission to adopt another view
+// within the catalog context.
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - view: The name of the view to check adoption permissions for
+//
+// Returns:
+//   - bool: true if the current view can adopt the specified view, false otherwise
+//   - apperrors.Error: nil if the check succeeds, otherwise returns an appropriate error
+//
+// Note: This function requires a valid catalog context and an authorized view definition.
+// It checks if the current view has the ActionCatalogAdoptView permission for the target view.
+func CanAdoptView(ctx context.Context, view string) (bool, apperrors.Error) {
+	catalog := catcommon.GetCatalog(ctx)
+	if catalog == "" {
+		return false, ErrInvalidView.Msg("unable to resolve catalog")
+	}
+	viewResource, _ := resolveTargetResource(Scope{Catalog: catalog}, "/views/"+view)
+	ourViewDef, err := resolveAuthorizedViewDef(ctx)
+	if err != nil {
+		return false, ErrInvalidView.New(err.Error())
+	}
+	if ourViewDef == nil {
+		return false, ErrInvalidView.Msg("unable to resolve view definition")
+	}
+	allowed, _ := ourViewDef.Rules.IsActionAllowedOnResource(ActionCatalogAdoptView, viewResource)
+	return allowed, nil
+}
+
+func getResourceKindFromPath(resourcePath string) string {
+	path := strings.Trim(resourcePath, "/")
+	segments := strings.Split(path, "/")
+	var resourceKind string
+	if len(segments) > 0 {
+		resourceKind = segments[0]
+	}
+	return resourceKind
+}
+
+func normalizeResourcePath(resourceKind string, resource TargetResource) TargetResource {
+	if resourceKind == catcommon.KindNameResources {
+		const prefix = "/resources/definition"
+		if strings.HasPrefix(string(resource), prefix) {
+			// Rewrite /resources/definition/... → /resources/...
+			return TargetResource("/resources" + strings.TrimPrefix(string(resource), prefix))
+		}
+	}
+	return resource
+}
+
+func resolveTargetResource(scope Scope, resourcePath string) (TargetResource, error) {
+	resourcePath = strings.TrimPrefix(resourcePath, "res://")
+	targetResource := TargetResource(resourcePath)
+	targetResource = normalizeResourcePath(getResourceKindFromPath(resourcePath), targetResource)
+	targetResource = canonicalizeResourcePath(scope, TargetResource("res://"+strings.TrimPrefix(string(targetResource), "/")))
+	if targetResource == "" {
+		return "", httpx.ErrApplicationError("unable to canonicalize resource path")
+	}
+	return targetResource, nil
+}
+
+func resolveAuthorizedViewDef(ctx context.Context) (*ViewDefinition, error) {
+	c := catcommon.GetCatalogContext(ctx)
+	if c == nil {
+		return nil, httpx.ErrUnAuthorized("missing request context")
+	}
+	// Get the authorized view definition from the context
+	authorizedViewDef := canonicalizeViewDefinition(GetViewDefinition(ctx))
+	if authorizedViewDef == nil {
+		return nil, httpx.ErrUnAuthorized("unable to resolve view definition")
+	}
+	return authorizedViewDef, nil
+}
+
+func resolveTargetScope(ctx context.Context) (Scope, error) {
+	c := catcommon.GetCatalogContext(ctx)
+	if c == nil {
+		return Scope{}, httpx.ErrUnAuthorized("missing request context")
+	}
+	return Scope{
+		Catalog:   c.Catalog,
+		Variant:   c.Variant,
+		Namespace: c.Namespace,
+	}, nil
 }

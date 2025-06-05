@@ -2,6 +2,7 @@ package catalogmanager
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"path"
 
@@ -11,14 +12,28 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-// NewSkillSetManager creates a new SkillSetManager instance from the provided JSON schema and metadata.
-func NewSkillSetManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Metadata) (interfaces.SkillSetManager, apperrors.Error) {
+// SkillSetManager defines the interface for managing a single skillset.
+type SkillSetManager interface {
+	Metadata() interfaces.Metadata
+	FullyQualifiedName() string
+	Save(ctx context.Context) apperrors.Error
+	JSON(ctx context.Context) ([]byte, apperrors.Error)
+	SpecJSON(ctx context.Context) ([]byte, apperrors.Error)
+	GetStoragePath() string
+	StorageRepresentation() *objectstore.ObjectStorageRepresentation
+	GetSkillMetadata() (SkillMetadata, apperrors.Error)
+	GetResourcePath() string
+}
+
+// NewSkillSetManager creates a new Sk sillSetManager instance from the pro vided JSON schema and metadata.
+func NewSkillSetManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Metadata) (SkillSetManager, apperrors.Error) {
 	if len(rsrcJSON) == 0 {
 		return nil, ErrEmptySchema
 	}
@@ -46,8 +61,38 @@ func NewSkillSetManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Meta
 	return &skillSetManager{skillSet: skillset}, nil
 }
 
+// GetSkillSetManager gets a skillset manager given a skillset path.
+func GetSkillSetManager(ctx context.Context, skillSetPath string) (SkillSetManager, apperrors.Error) {
+	if skillSetPath == "" {
+		return nil, ErrInvalidObject.Msg("skillset path is required")
+	}
+
+	m := &interfaces.Metadata{
+		Catalog: catcommon.GetCatalog(ctx),
+	}
+	if v := catcommon.GetVariant(ctx); v != "" {
+		m.Variant = types.NullableStringFrom(v)
+	}
+	if n := catcommon.GetNamespace(ctx); n != "" {
+		m.Namespace = types.NullableStringFrom(n)
+	}
+	skillSetName := path.Base(skillSetPath)
+	if skillSetName == "" {
+		return nil, ErrInvalidObject.Msg("skillset name is required")
+	}
+	skillSetPath = path.Dir(skillSetPath)
+	m.Name = skillSetName
+	m.Path = skillSetPath
+
+	skillSetManager, err := LoadSkillSetManagerByPath(ctx, m)
+	if err != nil {
+		return nil, err
+	}
+	return skillSetManager, nil
+}
+
 // LoadSkillSetManagerByPath loads a skillset manager from the database by path.
-func LoadSkillSetManagerByPath(ctx context.Context, m *interfaces.Metadata) (interfaces.SkillSetManager, apperrors.Error) {
+func LoadSkillSetManagerByPath(ctx context.Context, m *interfaces.Metadata) (SkillSetManager, apperrors.Error) {
 	if m == nil {
 		return nil, ErrInvalidObject.Msg("unable to infer object metadata")
 	}
@@ -74,6 +119,9 @@ func LoadSkillSetManagerByPath(ctx context.Context, m *interfaces.Metadata) (int
 
 	obj, err := db.DB(ctx).GetSkillSetObject(ctx, pathWithName, variant.SkillsetDirectoryID)
 	if err != nil {
+		if errors.Is(err, dberror.ErrNotFound) {
+			return nil, ErrObjectNotFound.Msg("skillset not found")
+		}
 		return nil, err
 	}
 
@@ -81,7 +129,7 @@ func LoadSkillSetManagerByPath(ctx context.Context, m *interfaces.Metadata) (int
 }
 
 // LoadSkillSetManagerByHash loads a skillset manager from the database by hash.
-func LoadSkillSetManagerByHash(ctx context.Context, hash string, m *interfaces.Metadata) (interfaces.SkillSetManager, apperrors.Error) {
+func LoadSkillSetManagerByHash(ctx context.Context, hash string, m *interfaces.Metadata) (SkillSetManager, apperrors.Error) {
 	// get the object from catalog object store
 	obj, err := db.DB(ctx).GetCatalogObject(ctx, hash)
 	if err != nil {
@@ -90,7 +138,7 @@ func LoadSkillSetManagerByHash(ctx context.Context, hash string, m *interfaces.M
 	return skillSetManagerFromObject(ctx, obj, m)
 }
 
-func skillSetManagerFromObject(ctx context.Context, obj *models.CatalogObject, m *interfaces.Metadata) (interfaces.SkillSetManager, apperrors.Error) {
+func skillSetManagerFromObject(ctx context.Context, obj *models.CatalogObject, m *interfaces.Metadata) (SkillSetManager, apperrors.Error) {
 	if obj == nil {
 		return nil, ErrEmptySchema
 	}
@@ -126,7 +174,7 @@ var _ interfaces.KindHandler = &skillsetKindHandler{}
 // It handles CRUD operations for skillsets and maintains the request context.
 type skillsetKindHandler struct {
 	req interfaces.RequestContext
-	sm  interfaces.SkillSetManager
+	sm  SkillSetManager
 }
 
 // Name returns the name of the skillset from the request context.
@@ -153,7 +201,7 @@ func (h *skillsetKindHandler) Location() string {
 }
 
 // Manager returns the underlying SkillSetManager instance.
-func (h *skillsetKindHandler) Manager() interfaces.SkillSetManager {
+func (h *skillsetKindHandler) Manager() SkillSetManager {
 	return h.sm
 }
 

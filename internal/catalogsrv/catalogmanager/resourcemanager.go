@@ -16,12 +16,12 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
-	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/schema/errors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -73,7 +73,6 @@ func (r *Resource) Validate() schemaerr.ValidationErrors {
 
 	err := schemavalidator.V().Struct(r)
 	if err == nil {
-		// Validate the schema if it is a valid json schema by using Santhosh Tekuri library
 		if len(r.Spec.Schema) > 0 {
 			compiledSchema, err := compileSchema(string(r.Spec.Schema))
 			if err != nil {

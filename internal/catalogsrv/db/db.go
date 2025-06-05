@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -81,6 +82,15 @@ type MetadataManager interface {
 	GetActiveSigningKey(ctx context.Context) (*models.SigningKey, apperrors.Error)
 	UpdateSigningKeyActive(ctx context.Context, keyID uuid.UUID, isActive bool) apperrors.Error
 	DeleteSigningKey(ctx context.Context, keyID uuid.UUID) apperrors.Error
+
+	// Session
+	CreateSession(ctx context.Context, session *models.Session) apperrors.Error
+	GetSession(ctx context.Context, sessionID uuid.UUID) (*models.Session, apperrors.Error)
+	UpdateSessionStatus(ctx context.Context, sessionID uuid.UUID, statusSummary string, status json.RawMessage) apperrors.Error
+	UpdateSessionEnd(ctx context.Context, sessionID uuid.UUID, statusSummary string, status json.RawMessage) apperrors.Error
+	UpdateSessionInfo(ctx context.Context, sessionID uuid.UUID, info json.RawMessage) apperrors.Error
+	DeleteSession(ctx context.Context, sessionID uuid.UUID) apperrors.Error
+	ListSessionsByCatalog(ctx context.Context, catalogID uuid.UUID) ([]*models.Session, apperrors.Error)
 }
 
 // ObjectManager handles all object-related operations in the catalog service.

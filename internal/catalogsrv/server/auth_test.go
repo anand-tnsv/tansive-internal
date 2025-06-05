@@ -317,7 +317,7 @@ func setupObjects(t *testing.T, token string) {
 			"spec": {
 				"rules": [{
 					"intent": "Allow",
-					"actions": ["resource.get"],
+					"actions": ["system.resource.get"],
 					"targets": ["res://resources/*"]
 				}]
 			}
@@ -342,7 +342,7 @@ func setupObjects(t *testing.T, token string) {
 			"spec": {
 				"rules": [{
 					"intent": "Allow",
-					"actions": ["resource.get", "resource.put"],
+					"actions": ["system.resource.get", "system.resource.put"],
 					"targets": ["res://resources/*"]
 				}]
 			}
@@ -367,7 +367,7 @@ func setupObjects(t *testing.T, token string) {
 			"spec": {
 				"rules": [{
 					"intent": "Allow",
-					"actions": ["resource.get", "resource.put", "resource.edit"],
+					"actions": ["system.resource.get", "system.resource.put", "system.resource.edit"],
 					"targets": ["res://resources/*"]
 				}]
 			}

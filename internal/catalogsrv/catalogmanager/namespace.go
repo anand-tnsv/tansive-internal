@@ -8,17 +8,27 @@ import (
 	json "github.com/json-iterator/go"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
-	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/errors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/schema/errors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
+
+type NamespaceManager interface {
+	Name() string
+	Description() string
+	Catalog() string
+	Variant() string
+	GetNamespaceModel() *models.Namespace
+	Save(context.Context) apperrors.Error
+	ToJson(context.Context) ([]byte, apperrors.Error)
+}
 
 type namespaceSchema struct {
 	Version  string            `json:"version" validate:"requireVersionV1"`
@@ -39,7 +49,7 @@ type namespaceManager struct {
 
 // var _ schemamanager.VariantManager = (*variantManager)(nil)
 
-func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog string, variant string) (interfaces.NamespaceManager, apperrors.Error) {
+func NewNamespaceManager(ctx context.Context, resourceJSON []byte, catalog string, variant string) (NamespaceManager, apperrors.Error) {
 	if len(resourceJSON) == 0 {
 		return nil, ErrInvalidSchema
 	}
@@ -180,7 +190,7 @@ func (nm *namespaceManager) GetNamespaceModel() *models.Namespace {
 	return &nm.namespace
 }
 
-func LoadNamespaceManagerByName(ctx context.Context, variantID uuid.UUID, name string) (interfaces.NamespaceManager, apperrors.Error) {
+func LoadNamespaceManagerByName(ctx context.Context, variantID uuid.UUID, name string) (NamespaceManager, apperrors.Error) {
 	if variantID == uuid.Nil {
 		return nil, ErrInvalidVariant
 	}
@@ -271,7 +281,7 @@ func DeleteNamespace(ctx context.Context, name string, variantID uuid.UUID) appe
 
 type namespaceKind struct {
 	req interfaces.RequestContext
-	nm  interfaces.NamespaceManager
+	nm  NamespaceManager
 }
 
 func (n *namespaceKind) Name() string {
@@ -286,7 +296,7 @@ func (n *namespaceKind) Location() string {
 	return "/namespaces/" + n.req.Namespace
 }
 
-func (n *namespaceKind) Manager() interfaces.NamespaceManager {
+func (n *namespaceKind) Manager() NamespaceManager {
 	return n.nm
 }
 

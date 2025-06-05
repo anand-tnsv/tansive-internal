@@ -7,6 +7,7 @@ import (
 type TenantId string
 type ProjectId string
 type CatalogId uuid.UUID
+type VariantId uuid.UUID
 type Hash string
 type RunnerID string
 
@@ -92,6 +93,10 @@ func KindNameFromObjectType(t CatalogObjectType) string {
 	default:
 		return ""
 	}
+}
+
+func IsCatalogLevelKind(kind string) bool {
+	return kind == KindNameViews
 }
 
 const (

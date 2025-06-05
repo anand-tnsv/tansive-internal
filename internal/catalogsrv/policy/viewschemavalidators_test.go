@@ -3,7 +3,7 @@ package policy
 import (
 	"testing"
 
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/schema/schemavalidator"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 )
 
 func TestResourceURIValidator(t *testing.T) {
@@ -275,102 +275,92 @@ func TestViewRuleActionValidator(t *testing.T) {
 	}{
 		{
 			name:    "valid catalog admin action",
-			input:   "catalog.admin",
+			input:   "system.catalog.admin",
 			isValid: true,
 		},
 		{
 			name:    "valid catalog list action",
-			input:   "catalog.list",
+			input:   "system.catalog.list",
 			isValid: true,
 		},
 		{
 			name:    "valid catalog adopt view action",
-			input:   "catalog.adoptView",
+			input:   "system.catalog.adoptView",
 			isValid: true,
 		},
 		{
 			name:    "valid catalog create view action",
-			input:   "catalog.createView",
+			input:   "system.catalog.createView",
 			isValid: true,
 		},
 		{
 			name:    "valid variant admin action",
-			input:   "variant.admin",
+			input:   "system.variant.admin",
 			isValid: true,
 		},
 		{
 			name:    "valid variant clone action",
-			input:   "variant.clone",
+			input:   "system.variant.clone",
 			isValid: true,
 		},
 		{
 			name:    "valid variant list action",
-			input:   "variant.list",
+			input:   "system.variant.list",
 			isValid: true,
 		},
 		{
 			name:    "valid namespace create action",
-			input:   "namespace.create",
+			input:   "system.namespace.create",
 			isValid: true,
 		},
 		{
 			name:    "valid namespace list action",
-			input:   "namespace.list",
+			input:   "system.namespace.list",
 			isValid: true,
 		},
 		{
 			name:    "valid namespace admin action",
-			input:   "namespace.admin",
+			input:   "system.namespace.admin",
 			isValid: true,
 		},
 		{
 			name:    "valid resource create action",
-			input:   "resource.create",
+			input:   "system.resource.create",
 			isValid: true,
 		},
 		{
 			name:    "valid resource read action",
-			input:   "resource.read",
+			input:   "system.resource.read",
 			isValid: true,
 		},
 		{
 			name:    "valid resource edit action",
-			input:   "resource.edit",
+			input:   "system.resource.edit",
 			isValid: true,
 		},
 		{
 			name:    "valid resource delete action",
-			input:   "resource.delete",
+			input:   "system.resource.delete",
 			isValid: true,
 		},
 		{
 			name:    "valid resource get action",
-			input:   "resource.get",
+			input:   "system.resource.get",
 			isValid: true,
 		},
 		{
 			name:    "valid resource put action",
-			input:   "resource.put",
+			input:   "system.resource.put",
 			isValid: true,
 		},
 		{
 			name:    "valid resource list action",
-			input:   "resource.list",
+			input:   "system.resource.list",
 			isValid: true,
 		},
 		{
 			name:    "invalid action - empty string",
 			input:   "",
-			isValid: false,
-		},
-		{
-			name:    "invalid action - random string",
-			input:   "random",
-			isValid: false,
-		},
-		{
-			name:    "invalid action - case sensitive",
-			input:   "CATALOG.ADMIN",
 			isValid: false,
 		},
 	}

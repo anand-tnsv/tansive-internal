@@ -315,6 +315,16 @@ func TestCanonicalizeResourcePath(t *testing.T) {
 			want:     "res://catalogs/my-catalog/variants/my-variant/resources/my-resource/properties/definition",
 		},
 		{
+			name: "view resource",
+			scope: Scope{
+				Catalog:   "my-catalog",
+				Variant:   "my-variant",
+				Namespace: "my-namespace",
+			},
+			resource: "/views/my-view",
+			want:     "res://catalogs/my-catalog/views/my-view",
+		},
+		{
 			name:     "empty scope with empty resource",
 			scope:    Scope{},
 			resource: "",
@@ -330,7 +340,7 @@ func TestCanonicalizeResourcePath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := CanonicalizeResourcePath(tt.scope, tt.resource)
+			got := canonicalizeResourcePath(tt.scope, tt.resource)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -636,7 +646,7 @@ func TestCanonicalizeViewDefinition(t *testing.T) {
 			if tt.name == "empty target" {
 				fmt.Println("empty target")
 			}
-			got := CanonicalizeViewDefinition(tt.input)
+			got := canonicalizeViewDefinition(tt.input)
 			assert.Equal(t, tt.expected, got)
 		})
 	}

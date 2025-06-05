@@ -1,0 +1,104 @@
+package policy
+
+import (
+	"context"
+	"errors"
+
+	json "github.com/json-iterator/go"
+	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
+)
+
+type ViewManager interface {
+	ID() uuid.UUID
+	Name() string
+	GetViewDefinition(ctx context.Context) (*ViewDefinition, apperrors.Error)
+	GetViewDefinitionJSON(ctx context.Context) ([]byte, apperrors.Error)
+	GetResourcePath(ctx context.Context) (string, apperrors.Error)
+}
+type viewManager struct {
+	view    *models.View
+	viewDef *ViewDefinition
+}
+
+func NewViewManagerByViewLabel(ctx context.Context, viewLabel string) (ViewManager, apperrors.Error) {
+	catalogID := catcommon.GetCatalogID(ctx)
+	if catalogID == uuid.Nil || viewLabel == "" {
+		return nil, ErrInvalidView
+	}
+
+	view, err := db.DB(ctx).GetViewByLabel(ctx, viewLabel, catalogID)
+	if err != nil {
+		if errors.Is(err, dberror.ErrNotFound) {
+			return nil, ErrViewNotFound
+		}
+		log.Ctx(ctx).Error().Err(err).Msg("failed to load view")
+		return nil, ErrUnableToLoadObject.Msg("unable to load view")
+	}
+	viewDef, err := unmarshalViewDefinition(view)
+	if err != nil {
+		return nil, err
+	}
+
+	viewManager := &viewManager{view: view, viewDef: viewDef}
+	return viewManager, nil
+}
+
+func NewViewManagerByViewID(ctx context.Context, viewID uuid.UUID) (ViewManager, apperrors.Error) {
+	view, err := db.DB(ctx).GetView(ctx, viewID)
+	if err != nil {
+		if errors.Is(err, dberror.ErrNotFound) {
+			return nil, ErrViewNotFound
+		}
+		log.Ctx(ctx).Error().Err(err).Msg("failed to load view")
+		return nil, ErrUnableToLoadObject.Msg("unable to load view")
+	}
+	viewDef, err := unmarshalViewDefinition(view)
+	if err != nil {
+		return nil, err
+	}
+	return &viewManager{view: view, viewDef: viewDef}, nil
+}
+
+func (v *viewManager) ID() uuid.UUID {
+	return v.view.ViewID
+}
+
+func (v *viewManager) Name() string {
+	return v.view.Label
+}
+
+func (v *viewManager) GetViewDefinition(ctx context.Context) (*ViewDefinition, apperrors.Error) {
+	return v.viewDef, nil
+}
+
+func (v *viewManager) GetViewDefinitionJSON(ctx context.Context) ([]byte, apperrors.Error) {
+	if v.viewDef == nil {
+		return nil, ErrInvalidView.Msg("view definition is nil")
+	}
+	json, err := v.viewDef.ToJSON()
+	if err != nil {
+		return nil, ErrInvalidView.Msg("unable to marshal view definition")
+	}
+	return json, nil
+}
+
+func (v *viewManager) GetResourcePath(ctx context.Context) (string, apperrors.Error) {
+	return "/views/" + v.view.Label, nil
+}
+
+func unmarshalViewDefinition(view *models.View) (*ViewDefinition, apperrors.Error) {
+	if view == nil {
+		return nil, ErrInvalidView.Msg("view is nil")
+	}
+	var viewDef ViewDefinition
+	if err := json.Unmarshal(view.Rules, &viewDef); err != nil {
+		return nil, ErrUnableToLoadObject.Msg("unable to unmarshal view rules")
+	}
+	return &viewDef, nil
+}

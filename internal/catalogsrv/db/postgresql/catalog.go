@@ -96,7 +96,7 @@ func (mm *metadataManager) CreateCatalog(ctx context.Context, catalog *models.Ca
 		"rules": [
 			{
 				"intent": "Allow",
-				"actions": ["catalog.admin"],
+				"actions": ["system.catalog.admin"],
 				"targets": []
 			}
 		]
