@@ -26,6 +26,12 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+const (
+	// Default session configuration
+	DefaultSessionExpiration = 24 * time.Hour
+	MaxSessionVariables      = 20
+)
+
 // SessionSpec defines the structure for session creation requests
 type SessionSpec struct {
 	SkillPath string          `json:"skillPath" validate:"required,resourcePathValidator"`
@@ -37,7 +43,7 @@ type SessionSpec struct {
 const variableSchema = `
 {
   "type": "object",
-  "maxProperties": 20,
+  "maxProperties": %d,
   "propertyNames": {
     "pattern": "^[a-zA-Z0-9.-]+$"
   },
@@ -56,24 +62,33 @@ type sessionManager struct {
 }
 
 func init() {
-	compiledSchema, err := compileSchema(variableSchema)
+	schema := fmt.Sprintf(variableSchema, MaxSessionVariables)
+	compiledSchema, err := compileSchema(schema)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to compile session variables schema")
 	}
 	variableSchemaCompiled = compiledSchema
 }
 
-// NewSession creates a new session with the given specification
+// NewSession creates a new session with the given specification. It validates the session spec,
+// checks permissions, and initializes the session with the provided configuration.
 func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors.Error) {
-	sessionSpec, err := resolveSessionSpec(rsrcSpec)
-	if err != nil {
-		return nil, err
-	}
-
+	// Validate required IDs first
 	catalogID := catcommon.GetCatalogID(ctx)
 	variantID := catcommon.GetVariantID(ctx)
 	if catalogID == uuid.Nil || variantID == uuid.Nil {
 		return nil, ErrInvalidObject.Msg("catalog and variant IDs are required")
+	}
+
+	userID := catcommon.GetUserID(ctx)
+	if userID == "" {
+		return nil, ErrInvalidObject.Msg("user ID is required")
+	}
+
+	// Parse and validate session spec
+	sessionSpec, err := resolveSessionSpec(rsrcSpec)
+	if err != nil {
+		return nil, err
 	}
 
 	// Get skill and skill set path from session spec
@@ -83,20 +98,20 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		return nil, ErrInvalidObject.Msg("invalid skill path")
 	}
 
+	// Initialize view manager
 	viewManager, err := resolveViewByLabel(ctx, sessionSpec.ViewName)
 	if err != nil {
 		return nil, err
 	}
 
+	// Get and validate view definition
 	viewDef, err := viewManager.GetViewDefinition(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Validate view policy - session can only be created for views that are
-	// a subset of the current view
-	err = validateViewPolicy(ctx, viewDef)
-	if err != nil {
+	// Validate view policy
+	if err := validateViewPolicy(ctx, viewManager); err != nil {
 		return nil, err
 	}
 
@@ -105,31 +120,30 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		return nil, ErrInvalidObject.Msg("invalid view definition: " + goerr.Error())
 	}
 
+	// Initialize skill set manager
 	skillSetManager, err := resolveSkillSet(ctx, skillSetPath)
 	if err != nil {
 		return nil, err
 	}
 
+	// Get and validate skill metadata
 	skillSetMetadata, err := skillSetManager.GetSkillMetadata()
 	if err != nil {
 		return nil, err
 	}
+
 	skillSummary, ok := skillSetMetadata.GetSkill(skill)
 	if !ok {
 		return nil, ErrInvalidObject.Msg("skill not found in skillset")
 	}
 
+	// Validate action permissions
 	exportedActions := skillSummary.ExportedActions
-
 	if !policy.AreActionsAllowed(ctx, viewDef, exportedActions) {
 		return nil, ErrInvalidObject.Msg("skill is not allowed to be used in this view")
 	}
 
-	userID := catcommon.GetUserID(ctx)
-	if userID == "" {
-		return nil, ErrInvalidObject.Msg("user ID is required")
-	}
-
+	// Create session
 	sessionID := uuid.New()
 	session := &models.Session{
 		SessionID:      sessionID,
@@ -146,14 +160,14 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		VariantID:      variantID,
 		StartedAt:      time.Now(),
 		EndedAt:        time.Time{},
-		ExpiresAt:      time.Now().Add(time.Hour * 24),
+		ExpiresAt:      time.Now().Add(DefaultSessionExpiration),
 	}
-	sm := &sessionManager{
+
+	return &sessionManager{
 		session:         session,
 		skillSetManager: skillSetManager,
 		viewManager:     viewManager,
-	}
-	return sm, nil
+	}, nil
 }
 
 func (s *sessionManager) Save(ctx context.Context) apperrors.Error {
@@ -201,63 +215,40 @@ func resolveSessionSpec(rsrcSpec []byte) (SessionSpec, apperrors.Error) {
 	return sessionSpec, nil
 }
 
-// resolveViewByLabel creates a new view manager for the given view name
-func resolveViewByLabel(ctx context.Context, viewName string) (policy.ViewManager, apperrors.Error) {
-	viewManager, err := policy.NewViewManagerByViewLabel(ctx, viewName)
-	if err != nil {
-		return nil, err
+// validateSessionVariables validates the session variables against the schema
+func validateSessionVariables(variables json.RawMessage) schemaerr.ValidationErrors {
+	if len(variables) == 0 {
+		return nil
 	}
-	return viewManager, nil
+
+	var parsed any
+	if err := json.Unmarshal(variables, &parsed); err != nil {
+		return schemaerr.ValidationErrors{schemaerr.ErrValidationFailed("invalid session variables: " + err.Error())}
+	}
+
+	if err := variableSchemaCompiled.Validate(parsed); err != nil {
+		msg := fmt.Sprintf("session variables must be key-value json objects with max %d properties: %v", MaxSessionVariables, err)
+		return schemaerr.ValidationErrors{schemaerr.ErrValidationFailed(msg)}
+	}
+
+	return nil
 }
 
-func resolveViewByID(ctx context.Context, viewID uuid.UUID) (policy.ViewManager, apperrors.Error) {
-	viewManager, err := policy.NewViewManagerByViewID(ctx, viewID)
-	if err != nil {
-		return nil, err
-	}
-	return viewManager, nil
-}
-
-// resolveSkillSet creates a new skill set manager for the given path
-func resolveSkillSet(ctx context.Context, skillSetPath string) (catalogmanager.SkillSetManager, apperrors.Error) {
-	if skillSetPath == "" {
-		return nil, ErrInvalidObject.Msg("skillset path is required")
-	}
-	skillSetManager, err := catalogmanager.GetSkillSetManager(ctx, skillSetPath)
-	if err != nil {
-		return nil, err
-	}
-	return skillSetManager, nil
-}
-
-// Validate validates the session specification
-func (s *SessionSpec) Validate() schemaerr.ValidationErrors {
-	var validationErrors schemaerr.ValidationErrors
-
+// validateSessionSpecFields validates the session spec fields using the validator
+func validateSessionSpecFields(s *SessionSpec) schemaerr.ValidationErrors {
 	err := schemavalidator.V().Struct(s)
 	if err == nil {
-		if len(s.Variables) > 0 {
-			var parsed any
-			if err := json.Unmarshal(s.Variables, &parsed); err != nil {
-				validationErrors = append(validationErrors, schemaerr.ErrValidationFailed("invalid session variables: "+err.Error()))
-			} else {
-				err = variableSchemaCompiled.Validate(parsed)
-				if err != nil {
-					msg := fmt.Sprintf("session variables must be key-value json objects with max 20 properties: %v", err)
-					validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(msg))
-				}
-			}
-		}
-		return validationErrors
+		return nil
 	}
 
 	validatorErrors, ok := err.(validator.ValidationErrors)
 	if !ok {
-		return append(validationErrors, schemaerr.ErrInvalidSchema)
+		return schemaerr.ValidationErrors{schemaerr.ErrInvalidSchema}
 	}
 
 	value := reflect.ValueOf(s).Elem()
 	typeOfCS := value.Type()
+	var validationErrors schemaerr.ValidationErrors
 
 	for _, e := range validatorErrors {
 		jsonFieldName := schemavalidator.GetJSONFieldPath(value, typeOfCS, e.StructField())
@@ -277,6 +268,56 @@ func (s *SessionSpec) Validate() schemaerr.ValidationErrors {
 		}
 	}
 	return validationErrors
+}
+
+// Validate validates the session specification
+func (s *SessionSpec) Validate() schemaerr.ValidationErrors {
+	var validationErrors schemaerr.ValidationErrors
+
+	// Validate struct fields
+	if errs := validateSessionSpecFields(s); len(errs) > 0 {
+		validationErrors = append(validationErrors, errs...)
+	}
+
+	// Validate variables
+	if errs := validateSessionVariables(s.Variables); len(errs) > 0 {
+		validationErrors = append(validationErrors, errs...)
+	}
+
+	return validationErrors
+}
+
+// resolveViewByLabel creates a new view manager for the given view name with timeout
+func resolveViewByLabel(ctx context.Context, viewName string) (policy.ViewManager, apperrors.Error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	viewManager, err := policy.NewViewManagerByViewLabel(ctx, viewName)
+	if err != nil {
+		return nil, err
+	}
+	return viewManager, nil
+}
+
+func resolveViewByID(ctx context.Context, viewID uuid.UUID) (policy.ViewManager, apperrors.Error) {
+	viewManager, err := policy.NewViewManagerByViewID(ctx, viewID)
+	if err != nil {
+		return nil, err
+	}
+	return viewManager, nil
+}
+
+// resolveSkillSet creates a new skill set manager for the given path with timeout
+func resolveSkillSet(ctx context.Context, skillSetPath string) (catalogmanager.SkillSetManager, apperrors.Error) {
+	if skillSetPath == "" {
+		return nil, ErrInvalidObject.Msg("skillset path is required")
+	}
+
+	skillSetManager, err := catalogmanager.GetSkillSetManager(ctx, skillSetPath)
+	if err != nil {
+		return nil, err
+	}
+	return skillSetManager, nil
 }
 
 // compileSchema compiles a JSON schema string into a jsonschema.Schema
@@ -304,14 +345,25 @@ func compileSchema(schema string) (*jsonschema.Schema, error) {
 	return compiledSchema, nil
 }
 
-func validateViewPolicy(ctx context.Context, viewDef *policy.ViewDefinition) apperrors.Error {
+func validateViewPolicy(ctx context.Context, viewManager policy.ViewManager) apperrors.Error {
+	if viewManager == nil {
+		return ErrInvalidObject.Msg("view manager is required")
+	}
 	ourViewDef := policy.GetViewDefinition(ctx)
 	if ourViewDef == nil {
 		return ErrInvalidView.Msg("no current view definition found")
 	}
-
-	if err := policy.ValidateDerivedView(ctx, ourViewDef, viewDef); err != nil {
+	viewResourcePath, err := viewManager.GetViewResourcePath(ctx)
+	if err != nil {
 		return err
+	}
+
+	allowed, err := policy.CanAdoptView(ctx, ourViewDef, viewResourcePath)
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return ErrInvalidObject.Msg("view is not allowed to be adopted")
 	}
 
 	return nil

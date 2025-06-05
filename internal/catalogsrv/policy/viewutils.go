@@ -48,10 +48,10 @@ func deduplicateRules(rules Rules) Rules {
 	return result
 }
 
-// CanonicalizeResourcePath transforms a resource string based on the provided scope.
+// canonicalizeResourcePath transforms a resource string based on the provided scope.
 // It handles the conversion of resource paths and ensures proper formatting
 // of catalog, variant, workspace, and namespace components.
-func CanonicalizeResourcePath(scope Scope, resource TargetResource) TargetResource {
+func canonicalizeResourcePath(scope Scope, resource TargetResource) TargetResource {
 	s := string(resource)
 	s = strings.TrimPrefix(s, "res://")
 	s = strings.TrimPrefix(s, "/") // just in case, the res:// prefix was missing
@@ -77,8 +77,8 @@ func CanonicalizeResourcePath(scope Scope, resource TargetResource) TargetResour
 	return TargetResource(canonicalized)
 }
 
-// CanonicalizeViewDefinition canonicalizes all targets in the view definition to its scope
-func CanonicalizeViewDefinition(v *ViewDefinition) *ViewDefinition {
+// canonicalizeViewDefinition canonicalizes all targets in the view definition to its scope
+func canonicalizeViewDefinition(v *ViewDefinition) *ViewDefinition {
 	if v == nil {
 		return nil
 	}
@@ -89,7 +89,7 @@ func CanonicalizeViewDefinition(v *ViewDefinition) *ViewDefinition {
 			vd.Rules[i] = rule
 		}
 		for j, target := range rule.Targets {
-			vd.Rules[i].Targets[j] = TargetResource(CanonicalizeResourcePath(vd.Scope, target))
+			vd.Rules[i].Targets[j] = TargetResource(canonicalizeResourcePath(vd.Scope, target))
 		}
 	}
 	return &vd

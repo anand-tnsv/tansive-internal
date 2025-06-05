@@ -155,6 +155,11 @@ func TestNewSession(t *testing.T) {
 				"intent": "Allow",
 				"actions": ["system.catalog.list", "system.variant.list", "system.namespace.list", "test.action"],
 				"targets": ["res://variants/test-variant/*"]
+			},
+			{
+				"intent": "Allow",
+				"actions": ["system.catalog.adoptView"],
+				"targets": ["res://views/parent-view"]
 			}]
 		}
 	}`
@@ -542,6 +547,11 @@ func TestSessionSaveAndGet(t *testing.T) {
 				"intent": "Allow",
 				"actions": ["system.catalog.list", "system.variant.list", "system.namespace.list", "test.action"],
 				"targets": ["res://variants/test-variant/*"]
+			},
+			{
+				"intent": "Allow",
+				"actions": ["system.catalog.adoptView"],
+				"targets": ["res://views/parent-view"]
 			}]
 		}
 	}`

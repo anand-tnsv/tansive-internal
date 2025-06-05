@@ -70,8 +70,8 @@ func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *Vie
 		return ErrInvalidView
 	}
 
-	parent = CanonicalizeViewDefinition(parent)
-	child = CanonicalizeViewDefinition(child)
+	parent = canonicalizeViewDefinition(parent)
+	child = canonicalizeViewDefinition(child)
 
 	if !child.Rules.IsSubsetOf(parent.Rules) {
 		return ErrInvalidView.New("derived view rules must be a subset of parent view rules")
@@ -97,4 +97,13 @@ func AreActionsAllowed(ctx context.Context, vd *ViewDefinition, actions []Action
 		}
 	}
 	return true
+}
+
+func CanAdoptView(ctx context.Context, authorizingViewDef *ViewDefinition, viewResourcePath TargetResource) (bool, apperrors.Error) {
+	if authorizingViewDef == nil {
+		return false, ErrInvalidView
+	}
+	authorizingViewDef = canonicalizeViewDefinition(authorizingViewDef)
+	allowed, _ := authorizingViewDef.Rules.IsActionAllowedOnResource(ActionCatalogAdoptView, viewResourcePath)
+	return allowed, nil
 }

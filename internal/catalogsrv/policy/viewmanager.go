@@ -18,6 +18,7 @@ type ViewManager interface {
 	ID() uuid.UUID
 	Name() string
 	GetViewDefinition(ctx context.Context) (*ViewDefinition, apperrors.Error)
+	GetViewResourcePath(ctx context.Context) (TargetResource, apperrors.Error)
 }
 type viewManager struct {
 	view *models.View
@@ -69,4 +70,14 @@ func (v *viewManager) GetViewDefinition(ctx context.Context) (*ViewDefinition, a
 		return nil, ErrUnableToLoadObject.Msg("unable to unmarshal view rules")
 	}
 	return &viewDef, nil
+}
+
+func (v *viewManager) GetViewResourcePath(ctx context.Context) (TargetResource, apperrors.Error) {
+	viewDef, err := v.GetViewDefinition(ctx)
+	if err != nil {
+		return "", err
+	}
+	s := "res://views/" + v.view.Label
+	path := canonicalizeResourcePath(viewDef.Scope, TargetResource(s))
+	return path, nil
 }

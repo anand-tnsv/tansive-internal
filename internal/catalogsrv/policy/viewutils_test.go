@@ -330,7 +330,7 @@ func TestCanonicalizeResourcePath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := CanonicalizeResourcePath(tt.scope, tt.resource)
+			got := canonicalizeResourcePath(tt.scope, tt.resource)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -636,7 +636,7 @@ func TestCanonicalizeViewDefinition(t *testing.T) {
 			if tt.name == "empty target" {
 				fmt.Println("empty target")
 			}
-			got := CanonicalizeViewDefinition(tt.input)
+			got := canonicalizeViewDefinition(tt.input)
 			assert.Equal(t, tt.expected, got)
 		})
 	}

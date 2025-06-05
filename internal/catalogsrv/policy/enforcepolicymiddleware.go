@@ -97,7 +97,7 @@ func normalizeResourcePath(resourceKind string, resource TargetResource) TargetR
 func resolveTargetResource(scope Scope, resourcePath string) (TargetResource, error) {
 	targetResource := TargetResource(resourcePath)
 	targetResource = normalizeResourcePath(getResourceKindFromPath(resourcePath), targetResource)
-	targetResource = CanonicalizeResourcePath(scope, TargetResource("res://"+strings.TrimPrefix(string(targetResource), "/")))
+	targetResource = canonicalizeResourcePath(scope, TargetResource("res://"+strings.TrimPrefix(string(targetResource), "/")))
 	if targetResource == "" {
 		return "", httpx.ErrApplicationError("unable to canonicalize resource path")
 	}
@@ -110,7 +110,7 @@ func resolveAuthorizedViewDef(ctx context.Context) (*ViewDefinition, error) {
 		return nil, httpx.ErrUnAuthorized("missing request context")
 	}
 	// Get the authorized view definition from the context
-	authorizedViewDef := CanonicalizeViewDefinition(GetViewDefinition(ctx))
+	authorizedViewDef := canonicalizeViewDefinition(GetViewDefinition(ctx))
 	if authorizedViewDef == nil {
 		return nil, httpx.ErrUnAuthorized("unable to resolve view definition")
 	}
