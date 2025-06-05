@@ -12,13 +12,13 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
-	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/schema/errors"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
+	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/schema/errors"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -238,8 +238,8 @@ func getSkillSetStoragePath(m *interfaces.Metadata) string {
 	return pathWithName
 }
 
-// getSkillMetadata constructs metadata from skills and dependencies
-func (sm *skillSetManager) getSkillMetadata() ([]byte, apperrors.Error) {
+// GetSkillMetadata constructs metadata from skills and dependencies
+func (sm *skillSetManager) GetSkillMetadata() (SkillMetadata, apperrors.Error) {
 	metadata := SkillMetadata{
 		Skills:       make([]SkillSummary, 0, len(sm.skillSet.Spec.Skills)),
 		Dependencies: sm.skillSet.Spec.Dependencies,
@@ -253,11 +253,7 @@ func (sm *skillSetManager) getSkillMetadata() ([]byte, apperrors.Error) {
 		})
 	}
 
-	data, err := json.Marshal(metadata)
-	if err != nil {
-		return nil, ErrUnableToLoadObject.Msg("failed to marshal skill metadata")
-	}
-	return data, nil
+	return metadata, nil
 }
 
 // Save saves the skillset to the database.
@@ -281,7 +277,7 @@ func (sm *skillSetManager) Save(ctx context.Context) apperrors.Error {
 	newHash := s.GetHash()
 
 	// Get skill metadata
-	skillMetadata, err := sm.getSkillMetadata()
+	skillMetadata, err := sm.GetSkillMetadata()
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("Failed to generate skill metadata")
 		return ErrUnableToLoadObject.Msg("failed to generate skill metadata")
@@ -312,12 +308,18 @@ func (sm *skillSetManager) Save(ctx context.Context) apperrors.Error {
 		return err
 	}
 
+	skillMetadataJSON, goerr := json.Marshal(skillMetadata)
+	if goerr != nil {
+		log.Ctx(ctx).Error().Err(goerr).Msg("Failed to marshal skill metadata")
+		return ErrUnableToLoadObject.Msg("failed to marshal skill metadata")
+	}
+
 	// Create the skillset model
 	ss := &models.SkillSet{
 		Path:      storagePath,
 		Hash:      newHash,
 		VariantID: variant.VariantID,
-		Metadata:  skillMetadata,
+		Metadata:  skillMetadataJSON,
 	}
 
 	// Store the object

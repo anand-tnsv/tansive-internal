@@ -84,10 +84,6 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		return nil, ErrInvalidObject.Msg("invalid skill path")
 	}
 
-	skillSetManager, err := resolveSkillSet(ctx, skillSetPath)
-	if err != nil {
-		return nil, err
-	}
 	viewManager, err := resolveViewByLabel(ctx, sessionSpec.ViewName)
 	if err != nil {
 		return nil, err
@@ -97,10 +93,6 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 	if err != nil {
 		return nil, err
 	}
-	viewDefJSON, goerr := viewDef.ToJSON()
-	if goerr != nil {
-		return nil, ErrInvalidObject.Msg("invalid view definition: " + goerr.Error())
-	}
 
 	// Validate view policy - session can only be created for views that are
 	// a subset of the current view
@@ -108,6 +100,17 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 	if err != nil {
 		return nil, err
 	}
+
+	viewDefJSON, goerr := viewDef.ToJSON()
+	if goerr != nil {
+		return nil, ErrInvalidObject.Msg("invalid view definition: " + goerr.Error())
+	}
+
+	skillSetManager, err := resolveSkillSet(ctx, skillSetPath)
+	if err != nil {
+		return nil, err
+	}
+	//skillSetMetadata, err := skillSetManager.GetSkillMetadata(ctx)
 
 	userID := catcommon.GetUserID(ctx)
 	if userID == "" {
