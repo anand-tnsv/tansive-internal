@@ -58,6 +58,9 @@ func validateResourceURI(uri string) error {
 		return fmt.Errorf("invalid resource URI: must start with %s", prefix)
 	}
 	rest := uri[len(prefix):]
+	if rest == "" || rest == "*" || rest == "." {
+		return nil
+	}
 
 	parts := strings.SplitN(rest, "/", 2)
 	if len(parts) == 0 {

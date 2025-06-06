@@ -2,7 +2,10 @@ package test
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
+	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"gopkg.in/yaml.v3"
 )
@@ -114,4 +117,59 @@ func SkillsetDef(env string) json.RawMessage {
 		sjson.SetBytes(jsonData, "spec.context.0.value.kubeconfig", "YXBpVmVyc2lvbjogdjEKa2luZDogQ29uZmlnCmNsdXN0ZXJzOgogIC0gbmFtZTogbXktY2x1c3RlcgogICAgY2x1c3RlcjoKICAgICAgc2VydmVyOiBodHRwczovL3Byb2QtZW52LmV4YW1wbGUuY29tCiAgICAgIGNlcnRpZmljYXRlLWF1dGhvcml0eS1kYXRhOiA8YmFzZTY0LWVuY29kZWQtY2EtY2VydD4=")
 	}
 	return jsonData
+}
+
+func SkillsetPath() string {
+	name := gjson.Get(skillsetDef, "metadata.name").String()
+	path := gjson.Get(skillsetDef, "metadata.path").String()
+	return fmt.Sprintf("%s/%s", path, name)
+}
+
+func SkillsetAgent() string {
+	return "k8s_troubleshooter"
+}
+
+const devView = `
+{
+  "version": "v1",
+  "kind": "View",
+  "metadata": {
+    "name": "dev-view",
+    "catalog": "test-catalog",
+    "variant": "dev",
+    "description": "View with full access to resources"
+  },
+  "spec": {
+    "rules": [{
+      "intent": "Allow",
+      "actions": ["system.skillset.use","kubernetes.pods.list", "kubernetes.deployments.restart", "kubernetes.troubleshoot"],
+      "targets": ["res://skillsets/skillsets/kubernetes-demo"]
+    }]
+  }
+}`
+
+func GetView(name string) json.RawMessage {
+	view, _ := sjson.Set(devView, "metadata.name", name)
+	return json.RawMessage(view)
+}
+
+func GetViewDefinition(variant string) json.RawMessage {
+	vd := policy.ViewDefinition{
+		Scope: policy.Scope{
+			Catalog: "test-catalog",
+			Variant: variant,
+		},
+	}
+	rules := []policy.Rule{}
+	rulesJson := gjson.Get(devView, "spec.rules").Raw
+	err := json.Unmarshal([]byte(rulesJson), &rules)
+	if err != nil {
+		panic(err)
+	}
+	vd.Rules = rules
+	vdJson, err := json.Marshal(vd)
+	if err != nil {
+		panic(err)
+	}
+	return vdJson
 }

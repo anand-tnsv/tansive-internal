@@ -14,6 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -62,20 +63,30 @@ func NewSkillSetManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Meta
 }
 
 // GetSkillSetManager gets a skillset manager given a skillset path.
-func GetSkillSetManager(ctx context.Context, skillSetPath string) (SkillSetManager, apperrors.Error) {
+func GetSkillSetManager(ctx context.Context, skillSetPath string, viewScope ...policy.Scope) (SkillSetManager, apperrors.Error) {
 	if skillSetPath == "" {
 		return nil, ErrInvalidObject.Msg("skillset path is required")
 	}
 
-	m := &interfaces.Metadata{
-		Catalog: catcommon.GetCatalog(ctx),
+	var m *interfaces.Metadata
+	if len(viewScope) > 0 {
+		m = &interfaces.Metadata{
+			Catalog:   viewScope[0].Catalog,
+			Variant:   types.NullableStringFrom(viewScope[0].Variant),
+			Namespace: types.NullableStringFrom(viewScope[0].Namespace),
+		}
+	} else {
+		m = &interfaces.Metadata{
+			Catalog: catcommon.GetCatalog(ctx),
+		}
+		if v := catcommon.GetVariant(ctx); v != "" {
+			m.Variant = types.NullableStringFrom(v)
+		}
+		if n := catcommon.GetNamespace(ctx); n != "" {
+			m.Namespace = types.NullableStringFrom(n)
+		}
 	}
-	if v := catcommon.GetVariant(ctx); v != "" {
-		m.Variant = types.NullableStringFrom(v)
-	}
-	if n := catcommon.GetNamespace(ctx); n != "" {
-		m.Namespace = types.NullableStringFrom(n)
-	}
+
 	skillSetName := path.Base(skillSetPath)
 	if skillSetName == "" {
 		return nil, ErrInvalidObject.Msg("skillset name is required")

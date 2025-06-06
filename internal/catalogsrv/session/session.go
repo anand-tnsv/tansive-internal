@@ -117,7 +117,7 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 	}
 
 	// Initialize skill set manager
-	skillSetManager, err := resolveSkillSet(ctx, skillSetPath)
+	skillSetManager, err := resolveSkillSet(ctx, skillSetPath, viewManager.Scope())
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func GetSession(ctx context.Context, sessionID uuid.UUID) (SessionManager, apper
 	if err != nil {
 		return nil, err
 	}
-	skillSetManager, err := resolveSkillSet(ctx, session.SkillSet)
+	skillSetManager, err := resolveSkillSet(ctx, session.SkillSet, viewManager.Scope())
 	if err != nil {
 		return nil, err
 	}
@@ -312,12 +312,12 @@ func resolveViewByID(ctx context.Context, viewID uuid.UUID) (policy.ViewManager,
 }
 
 // resolveSkillSet creates a new skill set manager for the given path
-func resolveSkillSet(ctx context.Context, skillSetPath string) (catalogmanager.SkillSetManager, apperrors.Error) {
+func resolveSkillSet(ctx context.Context, skillSetPath string, viewScope policy.Scope) (catalogmanager.SkillSetManager, apperrors.Error) {
 	if skillSetPath == "" {
 		return nil, ErrInvalidObject.Msg("skillset path is required")
 	}
 
-	skillSetManager, err := catalogmanager.GetSkillSetManager(ctx, skillSetPath)
+	skillSetManager, err := catalogmanager.GetSkillSetManager(ctx, skillSetPath, viewScope)
 	if err != nil {
 		return nil, err
 	}

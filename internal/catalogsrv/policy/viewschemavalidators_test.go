@@ -126,7 +126,7 @@ func TestResourceURIValidator(t *testing.T) {
 		{
 			name:    "empty resource string",
 			input:   "res://",
-			isValid: false,
+			isValid: true,
 		},
 		{
 			name:    "invalid kind",
@@ -192,6 +192,11 @@ func TestResourceURIValidator(t *testing.T) {
 			name:    "invalid catalog with multiple slashes",
 			input:   "res://catalogs/my-catalog//variants/my-variant",
 			isValid: false,
+		},
+		{
+			name:    "wildcard at start of path",
+			input:   "res://*",
+			isValid: true,
 		},
 	}
 

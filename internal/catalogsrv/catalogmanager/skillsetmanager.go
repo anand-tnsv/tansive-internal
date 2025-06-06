@@ -54,7 +54,7 @@ type SkillSetSpec struct {
 type SkillSetContext struct {
 	Name     string            `json:"name" validate:"required,resourceNameValidator"`
 	Provider ResourceProvider  `json:"provider,omitempty" validate:"required_without=Schema,omitempty,resourceNameValidator"`
-	Schema   json.RawMessage   `json:"schema" validate:"required_without=Provider,omitempty"`
+	Schema   json.RawMessage   `json:"schema" validate:"required_without=Provider,omitempty,jsonSchemaValidator"`
 	Value    types.NullableAny `json:"value" validate:"omitempty"`
 }
 
@@ -66,8 +66,8 @@ type SkillSetRunner struct {
 type Skill struct {
 	Name            string            `json:"name" validate:"required,skillNameValidator"`
 	Description     string            `json:"description" validate:"required"`
-	InputSchema     json.RawMessage   `json:"inputSchema" validate:"required"`
-	OutputSchema    json.RawMessage   `json:"outputSchema" validate:"required"`
+	InputSchema     json.RawMessage   `json:"inputSchema" validate:"required,jsonSchemaValidator"`
+	OutputSchema    json.RawMessage   `json:"outputSchema" validate:"required,jsonSchemaValidator"`
 	ExportedActions []policy.Action   `json:"exportedActions" validate:"required,dive"`
 	Annotations     map[string]string `json:"annotations" validate:"omitempty"`
 }
@@ -370,6 +370,8 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "resourcePathValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidObjectPath(jsonFieldName))
+		case "jsonSchemaValidator":
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidFieldSchema(jsonFieldName))
 		default:
 			val := e.Value()
 			param := e.Param()

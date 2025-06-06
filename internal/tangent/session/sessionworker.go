@@ -9,3 +9,7 @@ import (
 func (s *session) Run(ctx context.Context) apperrors.Error {
 	return nil
 }
+
+func (s *session) FetchObjects(ctx context.Context) apperrors.Error {
+	return nil
+}

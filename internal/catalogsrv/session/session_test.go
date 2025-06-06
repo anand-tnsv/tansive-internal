@@ -148,13 +148,14 @@ func TestNewSession(t *testing.T) {
 		"metadata": {
 			"name": "parent-view",
 			"catalog": "test-catalog",
+			"variant": "test-variant",
 			"description": "Parent view for testing"
 		},
 		"spec": {
 			"rules": [{
 				"intent": "Allow",
 				"actions": ["system.catalog.list", "system.variant.list", "system.namespace.list", "test.action"],
-				"targets": ["res://variants/test-variant/*"]
+				"targets": ["res://*"]
 			},
 			{
 				"intent": "Allow",
@@ -540,13 +541,14 @@ func TestSessionSaveAndGet(t *testing.T) {
 		"metadata": {
 			"name": "parent-view",
 			"catalog": "test-catalog",
+			"variant": "test-variant",
 			"description": "Parent view for testing"
 		},
 		"spec": {
 			"rules": [{
 				"intent": "Allow",
 				"actions": ["system.catalog.list", "system.variant.list", "system.namespace.list", "test.action"],
-				"targets": ["res://variants/test-variant/*"]
+				"targets": ["res://*"]
 			},
 			{
 				"intent": "Allow",

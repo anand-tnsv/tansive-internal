@@ -1,14 +1,19 @@
 package schemavalidator
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
 	"slices"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tidwall/gjson"
 )
 
 var validKinds = []string{
@@ -133,6 +138,30 @@ func ValidatePathSegment(segment string) bool {
 	return re.MatchString(segment)
 }
 
+func JsonSchemaValidator(fl validator.FieldLevel) bool {
+	schema := fl.Field().String()
+	// First validate that the schema is valid JSON using gjson
+	if !gjson.Valid(schema) {
+		return false
+	}
+
+	compiler := jsonschema.NewCompiler()
+	// Allow schemas with $id to refer to themselves
+	compiler.LoadURL = func(url string) (io.ReadCloser, error) {
+		if url == "inline://schema" {
+			return io.NopCloser(bytes.NewReader([]byte(schema))), nil
+		}
+		return nil, fmt.Errorf("unsupported schema ref: %s", url)
+	}
+	err := compiler.AddResource("inline://schema", bytes.NewReader([]byte(schema)))
+	if err != nil {
+		return false
+	}
+	_, err = compiler.Compile("inline://schema")
+
+	return err == nil
+}
+
 func init() {
 	V().RegisterValidation("kindValidator", kindValidator)
 	V().RegisterValidation("resourceNameValidator", resourceNameValidator)
@@ -141,4 +170,5 @@ func init() {
 	V().RegisterValidation("notNull", notNull)
 	V().RegisterValidation("requireVersionV1", requireVersionV1)
 	V().RegisterValidation("skillNameValidator", skillNameValidator)
+	V().RegisterValidation("jsonSchemaValidator", JsonSchemaValidator)
 }
