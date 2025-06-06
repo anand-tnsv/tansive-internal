@@ -10,6 +10,10 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
+type shellConfig struct {
+	dir string
+}
+
 // Executes a shell command, and dumps to stream
 // This implements only home directory isolation and is only for use in a single user,
 // fully trusted environment such as a local development environment.

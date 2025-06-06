@@ -13,8 +13,8 @@ spec:
       env:
         - key: "some-key"
           value: "some-value"
-	  security:
-	    - type: default #could be one of: default, TEZ
+      security:
+        - type: default #could be one of: default, TEZ
   context:
     - name: customer-cache
       provider:

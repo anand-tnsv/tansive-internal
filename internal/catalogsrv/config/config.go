@@ -19,6 +19,12 @@ type ConfigParam struct {
 	HandleCORS         bool   `toml:"handle_cors"`           // Whether to handle CORS
 	MaxRequestBodySize int64  `toml:"max_request_body_size"` // Maximum size of request body in bytes
 
+	// Session configuration
+	Session struct {
+		ExpirationTime time.Duration `toml:"expiration_time"` // Default session expiration time
+		MaxVariables   int           `toml:"max_variables"`   // Maximum number of variables allowed in a session
+	} `toml:"session"`
+
 	// Auth configuration
 	Auth struct {
 		MaxTokenAge          time.Duration `toml:"max_token_age"`          // Maximum age for tokens
@@ -107,6 +113,14 @@ func LoadDefaultsIfNotSet(cfg *ConfigParam) {
 		cfg.MaxRequestBodySize = 1024 * 1024 // 1MB
 	}
 	cfg.HandleCORS = true
+
+	// Session defaults
+	if cfg.Session.ExpirationTime == 0 {
+		cfg.Session.ExpirationTime = 24 * time.Hour
+	}
+	if cfg.Session.MaxVariables == 0 {
+		cfg.Session.MaxVariables = 20
+	}
 
 	// Auth defaults
 	if cfg.Auth.MaxTokenAge == 0 {

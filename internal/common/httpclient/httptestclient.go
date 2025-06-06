@@ -1,59 +1,42 @@
-package cli
+package httpclient
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"path"
 	"strings"
 	"time"
 
+	"github.com/tansive/tansive-internal/internal/catalogsrv/server"
 	"github.com/tidwall/gjson"
 )
 
-// ServerError represents an error response from the server
-type ServerError struct {
-	Result int    `json:"result"`
-	Error  string `json:"error"`
+// TestHTTPClient represents a test client for making HTTP requests directly to the catalog server
+type TestHTTPClient struct {
+	config     Configurator
+	httpServer *server.CatalogServer
 }
 
-// HTTPError represents an error response from the server with a status code
-type HTTPError struct {
-	StatusCode int
-	Message    string
-}
-
-func (e *HTTPError) Error() string {
-	return e.Message
-}
-
-// HTTPClient represents a client for making HTTP requests to the catalog server
-type HTTPClient struct {
-	config     *Config
-	httpClient *http.Client
-}
-
-// NewHTTPClient creates a new HTTP client using the provided configuration
-func NewHTTPClient(config *Config) *HTTPClient {
-	return &HTTPClient{
-		config:     config,
-		httpClient: &http.Client{},
+// NewTestClient creates a new test HTTP client using the provided configuration
+func NewTestClient(config Configurator) (*TestHTTPClient, error) {
+	s, err := server.CreateNewServer()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create test server: %v", err)
 	}
+	s.MountHandlers()
+
+	return &TestHTTPClient{
+		config:     config,
+		httpServer: s,
+	}, nil
 }
 
-// RequestOptions contains options for making HTTP requests
-type RequestOptions struct {
-	Method      string
-	Path        string
-	QueryParams map[string]string
-	Body        []byte
-}
-
-// DoRequest makes an HTTP request with the given options
-func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
+// DoRequest makes an HTTP request with the given options directly to the test server
+func (c *TestHTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 	// Build the URL with query parameters
 	u, err := url.Parse(c.config.GetServerURL())
 	if err != nil {
@@ -69,7 +52,7 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 	u.RawQuery = q.Encode()
 
 	// Create the request
-	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
+	req, err := http.NewRequest(opts.Method, u.Path, bytes.NewBuffer(opts.Body))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create request: %v", err)
 	}
@@ -78,54 +61,50 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	// Check if we have a valid current token
-	if c.config.CurrentToken != "" && c.config.TokenExpiry != "" {
-		expiry, err := time.Parse(time.RFC3339, c.config.TokenExpiry)
-		if err == nil && time.Now().Before(expiry) {
-			req.Header.Set("Authorization", "Bearer "+c.config.CurrentToken)
+	if c.config.GetToken() != "" && !c.config.GetTokenExpiry().IsZero() {
+		expiry := c.config.GetTokenExpiry()
+		if time.Now().Before(expiry) {
+			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
 		} else {
 			// Token expired or invalid, fall back to API key
-			if c.config.APIKey != "" {
-				req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+			if c.config.GetAPIKey() != "" {
+				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 			}
 		}
-	} else if c.config.APIKey != "" {
+	} else if c.config.GetAPIKey() != "" {
 		// No current token, use API key
-		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 	}
 
-	// Make the request
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, "", fmt.Errorf("request failed: %v", err)
-	}
-	defer resp.Body.Close()
+	// Create a response recorder
+	rr := httptest.NewRecorder()
+
+	// Serve the request directly
+	c.httpServer.Router.ServeHTTP(rr, req)
 
 	// Read the response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read response body: %v", err)
-	}
+	body := rr.Body.Bytes()
 
 	// Check for error status codes
-	if resp.StatusCode >= 400 {
+	if rr.Code >= 400 {
 		var serverErr ServerError
 		if err := json.Unmarshal(body, &serverErr); err == nil && serverErr.Error != "" {
 			return nil, "", &HTTPError{
-				StatusCode: resp.StatusCode,
+				StatusCode: rr.Code,
 				Message:    serverErr.Error,
 			}
 		}
 		return nil, "", &HTTPError{
-			StatusCode: resp.StatusCode,
+			StatusCode: rr.Code,
 			Message:    string(body),
 		}
 	}
 
-	return body, resp.Header.Get("Location"), nil
+	return body, rr.Header().Get("Location"), nil
 }
 
 // CreateResource creates a new resource using the given JSON data
-func (c *HTTPClient) CreateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, string, error) {
+func (c *TestHTTPClient) CreateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, string, error) {
 	opts := RequestOptions{
 		Method:      http.MethodPost,
 		Path:        resourceType,
@@ -136,7 +115,7 @@ func (c *HTTPClient) CreateResource(resourceType string, data []byte, queryParam
 }
 
 // GetResource retrieves a resource using the given resource name
-func (c *HTTPClient) GetResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) ([]byte, error) {
+func (c *TestHTTPClient) GetResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) ([]byte, error) {
 	// Clean the path components to avoid spurious slashes
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
@@ -160,7 +139,7 @@ func (c *HTTPClient) GetResource(resourceType string, resourceName string, query
 }
 
 // DeleteResource deletes a resource using the given resource name
-func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) error {
+func (c *TestHTTPClient) DeleteResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) error {
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
@@ -183,7 +162,7 @@ func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, qu
 }
 
 // UpdateResource updates an existing resource using the given JSON data
-func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParams map[string]string, objectType string) ([]byte, error) {
+func (c *TestHTTPClient) UpdateResource(resourceType string, data []byte, queryParams map[string]string, objectType string) ([]byte, error) {
 	// Get the resource name from metadata.name
 	resourceName := gjson.GetBytes(data, "metadata.name").String()
 	if resourceName == "" {
@@ -213,7 +192,8 @@ func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParam
 	return body, err
 }
 
-func (c *HTTPClient) UpdateResourceValue(resourcePath string, data []byte, queryParams map[string]string) ([]byte, error) {
+// UpdateResourceValue updates a resource value using the given JSON data
+func (c *TestHTTPClient) UpdateResourceValue(resourcePath string, data []byte, queryParams map[string]string) ([]byte, error) {
 	opts := RequestOptions{
 		Method:      http.MethodPut,
 		Path:        resourcePath,
@@ -225,7 +205,7 @@ func (c *HTTPClient) UpdateResourceValue(resourcePath string, data []byte, query
 }
 
 // ListResources lists resources of a specific type
-func (c *HTTPClient) ListResources(resourceType string, queryParams map[string]string) ([]byte, error) {
+func (c *TestHTTPClient) ListResources(resourceType string, queryParams map[string]string) ([]byte, error) {
 	opts := RequestOptions{
 		Method:      http.MethodGet,
 		Path:        resourceType,

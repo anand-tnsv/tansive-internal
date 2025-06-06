@@ -15,24 +15,24 @@ type ResponseHandlerParam struct {
 
 var resourceObjectHandlers = []ResponseHandlerParam{
 	{
-		Method:  http.MethodPost,
-		Path:    "/",
-		Handler: createSession,
+		Method: http.MethodPost,
+		Path:   "/",
+		//		Handler: createSession,
 	},
 	{
-		Method:  http.MethodGet,
-		Path:    "/{id}",
-		Handler: getSession,
+		Method: http.MethodGet,
+		Path:   "/{id}",
+		//		Handler: getSession,
 	},
 	{
-		Method:  http.MethodGet,
-		Path:    "/",
-		Handler: listSessions,
+		Method: http.MethodGet,
+		Path:   "/",
+		//		Handler: listSessions,
 	},
 	{
-		Method:  http.MethodDelete,
-		Path:    "/{id}",
-		Handler: deleteSession,
+		Method: http.MethodDelete,
+		Path:   "/{id}",
+		//		Handler: deleteSession,
 	},
 }
 
@@ -42,7 +42,7 @@ func Router(r chi.Router) {
 		r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
 	}
 	// Route for connection that'll upgrade HTTP to WebSocket
-	r.Method(http.MethodGet, "/{id}/channel", http.HandlerFunc(getSessionChannel))
+	//	r.Method(http.MethodGet, "/{id}/channel", http.HandlerFunc(getSessionChannel))
 }
 
 func SessionAuthenticator(next http.Handler) http.Handler {

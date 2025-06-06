@@ -16,6 +16,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
@@ -24,12 +25,6 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tidwall/gjson"
-)
-
-const (
-	// Default session configuration
-	DefaultSessionExpiration = 24 * time.Hour
-	MaxSessionVariables      = 20
 )
 
 // SessionSpec defines the structure for session creation requests
@@ -62,7 +57,7 @@ type sessionManager struct {
 }
 
 func init() {
-	schema := fmt.Sprintf(variableSchema, MaxSessionVariables)
+	schema := fmt.Sprintf(variableSchema, config.Config().Session.MaxVariables)
 	compiledSchema, err := compileSchema(schema)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to compile session variables schema")
@@ -165,7 +160,7 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		VariantID:      variantID,
 		StartedAt:      time.Now(),
 		EndedAt:        time.Time{},
-		ExpiresAt:      time.Now().Add(DefaultSessionExpiration),
+		ExpiresAt:      time.Now().Add(config.Config().Session.ExpirationTime),
 	}
 
 	return &sessionManager{
@@ -236,7 +231,7 @@ func validateSessionVariables(variables json.RawMessage) schemaerr.ValidationErr
 	}
 
 	if err := variableSchemaCompiled.Validate(parsed); err != nil {
-		msg := fmt.Sprintf("session variables must be key-value json objects with max %d properties: %v", MaxSessionVariables, err)
+		msg := fmt.Sprintf("session variables must be key-value json objects with max %d properties: %v", config.Config().Session.MaxVariables, err)
 		return schemaerr.ValidationErrors{schemaerr.ErrValidationFailed(msg)}
 	}
 

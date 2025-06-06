@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/tansive/tansive-internal/internal/common/httpclient"
 )
 
 var (
@@ -70,7 +71,7 @@ func putResourceValue(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid JSON data: %v", err)
 	}
 
-	client := NewHTTPClient(GetConfig())
+	client := httpclient.NewClient(GetConfig())
 
 	queryParams := make(map[string]string)
 	if putCatalog != "" {

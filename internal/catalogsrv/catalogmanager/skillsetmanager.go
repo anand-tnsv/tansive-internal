@@ -27,7 +27,7 @@ import (
 type DependencyKind string
 
 const (
-	KindSkillSet DependencyKind = "SkillSet"
+	KindSkill    DependencyKind = "Skill"
 	KindResource DependencyKind = "Resource"
 )
 
@@ -45,10 +45,10 @@ type SkillSet struct {
 type SkillSetSpec struct {
 	Version      string            `json:"version" validate:"required"`
 	Runner       SkillSetRunner    `json:"runner" validate:"required,omitempty"`
-	Context      []SkillSetContext `json:"context" validate:"required,dive"`
+	Context      []SkillSetContext `json:"context" validate:"omitempty,dive"`
 	Skills       []Skill           `json:"skills" validate:"required,dive"`
-	Dependencies []Dependency      `json:"dependencies" validate:"required,dive"`
-	Annotations  map[string]string `json:"annotations" validate:"omitempty"`
+	Dependencies []Dependency      `json:"dependencies,omitempty" validate:"omitempty,dive"`
+	Annotations  map[string]string `json:"annotations,omitempty" validate:"omitempty"`
 }
 
 type SkillSetContext struct {
@@ -64,7 +64,7 @@ type SkillSetRunner struct {
 }
 
 type Skill struct {
-	Name            string            `json:"name" validate:"required,resourceNameValidator"`
+	Name            string            `json:"name" validate:"required,skillNameValidator"`
 	Description     string            `json:"description" validate:"required"`
 	InputSchema     json.RawMessage   `json:"inputSchema" validate:"required"`
 	OutputSchema    json.RawMessage   `json:"outputSchema" validate:"required"`
@@ -98,112 +98,6 @@ func (m *SkillMetadata) GetSkill(name string) (SkillSummary, bool) {
 	}
 	return SkillSummary{}, false
 }
-
-// Sample YAML:
-/*
-version: v1
-kind: SkillSet
-metadata:
-  name: customer-data-processor
-  namespace: default
-  path: /skillsets/customer-data-processor
-spec:
-  version: "1.0.0"
-  provider:
-    id: "system.commandrunner"
-    config:
-      command: "python3 skillsets/customer-data-processor.py"
-      env:
-        - key: "some-key"
-          value: "some-value"
-	  security:
-	    - type: default #could be one of: default, TEZ
-  context:
-    - name: customer-cache
-      provider:
-        id: "system.redis"
-        config:
-          host: "redis.internal"
-          port: 6379
-          db: 0
-          max_connections: 10
-          timeout: 5000
-      schema: |
-        {
-          "type": "object",
-          "properties": {
-            "customer_id": { "type": "string" },
-            "last_accessed": { "type": "string", "format": "date-time" },
-            "data": {
-              "type": "object",
-              "properties": {
-                "name": { "type": "string" },
-                "email": { "type": "string", "format": "email" },
-                "preferences": {
-                  "type": "object",
-                  "properties": {
-                    "theme": { "type": "string", "enum": ["light", "dark"] },
-                    "notifications": { "type": "boolean" }
-                  }
-                }
-              }
-            }
-          },
-          "required": ["customer_id", "data"]
-        }
-      value: null  # Optional default value, can be empty
-      annotations:
-        mcp:description: "Customer data cache using Redis"
-        mcp:tool: "redis"
-        mcp:resource: "cache"
-  skills:
-    - name: process-customer
-      description: "Process and validate customer data"
-      inputSchema: |
-        {
-          "type": "object",
-          "properties": {
-            "customer_id": { "type": "string" },
-            "data": {
-              "type": "object",
-              "properties": {
-                "name": { "type": "string" },
-                "email": { "type": "string", "format": "email" },
-                "preferences": { "type": "object" }
-              }
-            }
-          }
-        }
-      outputSchema: |
-        {
-          "type": "object",
-          "properties": {
-            "status": { "type": "string", "enum": ["success", "error"] },
-            "processed_at": { "type": "string", "format": "date-time" },
-            "validation_errors": { "type": "array", "items": { "type": "string" } }
-          }
-        }
-      exportedActions:
-        - customer.process
-        - customer.validate
-      annotations:
-        mcp:description: "Process and validate customer data with schema validation"
-        mcp:tool: "data-processor"
-  dependencies:
-    - path: "/resources/aws/s3/customer-data"
-      kind: Resource
-      actions:
-        - s3.read
-        - s3.write
-    - path: "/skillsets/data-validation"
-      kind: SkillSet
-      actions:
-        - validation.validate
-        - validation.report
-  annotations:
-    mcp:description: "Customer data processing skillset with validation and storage capabilities"
-    mcp:tool: "data-processor"
-*/
 
 // skillSetManager implements the SkillSetManager interface for managing a single skillset.
 type skillSetManager struct {

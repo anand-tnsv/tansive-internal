@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -158,6 +159,28 @@ func MorphServer(server string) string {
 // GetServerURL returns the properly formatted server URL
 func (cfg *Config) GetServerURL() string {
 	return MorphServer(cfg.ServerPort)
+}
+
+// GetAPIKey returns the API key from the configuration
+func (cfg *Config) GetAPIKey() string {
+	return cfg.APIKey
+}
+
+// GetToken returns the current token from the configuration
+func (cfg *Config) GetToken() string {
+	return cfg.CurrentToken
+}
+
+// GetTokenExpiry returns the token expiry time from the configuration
+func (cfg *Config) GetTokenExpiry() time.Time {
+	if cfg.TokenExpiry == "" {
+		return time.Time{}
+	}
+	t, err := time.Parse(time.RFC3339, cfg.TokenExpiry)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
 
 // configCmd represents the config command

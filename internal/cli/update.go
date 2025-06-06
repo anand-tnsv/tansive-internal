@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/spf13/cobra"
+	"github.com/tansive/tansive-internal/internal/common/httpclient"
 )
 
 var (
@@ -56,7 +57,7 @@ func updateResource(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	client := NewHTTPClient(GetConfig())
+	client := httpclient.NewClient(GetConfig())
 	queryParams := make(map[string]string)
 	if updateCatalog != "" {
 		queryParams["catalog"] = updateCatalog
@@ -72,7 +73,7 @@ func updateResource(cmd *cobra.Command, args []string) error {
 	_, location, err := client.CreateResource(resourceType, jsonData, queryParams)
 	if err != nil {
 		// If we get a conflict, try to update instead
-		if httpErr, ok := err.(*HTTPError); ok && httpErr.StatusCode == http.StatusConflict {
+		if httpErr, ok := err.(*httpclient.HTTPError); ok && httpErr.StatusCode == http.StatusConflict {
 			objectType := ""
 			if resourceType == "resources" {
 				objectType = "definition"

@@ -50,6 +50,30 @@ func resourceNameValidator(fl validator.FieldLevel) bool {
 	return re.MatchString(str)
 }
 
+const skillNameRegex = `^[a-z0-9](?:[_-]?[a-z0-9]+)*$`
+const skillNameMaxLength = 63
+
+// skillNameValidator checks if the given name follows our convention.
+func skillNameValidator(fl validator.FieldLevel) bool {
+	var str string
+	if ns, ok := fl.Field().Interface().(types.NullableString); ok {
+		if ns.IsNil() {
+			return true
+		}
+		str = ns.String()
+	} else {
+		str = fl.Field().String()
+	}
+
+	// Check the length of the name
+	if len(str) > skillNameMaxLength {
+		return false
+	}
+
+	re := regexp.MustCompile(skillNameRegex)
+	return re.MatchString(str)
+}
+
 // notNull checks if a nullable value is not null
 func notNull(fl validator.FieldLevel) bool {
 	nv, ok := fl.Field().Interface().(types.Nullable)
@@ -116,4 +140,5 @@ func init() {
 	V().RegisterValidation("resourcePathValidator", resourcePathValidator)
 	V().RegisterValidation("notNull", notNull)
 	V().RegisterValidation("requireVersionV1", requireVersionV1)
+	V().RegisterValidation("skillNameValidator", skillNameValidator)
 }

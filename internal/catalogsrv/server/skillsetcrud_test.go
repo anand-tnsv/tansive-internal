@@ -103,7 +103,6 @@ func TestSkillSetCrud(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"annotations": null,
 				"runner": {
 					"id": "system.commandrunner",
 					"config": {
@@ -200,7 +199,6 @@ func TestSkillSetCrud(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"annotations": null,
 				"runner": {
 					"id": "system.commandrunner",
 					"config": {
@@ -407,7 +405,6 @@ func TestSkillSetList(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"annotations": null,
 				"runner": {
 					"id": "system.commandrunner",
 					"config": {

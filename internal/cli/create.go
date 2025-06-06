@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/tansive/tansive-internal/internal/common/httpclient"
 )
 
 var (
@@ -52,7 +53,7 @@ func createResource(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	client := NewHTTPClient(GetConfig())
+	client := httpclient.NewClient(GetConfig())
 	queryParams := make(map[string]string)
 	if createCatalog != "" {
 		queryParams["catalog"] = createCatalog
