@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -15,6 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // TokenOptions contains options for token creation

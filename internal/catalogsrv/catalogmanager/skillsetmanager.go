@@ -7,8 +7,9 @@ import (
 	"path"
 	"reflect"
 
+	"encoding/json"
+
 	"github.com/go-playground/validator/v10"
-	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"

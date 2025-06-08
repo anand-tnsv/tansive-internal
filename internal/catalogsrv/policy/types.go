@@ -1,7 +1,7 @@
 package policy
 
 import (
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 

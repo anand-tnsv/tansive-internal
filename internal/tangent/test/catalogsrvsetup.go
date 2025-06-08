@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/rs/zerolog/log"
 
@@ -110,9 +110,13 @@ func SetRequestBodyAndHeader(t *testing.T, req *http.Request, data interface{}) 
 	req.Header.Set("Content-Type", "application/json")
 }
 
-func NewDb() context.Context {
+func NewDb(t *testing.T) context.Context {
 	ctx := log.Logger.WithContext(context.Background())
 	ctx, err := db.ConnCtx(ctx)
+	t.Cleanup(func() {
+		db.DB(ctx).Close(ctx)
+		log.Ctx(ctx).Info().Msg("closed db connection")
+	})
 	if err != nil {
 		log.Ctx(ctx).Fatal().Err(err).Msg("unable to get db connection")
 	}

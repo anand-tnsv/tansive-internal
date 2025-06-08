@@ -10,8 +10,9 @@ import (
 	"reflect"
 	"slices"
 
+	"encoding/json"
+
 	"github.com/go-playground/validator/v10"
-	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"

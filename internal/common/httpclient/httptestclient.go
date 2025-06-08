@@ -42,6 +42,9 @@ func (c *TestHTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) 
 	if err != nil {
 		return nil, "", fmt.Errorf("invalid server URL: %v", err)
 	}
+	if u.Path == "" {
+		u.Path = "/"
+	}
 	u.Path = path.Join(u.Path, opts.Path)
 
 	// Add query parameters

@@ -176,7 +176,7 @@ var resourceObjectHandlers = []policy.ResponseHandlerParam{
 		Method:         http.MethodGet,
 		Path:           "/skillsets/*",
 		Handler:        getObject,
-		AllowedActions: []policy.Action{policy.ActionSkillSetList},
+		AllowedActions: []policy.Action{policy.ActionSkillSetRead, policy.ActionSkillSetUse},
 	},
 	{
 		Method:         http.MethodPut,

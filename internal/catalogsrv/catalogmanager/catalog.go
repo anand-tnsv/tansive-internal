@@ -5,7 +5,7 @@ import (
 	"errors"
 	"reflect"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgtype"

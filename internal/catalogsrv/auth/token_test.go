@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func TestNewToken(t *testing.T) {

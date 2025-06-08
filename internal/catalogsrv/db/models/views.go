@@ -3,8 +3,8 @@ package models
 import (
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 /*

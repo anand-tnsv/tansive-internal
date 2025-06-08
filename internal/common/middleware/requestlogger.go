@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 type requestIdContextKey string

@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +11,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // The rules field here is garbage json and is immaterial.

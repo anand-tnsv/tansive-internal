@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"path"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"

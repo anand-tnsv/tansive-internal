@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"encoding/json"
 	"github.com/jackc/pgtype"
-	json "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"

@@ -6,7 +6,8 @@ import (
 	"net/url"
 	"path"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
+
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
@@ -377,4 +378,13 @@ func NewSkillSetKindHandler(ctx context.Context, req interfaces.RequestContext) 
 	return &skillsetKindHandler{
 		req: req,
 	}, nil
+}
+
+// This is a helper function without validation, and to be used from client code.
+func SkillSetManagerFromJSON(ctx context.Context, jsonData []byte) (SkillSetManager, apperrors.Error) {
+	sm := &skillSetManager{}
+	if err := json.Unmarshal(jsonData, &sm.skillSet.Spec); err != nil {
+		return nil, ErrSchemaValidation.Msg(err.Error())
+	}
+	return sm, nil
 }

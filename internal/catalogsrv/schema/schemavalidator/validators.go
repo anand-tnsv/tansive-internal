@@ -139,9 +139,9 @@ func ValidatePathSegment(segment string) bool {
 }
 
 func JsonSchemaValidator(fl validator.FieldLevel) bool {
-	schema := fl.Field().String()
+	schema := fl.Field().Bytes()
 	// First validate that the schema is valid JSON using gjson
-	if !gjson.Valid(schema) {
+	if !gjson.Valid(string(schema)) {
 		return false
 	}
 

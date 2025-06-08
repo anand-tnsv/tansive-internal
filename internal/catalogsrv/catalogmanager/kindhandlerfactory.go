@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tidwall/gjson"
 )

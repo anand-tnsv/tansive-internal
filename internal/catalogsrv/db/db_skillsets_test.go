@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"encoding/json"
 	"github.com/jackc/pgtype"
-	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

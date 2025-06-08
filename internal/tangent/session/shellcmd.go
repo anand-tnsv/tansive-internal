@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
@@ -60,32 +59,6 @@ func createCommand(ctx context.Context, script string, s *commandIOWriters, c *s
 	cmd.Stderr = s.err
 
 	return cmd, nil
-}
-
-type commandErrorInfo struct {
-	ExitCode int
-	Signal   string
-	Stderr   string
-}
-
-func extractCommandError(err error, stderr string) commandErrorInfo {
-	info := commandErrorInfo{
-		ExitCode: -1,
-		Signal:   "",
-		Stderr:   stderr,
-	}
-
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-			info.ExitCode = status.ExitStatus()
-
-			if status.Signaled() {
-				info.Signal = status.Signal().String()
-			}
-		}
-	}
-
-	return info
 }
 
 func appendOrReplaceEnv(env []string, key, value string) []string {

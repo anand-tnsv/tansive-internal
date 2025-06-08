@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func TestCreateViewToken(t *testing.T) {

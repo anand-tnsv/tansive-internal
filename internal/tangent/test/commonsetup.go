@@ -4,8 +4,9 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -38,7 +39,7 @@ func SetupTestCatalog(t *testing.T) *testSetup {
 
 // SetupTest initializes the test environment
 func SetupTest(t *testing.T) *testSetup {
-	ctx := NewDb()
+	ctx := NewDb(t)
 	t.Cleanup(func() {
 		db.DB(ctx).Close(ctx)
 	})
@@ -210,7 +211,7 @@ func AdoptDefaultView(t *testing.T, catalog string) string {
 	return adoptResponse.Token
 }
 
-func AdoptView(t *testing.T, catalog, viewLabel, token string) string {
+func AdoptView(t *testing.T, catalog, viewLabel, token string) (string, time.Time) {
 	httpReq, _ := http.NewRequest("POST", "/auth/adopt-view/"+catalog+"/"+viewLabel, nil)
 	httpReq.Header.Set("Authorization", "Bearer "+token)
 	response := ExecuteTestRequest(t, httpReq, nil)
@@ -225,5 +226,8 @@ func AdoptView(t *testing.T, catalog, viewLabel, token string) string {
 	require.NotEmpty(t, adoptResponse.Token)
 	require.NotEmpty(t, adoptResponse.ExpiresAt)
 
-	return adoptResponse.Token
+	expiresAt, err := time.Parse(time.RFC3339, adoptResponse.ExpiresAt)
+	require.NoError(t, err)
+
+	return adoptResponse.Token, expiresAt
 }

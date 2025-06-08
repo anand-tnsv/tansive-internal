@@ -3,7 +3,7 @@ package catalogmanager
 import (
 	"context"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"

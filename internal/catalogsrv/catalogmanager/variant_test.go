@@ -3,12 +3,12 @@ package catalogmanager
 import (
 	"testing"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func TestNewVariantManager(t *testing.T) {

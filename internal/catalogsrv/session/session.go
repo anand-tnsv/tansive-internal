@@ -3,15 +3,15 @@ package session
 import (
 	"bytes"
 	"context"
-	gojson "encoding/json"
 	"fmt"
 	"io"
 	"path"
 	"reflect"
 	"time"
 
+	"encoding/json"
+
 	"github.com/go-playground/validator/v10"
-	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
@@ -151,7 +151,7 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		Skill:          skill,
 		ViewID:         viewManager.ID(),
 		ViewDefinition: viewDefJSON,
-		Variables:      gojson.RawMessage(sessionSpec.Variables),
+		Variables:      json.RawMessage(sessionSpec.Variables),
 		StatusSummary:  SessionStatusCreated,
 		Status:         nil,
 		Info:           nil,

@@ -102,15 +102,7 @@ spec:
 `
 
 func SkillsetDef(env string) json.RawMessage {
-	// convert yaml to json
-	var yamlData interface{}
-	if err := yaml.Unmarshal([]byte(skillsetDef), &yamlData); err != nil {
-		panic(err)
-	}
-	jsonData, err := json.Marshal(yamlData)
-	if err != nil {
-		panic(err)
-	}
+	jsonData := getJsonFromYaml(skillsetDef)
 	if env == "dev" {
 		sjson.SetBytes(jsonData, "spec.context.0.value.kubeconfig", "YXBpVmVyc2lvbjogdjEKa2luZDogQ29uZmlnCmNsdXN0ZXJzOgogIC0gbmFtZTogbXktY2x1c3RlcgogICAgY2x1c3RlcjoKICAgICAgc2VydmVyOiBodHRwczovL2Rldi1lbnYuZXhhbXBsZS5jb20KICAgICAgY2VydGlmaWNhdGUtYXV0aG9yaXR5LWRhdGE6IDxiYXNlNjQtZW5jb2RlZC1jYS1jZXJ0Pg==")
 	} else {
@@ -119,9 +111,22 @@ func SkillsetDef(env string) json.RawMessage {
 	return jsonData
 }
 
+func getJsonFromYaml(yamlStr string) json.RawMessage {
+	var yamlData interface{}
+	if err := yaml.Unmarshal([]byte(yamlStr), &yamlData); err != nil {
+		panic(err)
+	}
+	jsonData, err := json.Marshal(yamlData)
+	if err != nil {
+		panic(err)
+	}
+	return jsonData
+}
+
 func SkillsetPath() string {
-	name := gjson.Get(skillsetDef, "metadata.name").String()
-	path := gjson.Get(skillsetDef, "metadata.path").String()
+	jsonData := getJsonFromYaml(skillsetDef)
+	name := gjson.Get(string(jsonData), "metadata.name").String()
+	path := gjson.Get(string(jsonData), "metadata.path").String()
 	return fmt.Sprintf("%s/%s", path, name)
 }
 

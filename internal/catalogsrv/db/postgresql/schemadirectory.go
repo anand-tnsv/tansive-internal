@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/golang/snappy"
 	"github.com/rs/zerolog/log"

@@ -20,8 +20,10 @@ type session struct {
 	id          uuid.UUID
 	context     *ServerContext
 	skillSet    catalogmanager.SkillSetManager
-	viewManager policy.ViewManager
+	viewDef     *policy.ViewDefinition
 	token       string
+	tokenExpiry time.Time
+	serverURL   string
 }
 
 type ServerContext struct {
@@ -48,7 +50,7 @@ type ServerContext struct {
 
 var sessionManager *activeSessions
 
-func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, token string) (*session, apperrors.Error) {
+func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, token string, tokenExpiry time.Time) (*session, apperrors.Error) {
 	if c.SessionID == uuid.Nil {
 		return nil, ErrInvalidSession
 	}
@@ -60,8 +62,9 @@ func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, t
 		id:          c.SessionID,
 		context:     c,
 		skillSet:    nil,
-		viewManager: nil,
+		viewDef:     nil,
 		token:       token,
+		tokenExpiry: tokenExpiry,
 	}
 	as.sessions[c.SessionID] = session
 	return session, nil

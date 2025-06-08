@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/rs/zerolog/log"
 
