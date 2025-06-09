@@ -1,17 +1,8 @@
 package shellcommandrunner
 
 import (
-	"io"
-
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
-
-// IOWriters provides stdout and stderr writers for command output.
-// Both Out and Err must implement io.Writer.
-type IOWriters struct {
-	Out io.Writer // stdout writer, must implement io.Writer
-	Err io.Writer // stderr writer, must implement io.Writer
-}
 
 // Config defines the configuration for command execution.
 // All fields are required except RuntimeConfig and Env.

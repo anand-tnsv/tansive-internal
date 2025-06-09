@@ -7,14 +7,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/internal/tangent/runners/shellcommandrunner"
 	"github.com/tansive/tansive-internal/internal/tangent/test"
 )
 
 func TestCreateSession(t *testing.T) {
 	SetTestMode(true)
+	shellcommandrunner.TestInit()
 	ts := test.SetupTestCatalog(t)
 	token, expiresAt := test.AdoptView(t, ts.Catalog, "dev-view", ts.Token)
-	t.Logf("Token: %s", token)
 	serverContext := &ServerContext{
 		SessionID:      uuid.New(),
 		TenantID:       ts.TenantID,
@@ -32,6 +33,8 @@ func TestCreateSession(t *testing.T) {
 	require.NoError(t, err)
 	tCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	err = session.RunInteractiveSkill(tCtx)
+	err = session.Run(tCtx, "k8s_troubleshooter", map[string]any{
+		"prompt": "I'm getting a 500 error when I try to access the API",
+	})
 	require.NoError(t, err)
 }

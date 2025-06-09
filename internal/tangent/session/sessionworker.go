@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
@@ -15,24 +16,36 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
 	"github.com/tansive/tansive-internal/internal/tangent/eventlogger"
+	"github.com/tansive/tansive-internal/internal/tangent/runners"
+	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
-func (s *session) Run(ctx context.Context) apperrors.Error {
+type SkillArgs struct {
+	SessionID        string         `json:"sessionID"`
+	SkillName        string         `json:"skillName"`
+	InputArgs        map[string]any `json:"inputArgs"`
+	SessionVariables map[string]any `json:"sessionVariables"`
+}
+
+func (s *session) Run(ctx context.Context, skillName string, inputArgs map[string]any) apperrors.Error {
 	if err := s.FetchObjects(ctx); err != nil {
 		return err
 	}
 
-	// TODO: run the skill
-	return nil
+	// We only support interactive skills for now
+	return s.runInteractiveSkill(ctx, skillName, inputArgs)
 }
 
-func (s *session) RunInteractiveSkill(ctx context.Context) apperrors.Error {
+func (s *session) runInteractiveSkill(ctx context.Context, skillName string, inputArgs map[string]any) apperrors.Error {
 	log.Ctx(ctx).Info().Msg("Running interactive skill")
+	if s.skillSet == nil {
+		return ErrUnableToGetSkillset.Msg("skillset not found")
+	}
 
 	// get command io writers
-	ioWriters := &commandIOWriters{
-		out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", "shell").Logger(),
-		err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", "shell").Logger(),
+	ioWriters := &tangentcommon.IOWriters{
+		Out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", "shell").Logger(),
+		Err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", "shell").Logger(),
 	}
 
 	sessionLog, unsubSessionLog := GetEventBus().Subscribe(s.getTopic(TopicSessionLog), 100)
@@ -40,8 +53,35 @@ func (s *session) RunInteractiveSkill(ctx context.Context) apperrors.Error {
 	interactiveLog, unsubInteractiveLog := GetEventBus().Subscribe(s.getTopic(TopicInteractiveLog), 100)
 	defer unsubInteractiveLog()
 
+	skill, err := s.resolveSkill(skillName)
+	if err != nil {
+		return err
+	}
+	if err := skill.ValidateInput(inputArgs); err != nil {
+		return err
+	}
+
+	runner, err := s.GetRunner(ctx, ioWriters)
+	if err != nil {
+		return err
+	}
+
+	// create the arguments
+	args := SkillArgs{
+		SessionID:        s.id.String(),
+		SkillName:        skillName,
+		InputArgs:        s.context.Info.InputArgs,
+		SessionVariables: s.context.Info.SessionVariables,
+	}
+	argsMap := make(map[string]any)
+	if err := mapstructure.Decode(args, &argsMap); err != nil {
+		return ErrInvalidObject.Msg(err.Error())
+	}
+
 	childCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	resultChan := make(chan apperrors.Error, 1)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -50,11 +90,14 @@ func (s *session) RunInteractiveSkill(ctx context.Context) apperrors.Error {
 		defer wg.Done()
 		defer cancel()
 
-		err := shellCmd(childCtx, "ping 8.8.8.8", &shellConfig{
-			dir: "/Users/anandm/tansive/tansive-internal",
-		}, ioWriters)
+		log.Info().Msg("Running interactive skill: " + skillName)
+		err := runner.Run(childCtx, argsMap)
 		if err != nil {
 			log.Error().Err(err).Msg("Error running shell command")
+			resultChan <- err
+		} else {
+			log.Info().Msg("Interactive skill completed successfully")
+			resultChan <- nil
 		}
 
 	}(s.getLogger(TopicSessionLog))
@@ -93,7 +136,21 @@ loop:
 
 	wg.Wait()
 
-	return nil
+	return <-resultChan
+}
+
+func (s *session) GetRunner(ctx context.Context, ioWriters *tangentcommon.IOWriters) (runners.Runner, apperrors.Error) {
+	if s.skillSet == nil {
+		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
+	}
+
+	runnerDef := s.skillSet.GetRunnerDefinition()
+	runner, err := runners.NewRunner(ctx, s.id.String(), runnerDef, ioWriters)
+	if err != nil {
+		return nil, err
+	}
+
+	return runner, nil
 }
 
 func (s *session) FetchObjects(ctx context.Context) apperrors.Error {
@@ -122,6 +179,18 @@ func (s *session) FetchObjects(ctx context.Context) apperrors.Error {
 	}
 
 	return nil
+}
+
+func (s *session) resolveSkill(skillName string) (*catalogmanager.Skill, apperrors.Error) {
+	if s.skillSet == nil {
+		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
+	}
+
+	skill, err := s.skillSet.GetSkill(skillName)
+	if err != nil {
+		return nil, err
+	}
+	return &skill, nil
 }
 
 func getSkillset(ctx context.Context, client httpclient.HTTPClientInterface, skillset string) (catalogmanager.SkillSetManager, apperrors.Error) {

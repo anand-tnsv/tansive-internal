@@ -2,12 +2,25 @@ package runners
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/tangent/runners/shellcommandrunner"
+	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
 // Runner is the interface for all runners.
 type Runner interface {
-	Run(ctx context.Context, args json.RawMessage) apperrors.Error
+	Run(ctx context.Context, args map[string]any) apperrors.Error
+}
+
+func NewRunner(ctx context.Context, sessionID string, runnerDef catalogmanager.SkillSetRunner, writers *tangentcommon.IOWriters) (Runner, apperrors.Error) {
+	switch runnerDef.ID {
+	case catcommon.ShellCommandRunnerID:
+		return shellcommandrunner.New(ctx, sessionID, runnerDef.Config, writers)
+	default:
+		return nil, apperrors.New(fmt.Sprintf("invalid runner id: %s", runnerDef.ID))
+	}
 }

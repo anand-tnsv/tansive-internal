@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"encoding/json"
+
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -550,4 +551,70 @@ func TestSkillSetManagerDelete(t *testing.T) {
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, dberror.ErrNotFound))
 	})
+}
+
+func TestSkillValidateInput(t *testing.T) {
+	tests := []struct {
+		name          string
+		skill         Skill
+		input         string
+		expectedError bool
+	}{
+		{
+			name: "valid input matches schema",
+			skill: Skill{
+				Name:         "test-skill",
+				Description:  "A test skill",
+				InputSchema:  json.RawMessage(`{"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}, "required": ["name"]}`),
+				OutputSchema: json.RawMessage(`{"type": "object"}`),
+				ExportedActions: []policy.Action{
+					"test.action",
+				},
+			},
+			input:         `{"name": "John", "age": 30}`,
+			expectedError: false,
+		},
+		{
+			name: "invalid input - missing required field",
+			skill: Skill{
+				Name:         "test-skill",
+				Description:  "A test skill",
+				InputSchema:  json.RawMessage(`{"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}, "required": ["name"]}`),
+				OutputSchema: json.RawMessage(`{"type": "object"}`),
+				ExportedActions: []policy.Action{
+					"test.action",
+				},
+			},
+			input:         `{"age": 30}`,
+			expectedError: true,
+		},
+		{
+			name: "invalid input - wrong type",
+			skill: Skill{
+				Name:         "test-skill",
+				Description:  "A test skill",
+				InputSchema:  json.RawMessage(`{"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}, "required": ["name"]}`),
+				OutputSchema: json.RawMessage(`{"type": "object"}`),
+				ExportedActions: []policy.Action{
+					"test.action",
+				},
+			},
+			input:         `{"name": "John", "age": "thirty"}`,
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := make(map[string]any)
+			err := json.Unmarshal([]byte(tt.input), &input)
+			require.NoError(t, err)
+			err = tt.skill.ValidateInput(input)
+			if tt.expectedError {
+				assert.Error(t, err, "Expected validation error but got none")
+			} else {
+				assert.NoError(t, err, "Unexpected validation error: %v", err)
+			}
+		})
+	}
 }

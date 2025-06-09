@@ -72,20 +72,18 @@ func TestCreateSession(t *testing.T) {
 	require.NoError(t, DB(ctx).CreateView(ctx, &view))
 
 	session := models.Session{
-		SkillSet:       "test_skillset",
-		Skill:          "test_skill",
-		ViewID:         view.ViewID,
-		ViewDefinition: viewDef.Bytes,
-		TangentID:      uuid.New(),
-		Status:         nil,
-		Info:           nil,
-		Variables:      nil,
-		UserID:         "test_user",
-		CatalogID:      catalog.CatalogID,
-		VariantID:      variant.VariantID,
-		StartedAt:      time.Now(),
-		EndedAt:        time.Now().Add(time.Hour),
-		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		SkillSet:  "test_skillset",
+		Skill:     "test_skill",
+		ViewID:    view.ViewID,
+		TangentID: uuid.New(),
+		Status:    nil,
+		Info:      nil,
+		UserID:    "test_user",
+		CatalogID: catalog.CatalogID,
+		VariantID: variant.VariantID,
+		StartedAt: time.Now(),
+		EndedAt:   time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
 	err := DB(ctx).CreateSession(ctx, &session)
@@ -115,7 +113,6 @@ func TestGetSession(t *testing.T) {
 	rawInfo := json.RawMessage(`{"meta": "get_test"}`)
 	rawStatus := json.RawMessage(`{"state": "active"}`)
 	rawViewDef := json.RawMessage(`{"view": "test"}`)
-	rawVariables := json.RawMessage(`{"var1": "value1", "var2": 123}`)
 
 	var info pgtype.JSONB
 	require.NoError(t, info.Set(`{"meta": "get_test"}`))
@@ -145,20 +142,18 @@ func TestGetSession(t *testing.T) {
 	require.NoError(t, db.CreateView(ctx, &view))
 
 	session := models.Session{
-		SkillSet:       "test_skillset",
-		Skill:          "test_skill",
-		ViewID:         view.ViewID,
-		ViewDefinition: rawViewDef,
-		TangentID:      uuid.New(),
-		Status:         rawStatus,
-		Info:           rawInfo,
-		Variables:      rawVariables,
-		UserID:         "test_user",
-		CatalogID:      catalog.CatalogID,
-		VariantID:      variant.VariantID,
-		StartedAt:      time.Now(),
-		EndedAt:        time.Now().Add(time.Hour),
-		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		SkillSet:  "test_skillset",
+		Skill:     "test_skill",
+		ViewID:    view.ViewID,
+		TangentID: uuid.New(),
+		Status:    rawStatus,
+		Info:      rawInfo,
+		UserID:    "test_user",
+		CatalogID: catalog.CatalogID,
+		VariantID: variant.VariantID,
+		StartedAt: time.Now(),
+		EndedAt:   time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	assert.NoError(t, db.CreateSession(ctx, &session))
 
@@ -174,8 +169,6 @@ func TestGetSession(t *testing.T) {
 	// Compare RawMessage fields (normalize via JSON strings)
 	assert.JSONEq(t, string(session.Info), string(retrieved.Info))
 	assert.JSONEq(t, string(session.Status), string(retrieved.Status))
-	assert.JSONEq(t, string(session.ViewDefinition), string(retrieved.ViewDefinition))
-	assert.JSONEq(t, string(session.Variables), string(retrieved.Variables))
 
 	// Negative case
 	_, err = db.GetSession(ctx, uuid.New())
@@ -232,20 +225,18 @@ func TestUpdateSessionStatus(t *testing.T) {
 	require.NoError(t, DB(ctx).CreateView(ctx, &view))
 
 	session := models.Session{
-		SkillSet:       "test_skillset",
-		Skill:          "test_skill",
-		ViewID:         view.ViewID,
-		ViewDefinition: viewDef.Bytes,
-		TangentID:      uuid.New(),
-		Status:         status.Bytes,
-		Info:           info.Bytes,
-		Variables:      variables.Bytes,
-		UserID:         "test_user",
-		CatalogID:      catalog.CatalogID,
-		VariantID:      variant.VariantID,
-		StartedAt:      time.Now(),
-		EndedAt:        time.Now().Add(time.Hour),
-		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		SkillSet:  "test_skillset",
+		Skill:     "test_skill",
+		ViewID:    view.ViewID,
+		TangentID: uuid.New(),
+		Status:    status.Bytes,
+		Info:      info.Bytes,
+		UserID:    "test_user",
+		CatalogID: catalog.CatalogID,
+		VariantID: variant.VariantID,
+		StartedAt: time.Now(),
+		EndedAt:   time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	assert.NoError(t, DB(ctx).CreateSession(ctx, &session))
 
@@ -315,20 +306,18 @@ func TestUpdateSessionEnd(t *testing.T) {
 	require.NoError(t, DB(ctx).CreateView(ctx, &view))
 
 	session := models.Session{
-		SkillSet:       "test_skillset",
-		Skill:          "test_skill",
-		ViewID:         view.ViewID,
-		ViewDefinition: viewDef.Bytes,
-		TangentID:      uuid.New(),
-		Status:         status.Bytes,
-		Info:           info.Bytes,
-		Variables:      variables.Bytes,
-		UserID:         "test_user",
-		CatalogID:      catalog.CatalogID,
-		VariantID:      variant.VariantID,
-		StartedAt:      time.Now(),
-		EndedAt:        time.Now().Add(time.Hour),
-		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		SkillSet:  "test_skillset",
+		Skill:     "test_skill",
+		ViewID:    view.ViewID,
+		TangentID: uuid.New(),
+		Status:    status.Bytes,
+		Info:      info.Bytes,
+		UserID:    "test_user",
+		CatalogID: catalog.CatalogID,
+		VariantID: variant.VariantID,
+		StartedAt: time.Now(),
+		EndedAt:   time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	assert.NoError(t, DB(ctx).CreateSession(ctx, &session))
 
@@ -400,20 +389,18 @@ func TestUpdateSessionInfo(t *testing.T) {
 	require.NoError(t, DB(ctx).CreateView(ctx, &view))
 
 	session := models.Session{
-		SkillSet:       "test_skillset",
-		Skill:          "test_skill",
-		ViewID:         view.ViewID,
-		ViewDefinition: viewDef.Bytes,
-		TangentID:      uuid.New(),
-		Status:         status.Bytes,
-		Info:           info.Bytes,
-		Variables:      variables.Bytes,
-		UserID:         "test_user",
-		CatalogID:      catalog.CatalogID,
-		VariantID:      variant.VariantID,
-		StartedAt:      time.Now(),
-		EndedAt:        time.Now().Add(time.Hour),
-		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		SkillSet:  "test_skillset",
+		Skill:     "test_skill",
+		ViewID:    view.ViewID,
+		TangentID: uuid.New(),
+		Status:    status.Bytes,
+		Info:      info.Bytes,
+		UserID:    "test_user",
+		CatalogID: catalog.CatalogID,
+		VariantID: variant.VariantID,
+		StartedAt: time.Now(),
+		EndedAt:   time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	assert.NoError(t, DB(ctx).CreateSession(ctx, &session))
 
@@ -482,20 +469,18 @@ func TestDeleteSession(t *testing.T) {
 	require.NoError(t, DB(ctx).CreateView(ctx, &view))
 
 	session := models.Session{
-		SkillSet:       "test_skillset",
-		Skill:          "test_skill",
-		ViewID:         view.ViewID,
-		ViewDefinition: viewDef.Bytes,
-		TangentID:      uuid.New(),
-		Status:         status.Bytes,
-		Info:           info.Bytes,
-		Variables:      variables.Bytes,
-		UserID:         "test_user",
-		CatalogID:      catalog.CatalogID,
-		VariantID:      variant.VariantID,
-		StartedAt:      time.Now(),
-		EndedAt:        time.Now().Add(time.Hour),
-		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		SkillSet:  "test_skillset",
+		Skill:     "test_skill",
+		ViewID:    view.ViewID,
+		TangentID: uuid.New(),
+		Status:    status.Bytes,
+		Info:      info.Bytes,
+		UserID:    "test_user",
+		CatalogID: catalog.CatalogID,
+		VariantID: variant.VariantID,
+		StartedAt: time.Now(),
+		EndedAt:   time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	assert.NoError(t, DB(ctx).CreateSession(ctx, &session))
 
@@ -564,52 +549,46 @@ func TestListSessionsByCatalog(t *testing.T) {
 	// Create multiple sessions
 	sessions := []models.Session{
 		{
-			SkillSet:       "skillset1",
-			Skill:          "skill1",
-			ViewID:         view.ViewID,
-			ViewDefinition: viewDef.Bytes,
-			TangentID:      uuid.New(),
-			Status:         status.Bytes,
-			Info:           info.Bytes,
-			Variables:      variables.Bytes,
-			UserID:         "test_user",
-			CatalogID:      catalog.CatalogID,
-			VariantID:      variant.VariantID,
-			StartedAt:      time.Now(),
-			EndedAt:        time.Now().Add(time.Hour),
-			ExpiresAt:      time.Now().Add(24 * time.Hour),
+			SkillSet:  "skillset1",
+			Skill:     "skill1",
+			ViewID:    view.ViewID,
+			TangentID: uuid.New(),
+			Status:    status.Bytes,
+			Info:      info.Bytes,
+			UserID:    "test_user",
+			CatalogID: catalog.CatalogID,
+			VariantID: variant.VariantID,
+			StartedAt: time.Now(),
+			EndedAt:   time.Now().Add(time.Hour),
+			ExpiresAt: time.Now().Add(24 * time.Hour),
 		},
 		{
-			SkillSet:       "skillset2",
-			Skill:          "skill2",
-			ViewID:         view.ViewID,
-			ViewDefinition: viewDef.Bytes,
-			TangentID:      uuid.New(),
-			Status:         status.Bytes,
-			Info:           info.Bytes,
-			Variables:      variables.Bytes,
-			UserID:         "test_user",
-			CatalogID:      catalog.CatalogID,
-			VariantID:      variant.VariantID,
-			StartedAt:      time.Now(),
-			EndedAt:        time.Now().Add(time.Hour),
-			ExpiresAt:      time.Now().Add(24 * time.Hour),
+			SkillSet:  "skillset2",
+			Skill:     "skill2",
+			ViewID:    view.ViewID,
+			TangentID: uuid.New(),
+			Status:    status.Bytes,
+			Info:      info.Bytes,
+			UserID:    "test_user",
+			CatalogID: catalog.CatalogID,
+			VariantID: variant.VariantID,
+			StartedAt: time.Now(),
+			EndedAt:   time.Now().Add(time.Hour),
+			ExpiresAt: time.Now().Add(24 * time.Hour),
 		},
 		{
-			SkillSet:       "skillset3",
-			Skill:          "skill3",
-			ViewID:         view.ViewID,
-			ViewDefinition: viewDef.Bytes,
-			TangentID:      uuid.New(),
-			Status:         status.Bytes,
-			Info:           info.Bytes,
-			Variables:      variables.Bytes,
-			UserID:         "test_user",
-			CatalogID:      catalog.CatalogID,
-			VariantID:      variant.VariantID,
-			StartedAt:      time.Now(),
-			EndedAt:        time.Now().Add(time.Hour),
-			ExpiresAt:      time.Now().Add(24 * time.Hour),
+			SkillSet:  "skillset3",
+			Skill:     "skill3",
+			ViewID:    view.ViewID,
+			TangentID: uuid.New(),
+			Status:    status.Bytes,
+			Info:      info.Bytes,
+			UserID:    "test_user",
+			CatalogID: catalog.CatalogID,
+			VariantID: variant.VariantID,
+			StartedAt: time.Now(),
+			EndedAt:   time.Now().Add(time.Hour),
+			ExpiresAt: time.Now().Add(24 * time.Hour),
 		},
 	}
 

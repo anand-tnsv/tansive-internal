@@ -51,6 +51,7 @@ var (
 	ErrInvalidResourceValue      apperrors.Error = ErrCatalogError.New("invalid resource value").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidResourceDefinition apperrors.Error = ErrCatalogError.New("invalid resource definition").SetStatusCode(http.StatusBadRequest)
 	ErrAmbiguousMatch            apperrors.Error = ErrCatalogError.New("ambiguous resource match").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidInput              apperrors.Error = ErrCatalogError.New("invalid input").SetStatusCode(http.StatusBadRequest)
 )
 
 // Schema validation errors

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"encoding/json"
+
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -189,10 +190,17 @@ func TestNewSession(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
 				"viewName": "parent-view",
-				"variables": {
+				"sessionVariables": {
 					"key1": "value1",
 					"key2": 123,
 					"key3": true
+				},
+				"inputArgs": {
+					"input": "test input",
+					"params": {
+						"param1": "value1",
+						"param2": 42
+					}
 				}
 			}`,
 			wantErr: false,
@@ -201,8 +209,11 @@ func TestNewSession(t *testing.T) {
 			name: "missing skillPath",
 			sessionSpec: `{
 				"viewName": "parent-view",
-				"variables": {
+				"sessionVariables": {
 					"key1": "value1"
+				},
+				"inputArgs": {
+					"input": "test"
 				}
 			}`,
 			wantErr: true,
@@ -212,8 +223,11 @@ func TestNewSession(t *testing.T) {
 			name: "missing viewName",
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
-				"variables": {
+				"sessionVariables": {
 					"key1": "value1"
+				},
+				"inputArgs": {
+					"input": "test"
 				}
 			}`,
 			wantErr: true,
@@ -224,8 +238,11 @@ func TestNewSession(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "invalid/path/format",
 				"viewName": "parent-view",
-				"variables": {
+				"sessionVariables": {
 					"key1": "value1"
+				},
+				"inputArgs": {
+					"input": "test"
 				}
 			}`,
 			wantErr: true,
@@ -236,8 +253,11 @@ func TestNewSession(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
 				"viewName": "invalid view name",
-				"variables": {
+				"sessionVariables": {
 					"key1": "value1"
+				},
+				"inputArgs": {
+					"input": "test"
 				}
 			}`,
 			wantErr: true,
@@ -248,7 +268,7 @@ func TestNewSession(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
 				"viewName": "parent-view",
-				"variables": {
+				"sessionVariables": {
 					"key1": "value1",
 					"key2": "value2",
 					"key3": "value3",
@@ -270,6 +290,9 @@ func TestNewSession(t *testing.T) {
 					"key19": "value19",
 					"key20": "value20",
 					"key21": "value21"
+				},
+				"inputArgs": {
+					"input": "test"
 				}
 			}`,
 			wantErr: true,
@@ -280,8 +303,11 @@ func TestNewSession(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
 				"viewName": "parent-view",
-				"variables": {
+				"sessionVariables": {
 					"invalid@key": "value1"
+				},
+				"inputArgs": {
+					"input": "test"
 				}
 			}`,
 			wantErr: true,
@@ -292,8 +318,11 @@ func TestNewSession(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
 				"viewName": "parent-view",
-				"variables": {
+				"sessionVariables": {
 					"validKey": {"invalid": "object"}
+				},
+				"inputArgs": {
+					"input": "test"
 				}
 			}`,
 			wantErr: false,
@@ -304,8 +333,11 @@ func TestNewSession(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
 				"viewName": "non-existent-view",
-				"variables": {
+				"sessionVariables": {
 					"key1": "value1"
+				},
+				"inputArgs": {
+					"input": "test"
 				}
 			}`,
 			wantErr: true,
@@ -348,52 +380,52 @@ func TestSessionSpec_Validate(t *testing.T) {
 		{
 			name: "valid spec",
 			spec: SessionSpec{
-				SkillPath: "/skills/test-skill",
-				ViewName:  "test-view",
-				Variables: json.RawMessage(`{"key1": "value1"}`),
+				SkillPath:        "/skills/test-skill",
+				ViewName:         "test-view",
+				SessionVariables: json.RawMessage(`{"key1": "value1"}`),
 			},
 			wantErr: false,
 		},
 		{
 			name: "missing skillPath",
 			spec: SessionSpec{
-				ViewName:  "test-view",
-				Variables: json.RawMessage(`{"key1": "value1"}`),
+				ViewName:         "test-view",
+				SessionVariables: json.RawMessage(`{"key1": "value1"}`),
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing viewName",
 			spec: SessionSpec{
-				SkillPath: "skills/test-skill",
-				Variables: json.RawMessage(`{"key1": "value1"}`),
+				SkillPath:        "skills/test-skill",
+				SessionVariables: json.RawMessage(`{"key1": "value1"}`),
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid skillPath format",
 			spec: SessionSpec{
-				SkillPath: "invalid/path/format",
-				ViewName:  "test-view",
-				Variables: json.RawMessage(`{"key1": "value1"}`),
+				SkillPath:        "invalid/path/format",
+				ViewName:         "test-view",
+				SessionVariables: json.RawMessage(`{"key1": "value1"}`),
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid viewName format",
 			spec: SessionSpec{
-				SkillPath: "skills/test-skill",
-				ViewName:  "invalid view name",
-				Variables: json.RawMessage(`{"key1": "value1"}`),
+				SkillPath:        "skills/test-skill",
+				ViewName:         "invalid view name",
+				SessionVariables: json.RawMessage(`{"key1": "value1"}`),
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid variables format",
 			spec: SessionSpec{
-				SkillPath: "skills/test-skill",
-				ViewName:  "test-view",
-				Variables: json.RawMessage(`invalid json`),
+				SkillPath:        "skills/test-skill",
+				ViewName:         "test-view",
+				SessionVariables: json.RawMessage(`invalid json`),
 			},
 			wantErr: true,
 		},
@@ -409,6 +441,15 @@ func TestSessionSpec_Validate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func marshalJSON(t *testing.T, v interface{}) []byte {
+	t.Helper()
+	jsonBytes, goerr := json.Marshal(v)
+	if goerr != nil {
+		t.Fatalf("failed to marshal JSON: %v", goerr)
+	}
+	return jsonBytes
 }
 
 func TestSessionSaveAndGet(t *testing.T) {
@@ -582,10 +623,17 @@ func TestSessionSaveAndGet(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
 				"viewName": "parent-view",
-				"variables": {
+				"sessionVariables": {
 					"key1": "value1",
 					"key2": 123,
 					"key3": true
+				},
+				"inputArgs": {
+					"input": "test input",
+					"params": {
+						"param1": "value1",
+						"param2": 42
+					}
 				}
 			}`,
 			wantErr: false,
@@ -595,7 +643,10 @@ func TestSessionSaveAndGet(t *testing.T) {
 			sessionSpec: `{
 				"skillPath": "/skills/test-skillset/test-skill",
 				"viewName": "parent-view",
-				"variables": {}
+				"sessionVariables": {},
+				"inputArgs": {
+					"input": "test"
+				}
 			}`,
 			wantErr: false,
 		},
@@ -629,14 +680,26 @@ func TestSessionSaveAndGet(t *testing.T) {
 			assert.Equal(t, originalSession.ViewID, retrievedSession.ViewID)
 
 			// Compare parsed JSON values instead of raw bytes
-			var originalVars, retrievedVars map[string]interface{}
-			if err := json.Unmarshal(originalSession.Variables, &originalVars); err != nil {
-				t.Fatalf("failed to unmarshal original variables: %v", err)
+			var originalInfo, retrievedInfo SessionInfo
+			if goerr := json.Unmarshal(originalSession.Info, &originalInfo); goerr != nil {
+				t.Fatalf("failed to unmarshal original info: %v", goerr)
 			}
-			if err := json.Unmarshal(retrievedSession.Variables, &retrievedVars); err != nil {
-				t.Fatalf("failed to unmarshal retrieved variables: %v", err)
+			if goerr := json.Unmarshal(retrievedSession.Info, &retrievedInfo); goerr != nil {
+				t.Fatalf("failed to unmarshal retrieved info: %v", goerr)
 			}
-			assert.Equal(t, originalVars, retrievedVars)
+
+			// Compare each field of SessionInfo
+			originalVarsJSON := marshalJSON(t, originalInfo.SessionVariables)
+			retrievedVarsJSON := marshalJSON(t, retrievedInfo.SessionVariables)
+			assert.JSONEq(t, string(originalVarsJSON), string(retrievedVarsJSON))
+
+			originalInputJSON := marshalJSON(t, originalInfo.InputArgs)
+			retrievedInputJSON := marshalJSON(t, retrievedInfo.InputArgs)
+			assert.JSONEq(t, string(originalInputJSON), string(retrievedInputJSON))
+
+			originalViewJSON := marshalJSON(t, originalInfo.ViewDefinition)
+			retrievedViewJSON := marshalJSON(t, retrievedInfo.ViewDefinition)
+			assert.JSONEq(t, string(originalViewJSON), string(retrievedViewJSON))
 
 			assert.Equal(t, originalSession.StatusSummary, retrievedSession.StatusSummary)
 			assert.Equal(t, originalSession.UserID, retrievedSession.UserID)

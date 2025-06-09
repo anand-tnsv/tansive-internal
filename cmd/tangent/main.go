@@ -10,15 +10,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/tangent/common"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/server"
+	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 
 	"github.com/rs/zerolog/log"
 )
 
 func init() {
-	common.InitLogger()
+	tangentcommon.InitLogger()
 }
 
 type cmdoptions struct {

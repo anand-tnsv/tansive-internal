@@ -23,15 +23,15 @@ spec:
   runner:
     id: "system.commandrunner"
     config:
-      command: "bash"
-      args:
-        - "-c"
+      version: "0.1.0"
+      runtime: "bash"
+      runtimeConfig:
+        key: "value"
       env:
-        - key: "some-key"
-          value: "some-value"
-      exec: "my-bash-script.sh"
+        TEST_VAR: "test_value"
+      script: "test_script.sh"
       security:
-        - type: default #could be one of: default, TEZ
+        type: dev-mode  # could be one of: dev-mode, sandboxed
   context:
     - name: kubeconfig
       schema:
@@ -44,7 +44,7 @@ spec:
           - kubeconfig
       value:
         kubeconfig: YXBpVmVyc2lvbjogdjEKa2luZDogQ29uZmlnCmNsdXN0ZXJzOgogIC0gbmFtZTogbXktY2x1c3RlcgogICAgY2x1c3RlcjoKICAgICAgc2VydmVyOiBodHRwczovL2Rldi1lbnYuZXhhbXBsZS5jb20KICAgICAgY2VydGlmaWNhdGUtYXV0aG9yaXR5LWRhdGE6IDxiYXNlNjQtZW5jb2RlZC1jYS1jZXJ0Pg==
-      annotations:
+      annotations: {}
   skills:
     - name: list_pods
       description: "List pods in the cluster"

@@ -32,6 +32,9 @@ type SkillSetManager interface {
 	StorageRepresentation() *objectstore.ObjectStorageRepresentation
 	GetSkillMetadata() (SkillMetadata, apperrors.Error)
 	GetResourcePath() string
+	GetRunnerDefinition() SkillSetRunner
+	GetSkill(name string) (Skill, apperrors.Error)
+	ValidateInputForSkill(ctx context.Context, skillName string, input map[string]any) apperrors.Error
 }
 
 // NewSkillSetManager creates a new Sk sillSetManager instance from the pro vided JSON schema and metadata.
@@ -383,7 +386,7 @@ func NewSkillSetKindHandler(ctx context.Context, req interfaces.RequestContext) 
 // This is a helper function without validation, and to be used from client code.
 func SkillSetManagerFromJSON(ctx context.Context, jsonData []byte) (SkillSetManager, apperrors.Error) {
 	sm := &skillSetManager{}
-	if err := json.Unmarshal(jsonData, &sm.skillSet.Spec); err != nil {
+	if err := json.Unmarshal(jsonData, &sm.skillSet); err != nil {
 		return nil, ErrSchemaValidation.Msg(err.Error())
 	}
 	return sm, nil

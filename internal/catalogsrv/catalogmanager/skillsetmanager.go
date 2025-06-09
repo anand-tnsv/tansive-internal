@@ -73,6 +73,25 @@ type Skill struct {
 	Annotations     map[string]string `json:"annotations" validate:"omitempty"`
 }
 
+func (s *Skill) GetExportedActions() []policy.Action {
+	return s.ExportedActions
+}
+
+func (s *Skill) ValidateInput(input map[string]any) apperrors.Error {
+	if len(s.InputSchema) == 0 {
+		return nil
+	}
+	schema, err := compileSchema(string(s.InputSchema))
+	if err != nil {
+		return ErrInvalidObject.Msg("failed to compile input schema")
+	}
+	err = schema.Validate(input)
+	if err != nil {
+		return ErrInvalidInput.Msg("failed to validate input schema")
+	}
+	return nil
+}
+
 type Dependency struct {
 	Path    string          `json:"path" validate:"required,resourcePathValidator"`
 	Kind    DependencyKind  `json:"kind" validate:"required,oneof=SkillSet Resource"`
@@ -240,6 +259,47 @@ func (sm *skillSetManager) Save(ctx context.Context) apperrors.Error {
 	return nil
 }
 
+// JSON returns the JSON representation of the skillset.
+func (sm *skillSetManager) JSON(ctx context.Context) ([]byte, apperrors.Error) {
+	j, err := json.Marshal(sm.skillSet)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal skillset")
+		return nil, ErrUnableToLoadObject
+	}
+	return j, nil
+}
+
+// SpecJSON returns the JSON representation of the skillset's spec.
+func (sm *skillSetManager) SpecJSON(ctx context.Context) ([]byte, apperrors.Error) {
+	j, err := json.Marshal(sm.skillSet.Spec)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal skillset spec")
+		return nil, ErrInvalidSkillSetDefinition
+	}
+	return j, nil
+}
+
+func (sm *skillSetManager) GetRunnerDefinition() SkillSetRunner {
+	return sm.skillSet.Spec.Runner
+}
+
+func (sm *skillSetManager) GetSkill(name string) (Skill, apperrors.Error) {
+	for _, skill := range sm.skillSet.Spec.Skills {
+		if skill.Name == name {
+			return skill, nil
+		}
+	}
+	return Skill{}, ErrInvalidObject.Msg("skill not found")
+}
+
+func (sm *skillSetManager) ValidateInputForSkill(ctx context.Context, skillName string, input map[string]any) apperrors.Error {
+	skill, err := sm.GetSkill(skillName)
+	if err != nil {
+		return err
+	}
+	return skill.ValidateInput(input)
+}
+
 // DeleteSkillSet deletes a skillset from the database.
 func DeleteSkillSet(ctx context.Context, m *interfaces.Metadata) apperrors.Error {
 	if m == nil {
@@ -286,26 +346,6 @@ func DeleteSkillSet(ctx context.Context, m *interfaces.Metadata) apperrors.Error
 	}
 
 	return nil
-}
-
-// JSON returns the JSON representation of the skillset.
-func (sm *skillSetManager) JSON(ctx context.Context) ([]byte, apperrors.Error) {
-	j, err := json.Marshal(sm.skillSet)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal skillset")
-		return nil, ErrUnableToLoadObject
-	}
-	return j, nil
-}
-
-// SpecJSON returns the JSON representation of the skillset's spec.
-func (sm *skillSetManager) SpecJSON(ctx context.Context) ([]byte, apperrors.Error) {
-	j, err := json.Marshal(sm.skillSet.Spec)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal skillset spec")
-		return nil, ErrInvalidSkillSetDefinition
-	}
-	return j, nil
 }
 
 // Validate performs validation on the skillset, including:

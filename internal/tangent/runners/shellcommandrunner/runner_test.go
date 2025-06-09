@@ -4,19 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
 func init() {
-	// Override the default script directory with an absolute path
-	runnerConfig.ScriptDir = filepath.Join(os.Getenv("HOME"), "tansive_scripts")
+	TestInit()
 }
 
 func TestNew(t *testing.T) {
@@ -67,12 +65,6 @@ func TestNew(t *testing.T) {
 				assert.Equal(t, "bar", r.config.Env["FOO"])
 				assert.Equal(t, "qux", r.config.Env["BAZ"])
 			},
-		},
-		{
-			name:       "invalid json",
-			jsonConfig: json.RawMessage(`{invalid json}`),
-			wantErr:    true,
-			errorType:  ErrInvalidConfig,
 		},
 		{
 			name: "invalid runtime",
@@ -153,12 +145,17 @@ func TestNew(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			writers := &IOWriters{
+			writers := &tangentcommon.IOWriters{
 				Out: io.Discard,
 				Err: io.Discard,
 			}
 
-			r, err := New(ctx, "test-session", tt.jsonConfig, writers)
+			var configMap map[string]any
+			if err := json.Unmarshal(tt.jsonConfig, &configMap); err != nil {
+				t.Fatalf("failed to unmarshal config: %v", err)
+			}
+
+			r, err := New(ctx, "test-session", configMap, writers)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -170,7 +167,7 @@ func TestNew(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotNil(t, r)
 				if tt.check != nil {
-					tt.check(t, r.(*runner))
+					tt.check(t, r)
 				}
 			}
 		})
@@ -257,24 +254,6 @@ func TestRun(t *testing.T) {
 			errorType: ErrInvalidScript,
 		},
 		{
-			name: "invalid JSON arguments",
-			config: json.RawMessage(`{
-				"version": "0.1.0",
-				"runtime": "bash",
-				"runtimeConfig": {},
-				"env": {
-					"TEST_VAR": "test_value"
-				},
-				"script": "test_script.sh",
-				"security": {
-					"type": "dev-mode"
-				}
-			}`),
-			args:      json.RawMessage(`{invalid json}`),
-			wantErr:   true,
-			errorType: ErrExecutionFailed,
-		},
-		{
 			name: "script execution failure",
 			config: json.RawMessage(`{
 				"version": "0.1.0",
@@ -302,16 +281,25 @@ func TestRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			var stdout, stderr strings.Builder
-			writers := &IOWriters{
+			writers := &tangentcommon.IOWriters{
 				Out: &stdout,
 				Err: &stderr,
 			}
 
-			runner, err := New(ctx, "test-session", tt.config, writers)
+			var configMap map[string]any
+			if err := json.Unmarshal(tt.config, &configMap); err != nil {
+				t.Fatalf("failed to unmarshal config: %v", err)
+			}
+
+			runner, err := New(ctx, "test-session", configMap, writers)
 			require.NoError(t, err)
 			require.NotNil(t, runner)
 
-			err = runner.Run(ctx, tt.args)
+			var args map[string]any
+			if err := json.Unmarshal(tt.args, &args); err != nil {
+				t.Fatalf("failed to unmarshal args: %v", err)
+			}
+			err = runner.Run(ctx, args)
 			t.Logf("stdout: %s", stdout.String())
 			t.Logf("stderr: %s", stderr.String())
 			if tt.wantErr {
@@ -414,16 +402,25 @@ func TestDevModeSecurity(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			var stdout, stderr strings.Builder
-			writers := &IOWriters{
+			writers := &tangentcommon.IOWriters{
 				Out: &stdout,
 				Err: &stderr,
 			}
 
-			runner, err := New(ctx, "test-session", tt.config, writers)
+			var configMap map[string]any
+			if err := json.Unmarshal(tt.config, &configMap); err != nil {
+				t.Fatalf("failed to unmarshal config: %v", err)
+			}
+
+			runner, err := New(ctx, "test-session", configMap, writers)
 			require.NoError(t, err)
 			require.NotNil(t, runner)
 
-			err = runner.Run(ctx, tt.args)
+			var args map[string]any
+			if err := json.Unmarshal(tt.args, &args); err != nil {
+				t.Fatalf("failed to unmarshal args: %v", err)
+			}
+			err = runner.Run(ctx, args)
 			t.Logf("stdout: %s", stdout.String())
 			t.Logf("stderr: %s", stderr.String())
 			if tt.wantErr {

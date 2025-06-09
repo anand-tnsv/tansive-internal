@@ -17,4 +17,5 @@ var (
 	ErrExecutionFailed           apperrors.Error = apperrors.New("execution failed").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToGetSkillset       apperrors.Error = apperrors.New("unable to get skillset").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToGetViewDefinition apperrors.Error = apperrors.New("unable to get view definition").SetStatusCode(http.StatusInternalServerError)
+	ErrInvalidObject             apperrors.Error = apperrors.New("invalid object").SetStatusCode(http.StatusBadRequest)
 )
