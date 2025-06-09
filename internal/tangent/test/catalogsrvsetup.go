@@ -14,9 +14,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	catalogsrv "github.com/tansive/tansive-internal/internal/catalogsrv/server"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/session"
 )
 
 type TestContext struct {
@@ -111,6 +113,9 @@ func SetRequestBodyAndHeader(t *testing.T, req *http.Request, data interface{}) 
 }
 
 func NewDb(t *testing.T) context.Context {
+	config.TestInit()
+	db.Init()
+	session.Init()
 	ctx := log.Logger.WithContext(context.Background())
 	ctx, err := db.ConnCtx(ctx)
 	t.Cleanup(func() {

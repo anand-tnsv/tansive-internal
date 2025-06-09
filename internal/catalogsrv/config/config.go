@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -10,8 +11,86 @@ import (
 	"github.com/denisbrodbeck/machineid"
 )
 
+// SessionConfig holds session-related configuration
+type SessionConfig struct {
+	ExpirationTime string `toml:"expiration_time"` // Default session expiration time
+	MaxVariables   int    `toml:"max_variables"`   // Maximum number of variables allowed in a session
+}
+
+// GetExpirationTime returns the session expiration time as time.Duration
+func (s *SessionConfig) GetExpirationTime() (time.Duration, error) {
+	return ParseDuration(s.ExpirationTime)
+}
+
+// GetExpirationTimeOrDefault returns the session expiration time as time.Duration
+// or panics if the value is invalid
+func (s *SessionConfig) GetExpirationTimeOrDefault() time.Duration {
+	duration, err := s.GetExpirationTime()
+	if err != nil {
+		panic(fmt.Sprintf("invalid session expiration time: %v", err))
+	}
+	return duration
+}
+
+// AuthConfig holds authentication-related configuration
+type AuthConfig struct {
+	MaxTokenAge          string `toml:"max_token_age"`          // Maximum age for tokens
+	ClockSkew            string `toml:"clock_skew"`             // Allowed clock skew for time-based claims
+	KeyEncryptionPasswd  string `toml:"key_encryption_passwd"`  // Password for key encryption
+	DefaultTokenValidity string `toml:"default_token_validity"` // Default token validity duration
+	FakeSingleUserToken  string `toml:"fake_single_user_token"` // Token for single user mode
+}
+
+// GetMaxTokenAge returns the maximum token age as time.Duration
+func (a *AuthConfig) GetMaxTokenAge() (time.Duration, error) {
+	return ParseDuration(a.MaxTokenAge)
+}
+
+// GetClockSkew returns the allowed clock skew as time.Duration
+func (a *AuthConfig) GetClockSkew() (time.Duration, error) {
+	return ParseDuration(a.ClockSkew)
+}
+
+// GetDefaultTokenValidity returns the default token validity as time.Duration
+func (a *AuthConfig) GetDefaultTokenValidity() (time.Duration, error) {
+	return ParseDuration(a.DefaultTokenValidity)
+}
+
+// GetMaxTokenAgeOrDefault returns the maximum token age as time.Duration
+// or panics if the value is invalid
+func (a *AuthConfig) GetMaxTokenAgeOrDefault() time.Duration {
+	duration, err := a.GetMaxTokenAge()
+	if err != nil {
+		panic(fmt.Sprintf("invalid max token age: %v", err))
+	}
+	return duration
+}
+
+// GetClockSkewOrDefault returns the allowed clock skew as time.Duration
+// or panics if the value is invalid
+func (a *AuthConfig) GetClockSkewOrDefault() time.Duration {
+	duration, err := a.GetClockSkew()
+	if err != nil {
+		panic(fmt.Sprintf("invalid clock skew: %v", err))
+	}
+	return duration
+}
+
+// GetDefaultTokenValidityOrDefault returns the default token validity as time.Duration
+// or panics if the value is invalid
+func (a *AuthConfig) GetDefaultTokenValidityOrDefault() time.Duration {
+	duration, err := a.GetDefaultTokenValidity()
+	if err != nil {
+		panic(fmt.Sprintf("invalid default token validity: %v", err))
+	}
+	return duration
+}
+
 // ConfigParam holds all configuration parameters for the catalog service
 type ConfigParam struct {
+	// Configuration version
+	FormatVersion string `toml:"format_version"` // Version of this configuration file format
+
 	// Server configuration
 	ServerHostName     string `toml:"server_hostname"`       // Hostname for the server
 	ServerPort         string `toml:"server_port"`           // Port for the main server
@@ -20,19 +99,10 @@ type ConfigParam struct {
 	MaxRequestBodySize int64  `toml:"max_request_body_size"` // Maximum size of request body in bytes
 
 	// Session configuration
-	Session struct {
-		ExpirationTime time.Duration `toml:"expiration_time"` // Default session expiration time
-		MaxVariables   int           `toml:"max_variables"`   // Maximum number of variables allowed in a session
-	} `toml:"session"`
+	Session SessionConfig `toml:"session"`
 
 	// Auth configuration
-	Auth struct {
-		MaxTokenAge          time.Duration `toml:"max_token_age"`          // Maximum age for tokens
-		ClockSkew            time.Duration `toml:"clock_skew"`             // Allowed clock skew for time-based claims
-		KeyEncryptionPasswd  string        `toml:"key_encryption_passwd"`  // Password for key encryption
-		DefaultTokenValidity string        `toml:"default_token_validity"` // Default token validity duration
-		FakeSingleUserToken  string        `toml:"fake_single_user_token"` // Token for single user mode
-	} `toml:"auth"`
+	Auth AuthConfig `toml:"auth"`
 
 	// Single user mode configuration
 	SingleUserMode   bool   `toml:"single_user_mode"`   // Whether to run in single user mode
@@ -68,122 +138,12 @@ func HatchCatalogDSN() string {
 	return cfg.DSN()
 }
 
-// LoadConfig loads configuration from a file or sets defaults if no file is provided
-func LoadConfig(filename string) error {
-	// Initialize with default values
-	cfg = &ConfigParam{
-		ServerPort:     "8194",
-		EndpointPort:   "9002",
-		HandleCORS:     true,
-		SingleUserMode: true, // Default to multi-user mode
-	}
-
-	if filename == "" {
-		LoadDefaultsIfNotSet(cfg)
-		return nil
-	}
-
-	// Read and parse the config file
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		return fmt.Errorf("error reading config file: %v", err)
-	}
-
-	if _, err := toml.Decode(string(content), cfg); err != nil {
-		return fmt.Errorf("error parsing config file: %v", err)
-	}
-
-	LoadDefaultsIfNotSet(cfg)
-	return nil
-}
-
-// LoadDefaultsIfNotSet sets default values for any unset configuration parameters
-func LoadDefaultsIfNotSet(cfg *ConfigParam) {
-	// Server defaults
-	if cfg.ServerHostName == "" {
-		cfg.ServerHostName = "localhost"
-	}
-	if cfg.ServerPort == "" {
-		cfg.ServerPort = "8194"
-	}
-	if cfg.EndpointPort == "" {
-		cfg.EndpointPort = "9002"
-	}
-	if cfg.MaxRequestBodySize == 0 {
-		cfg.MaxRequestBodySize = 1024 * 1024 // 1MB
-	}
-	cfg.HandleCORS = true
-
-	// Session defaults
-	if cfg.Session.ExpirationTime == 0 {
-		cfg.Session.ExpirationTime = 24 * time.Hour
-	}
-	if cfg.Session.MaxVariables == 0 {
-		cfg.Session.MaxVariables = 20
-	}
-
-	// Auth defaults
-	if cfg.Auth.MaxTokenAge == 0 {
-		cfg.Auth.MaxTokenAge = 24 * time.Hour
-	}
-	if cfg.Auth.ClockSkew == 0 {
-		cfg.Auth.ClockSkew = 5 * time.Minute
-	}
-	if cfg.Auth.DefaultTokenValidity == "" {
-		cfg.Auth.DefaultTokenValidity = "3h"
-	}
-	if cfg.Auth.KeyEncryptionPasswd == "" {
-		// Signing keys should be encrypted and managed using KMS. This is for local usage and should never be used
-		// in production. If the user set no password, we generate a reproducible password based on the machine id.
-		id, err := machineid.ProtectedID("catalogsrv.tansive.io")
-		if err != nil {
-			panic("unable to obtain unique id to generate key passwd")
-		}
-		cfg.Auth.KeyEncryptionPasswd = id
-	}
-
-	cfg.SingleUserMode = true
-
-	// Single user mode defaults
-	if cfg.SingleUserMode {
-		if cfg.DefaultTenantID == "" {
-			cfg.DefaultTenantID = "TXYZABC"
-		}
-		if cfg.DefaultProjectID == "" {
-			cfg.DefaultProjectID = "PXYZABC"
-		}
-		if cfg.Auth.FakeSingleUserToken == "" {
-			cfg.Auth.FakeSingleUserToken = "single-user-fake-token"
-		}
-	}
-
-	// Database defaults
-	if cfg.DB.Host == "" {
-		cfg.DB.Host = "localhost"
-	}
-	if cfg.DB.Port == 0 {
-		cfg.DB.Port = 5432
-	}
-	if cfg.DB.User == "" {
-		cfg.DB.User = "catalog_api"
-	}
-	if cfg.DB.Password == "" {
-		cfg.DB.Password = "abc@123"
-	}
-	if cfg.DB.DBName == "" {
-		cfg.DB.DBName = "hatchcatalog"
-	}
-	if cfg.DB.SSLMode == "" {
-		cfg.DB.SSLMode = "disable"
-	}
-}
-
-// ParseTokenDuration parses a duration string in the format "<number><unit>" where unit can be:
+// ParseDuration parses a duration string in the format "<number><unit>" where unit can be:
 // - y: years
 // - d: days
 // - h: hours
 // - m: minutes
-func ParseTokenDuration(input string) (time.Duration, error) {
+func ParseDuration(input string) (time.Duration, error) {
 	if len(input) < 2 {
 		return 0, fmt.Errorf("invalid input format")
 	}
@@ -215,9 +175,141 @@ func ParseTokenDuration(input string) (time.Duration, error) {
 	return duration, nil
 }
 
-func init() {
-	if err := LoadConfig(""); err != nil {
-		// Log the error but don't panic
-		fmt.Printf("Error loading config: %v\n", err)
+// ValidateConfig checks if all required configuration values are present and valid
+func ValidateConfig(cfg *ConfigParam) error {
+	// Check if the config file format version is supported
+	if cfg.FormatVersion != ConfigFormatVersion {
+		return fmt.Errorf("unsupported config file format version: %s", cfg.FormatVersion)
+	}
+
+	// Server validation
+	if cfg.ServerPort == "" {
+		return fmt.Errorf("server_port is required")
+	}
+	if cfg.EndpointPort == "" {
+		return fmt.Errorf("endpoint_port is required")
+	}
+
+	// Session validation
+	if cfg.Session.ExpirationTime == "" {
+		return fmt.Errorf("session.expiration_time is required")
+	}
+	if _, err := ParseDuration(cfg.Session.ExpirationTime); err != nil {
+		return fmt.Errorf("invalid session.expiration_time: %v", err)
+	}
+	if cfg.Session.MaxVariables <= 0 {
+		return fmt.Errorf("session.max_variables must be positive")
+	}
+
+	// Auth validation
+	if cfg.Auth.MaxTokenAge == "" {
+		return fmt.Errorf("auth.max_token_age is required")
+	}
+	if _, err := ParseDuration(cfg.Auth.MaxTokenAge); err != nil {
+		return fmt.Errorf("invalid auth.max_token_age: %v", err)
+	}
+	if cfg.Auth.ClockSkew == "" {
+		return fmt.Errorf("auth.clock_skew is required")
+	}
+	if _, err := ParseDuration(cfg.Auth.ClockSkew); err != nil {
+		return fmt.Errorf("invalid auth.clock_skew: %v", err)
+	}
+	if cfg.Auth.DefaultTokenValidity == "" {
+		return fmt.Errorf("auth.default_token_validity is required")
+	}
+	if _, err := ParseDuration(cfg.Auth.DefaultTokenValidity); err != nil {
+		return fmt.Errorf("invalid auth.default_token_validity: %v", err)
+	}
+
+	// Single user mode validation
+	if cfg.SingleUserMode {
+		if cfg.DefaultTenantID == "" {
+			return fmt.Errorf("default_tenant_id is required in single user mode")
+		}
+		if cfg.DefaultProjectID == "" {
+			return fmt.Errorf("default_project_id is required in single user mode")
+		}
+		if cfg.Auth.FakeSingleUserToken == "" {
+			return fmt.Errorf("auth.fake_single_user_token is required in single user mode")
+		}
+	}
+
+	// Database validation
+	if cfg.DB.Host == "" {
+		return fmt.Errorf("db.host is required")
+	}
+	if cfg.DB.Port <= 0 {
+		return fmt.Errorf("db.port must be positive")
+	}
+	if cfg.DB.DBName == "" {
+		return fmt.Errorf("db.dbname is required")
+	}
+	if cfg.DB.User == "" {
+		return fmt.Errorf("db.user is required")
+	}
+	if cfg.DB.Password == "" {
+		return fmt.Errorf("db.password is required")
+	}
+	if cfg.DB.SSLMode == "" {
+		return fmt.Errorf("db.sslmode is required")
+	}
+
+	return nil
+}
+
+// LoadConfig loads configuration from a file
+func LoadConfig(filename string) error {
+	if filename == "" {
+		return fmt.Errorf("config filename is required")
+	}
+
+	// Read and parse the config file
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("error reading config file: %v", err)
+	}
+
+	cfg = &ConfigParam{}
+	if _, err := toml.Decode(string(content), cfg); err != nil {
+		return fmt.Errorf("error parsing config file: %v", err)
+	}
+
+	// Validate the configuration
+	if err := ValidateConfig(cfg); err != nil {
+		return fmt.Errorf("invalid configuration: %v", err)
+	}
+
+	// Generate key encryption password if not set
+	if cfg.Auth.KeyEncryptionPasswd == "" {
+		id, err := machineid.ProtectedID("catalogsrv.tansive.io")
+		if err != nil {
+			return fmt.Errorf("unable to obtain unique id to generate key passwd: %v", err)
+		}
+		cfg.Auth.KeyEncryptionPasswd = id
+	}
+
+	return nil
+}
+
+func TestInit() {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	// Check if we're already in the project root by looking for go.mod
+	projectRoot := wd
+	for {
+		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
+			break
+		}
+		parent := filepath.Dir(projectRoot)
+		if parent == projectRoot {
+			panic("could not find project root (go.mod)")
+		}
+		projectRoot = parent
+	}
+	if err := LoadConfig(filepath.Join(projectRoot, "tansivesrv.conf")); err != nil {
+		panic(fmt.Errorf("error loading config: %v", err))
 	}
 }

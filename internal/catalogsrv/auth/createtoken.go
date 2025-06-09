@@ -100,7 +100,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOpt
 		}
 	}
 
-	tokenDuration, goerr := config.ParseTokenDuration(config.Config().Auth.DefaultTokenValidity)
+	tokenDuration, goerr := config.Config().Auth.GetDefaultTokenValidity()
 	if goerr != nil {
 		log.Ctx(ctx).Error().Err(goerr).Msg("unable to parse token duration")
 		return "", time.Time{}, ErrUnableToParseTokenDuration.MsgErr("unable to parse token duration", goerr)

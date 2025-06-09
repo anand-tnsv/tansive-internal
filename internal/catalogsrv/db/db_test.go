@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
@@ -429,6 +430,8 @@ func TestDeleteCatalog(t *testing.T) {
 }
 
 func newDb(c ...context.Context) context.Context {
+	config.TestInit()
+	Init()
 	var ctx context.Context
 	var err error
 	if len(c) > 0 {

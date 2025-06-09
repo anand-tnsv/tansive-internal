@@ -63,7 +63,7 @@ type sessionManager struct {
 	viewManager     policy.ViewManager
 }
 
-func init() {
+func Init() {
 	schema := fmt.Sprintf(variableSchema, config.Config().Session.MaxVariables)
 	compiledSchema, err := compileSchema(schema)
 	if err != nil {
@@ -175,7 +175,7 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		VariantID:     variantID,
 		StartedAt:     time.Now(),
 		EndedAt:       time.Time{},
-		ExpiresAt:     time.Now().Add(config.Config().Session.ExpirationTime),
+		ExpiresAt:     time.Now().Add(config.Config().Session.GetExpirationTimeOrDefault()),
 	}
 
 	return &sessionManager{

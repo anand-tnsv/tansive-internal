@@ -3,13 +3,21 @@ package policy
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 )
 
+var once sync.Once
+
 func newDb() context.Context {
+	once.Do(func() {
+		config.TestInit()
+		db.Init()
+	})
 	ctx := log.Logger.WithContext(context.Background())
 	ctx, err := db.ConnCtx(ctx)
 	if err != nil {
