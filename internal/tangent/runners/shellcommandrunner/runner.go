@@ -55,6 +55,9 @@ func New(ctx context.Context, sessionID string, jsonConfig json.RawMessage, writ
 // Run executes the configured command.
 // The context can be used to cancel the execution.
 // Returns an error if execution fails or is cancelled.
+// DevMode security allows execution of scripts from the configured script directory
+// with minimal restrictions, intended for development and testing purposes only.
+// NOT FOR PRODUCTION USE - lacks security measures required for production environments.
 func (r *runner) Run(ctx context.Context, args json.RawMessage) apperrors.Error {
 	if r.config.Security.Type == SecurityTypeDevMode {
 		return r.runWithDefaultSecurity(ctx, args)
@@ -113,14 +116,38 @@ func (r *runner) writeWrappedScript(wrappedPath, scriptPath string, args json.Ra
 	if err != nil {
 		return fmt.Errorf("could not normalize JSON args: %w", err)
 	}
+
 	escapedArgs := strings.ReplaceAll(string(normalizedArgs), "'", "'\\''")
+
+	execCmd, err := resolveRuntimeCommand(r.config.Runtime)
+	if err != nil {
+		return fmt.Errorf("unsupported runtime: %w", err)
+	}
+
 	content := fmt.Sprintf(`#!/bin/bash
 set -euo pipefail
 
-exec '%s' '%s'
-`, scriptPath, escapedArgs)
+exec '%s' '%s' '%s'
+`, execCmd, scriptPath, escapedArgs)
 
 	return os.WriteFile(wrappedPath, []byte(content), 0644)
+}
+
+func resolveRuntimeCommand(runtime Runtime) (string, error) {
+	switch runtime {
+	case RuntimeBash:
+		return "/bin/bash", nil
+	case RuntimePython:
+		return "python3", nil
+	case RuntimeNode:
+		return "node", nil
+	case RuntimeNPX:
+		return "npx", nil
+	case RuntimeNPM:
+		return "npm", nil
+	default:
+		return "", fmt.Errorf("invalid runtime: %s", runtime)
+	}
 }
 
 func appendOrReplaceEnv(env []string, key, value string) []string {
