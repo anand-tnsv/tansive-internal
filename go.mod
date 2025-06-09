@@ -6,6 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/BurntSushi/toml v1.5.0
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/anand-gl/jsoncanonicalizer v0.1.0
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/denisbrodbeck/machineid v1.0.1
@@ -33,7 +34,6 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
