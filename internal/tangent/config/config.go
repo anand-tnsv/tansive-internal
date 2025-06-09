@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -14,8 +15,13 @@ type ConfigParam struct {
 	ServerPort     string `toml:"server_port"`     // Port for the server
 	HandleCORS     bool   `toml:"handle_cors"`     // Whether to handle CORS
 
-	// Client configuration
-	ClientConfig string `toml:"client_config"` // Path to client configuration file
+	StdioRunner struct {
+		ScriptDir string `toml:"script_dir"`
+	} `toml:"stdio_runner"`
+
+	Auth struct {
+		TokenExpiry time.Duration `toml:"token_expiry"`
+	} `toml:"auth"`
 }
 
 var cfg *ConfigParam

@@ -7,13 +7,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
-	"github.com/tansive/tansive-internal/internal/tangent/runners/shellcommandrunner"
+	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
 	"github.com/tansive/tansive-internal/internal/tangent/test"
 )
 
 func TestCreateSession(t *testing.T) {
 	SetTestMode(true)
-	shellcommandrunner.TestInit()
+	stdiorunner.TestInit()
 	ts := test.SetupTestCatalog(t)
 	token, expiresAt := test.AdoptView(t, ts.Catalog, "dev-view", ts.Token)
 	serverContext := &ServerContext{

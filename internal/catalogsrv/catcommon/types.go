@@ -129,5 +129,5 @@ const (
 )
 
 const (
-	ShellCommandRunnerID = "system.commandrunner"
+	StdioRunnerID = "system.stdiorunner"
 )

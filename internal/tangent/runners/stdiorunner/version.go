@@ -1,4 +1,4 @@
-package shellcommandrunner
+package stdiorunner
 
 import (
 	"github.com/Masterminds/semver/v3"

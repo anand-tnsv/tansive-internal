@@ -43,9 +43,11 @@ func (s *session) runInteractiveSkill(ctx context.Context, skillName string, inp
 	}
 
 	// get command io writers
-	ioWriters := &tangentcommon.IOWriters{
-		Out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", "shell").Logger(),
-		Err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", "shell").Logger(),
+	if s.interactiveIOWriters == nil {
+		s.interactiveIOWriters = &tangentcommon.IOWriters{
+			Out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", "stdiorunner").Logger(),
+			Err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", "stdiorunner").Logger(),
+		}
 	}
 
 	sessionLog, unsubSessionLog := GetEventBus().Subscribe(s.getTopic(TopicSessionLog), 100)
@@ -61,7 +63,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, skillName string, inp
 		return err
 	}
 
-	runner, err := s.GetRunner(ctx, ioWriters)
+	runner, err := s.GetRunner(ctx, s.interactiveIOWriters)
 	if err != nil {
 		return err
 	}

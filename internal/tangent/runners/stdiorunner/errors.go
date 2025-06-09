@@ -1,4 +1,4 @@
-package shellcommandrunner
+package stdiorunner
 
 import "github.com/tansive/tansive-internal/internal/common/apperrors"
 

@@ -1,7 +1,7 @@
 // Package shellcommandrunner provides a runner for executing shell commands and scripts.
 // It supports multiple runtime environments and configurable security settings.
 // The package requires valid io.Writer implementations for output handling.
-package shellcommandrunner
+package stdiorunner
 
 import (
 	"context"

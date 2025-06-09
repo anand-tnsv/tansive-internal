@@ -1,4 +1,4 @@
-package shellcommandrunner
+package stdiorunner
 
 import (
 	"os"

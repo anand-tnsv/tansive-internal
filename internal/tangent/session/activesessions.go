@@ -11,6 +11,7 @@ import (
 	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
 type activeSessions struct {
@@ -18,13 +19,14 @@ type activeSessions struct {
 }
 
 type session struct {
-	id          uuid.UUID
-	context     *ServerContext
-	skillSet    catalogmanager.SkillSetManager
-	viewDef     *policy.ViewDefinition
-	token       string
-	tokenExpiry time.Time
-	serverURL   string
+	id                   uuid.UUID
+	context              *ServerContext
+	skillSet             catalogmanager.SkillSetManager
+	viewDef              *policy.ViewDefinition
+	token                string
+	tokenExpiry          time.Time
+	serverURL            string
+	interactiveIOWriters *tangentcommon.IOWriters
 }
 
 type ServerContext struct {

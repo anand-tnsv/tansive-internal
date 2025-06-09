@@ -21,7 +21,7 @@ metadata:
 spec:
   version: "0.1.0"
   runner:
-    id: "system.commandrunner"
+    id: "system.stdiorunner"
     config:
       version: "0.1.0"
       runtime: "bash"
