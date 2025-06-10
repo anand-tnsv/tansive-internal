@@ -22,18 +22,24 @@ import (
 type runner struct {
 	sessionID string
 	config    Config
-	writers   *tangentcommon.IOWriters
+	writers   []*tangentcommon.IOWriters
 }
 
 // New creates a new runner with the given configuration.
 // The configuration must be valid JSON that can be unmarshaled into a Config.
 // The writers must provide non-nil io.Writer implementations for both stdout and stderr.
 // Returns an error if the configuration is invalid or writers are not properly configured.
-func New(ctx context.Context, sessionID string, configMap map[string]any, writers *tangentcommon.IOWriters) (*runner, apperrors.Error) {
+func New(ctx context.Context, sessionID string, configMap map[string]any, writers ...*tangentcommon.IOWriters) (*runner, apperrors.Error) {
 	var config Config
 
-	if writers == nil || writers.Out == nil || writers.Err == nil {
+	if len(writers) == 0 {
 		return nil, ErrInvalidWriters
+	}
+
+	for _, writer := range writers {
+		if writer == nil || writer.Out == nil || writer.Err == nil {
+			return nil, ErrInvalidWriters
+		}
 	}
 
 	if err := mapstructure.Decode(configMap, &config); err != nil {
@@ -95,11 +101,14 @@ func (r *runner) runWithDevModeSecurity(ctx context.Context, args map[string]any
 		env = appendOrReplaceEnv(env, k, v)
 	}
 
+	outWriter := NewWriter(StdoutWriter, r.writers...)
+	errWriter := NewWriter(StderrWriter, r.writers...)
+
 	cmd := exec.CommandContext(ctx, "/bin/bash", wrappedScriptPath)
 	cmd.Dir = homeDirPath
 	cmd.Env = env
-	cmd.Stdout = r.writers.Out
-	cmd.Stderr = r.writers.Err
+	cmd.Stdout = outWriter
+	cmd.Stderr = errWriter
 
 	if err := cmd.Run(); err != nil {
 		return ErrExecutionFailed.Msg("command failed: " + err.Error())

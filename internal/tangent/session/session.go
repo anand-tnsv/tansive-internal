@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -15,28 +16,41 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/tangent/eventlogger"
 	"github.com/tansive/tansive-internal/internal/tangent/runners"
+	"github.com/tansive/tansive-internal/internal/tangent/session/toolgraph"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
 type SkillArgs struct {
+	InvocationID     string         `json:"invocationID"`
 	SessionID        string         `json:"sessionID"`
 	SkillName        string         `json:"skillName"`
 	InputArgs        map[string]any `json:"inputArgs"`
 	SessionVariables map[string]any `json:"sessionVariables"`
 }
 
-func (s *session) Run(ctx context.Context, skillName string, inputArgs map[string]any) apperrors.Error {
-	if err := s.FetchObjects(ctx); err != nil {
+func (s *session) GetSessionID() string {
+	return s.id.String()
+}
+
+func (s *session) Run(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
+	if invokerID != "" {
+		if !slices.Contains(s.invocationIDs, invokerID) {
+			return ErrInvalidInvocationID.Msg("invocationID not found")
+		}
+	}
+
+	if err := s.fetchObjects(ctx); err != nil {
 		return err
 	}
 
 	// We only support interactive skills for now
-	return s.runInteractiveSkill(ctx, skillName, inputArgs)
+	return s.runInteractiveSkill(ctx, invokerID, skillName, inputArgs, ioWriters...)
 }
 
-func (s *session) runInteractiveSkill(ctx context.Context, skillName string, inputArgs map[string]any) apperrors.Error {
+func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
 	log.Ctx(ctx).Info().Msg("Running interactive skill")
 	if s.skillSet == nil {
 		return ErrUnableToGetSkillset.Msg("skillset not found")
@@ -63,13 +77,15 @@ func (s *session) runInteractiveSkill(ctx context.Context, skillName string, inp
 		return err
 	}
 
-	runner, err := s.GetRunner(ctx, s.interactiveIOWriters)
+	runner, err := s.getRunner(ctx, append(ioWriters, s.interactiveIOWriters)...)
 	if err != nil {
 		return err
 	}
 
+	invocationID := uuid.New().String()
 	// create the arguments
 	args := SkillArgs{
+		InvocationID:     invocationID,
 		SessionID:        s.id.String(),
 		SkillName:        skillName,
 		InputArgs:        s.context.Info.InputArgs,
@@ -79,6 +95,12 @@ func (s *session) runInteractiveSkill(ctx context.Context, skillName string, inp
 	if err := mapstructure.Decode(args, &argsMap); err != nil {
 		return ErrInvalidObject.Msg(err.Error())
 	}
+
+	toolErr := s.callGraph.RegisterCall(toolgraph.CallID(invokerID), toolgraph.ToolName(skillName), toolgraph.CallID(invocationID))
+	if toolErr != nil {
+		return ErrToolGraphError.Msg(toolErr.Error())
+	}
+	s.invocationIDs = append(s.invocationIDs, invocationID)
 
 	childCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -116,7 +138,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, skillName string, inp
 		}
 
 		log.Ctx(ctx).Info().Msg("Interactive skill exited")
-		time.AfterFunc(1*time.Second, func() {
+		time.AfterFunc(100*time.Millisecond, func() {
 			once.Do(func() {
 				gracefulExitChan <- struct{}{}
 			})
@@ -141,13 +163,13 @@ loop:
 	return <-resultChan
 }
 
-func (s *session) GetRunner(ctx context.Context, ioWriters *tangentcommon.IOWriters) (runners.Runner, apperrors.Error) {
+func (s *session) getRunner(ctx context.Context, ioWriters ...*tangentcommon.IOWriters) (runners.Runner, apperrors.Error) {
 	if s.skillSet == nil {
 		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
 	}
 
 	runnerDef := s.skillSet.GetRunnerDefinition()
-	runner, err := runners.NewRunner(ctx, s.id.String(), runnerDef, ioWriters)
+	runner, err := runners.NewRunner(ctx, s.id.String(), runnerDef, ioWriters...)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +177,7 @@ func (s *session) GetRunner(ctx context.Context, ioWriters *tangentcommon.IOWrit
 	return runner, nil
 }
 
-func (s *session) FetchObjects(ctx context.Context) apperrors.Error {
+func (s *session) fetchObjects(ctx context.Context) apperrors.Error {
 	client := getHTTPClient(&clientConfig{
 		token:       s.token,
 		tokenExpiry: s.tokenExpiry,

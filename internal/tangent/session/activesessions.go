@@ -11,6 +11,7 @@ import (
 	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/internal/tangent/session/toolgraph"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
@@ -26,6 +27,8 @@ type session struct {
 	token                string
 	tokenExpiry          time.Time
 	serverURL            string
+	callGraph            *toolgraph.CallGraph
+	invocationIDs        []string
 	interactiveIOWriters *tangentcommon.IOWriters
 }
 
@@ -62,12 +65,14 @@ func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, t
 		return nil, ErrAlreadyExists.New("session already exists")
 	}
 	session := &session{
-		id:          c.SessionID,
-		context:     c,
-		skillSet:    nil,
-		viewDef:     nil,
-		token:       token,
-		tokenExpiry: tokenExpiry,
+		id:            c.SessionID,
+		context:       c,
+		skillSet:      nil,
+		viewDef:       nil,
+		token:         token,
+		tokenExpiry:   tokenExpiry,
+		callGraph:     toolgraph.NewCallGraph(3), // max depth of 3
+		invocationIDs: []string{},
 	}
 	as.sessions[c.SessionID] = session
 	return session, nil

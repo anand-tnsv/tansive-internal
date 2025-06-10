@@ -18,4 +18,6 @@ var (
 	ErrUnableToGetSkillset       apperrors.Error = apperrors.New("unable to get skillset").SetStatusCode(http.StatusInternalServerError)
 	ErrUnableToGetViewDefinition apperrors.Error = apperrors.New("unable to get view definition").SetStatusCode(http.StatusInternalServerError)
 	ErrInvalidObject             apperrors.Error = apperrors.New("invalid object").SetStatusCode(http.StatusBadRequest)
+	ErrToolGraphError            apperrors.Error = apperrors.New("tool graph error").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidInvocationID       apperrors.Error = apperrors.New("invalid invocation ID").SetStatusCode(http.StatusBadRequest)
 )

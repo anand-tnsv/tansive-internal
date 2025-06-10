@@ -316,3 +316,63 @@ func TestCloseTopic(t *testing.T) {
 		}
 	}
 }
+
+func TestWildcardMatching(t *testing.T) {
+	bus := New()
+	bufferSize := 1
+
+	// Test cases for wildcard matching
+	testCases := []struct {
+		pattern     string
+		topic       string
+		shouldMatch bool
+	}{
+		{"user.*", "user.login", true},
+		{"user.*", "user.logout", true},
+		{"user.*", "user.profile.update", false}, // Different number of segments
+		{"user.*.update", "user.profile.update", true},
+		{"user.*.update", "user.settings.update", true},
+		{"user.*.update", "user.update", false}, // Missing middle segment
+		{"*.update", "user.update", true},
+		{"*.update", "profile.update", true},
+		{"*.update", "update", false}, // Missing first segment
+		{"user.*.*", "user.profile.update", true},
+		{"user.*.*", "user.settings.delete", true},
+		{"user.*.*", "user.profile", false}, // Missing last segment
+		{"*.*.*", "user.profile.update", true},
+		{"*.*.*", "any.topic.here", true},
+		{"*.*.*", "too.many.segments.here", false}, // Too many segments
+		{"*", "any.topic.here", true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("pattern=%s,topic=%s", tc.pattern, tc.topic), func(t *testing.T) {
+			// Subscribe with the pattern
+			ch, unsubscribe := bus.Subscribe(tc.pattern, bufferSize)
+			defer unsubscribe()
+
+			// Publish to the topic
+			testData := "test-data"
+			bus.Publish(tc.topic, testData, 100*time.Millisecond)
+
+			// Check if we received the event based on whether it should match
+			select {
+			case event := <-ch:
+				if !tc.shouldMatch {
+					t.Errorf("unexpected match: pattern %s matched topic %s", tc.pattern, tc.topic)
+				}
+				if event.Topic != tc.topic {
+					t.Errorf("expected topic %s, got %s", tc.topic, event.Topic)
+				}
+				if event.Data != testData {
+					t.Errorf("expected data %v, got %v", testData, event.Data)
+				}
+			case <-time.After(200 * time.Millisecond):
+				if tc.shouldMatch {
+					t.Errorf("expected match but didn't receive event: pattern %s, topic %s", tc.pattern, tc.topic)
+				}
+				// If we shouldn't match, this is the expected case
+			}
+		})
+	}
+}

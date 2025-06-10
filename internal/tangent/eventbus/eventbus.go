@@ -3,6 +3,7 @@ package eventbus
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -138,21 +139,21 @@ func (bus *EventBus) CloseTopic(topic string) {
 // Publish sends an event to all subscribers of a topic.
 // Non-blocking; will drop events for slow subscribers.
 func (bus *EventBus) Publish(topic string, data any, timeout time.Duration) {
-	bus.RLock()
-	subs, ok := bus.subscribers[topic]
-	bus.RUnlock()
-
-	if !ok {
-		return
-	}
-
 	event := Event{Topic: topic, Data: data}
-	for _, sub := range subs {
-		select {
-		case <-sub.Context.Done():
-			continue
-		default:
-			sub.TimedSend(event, timeout)
+
+	bus.RLock()
+	defer bus.RUnlock()
+
+	for pattern, subMap := range bus.subscribers {
+		if matchTopic(pattern, topic) {
+			for _, sub := range subMap {
+				select {
+				case <-sub.Context.Done():
+					continue
+				default:
+					sub.TimedSend(event, timeout)
+				}
+			}
 		}
 	}
 }
@@ -168,4 +169,29 @@ func (bus *EventBus) Shutdown() {
 		}
 	}
 	bus.subscribers = make(map[string]map[string]*Subscriber)
+}
+
+func matchTopic(pattern, topic string) bool {
+	if pattern == "" || topic == "" {
+		return false
+	}
+	if pattern == "*" || pattern == topic {
+		return true
+	}
+	patternParts := strings.Split(pattern, ".")
+	topicParts := strings.Split(topic, ".")
+
+	if len(patternParts) != len(topicParts) {
+		return false
+	}
+
+	for i := 0; i < len(patternParts); i++ {
+		if patternParts[i] == "*" {
+			continue
+		}
+		if patternParts[i] != topicParts[i] {
+			return false
+		}
+	}
+	return true
 }

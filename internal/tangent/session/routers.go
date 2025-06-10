@@ -34,6 +34,11 @@ var resourceObjectHandlers = []ResponseHandlerParam{
 		Path:   "/{id}",
 		//		Handler: deleteSession,
 	},
+	{
+		Method: http.MethodPost,
+		Path:   "/skills/{skillName}/applySkill",
+		//Handler: applySkill,
+	},
 }
 
 func Router(r chi.Router) {
