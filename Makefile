@@ -4,13 +4,6 @@ GOBUILD := $(GO) build
 GOCLEAN := $(GO) clean
 GOTEST := $(GO) test
 
-# Protoc parameters
-PROTOC := protoc
-PROTO_DIR := internal/tangent/session/proto
-PROTO_FILES := $(PROTO_DIR)/skill.proto
-GOPATH := $(shell go env GOPATH)
-PATH := $(GOPATH)/bin:$(PATH)
-
 # Build directory
 BUILDDIR := build
 
@@ -18,18 +11,11 @@ BUILDDIR := build
 APPS := tansivesrv tangent tansive-cli
 
 # Targets
-.PHONY: all clean test build cli srv worker proto
+.PHONY: all clean test build cli srv worker
 
-all: proto build
+all: build
 
 build: $(APPS)
-
-# Proto compilation
-proto:
-	@echo "Compiling proto files..."
-	PATH="$(GOPATH)/bin:$$PATH" $(PROTOC) --go_out=. --go_opt=paths=source_relative \
-		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		$(PROTO_FILES)
 
 # Server target
 srv:
