@@ -187,6 +187,9 @@ func GetViewDefinition(variant string) json.RawMessage {
 	if err != nil {
 		panic(err)
 	}
+	if variant == "prod" {
+		rules[0].Actions = []policy.Action{"system.skillset.use", "kubernetes.pods.list", "kubernetes.troubleshoot"}
+	}
 	vd.Rules = rules
 	vdJson, err := json.Marshal(vd)
 	if err != nil {

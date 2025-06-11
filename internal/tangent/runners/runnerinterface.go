@@ -13,7 +13,7 @@ import (
 
 // Runner is the interface for all runners.
 type Runner interface {
-	Run(ctx context.Context, args map[string]any) apperrors.Error
+	Run(ctx context.Context, args *tangentcommon.SkillInputArgs) apperrors.Error
 }
 
 func NewRunner(ctx context.Context, sessionID string, runnerDef catalogmanager.SkillSetRunner, writers ...*tangentcommon.IOWriters) (Runner, apperrors.Error) {

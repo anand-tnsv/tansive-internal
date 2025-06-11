@@ -48,4 +48,8 @@ var (
 	// ErrInvalidHomeDir is returned for invalid home directories.
 	// Occurs when the home directory cannot be created.
 	ErrInvalidHomeDir = ErrShellCommandRunnerError.New("invalid home directory")
+
+	// ErrInvalidArgs is returned for invalid arguments.
+	// Occurs when the arguments are nil.
+	ErrInvalidArgs = ErrShellCommandRunnerError.New("invalid args")
 )

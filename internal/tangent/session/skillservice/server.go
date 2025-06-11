@@ -41,10 +41,10 @@ func NewSkillService(skillManager tangentcommon.SkillManager) *SkillService {
 }
 
 type skillInvocation struct {
-	SessionID    string                 `json:"session_id"`
-	InvocationID string                 `json:"invocation_id"`
-	SkillName    string                 `json:"skill_name"`
-	Args         map[string]interface{} `json:"args"`
+	SessionID    string         `json:"session_id"`
+	InvocationID string         `json:"invocation_id"`
+	SkillName    string         `json:"skill_name"`
+	Args         map[string]any `json:"args"`
 }
 
 type skillResult struct {

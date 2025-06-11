@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
@@ -35,14 +34,6 @@ type session struct {
 	callGraph            *toolgraph.CallGraph
 	invocationIDs        map[string]*policy.ViewDefinition
 	interactiveIOWriters *tangentcommon.IOWriters
-}
-
-type SkillArgs struct {
-	InvocationID     string         `json:"invocationID"`
-	SessionID        string         `json:"sessionID"`
-	SkillName        string         `json:"skillName"`
-	InputArgs        map[string]any `json:"inputArgs"`
-	SessionVariables map[string]any `json:"sessionVariables"`
 }
 
 func (s *session) GetSessionID() string {
@@ -131,16 +122,12 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 
 	invocationID := uuid.New().String()
 	// create the arguments
-	args := SkillArgs{
+	args := tangentcommon.SkillInputArgs{
 		InvocationID:     invocationID,
 		SessionID:        s.id.String(),
 		SkillName:        skillName,
-		InputArgs:        s.context.Info.InputArgs,
+		InputArgs:        inputArgs,
 		SessionVariables: s.context.Info.SessionVariables,
-	}
-	argsMap := make(map[string]any)
-	if err := mapstructure.Decode(args, &argsMap); err != nil {
-		return ErrInvalidObject.Msg(err.Error())
 	}
 
 	toolErr := s.callGraph.RegisterCall(toolgraph.CallID(invokerID), toolgraph.ToolName(skillName), toolgraph.CallID(invocationID))
@@ -162,7 +149,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		defer cancel()
 
 		log.Info().Msg("Running interactive skill: " + skillName)
-		err := runner.Run(childCtx, argsMap)
+		err := runner.Run(childCtx, &args)
 		if err != nil {
 			log.Error().Err(err).Msg("Error running shell command")
 			resultChan <- err

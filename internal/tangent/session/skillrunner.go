@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 
@@ -103,13 +104,17 @@ func processOutput(outWriter *tangentcommon.BufferedWriter, errWriter *tangentco
 		} else {
 			response["error"] = err.Error()
 		}
-		if errWriter.Len() > 0 {
+		b := strings.Builder{}
+		b.WriteString(outWriter.String())
+		b.WriteString("\n")
+		b.WriteString(errWriter.String())
+		if b.Len() > 2 {
 			response["content"] = map[string]any{
 				"type":  "text",
-				"value": errWriter.String(),
+				"value": b.String(),
 			}
 		}
-		return response, err
+		return response, nil
 	}
 
 	output := outWriter.Bytes()

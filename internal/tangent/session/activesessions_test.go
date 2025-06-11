@@ -18,16 +18,16 @@ func TestCreateSession(t *testing.T) {
 	SetTestMode(true)
 	stdiorunner.TestInit()
 	ts := test.SetupTestCatalog(t)
-	token, expiresAt := test.AdoptView(t, ts.Catalog, "dev-view", ts.Token)
+	token, expiresAt := test.AdoptView(t, ts.Catalog, "prod-view", ts.Token)
 	serverContext := &ServerContext{
 		SessionID:      uuid.New(),
 		TenantID:       ts.TenantID,
 		Catalog:        ts.Catalog,
-		Variant:        "dev",
+		Variant:        "prod",
 		SkillSet:       test.SkillsetPath(),
 		Skill:          test.SkillsetAgent(),
-		View:           "dev-view",
-		ViewDefinition: test.GetViewDefinition("dev"),
+		View:           "prod-view",
+		ViewDefinition: test.GetViewDefinition("prod"),
 	}
 	ctx := context.Background()
 	session, err := ActiveSessionManager().CreateSession(ctx, serverContext, token, expiresAt)
@@ -54,7 +54,7 @@ func TestCreateSession(t *testing.T) {
 	require.NoError(t, goerr)
 	defer client.Close()
 
-	// empty invocationID should return an error
+	// // empty invocationID should return an error
 	_, goerr = client.InvokeSkill(ctx, session.GetSessionID(), "", "k8s_troubleshooter", map[string]any{
 		"prompt": "I'm getting a 500 error when I try to access the API",
 	})
@@ -66,16 +66,17 @@ func TestCreateSession(t *testing.T) {
 		invocationID = k
 		break
 	}
-	_, goerr = client.InvokeSkill(ctx, session.GetSessionID(), invocationID, "k8s_troubleshooter", map[string]any{
+	response, goerr := client.InvokeSkill(ctx, session.GetSessionID(), invocationID, "k8s_troubleshooter", map[string]any{
 		"prompt": "I'm getting a 500 error when I try to access the API",
 	})
-	require.Error(t, goerr)
+	require.NoError(t, goerr)
+	require.True(t, isError(response))
 
 	// for testing, append a new invocationID to the session
 	invocationID = uuid.New().String()
 	session.invocationIDs[invocationID] = session.viewDef
-	response, goerr := client.InvokeSkill(ctx, session.GetSessionID(), invocationID, "k8s_troubleshooter", map[string]any{
-		"prompt": "I'm getting a 500 error when I try to access the API",
+	response, goerr = client.InvokeSkill(ctx, session.GetSessionID(), invocationID, "list_pods", map[string]any{
+		"labelSelector": "app=my-app",
 	})
 	if !assert.NoError(t, goerr) {
 		t.Logf("error: %v", goerr.Error())
@@ -84,14 +85,32 @@ func TestCreateSession(t *testing.T) {
 		}
 		t.Fail()
 	}
-	// Extract output from the protobuf struct
 	if response != nil {
 		t.Logf("response output: %s", response.Output["content"])
 	}
 
-	// test get tools
+	response, goerr = client.InvokeSkill(ctx, session.GetSessionID(), invocationID, "list_pods", map[string]any{
+		"labelSelector": "app=my-app",
+	})
+	require.NoError(t, goerr)
+	require.False(t, isError(response))
+	t.Logf("response output: %v", response)
+
+	response, goerr = client.InvokeSkill(ctx, session.GetSessionID(), invocationID, "restart_deployment", map[string]any{
+		"deployment": "my-app",
+	})
+	require.NoError(t, goerr)
+	require.True(t, isError(response))
+	t.Logf("response output: %v", response)
+
+	// // test get tools
 	tools, goerr := client.GetTools(ctx, session.GetSessionID())
 	require.NoError(t, goerr)
 	require.NotNil(t, tools)
 	t.Logf("tools: %v", tools)
+}
+
+func isError(response *skillservice.SkillResult) bool {
+	_, ok := response.Output["error"]
+	return ok
 }

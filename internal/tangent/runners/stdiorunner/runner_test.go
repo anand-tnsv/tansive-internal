@@ -299,7 +299,14 @@ func TestRun(t *testing.T) {
 			if err := json.Unmarshal(tt.args, &args); err != nil {
 				t.Fatalf("failed to unmarshal args: %v", err)
 			}
-			err = runner.Run(ctx, args)
+			skillArgs := &tangentcommon.SkillInputArgs{
+				InvocationID:     "test-invocation",
+				SessionID:        "test-session",
+				SkillName:        "test-skill",
+				InputArgs:        args,
+				SessionVariables: make(map[string]any),
+			}
+			err = runner.Run(ctx, skillArgs)
 			t.Logf("stdout: %s", stdout.String())
 			t.Logf("stderr: %s", stderr.String())
 			if tt.wantErr {
@@ -367,8 +374,10 @@ func TestDevModeSecurity(t *testing.T) {
 			}`),
 			wantErr: false,
 			check: func(t *testing.T, stdout, stderr string) {
-				assert.Contains(t, stdout, "arg1: value1; rm -rf /")
-				assert.Contains(t, stdout, "arg2: value2; cat /etc/passwd")
+				assert.Contains(t, stdout, "value1; rm -rf /")
+				assert.Contains(t, stdout, "value2; cat /etc/passwd")
+				assert.Contains(t, stdout, "Raw input:")
+				assert.Contains(t, stdout, "Parsed JSON")
 			},
 		},
 		{
@@ -420,7 +429,14 @@ func TestDevModeSecurity(t *testing.T) {
 			if err := json.Unmarshal(tt.args, &args); err != nil {
 				t.Fatalf("failed to unmarshal args: %v", err)
 			}
-			err = runner.Run(ctx, args)
+			skillArgs := &tangentcommon.SkillInputArgs{
+				InvocationID:     "test-invocation",
+				SessionID:        "test-session",
+				SkillName:        "test-skill",
+				InputArgs:        args,
+				SessionVariables: make(map[string]any),
+			}
+			err = runner.Run(ctx, skillArgs)
 			t.Logf("stdout: %s", stdout.String())
 			t.Logf("stderr: %s", stderr.String())
 			if tt.wantErr {
