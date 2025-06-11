@@ -68,8 +68,7 @@ spec:
           labelSelector:
             type: string
             description: "Kubernetes label selector to filter pods"
-        required:
-          - labelSelector
+        required: []
       outputSchema:
         type: string
         description: "Raw output from listing pods, typically from 'kubectl get pods'"

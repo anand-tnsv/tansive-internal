@@ -19,6 +19,7 @@ case "$SKILL_NAME" in
     echo "api-server-5f5b7f77b7-zx9qs          1/1     Running   0          2d"
     echo "web-frontend-6f6f9d7b7b-xv2mn        1/1     Running   1          5h"
     echo "cache-worker-7d7d9d9b7b-pv9lk        1/1     Running   0          1d"
+    echo "orders-api-7ff9d44db7-abcde          0/1     CrashLoopBackOff   12         3h"
     echo "# Filter applied: $LABEL_SELECTOR" >&2
     ;;
   restart_deployment)

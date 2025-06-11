@@ -186,7 +186,8 @@ loop:
 			log.Ctx(ctx).Info().Msg("Interactive skill exited")
 			break loop
 		case event := <-interactiveLog:
-			fmt.Println(event.Data)
+			_ = event
+			//fmt.Println(event.Data)
 		case event := <-sessionLog:
 			fmt.Println(event.Data)
 		}

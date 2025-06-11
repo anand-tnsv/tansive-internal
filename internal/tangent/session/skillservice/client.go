@@ -20,15 +20,15 @@ type Client struct {
 }
 
 type SkillInvocation struct {
-	SessionID    string                 `json:"session_id"`
-	InvocationID string                 `json:"invocation_id"`
-	SkillName    string                 `json:"skill_name"`
-	Args         map[string]interface{} `json:"args"`
+	SessionID    string         `json:"session_id"`
+	InvocationID string         `json:"invocation_id"`
+	SkillName    string         `json:"skill_name"`
+	Args         map[string]any `json:"args"`
 }
 
 type SkillResult struct {
-	InvocationID string                 `json:"invocation_id"`
-	Output       map[string]interface{} `json:"output"`
+	InvocationID string         `json:"invocation_id"`
+	Output       map[string]any `json:"output"`
 }
 
 type ClientOption func(*clientConfig)
@@ -94,7 +94,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func (c *Client) InvokeSkill(ctx context.Context, sessionID, invocationID, skillName string, args map[string]interface{}) (*SkillResult, error) {
+func (c *Client) InvokeSkill(ctx context.Context, sessionID, invocationID, skillName string, args map[string]any) (*SkillResult, error) {
 	invocation := SkillInvocation{
 		SessionID:    sessionID,
 		InvocationID: invocationID,
