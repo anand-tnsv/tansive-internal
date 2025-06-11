@@ -5,31 +5,16 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/tangent/session/toolgraph"
-	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
 type activeSessions struct {
 	sessions map[uuid.UUID]*session
-}
-
-type session struct {
-	id                   uuid.UUID
-	context              *ServerContext
-	skillSet             catalogmanager.SkillSetManager
-	viewDef              *policy.ViewDefinition
-	token                string
-	tokenExpiry          time.Time
-	serverURL            string
-	callGraph            *toolgraph.CallGraph
-	invocationIDs        []string
-	interactiveIOWriters *tangentcommon.IOWriters
 }
 
 type ServerContext struct {
@@ -72,7 +57,7 @@ func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, t
 		token:         token,
 		tokenExpiry:   tokenExpiry,
 		callGraph:     toolgraph.NewCallGraph(3), // max depth of 3
-		invocationIDs: []string{},
+		invocationIDs: make(map[string]*policy.ViewDefinition),
 	}
 	as.sessions[c.SessionID] = session
 	return session, nil

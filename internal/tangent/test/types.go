@@ -20,18 +20,31 @@ metadata:
   path: /skillsets
 spec:
   version: "0.1.0"
-  runner:
-    id: "system.stdiorunner"
-    config:
-      version: "0.1.0"
-      runtime: "bash"
-      runtimeConfig:
-        key: "value"
-      env:
-        TEST_VAR: "test_value"
-      script: "test_script.sh"
-      security:
-        type: dev-mode  # could be one of: dev-mode, sandboxed
+  runners:
+    - name: my-agent-script
+      id: "system.stdiorunner"
+      config:
+        version: "0.1.0"
+        runtime: "bash"
+        runtimeConfig:
+          key: "value"
+        env:
+          TEST_VAR: "test_value"
+        script: "test_script.sh"
+        security:
+          type: dev-mode  # could be one of: dev-mode, sandboxed
+    - name: my-tools-script
+      id: "system.stdiorunner"
+      config:
+        version: "0.1.0"
+        runtime: "bash"
+        runtimeConfig:
+          key: "value"
+        env:
+          TEST_VAR: "test_value"
+        script: "tools_script.sh"
+        security:
+          type: dev-mode  # could be one of: dev-mode, sandboxed
   context:
     - name: kubeconfig
       schema:
@@ -47,6 +60,7 @@ spec:
       annotations: {}
   skills:
     - name: list_pods
+      source: my-tools-script
       description: "List pods in the cluster"
       inputSchema:
         type: object
@@ -65,6 +79,7 @@ spec:
         llm:description: |
           Lists all pods in the currently active Kubernetes cluster. This skill supports an optional labelSelector argument to filter pods by label. It is a read-only operation that provides visibility into running or failing workloads. The output is a plain-text summary similar to kubectl get pods. Use this to diagnose the current state of the system.
     - name: restart_deployment
+      source: my-tools-script
       description: "Restart a deployment"
       inputSchema:
         type: object
@@ -82,6 +97,7 @@ spec:
         llm:description: |
           Performs a rollout restart of a Kubernetes deployment. This skill is used to trigger a fresh rollout of pods associated with a deployment, typically to recover from failures or apply configuration changes. It requires the deployment name as input and will execute the equivalent of kubectl rollout restart deployment <name>.
     - name: k8s_troubleshooter
+      source: my-agent-script
       description: "Troubleshoot kubernetes issues"
       inputSchema:
         type: object
@@ -97,7 +113,7 @@ spec:
       exportedActions:
         - kubernetes.troubleshoot
       annotations:
-        llm:description: |
+        llmx:description: |
           A Kubernetes troubleshooting assistant that helps diagnose and resolve issues in your cluster. This skill accepts natural language descriptions of problems and leverages knowledge of Kubernetes concepts and common failure patterns to provide targeted diagnostic steps and remediation advice. It can help identify issues related to pod failures, networking problems, resource constraints, configuration errors and more. The assistant will analyze the situation and suggest appropriate kubectl commands and configuration changes to resolve the issue.
 `
 

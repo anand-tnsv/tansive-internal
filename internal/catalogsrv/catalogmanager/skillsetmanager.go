@@ -22,6 +22,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/pkg/api"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -45,7 +46,7 @@ type SkillSet struct {
 // value, policy, and annotations.
 type SkillSetSpec struct {
 	Version      string            `json:"version" validate:"required"`
-	Runner       SkillSetRunner    `json:"runner" validate:"required,omitempty"`
+	Runners      []SkillSetRunner  `json:"runners" validate:"required,dive"`
 	Context      []SkillSetContext `json:"context" validate:"omitempty,dive"`
 	Skills       []Skill           `json:"skills" validate:"required,dive"`
 	Dependencies []Dependency      `json:"dependencies,omitempty" validate:"omitempty,dive"`
@@ -60,6 +61,7 @@ type SkillSetContext struct {
 }
 
 type SkillSetRunner struct {
+	Name   string             `json:"name" validate:"required,resourceNameValidator"`
 	ID     catcommon.RunnerID `json:"id" validate:"required"`
 	Config map[string]any     `json:"config" validate:"required"`
 }
@@ -67,6 +69,7 @@ type SkillSetRunner struct {
 type Skill struct {
 	Name            string            `json:"name" validate:"required,skillNameValidator"`
 	Description     string            `json:"description" validate:"required"`
+	Source          string            `json:"source" validate:"required"`
 	InputSchema     json.RawMessage   `json:"inputSchema" validate:"required,jsonSchemaValidator"`
 	OutputSchema    json.RawMessage   `json:"outputSchema" validate:"required,jsonSchemaValidator"`
 	ExportedActions []policy.Action   `json:"exportedActions" validate:"required,dive"`
@@ -96,6 +99,7 @@ type Dependency struct {
 	Path    string          `json:"path" validate:"required,resourcePathValidator"`
 	Kind    DependencyKind  `json:"kind" validate:"required,oneof=SkillSet Resource"`
 	Alias   string          `json:"alias" validate:"required,resourceNameValidator"`
+	Export  bool            `json:"export" validate:"omitempty"`
 	Actions []policy.Action `json:"actions" validate:"required,dive"`
 }
 
@@ -279,8 +283,26 @@ func (sm *skillSetManager) SpecJSON(ctx context.Context) ([]byte, apperrors.Erro
 	return j, nil
 }
 
-func (sm *skillSetManager) GetRunnerDefinition() SkillSetRunner {
-	return sm.skillSet.Spec.Runner
+func (sm *skillSetManager) GetRunnerDefinitionForSkill(skillName string) (SkillSetRunner, apperrors.Error) {
+	for _, skill := range sm.skillSet.Spec.Skills {
+		if skill.Name == skillName {
+			for _, runner := range sm.skillSet.Spec.Runners {
+				if runner.Name == skill.Source {
+					return runner, nil
+				}
+			}
+		}
+	}
+	return SkillSetRunner{}, ErrInvalidObject.Msg("runner not found for skill " + skillName)
+}
+
+func (sm *skillSetManager) GetRunnerDefinitionByName(runnerName string) (SkillSetRunner, apperrors.Error) {
+	for _, runner := range sm.skillSet.Spec.Runners {
+		if runner.Name == runnerName {
+			return runner, nil
+		}
+	}
+	return SkillSetRunner{}, ErrInvalidObject.Msg("runner not found")
 }
 
 func (sm *skillSetManager) GetSkill(name string) (Skill, apperrors.Error) {
@@ -292,12 +314,76 @@ func (sm *skillSetManager) GetSkill(name string) (Skill, apperrors.Error) {
 	return Skill{}, ErrInvalidObject.Msg("skill not found")
 }
 
+func (sm *skillSetManager) GetAllSkills() []Skill {
+	return sm.skillSet.Spec.Skills
+}
+
+func (sm *skillSetManager) GetAllSkillsAsLLMTools(viewDef *policy.ViewDefinition) []api.LLMTool {
+	tools := []api.LLMTool{}
+	for _, skill := range sm.skillSet.Spec.Skills {
+		//if viewDef is provided, validate if our policy allows access to this skill
+		if viewDef != nil {
+			isAllowed, err := policy.AreActionsAllowedOnResource(viewDef, sm.GetResourcePath(), skill.GetExportedActions())
+			if err != nil || !isAllowed {
+				continue
+			}
+		}
+		// add the skill to the tools
+		if desc, ok := skill.Annotations["llm:description"]; ok {
+			tools = append(tools, api.LLMTool{
+				Name:         skill.Name,
+				Description:  desc,
+				InputSchema:  skill.InputSchema,
+				OutputSchema: skill.OutputSchema,
+			})
+		}
+	}
+	return tools
+}
+
 func (sm *skillSetManager) ValidateInputForSkill(ctx context.Context, skillName string, input map[string]any) apperrors.Error {
 	skill, err := sm.GetSkill(skillName)
 	if err != nil {
 		return err
 	}
 	return skill.ValidateInput(input)
+}
+
+func (sm *skillSetManager) GetContext(name string) (SkillSetContext, apperrors.Error) {
+	for _, ctx := range sm.skillSet.Spec.Context {
+		if ctx.Name == name {
+			return ctx, nil
+		}
+	}
+	return SkillSetContext{}, ErrObjectNotFound.Msg("context not found")
+}
+
+func (sm *skillSetManager) GetContextValue(name string) (types.NullableAny, apperrors.Error) {
+	ctx, err := sm.GetContext(name)
+	if err != nil {
+		return types.NilAny(), err
+	}
+	return ctx.Value, nil
+}
+
+func (sm *skillSetManager) SetContextValue(name string, value types.NullableAny) apperrors.Error {
+	for i, ctx := range sm.skillSet.Spec.Context {
+		if ctx.Name == name {
+			if !value.IsNil() {
+				compiledSchema, err := compileSchema(string(ctx.Schema))
+				if err != nil {
+					return ErrInvalidObject.Msg("failed to compile schema")
+				}
+				err = compiledSchema.Validate(value.Get())
+				if err != nil {
+					return ErrInvalidObject.Msg("failed to validate schema")
+				}
+			}
+			sm.skillSet.Spec.Context[i].Value = value
+			return nil
+		}
+	}
+	return ErrObjectNotFound.Msg("context not found")
 }
 
 // DeleteSkillSet deletes a skillset from the database.
@@ -362,6 +448,18 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 	if err == nil {
 		// Validate each skill's input and output schemas
 		for _, skill := range s.Spec.Skills {
+			isRunnerFound := false
+			// All skills must have a runner
+			for _, runner := range s.Spec.Runners {
+				if runner.Name == skill.Source {
+					isRunnerFound = true
+					break
+				}
+			}
+			if !isRunnerFound {
+				validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("skill %s has no runner", skill.Name)))
+			}
+
 			// Validate input schema
 			if len(skill.InputSchema) > 0 {
 				_, err := compileSchema(string(skill.InputSchema))
@@ -382,9 +480,15 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 		// Validate each context's schema
 		for _, ctx := range s.Spec.Context {
 			if len(ctx.Schema) > 0 {
-				_, err := compileSchema(string(ctx.Schema))
+				compiledSchema, err := compileSchema(string(ctx.Schema))
 				if err != nil {
 					validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("context %s schema: %v", ctx.Name, err)))
+				}
+				if !ctx.Value.IsNil() {
+					err = compiledSchema.Validate(ctx.Value.Get())
+					if err != nil {
+						validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("context %s value: %v", ctx.Name, err)))
+					}
 				}
 			}
 		}

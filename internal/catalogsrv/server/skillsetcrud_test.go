@@ -103,12 +103,23 @@ func TestSkillSetCrud(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runner": {
-					"id": "system.commandrunner",
-					"config": {
-						"command": "python3 test.py"
+				"runners": [
+					{
+						"name": "command-runner",
+						"id": "system.commandrunner",
+						"config": {
+							"command": "python3 test.py"
+						}
+					},
+					{
+						"name": "python-runner",
+						"id": "system.pythonrunner",
+						"config": {
+							"module": "test_module",
+							"function": "test_function"
+						}
 					}
-				},
+				],
 				"context": [
 					{
 						"name": "test-context",
@@ -128,6 +139,7 @@ func TestSkillSetCrud(t *testing.T) {
 					{
 						"name": "test-skill",
 						"description": "Test skill",
+						"source": "command-runner",
 						"annotations": null,
 						"inputSchema": {
 							"type": "object",
@@ -146,6 +158,29 @@ func TestSkillSetCrud(t *testing.T) {
 							}
 						},
 						"exportedActions": ["test.action"]
+					},
+					{
+						"name": "python-skill",
+						"description": "Python test skill",
+						"source": "python-runner",
+						"annotations": null,
+						"inputSchema": {
+							"type": "object",
+							"properties": {
+								"input": {
+									"type": "string"
+								}
+							}
+						},
+						"outputSchema": {
+							"type": "object",
+							"properties": {
+								"output": {
+									"type": "string"
+								}
+							}
+						},
+						"exportedActions": ["python.action"]
 					}
 				],
 				"dependencies": [
@@ -153,7 +188,8 @@ func TestSkillSetCrud(t *testing.T) {
 						"path": "/resources/test",
 						"kind": "Resource",
 						"alias": "test-resource",
-						"actions": ["read"]
+						"actions": ["read"],
+						"export": false
 					}
 				]
 			}
@@ -199,12 +235,23 @@ func TestSkillSetCrud(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runner": {
-					"id": "system.commandrunner",
-					"config": {
-						"command": "python3 updated_test.py"
+				"runners": [
+					{
+						"name": "command-runner",
+						"id": "system.commandrunner",
+						"config": {
+							"command": "python3 updated_test.py"
+						}
+					},
+					{
+						"name": "python-runner",
+						"id": "system.pythonrunner",
+						"config": {
+							"module": "updated_module",
+							"function": "updated_function"
+						}
 					}
-				},
+				],
 				"context": [
 					{
 						"name": "updated-context",
@@ -223,7 +270,8 @@ func TestSkillSetCrud(t *testing.T) {
 				"skills": [
 					{
 						"name": "updated-skill",
-						"description": "Updated skill",
+						"description": "Updated test skill",
+						"source": "command-runner",
 						"annotations": null,
 						"inputSchema": {
 							"type": "object",
@@ -242,6 +290,29 @@ func TestSkillSetCrud(t *testing.T) {
 							}
 						},
 						"exportedActions": ["updated.action"]
+					},
+					{
+						"name": "updated-python-skill",
+						"description": "Updated Python test skill",
+						"source": "python-runner",
+						"annotations": null,
+						"inputSchema": {
+							"type": "object",
+							"properties": {
+								"input": {
+									"type": "string"
+								}
+							}
+						},
+						"outputSchema": {
+							"type": "object",
+							"properties": {
+								"output": {
+									"type": "string"
+								}
+							}
+						},
+						"exportedActions": ["updated.python.action"]
 					}
 				],
 				"dependencies": [
@@ -249,7 +320,8 @@ func TestSkillSetCrud(t *testing.T) {
 						"path": "/resources/updated",
 						"kind": "Resource",
 						"alias": "updated-resource",
-						"actions": ["read"]
+						"actions": ["read"],
+						"export": false
 					}
 				]
 			}
@@ -405,12 +477,15 @@ func TestSkillSetList(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runner": {
-					"id": "system.commandrunner",
-					"config": {
-						"command": "` + s.Command + `"
+				"runners": [
+					{
+						"name": "command-runner",
+						"id": "system.commandrunner",
+						"config": {
+							"command": "` + s.Command + `"
+						}
 					}
-				},
+				],
 				"context": [
 					{
 						"name": "test-context",
@@ -430,6 +505,7 @@ func TestSkillSetList(t *testing.T) {
 					{
 						"name": "test-skill",
 						"description": "Test skill",
+						"source": "command-runner",
 						"annotations": null,
 						"inputSchema": {
 							"type": "object",
@@ -455,7 +531,8 @@ func TestSkillSetList(t *testing.T) {
 						"path": "/resources/test",
 						"kind": "Resource",
 						"alias": "test-resource",
-						"actions": ["read"]
+						"actions": ["read"],
+						"export": false
 					}
 				]
 			}

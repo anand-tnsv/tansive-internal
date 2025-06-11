@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"slices"
 	"sync"
 	"time"
 
@@ -21,7 +20,22 @@ import (
 	"github.com/tansive/tansive-internal/internal/tangent/runners"
 	"github.com/tansive/tansive-internal/internal/tangent/session/toolgraph"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
+	"github.com/tansive/tansive-internal/pkg/api"
+	"github.com/tansive/tansive-internal/pkg/types"
 )
+
+type session struct {
+	id                   uuid.UUID
+	context              *ServerContext
+	skillSet             catalogmanager.SkillSetManager
+	viewDef              *policy.ViewDefinition
+	token                string
+	tokenExpiry          time.Time
+	serverURL            string
+	callGraph            *toolgraph.CallGraph
+	invocationIDs        map[string]*policy.ViewDefinition
+	interactiveIOWriters *tangentcommon.IOWriters
+}
 
 type SkillArgs struct {
 	InvocationID     string         `json:"invocationID"`
@@ -37,7 +51,7 @@ func (s *session) GetSessionID() string {
 
 func (s *session) Run(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
 	if invokerID != "" {
-		if !slices.Contains(s.invocationIDs, invokerID) {
+		if _, ok := s.invocationIDs[invokerID]; !ok {
 			return ErrInvalidInvocationID.Msg("invocationID not found")
 		}
 	}
@@ -46,8 +60,41 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 		return err
 	}
 
+	isAllowed, err := s.ValidateRunPolicy(ctx, invokerID, skillName)
+	if err != nil {
+		return err
+	}
+	if !isAllowed {
+		return ErrBlockedByPolicy.Msg("blocked by policy")
+	}
+
+	if err := s.ValidateInputForSkill(ctx, skillName, inputArgs); err != nil {
+		return err
+	}
+
 	// We only support interactive skills for now
 	return s.runInteractiveSkill(ctx, invokerID, skillName, inputArgs, ioWriters...)
+}
+
+func (s *session) ValidateRunPolicy(ctx context.Context, invokerID string, skillName string) (bool, apperrors.Error) {
+	if s.skillSet == nil {
+		return false, ErrUnableToGetSkillset.Msg("skillset not found")
+	}
+
+	skill, err := s.resolveSkill(skillName)
+	if err != nil {
+		return false, err
+	}
+
+	return policy.AreActionsAllowedOnResource(s.viewDef, s.skillSet.GetResourcePath(), skill.GetExportedActions())
+}
+
+func (s *session) ValidateInputForSkill(ctx context.Context, skillName string, inputArgs map[string]any) apperrors.Error {
+	skill, err := s.resolveSkill(skillName)
+	if err != nil {
+		return err
+	}
+	return skill.ValidateInput(inputArgs)
 }
 
 func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
@@ -77,7 +124,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		return err
 	}
 
-	runner, err := s.getRunner(ctx, append(ioWriters, s.interactiveIOWriters)...)
+	runner, err := s.getRunner(ctx, skillName, append(ioWriters, s.interactiveIOWriters)...)
 	if err != nil {
 		return err
 	}
@@ -100,7 +147,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 	if toolErr != nil {
 		return ErrToolGraphError.Msg(toolErr.Error())
 	}
-	s.invocationIDs = append(s.invocationIDs, invocationID)
+	s.invocationIDs[invocationID] = s.viewDef
 
 	childCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -163,12 +210,15 @@ loop:
 	return <-resultChan
 }
 
-func (s *session) getRunner(ctx context.Context, ioWriters ...*tangentcommon.IOWriters) (runners.Runner, apperrors.Error) {
+func (s *session) getRunner(ctx context.Context, skillName string, ioWriters ...*tangentcommon.IOWriters) (runners.Runner, apperrors.Error) {
 	if s.skillSet == nil {
 		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
 	}
 
-	runnerDef := s.skillSet.GetRunnerDefinition()
+	runnerDef, err := s.skillSet.GetRunnerDefinitionForSkill(skillName)
+	if err != nil {
+		return nil, err
+	}
 	runner, err := runners.NewRunner(ctx, s.id.String(), runnerDef, ioWriters...)
 	if err != nil {
 		return nil, err
@@ -258,4 +308,33 @@ const (
 
 func (s *session) getTopic(eventType string) string {
 	return fmt.Sprintf("session.%s.%s", s.id.String(), eventType)
+}
+
+func (s *session) getSkillsAsLLMTools() ([]api.LLMTool, apperrors.Error) {
+	if s.skillSet == nil {
+		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
+	}
+	// We'll return all tools and block it while executing the skill. This will allow LLM to prompt
+	// user to obtain permission or to log tickets to ask for permission.
+	return s.skillSet.GetAllSkillsAsLLMTools(nil), nil
+}
+
+func (s *session) getContext(name string) (any, apperrors.Error) {
+	if s.skillSet == nil {
+		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
+	}
+	return s.skillSet.GetContextValue(name)
+}
+
+var _ = (&session{}).setContext
+
+func (s *session) setContext(name string, value any) apperrors.Error {
+	if s.skillSet == nil {
+		return ErrUnableToGetSkillset.Msg("skillset not found")
+	}
+	nullableAny, err := types.NullableAnyFrom(value)
+	if err != nil {
+		return ErrInvalidObject.Msg(err.Error())
+	}
+	return s.skillSet.SetContextValue(name, nullableAny)
 }

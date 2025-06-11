@@ -1,22 +1,34 @@
 package skillservice
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
-
-	"github.com/tansive/tansive-internal/internal/tangent/session/proto"
-	"google.golang.org/protobuf/types/known/structpb"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 type Client struct {
-	conn   *grpc.ClientConn
-	client proto.SkillServiceClient
+	httpClient *http.Client
+	socketPath string
+	config     clientConfig
+}
+
+type SkillInvocation struct {
+	SessionID    string                 `json:"session_id"`
+	InvocationID string                 `json:"invocation_id"`
+	SkillName    string                 `json:"skill_name"`
+	Args         map[string]interface{} `json:"args"`
+}
+
+type SkillResult struct {
+	InvocationID string                 `json:"invocation_id"`
+	Output       map[string]interface{} `json:"output"`
 }
 
 type ClientOption func(*clientConfig)
@@ -46,14 +58,13 @@ func WithRetryDelay(delay time.Duration) ClientOption {
 }
 
 func NewClient(opts ...ClientOption) (*Client, error) {
-	config := &clientConfig{
+	config := clientConfig{
 		dialTimeout: 5 * time.Second,
 		maxRetries:  3,
 		retryDelay:  100 * time.Millisecond,
 	}
-
 	for _, opt := range opts {
-		opt(config)
+		opt(&config)
 	}
 
 	socketPath, err := GetSocketPath()
@@ -61,70 +72,129 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 		return nil, fmt.Errorf("failed to get socket path: %w", err)
 	}
 
-	var conn *grpc.ClientConn
-	var lastErr error
-
-	for i := 0; i < config.maxRetries; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), config.dialTimeout)
-		defer cancel()
-
-		conn, err = grpc.DialContext(
-			ctx,
-			"unix://"+socketPath,
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-		)
-		if err == nil {
-			break
-		}
-		lastErr = err
-
-		if i < config.maxRetries-1 {
-			log.Debug().
-				Err(err).
-				Int("attempt", i+1).
-				Int("max_attempts", config.maxRetries).
-				Msg("failed to connect to skill service, retrying")
-			time.Sleep(config.retryDelay)
-		}
+	transport := &http.Transport{
+		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", socketPath)
+		},
 	}
-
-	if lastErr != nil {
-		return nil, fmt.Errorf("failed to connect to skill service after %d attempts: %w", config.maxRetries, lastErr)
+	httpClient := &http.Client{
+		Transport: transport,
+		Timeout:   config.dialTimeout,
 	}
 
 	return &Client{
-		conn:   conn,
-		client: proto.NewSkillServiceClient(conn),
+		httpClient: httpClient,
+		socketPath: socketPath,
+		config:     config,
 	}, nil
 }
 
 func (c *Client) Close() error {
-	if c.conn != nil {
-		return c.conn.Close()
-	}
+	// No persistent connection to close in net/http
 	return nil
 }
 
-func (c *Client) InvokeSkill(ctx context.Context, sessionID, invocationID, skillName string, args map[string]interface{}) (*proto.SkillResult, error) {
-	argsStruct, err := structpb.NewStruct(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert args to struct: %w", err)
-	}
-
-	invocation := &proto.SkillInvocation{
-		SessionId:    sessionID,
-		InvocationId: invocationID,
+func (c *Client) InvokeSkill(ctx context.Context, sessionID, invocationID, skillName string, args map[string]interface{}) (*SkillResult, error) {
+	invocation := SkillInvocation{
+		SessionID:    sessionID,
+		InvocationID: invocationID,
 		SkillName:    skillName,
-		Args:         argsStruct,
+		Args:         args,
 	}
 
-	result, err := c.client.InvokeSkill(ctx, invocation)
+	body, err := json.Marshal(invocation)
 	if err != nil {
-		if st, ok := status.FromError(err); ok {
-			return nil, fmt.Errorf("skill invocation failed: %s", st.Message())
-		}
-		return nil, fmt.Errorf("skill invocation failed: %w", err)
+		return nil, fmt.Errorf("failed to marshal invocation: %w", err)
 	}
 
-	return result, nil
+	var lastErr error
+	for i := 0; i < c.config.maxRetries; i++ {
+		req, err := http.NewRequestWithContext(ctx, "POST", "http://unix/skill-invocations", bytes.NewReader(body))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			time.Sleep(c.config.retryDelay)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			respBody, _ := io.ReadAll(resp.Body)
+			return nil, fmt.Errorf("skill invocation failed: %s", string(respBody))
+		}
+
+		var result SkillResult
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return nil, fmt.Errorf("failed to decode result: %w", err)
+		}
+		return &result, nil
+	}
+
+	return nil, fmt.Errorf("failed to invoke skill after %d retries: %w", c.config.maxRetries, lastErr)
+}
+
+func (c *Client) GetTools(ctx context.Context, sessionID string) ([]api.LLMTool, error) {
+	var lastErr error
+	for i := 0; i < c.config.maxRetries; i++ {
+		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/tools?session_id=%s", sessionID), nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			time.Sleep(c.config.retryDelay)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			respBody, _ := io.ReadAll(resp.Body)
+			return nil, fmt.Errorf("get tools failed: %s", string(respBody))
+		}
+
+		var tools []api.LLMTool
+		if err := json.NewDecoder(resp.Body).Decode(&tools); err != nil {
+			return nil, fmt.Errorf("failed to decode tools: %w", err)
+		}
+		return tools, nil
+	}
+
+	return nil, fmt.Errorf("failed to get tools after %d retries: %w", c.config.maxRetries, lastErr)
+}
+
+func (c *Client) GetContext(ctx context.Context, sessionID string, name string) (any, error) {
+	var lastErr error
+	for i := 0; i < c.config.maxRetries; i++ {
+		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/context?session_id=%s&name=%s", sessionID, name), nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			time.Sleep(c.config.retryDelay)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			respBody, _ := io.ReadAll(resp.Body)
+			return nil, fmt.Errorf("get context failed: %s", string(respBody))
+		}
+
+		var context any
+		if err := json.NewDecoder(resp.Body).Decode(&context); err != nil {
+			return nil, fmt.Errorf("failed to decode context: %w", err)
+		}
+		return context, nil
+	}
+
+	return nil, fmt.Errorf("failed to get context after %d retries: %w", c.config.maxRetries, lastErr)
 }

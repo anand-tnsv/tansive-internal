@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 // IOWriters provides stdout and stderr writers for command output.
@@ -22,5 +23,7 @@ type RunParams struct {
 }
 
 type SkillManager interface {
+	GetTools(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error)
+	GetContext(ctx context.Context, sessionID string, name string) (any, apperrors.Error)
 	Run(ctx context.Context, params *RunParams) (map[string]any, apperrors.Error)
 }

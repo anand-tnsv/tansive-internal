@@ -83,12 +83,22 @@ func TestNewSession(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runner": {
-				"id": "system.commandrunner",
-				"config": {
-					"command": "python3 test.py"
+			"runners": [
+				{
+					"name": "command-runner",
+					"id": "system.commandrunner",
+					"config": {
+						"command": "python3 test.py"
+					}
+				},
+				{
+					"name": "python-runner",
+					"id": "system.pythonrunner",
+					"config": {
+						"script": "test.py"
+					}
 				}
-			},
+			],
 			"context": [
 				{
 					"name": "test-context",
@@ -106,6 +116,7 @@ func TestNewSession(t *testing.T) {
 				{
 					"name": "test-skill",
 					"description": "Test skill",
+					"source": "command-runner",
 					"inputSchema": {
 						"type": "object",
 						"properties": {
@@ -123,6 +134,28 @@ func TestNewSession(t *testing.T) {
 						}
 					},
 					"exportedActions": ["test.action"]
+				},
+				{
+					"name": "python-skill",
+					"description": "Python skill",
+					"source": "python-runner",
+					"inputSchema": {
+						"type": "object",
+						"properties": {
+							"input": {
+								"type": "string"
+							}
+						}
+					},
+					"outputSchema": {
+						"type": "object",
+						"properties": {
+							"output": {
+								"type": "string"
+							}
+						}
+					},
+					"exportedActions": ["python.action"]
 				}
 			],
 			"dependencies": [
@@ -130,7 +163,8 @@ func TestNewSession(t *testing.T) {
 					"path": "/resources/test",
 					"kind": "Resource",
 					"alias": "test-resource",
-					"actions": ["read"]
+					"actions": ["read"],
+					"export": false
 				}
 			]
 		}
@@ -516,12 +550,22 @@ func TestSessionSaveAndGet(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runner": {
-				"id": "system.commandrunner",
-				"config": {
-					"command": "python3 test.py"
+			"runners": [
+				{
+					"name": "command-runner",
+					"id": "system.commandrunner",
+					"config": {
+						"command": "python3 test.py"
+					}
+				},
+				{
+					"name": "python-runner",
+					"id": "system.pythonrunner",
+					"config": {
+						"script": "test.py"
+					}
 				}
-			},
+			],
 			"context": [
 				{
 					"name": "test-context",
@@ -539,6 +583,7 @@ func TestSessionSaveAndGet(t *testing.T) {
 				{
 					"name": "test-skill",
 					"description": "Test skill",
+					"source": "command-runner",
 					"inputSchema": {
 						"type": "object",
 						"properties": {
@@ -556,6 +601,28 @@ func TestSessionSaveAndGet(t *testing.T) {
 						}
 					},
 					"exportedActions": ["test.action"]
+				},
+				{
+					"name": "python-skill",
+					"description": "Python skill",
+					"source": "python-runner",
+					"inputSchema": {
+						"type": "object",
+						"properties": {
+							"input": {
+								"type": "string"
+							}
+						}
+					},
+					"outputSchema": {
+						"type": "object",
+						"properties": {
+							"output": {
+								"type": "string"
+							}
+						}
+					},
+					"exportedActions": ["python.action"]
 				}
 			],
 			"dependencies": [
@@ -563,7 +630,8 @@ func TestSessionSaveAndGet(t *testing.T) {
 					"path": "/resources/test",
 					"kind": "Resource",
 					"alias": "test-resource",
-					"actions": ["read"]
+					"actions": ["read"],
+					"export": false
 				}
 			]
 		}

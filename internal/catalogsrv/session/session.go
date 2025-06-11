@@ -142,7 +142,7 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 
 	// Validate action permissions
 	exportedActions := skillObj.GetExportedActions()
-	allowed, err := policy.AreActionsAllowedOnResource(ctx, viewDef, skillSetManager.GetResourcePath(), exportedActions)
+	allowed, err := policy.AreActionsAllowedOnResource(viewDef, skillSetManager.GetResourcePath(), exportedActions)
 	if err != nil {
 		return nil, err
 	}

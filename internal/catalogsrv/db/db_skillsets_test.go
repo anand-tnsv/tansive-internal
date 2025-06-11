@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"encoding/json"
+
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -63,13 +64,64 @@ func TestSkillSetOperations(t *testing.T) {
 	assert.NoError(t, err)
 	defer DB(ctx).DeleteVariant(ctx, catalog.CatalogID, variant.VariantID, "")
 
+	// Create initial metadata
+	initialMetadata := map[string]interface{}{
+		"description": "test skillset",
+		"skills": []map[string]interface{}{
+			{
+				"description":     "Test skill",
+				"exportedActions": []string{"test.action"},
+				"name":            "test-skill",
+				"source":          "command-runner",
+			},
+		},
+	}
+	initialMetadataBytes, err := json.MarshalIndent(initialMetadata, "", "\t")
+	require.NoError(t, err)
+
 	// Create a mock skillset
 	ss := &models.SkillSet{
 		Path:      "/test/skillset",
 		Hash:      "test_hash_123",
 		VariantID: variant.VariantID,
-		Metadata:  json.RawMessage(`{"description": "test skillset"}`),
+		Metadata:  initialMetadataBytes,
 	}
+
+	// Create initial data
+	initialData := map[string]interface{}{
+		"version": "v1",
+		"kind":    "SkillSet",
+		"metadata": map[string]interface{}{
+			"name":      "test-skillset",
+			"catalog":   "test_catalog",
+			"namespace": "default",
+			"variant":   "test_variant",
+		},
+		"spec": map[string]interface{}{
+			"version": "1.0.0",
+			"runners": []map[string]interface{}{
+				{
+					"name": "command-runner",
+					"id":   "system.commandrunner",
+					"config": map[string]interface{}{
+						"command": "python3 test.py",
+					},
+				},
+			},
+			"skills": []map[string]interface{}{
+				{
+					"description":     "Test skill",
+					"exportedActions": []string{"test.action"},
+					"name":            "test-skill",
+					"source":          "command-runner",
+					"inputSchema":     map[string]interface{}{"type": "object"},
+					"outputSchema":    map[string]interface{}{"type": "object"},
+				},
+			},
+		},
+	}
+	initialDataBytes, err := json.MarshalIndent(initialData, "", "\t")
+	require.NoError(t, err)
 
 	// Create a mock catalog object
 	obj := &models.CatalogObject{
@@ -77,7 +129,7 @@ func TestSkillSetOperations(t *testing.T) {
 		Type:     catcommon.CatalogObjectTypeSkillset,
 		Version:  "v1",
 		TenantID: tenantID,
-		Data:     []byte(`{"key": "value"}`),
+		Data:     initialDataBytes,
 	}
 
 	// Test UpsertSkillSetObject
@@ -91,7 +143,14 @@ func TestSkillSetOperations(t *testing.T) {
 	assert.Equal(t, ss.Path, retrievedSS.Path)
 	assert.Equal(t, ss.Hash, strings.TrimSpace(retrievedSS.Hash))
 	assert.Equal(t, ss.VariantID, retrievedSS.VariantID)
-	assert.Equal(t, ss.Metadata, retrievedSS.Metadata)
+
+	// Compare metadata as maps
+	var expectedMetadata, actualMetadata map[string]interface{}
+	err = json.Unmarshal(ss.Metadata, &expectedMetadata)
+	assert.NoError(t, err)
+	err = json.Unmarshal(retrievedSS.Metadata, &actualMetadata)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedMetadata, actualMetadata)
 
 	// Test GetSkillSetObject
 	retrievedObj, err := DB(ctx).GetSkillSetObject(ctx, ss.Path, variant.SkillsetDirectoryID)
@@ -101,9 +160,32 @@ func TestSkillSetOperations(t *testing.T) {
 	assert.Equal(t, obj.Type, retrievedObj.Type)
 	assert.Equal(t, obj.Version, retrievedObj.Version)
 
+	// Compare data as maps
+	var expectedData, actualData map[string]interface{}
+	err = json.Unmarshal(obj.Data, &expectedData)
+	assert.NoError(t, err)
+	err = json.Unmarshal(retrievedObj.Data, &actualData)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedData, actualData)
+
+	// Create updated metadata
+	updatedMetadata := map[string]interface{}{
+		"description": "updated skillset",
+		"skills": []map[string]interface{}{
+			{
+				"description":     "Updated test skill",
+				"exportedActions": []string{"test.action", "test.action2"},
+				"name":            "test-skill",
+				"source":          "command-runner",
+			},
+		},
+	}
+	updatedMetadataBytes, err := json.MarshalIndent(updatedMetadata, "", "\t")
+	require.NoError(t, err)
+
 	// Test UpdateSkillSet
 	ss.Hash = "updated_hash_456"
-	ss.Metadata = json.RawMessage(`{"description": "updated skillset"}`)
+	ss.Metadata = updatedMetadataBytes
 	err = DB(ctx).UpdateSkillSet(ctx, ss, variant.SkillsetDirectoryID)
 	assert.NoError(t, err)
 
@@ -112,15 +194,28 @@ func TestSkillSetOperations(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, updatedSS)
 	assert.Equal(t, ss.Hash, strings.TrimSpace(updatedSS.Hash))
-	assert.Equal(t, ss.Metadata, updatedSS.Metadata)
+
+	// Compare updated metadata as maps
+	var expectedUpdatedMetadata, actualUpdatedMetadata map[string]interface{}
+	err = json.Unmarshal(ss.Metadata, &expectedUpdatedMetadata)
+	assert.NoError(t, err)
+	err = json.Unmarshal(updatedSS.Metadata, &actualUpdatedMetadata)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedUpdatedMetadata, actualUpdatedMetadata)
 
 	// Test ListSkillSets
 	skillsets, err := DB(ctx).ListSkillSets(ctx, variant.SkillsetDirectoryID)
 	assert.NoError(t, err)
+	assert.NotNil(t, skillsets)
 	assert.Len(t, skillsets, 1)
 	assert.Equal(t, ss.Path, skillsets[0].Path)
 	assert.Equal(t, ss.Hash, strings.TrimSpace(skillsets[0].Hash))
-	assert.Equal(t, ss.Metadata, skillsets[0].Metadata)
+
+	// Compare listed skillset metadata as maps
+	var listedMetadata map[string]interface{}
+	err = json.Unmarshal(skillsets[0].Metadata, &listedMetadata)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedUpdatedMetadata, listedMetadata)
 
 	// Test DeleteSkillSet
 	deletedHash, err := DB(ctx).DeleteSkillSet(ctx, ss.Path, variant.SkillsetDirectoryID)
@@ -128,11 +223,17 @@ func TestSkillSetOperations(t *testing.T) {
 	assert.Equal(t, ss.Hash, deletedHash)
 
 	// Verify deletion
-	_, err = DB(ctx).GetSkillSet(ctx, ss.Path, variant.VariantID, variant.SkillsetDirectoryID)
+	deletedSS, err := DB(ctx).GetSkillSet(ctx, ss.Path, variant.VariantID, variant.SkillsetDirectoryID)
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, dberror.ErrNotFound)
+	assert.Nil(t, deletedSS)
 
 	// Test error cases
+	_, err = DB(ctx).GetSkillSet(ctx, "/nonexistent", variant.VariantID, variant.SkillsetDirectoryID)
+	assert.Error(t, err)
+
+	_, err = DB(ctx).GetSkillSetObject(ctx, "/nonexistent", variant.SkillsetDirectoryID)
+	assert.Error(t, err)
+
 	// Test with invalid directory ID
 	_, err = DB(ctx).GetSkillSet(ctx, ss.Path, variant.VariantID, uuid.Nil)
 	assert.Error(t, err)

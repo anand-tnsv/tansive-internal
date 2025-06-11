@@ -20,4 +20,5 @@ var (
 	ErrInvalidObject             apperrors.Error = apperrors.New("invalid object").SetStatusCode(http.StatusBadRequest)
 	ErrToolGraphError            apperrors.Error = apperrors.New("tool graph error").SetStatusCode(http.StatusBadRequest)
 	ErrInvalidInvocationID       apperrors.Error = apperrors.New("invalid invocation ID").SetStatusCode(http.StatusBadRequest)
+	ErrBlockedByPolicy           apperrors.Error = apperrors.New("blocked by policy").SetStatusCode(http.StatusForbidden)
 )

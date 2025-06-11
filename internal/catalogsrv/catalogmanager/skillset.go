@@ -18,6 +18,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/pkg/api"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -32,8 +33,14 @@ type SkillSetManager interface {
 	StorageRepresentation() *objectstore.ObjectStorageRepresentation
 	GetSkillMetadata() (SkillMetadata, apperrors.Error)
 	GetResourcePath() string
-	GetRunnerDefinition() SkillSetRunner
+	GetRunnerDefinitionForSkill(skillName string) (SkillSetRunner, apperrors.Error)
+	GetRunnerDefinitionByName(runnerName string) (SkillSetRunner, apperrors.Error)
 	GetSkill(name string) (Skill, apperrors.Error)
+	GetAllSkills() []Skill
+	GetAllSkillsAsLLMTools(viewDef *policy.ViewDefinition) []api.LLMTool
+	GetContext(name string) (SkillSetContext, apperrors.Error)
+	GetContextValue(name string) (types.NullableAny, apperrors.Error)
+	SetContextValue(name string, value types.NullableAny) apperrors.Error
 	ValidateInputForSkill(ctx context.Context, skillName string, input map[string]any) apperrors.Error
 }
 

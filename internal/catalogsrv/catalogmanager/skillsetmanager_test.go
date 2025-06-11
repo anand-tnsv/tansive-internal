@@ -29,7 +29,7 @@ func TestSkillSetValidation(t *testing.T) {
 		errorTypes    []string // List of expected error messages
 	}{
 		{
-			name: "valid skillset with provider",
+			name: "valid skillset with multiple runners",
 			jsonInput: `{
 				"version": "v1",
 				"kind": "SkillSet",
@@ -42,12 +42,23 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runner": {
-						"id": "system.commandrunner",
-						"config": {
-							"command": "python3 test.py"
+					"runners": [
+						{
+							"name": "command-runner",
+							"id": "system.commandrunner",
+							"config": {
+								"command": "python3 test.py"
+							}
+						},
+						{
+							"name": "python-runner",
+							"id": "system.pythonrunner",
+							"config": {
+								"module": "test_module",
+								"function": "test_function"
+							}
 						}
-					},
+					],
 					"context": [
 						{
 							"name": "test-context",
@@ -57,16 +68,26 @@ func TestSkillSetValidation(t *testing.T) {
 									"host": "localhost"
 								}
 							},
-							"schema": {"type": "object"}
+							"schema": {"type": "object"},
+							"value": {"name": "John", "age": 30}
 						}
 					],
 					"skills": [
 						{
-							"name": "test-skill",
-							"description": "A test skill",
+							"name": "test-skill-1",
+							"description": "A test skill using command runner",
+							"source": "command-runner",
 							"inputSchema": {"type": "object"},
 							"outputSchema": {"type": "object"},
-							"exportedActions": ["test.action"]
+							"exportedActions": ["test.action1"]
+						},
+						{
+							"name": "test-skill-2",
+							"description": "A test skill using python runner",
+							"source": "python-runner",
+							"inputSchema": {"type": "object"},
+							"outputSchema": {"type": "object"},
+							"exportedActions": ["test.action2"]
 						}
 					],
 					"dependencies": [
@@ -80,6 +101,81 @@ func TestSkillSetValidation(t *testing.T) {
 				}
 			}`,
 			expectedError: false,
+		},
+		{
+			name: "invalid skillset - skill references non-existent runner",
+			jsonInput: `{
+				"version": "v1",
+				"kind": "SkillSet",
+				"metadata": {
+					"name": "test-skillset",
+					"catalog": "test-catalog",
+					"namespace": "default",
+					"variant": "default",
+					"path": "/skillsets/test-skillset"
+				},
+				"spec": {
+					"version": "1.0.0",
+					"runners": [
+						{
+							"name": "command-runner",
+							"id": "system.commandrunner",
+							"config": {
+								"command": "python3 test.py"
+							}
+						}
+					],
+					"skills": [
+						{
+							"name": "test-skill",
+							"description": "A test skill",
+							"source": "non-existent-runner",
+							"inputSchema": {"type": "object"},
+							"outputSchema": {"type": "object"},
+							"exportedActions": ["test.action"]
+						}
+					]
+				}
+			}`,
+			expectedError: true,
+			errorTypes:    []string{"skill test-skill has no runner"},
+		},
+		{
+			name: "invalid skillset - missing runner source for skill",
+			jsonInput: `{
+				"version": "v1",
+				"kind": "SkillSet",
+				"metadata": {
+					"name": "test-skillset",
+					"catalog": "test-catalog",
+					"namespace": "default",
+					"variant": "default",
+					"path": "/skillsets/test-skillset"
+				},
+				"spec": {
+					"version": "1.0.0",
+					"runners": [
+						{
+							"name": "command-runner",
+							"id": "system.commandrunner",
+							"config": {
+								"command": "python3 test.py"
+							}
+						}
+					],
+					"skills": [
+						{
+							"name": "test-skill",
+							"description": "A test skill",
+							"inputSchema": {"type": "object"},
+							"outputSchema": {"type": "object"},
+							"exportedActions": ["test.action"]
+						}
+					]
+				}
+			}`,
+			expectedError: true,
+			errorTypes:    []string{"SkillSet.Spec.Skills[0].Source: missing required attribute"},
 		},
 		{
 			name: "invalid kind",
@@ -120,12 +216,15 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"provider": {
-						"id": "system.commandrunner",
-						"config": {
-							"command": "python3 test.py"
+					"runners": [
+						{
+							"name": "command-runner",
+							"id": "system.commandrunner",
+							"config": {
+								"command": "python3 test.py"
+							}
 						}
-					},
+					],
 					"context": [
 						{
 							"name": "test-context",
@@ -142,6 +241,7 @@ func TestSkillSetValidation(t *testing.T) {
 						{
 							"name": "test-skill",
 							"description": "A test skill",
+							"source": "command-runner",
 							"inputSchema": {"type": "object"},
 							"outputSchema": {"type": "object"},
 							"exportedActions": ["test.action"]
@@ -257,12 +357,15 @@ func TestSkillSetManagerSave(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runner": {
-				"id": "system.commandrunner",
-				"config": {
-					"command": "python3 test.py"
+			"runners": [
+				{
+					"name": "command-runner",
+					"id": "system.commandrunner",
+					"config": {
+						"command": "python3 test.py"
+					}
 				}
-			},
+			],
 			"context": [
 				{
 					"name": "test-context",
@@ -278,6 +381,7 @@ func TestSkillSetManagerSave(t *testing.T) {
 				{
 					"name": "test-skill",
 					"description": "A test skill",
+					"source": "command-runner",
 					"inputSchema": {"type": "object"},
 					"outputSchema": {"type": "object"},
 					"exportedActions": ["test.action"]
@@ -350,16 +454,20 @@ func TestSkillSetManagerSave(t *testing.T) {
 			},
 			Spec: SkillSetSpec{
 				Version: "1.0.0",
-				Runner: SkillSetRunner{
-					ID: "system.commandrunner",
-					Config: map[string]any{
-						"command": "python3 skillsets/multi-skill-set.py",
+				Runners: []SkillSetRunner{
+					{
+						Name: "command-runner",
+						ID:   "system.commandrunner",
+						Config: map[string]any{
+							"command": "python3 skillsets/multi-skill-set.py",
+						},
 					},
 				},
 				Skills: []Skill{
 					{
 						Name:         "skill1",
 						Description:  "First skill",
+						Source:       "command-runner",
 						InputSchema:  json.RawMessage(`{"type": "object"}`),
 						OutputSchema: json.RawMessage(`{"type": "object"}`),
 						ExportedActions: []policy.Action{
@@ -370,6 +478,7 @@ func TestSkillSetManagerSave(t *testing.T) {
 					{
 						Name:         "skill2",
 						Description:  "Second skill",
+						Source:       "command-runner",
 						InputSchema:  json.RawMessage(`{"type": "object"}`),
 						OutputSchema: json.RawMessage(`{"type": "object"}`),
 						ExportedActions: []policy.Action{
@@ -497,12 +606,15 @@ func TestSkillSetManagerDelete(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runner": {
-					"id": "system.commandrunner",
-					"config": {
-						"command": "python3 test.py"
+				"runners": [
+					{
+						"name": "command-runner",
+						"id": "system.commandrunner",
+						"config": {
+							"command": "python3 test.py"
+						}
 					}
-				},
+				],
 				"context": [
 					{
 						"name": "test-context",
@@ -518,6 +630,7 @@ func TestSkillSetManagerDelete(t *testing.T) {
 					{
 						"name": "test-skill",
 						"description": "A test skill",
+						"source": "command-runner",
 						"inputSchema": {"type": "object"},
 						"outputSchema": {"type": "object"},
 						"exportedActions": ["test.action"]
@@ -565,6 +678,7 @@ func TestSkillValidateInput(t *testing.T) {
 			skill: Skill{
 				Name:         "test-skill",
 				Description:  "A test skill",
+				Source:       "command-runner",
 				InputSchema:  json.RawMessage(`{"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}, "required": ["name"]}`),
 				OutputSchema: json.RawMessage(`{"type": "object"}`),
 				ExportedActions: []policy.Action{
@@ -579,6 +693,7 @@ func TestSkillValidateInput(t *testing.T) {
 			skill: Skill{
 				Name:         "test-skill",
 				Description:  "A test skill",
+				Source:       "command-runner",
 				InputSchema:  json.RawMessage(`{"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}, "required": ["name"]}`),
 				OutputSchema: json.RawMessage(`{"type": "object"}`),
 				ExportedActions: []policy.Action{
@@ -593,6 +708,7 @@ func TestSkillValidateInput(t *testing.T) {
 			skill: Skill{
 				Name:         "test-skill",
 				Description:  "A test skill",
+				Source:       "command-runner",
 				InputSchema:  json.RawMessage(`{"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}, "required": ["name"]}`),
 				OutputSchema: json.RawMessage(`{"type": "object"}`),
 				ExportedActions: []policy.Action{
@@ -617,4 +733,130 @@ func TestSkillValidateInput(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSkillSetManagerContextOperations(t *testing.T) {
+	validJSON := `{
+		"version": "v1",
+		"kind": "SkillSet",
+		"metadata": {
+			"name": "test-skillset",
+			"catalog": "test-catalog",
+			"namespace": "default",
+			"variant": "default",
+			"path": "/skillsets/test-skillset"
+		},
+		"spec": {
+			"version": "1.0.0",
+			"runners": [
+				{
+					"name": "command-runner",
+					"id": "system.commandrunner",
+					"config": {
+						"command": "python3 test.py"
+					}
+				}
+			],
+			"context": [
+				{
+					"name": "test-context",
+					"schema": {
+						"type": "object",
+						"properties": {
+							"name": {"type": "string"},
+							"age": {"type": "number"}
+						},
+						"required": ["name"]
+					},
+					"value": {"name": "John", "age": 30}
+				}
+			],
+			"skills": [
+				{
+					"name": "test-skill",
+					"description": "A test skill",
+					"source": "command-runner",
+					"inputSchema": {"type": "object"},
+					"outputSchema": {"type": "object"},
+					"exportedActions": ["test.action"]
+				}
+			]
+		}
+	}`
+
+	manager := &skillSetManager{}
+	err := json.Unmarshal([]byte(validJSON), &manager.skillSet)
+	require.NoError(t, err)
+
+	t.Run("GetContextValue - existing context", func(t *testing.T) {
+		value, appErr := manager.GetContextValue("test-context")
+		assert.NoError(t, appErr)
+		assert.False(t, value.IsNil())
+
+		var result map[string]any
+		err := value.GetAs(&result)
+		assert.NoError(t, err)
+		assert.Equal(t, "John", result["name"])
+		assert.Equal(t, float64(30), result["age"])
+	})
+
+	t.Run("GetContextValue - non-existent context", func(t *testing.T) {
+		value, appErr := manager.GetContextValue("non-existent")
+		assert.Error(t, appErr)
+		assert.True(t, value.IsNil())
+	})
+
+	t.Run("SetContextValue - valid value", func(t *testing.T) {
+		newValue, err := types.NullableAnyFrom(map[string]any{
+			"name": "Jane",
+			"age":  25,
+		})
+		require.NoError(t, err)
+
+		appErr := manager.SetContextValue("test-context", newValue)
+		assert.NoError(t, appErr)
+
+		// Verify the value was set
+		value, appErr := manager.GetContextValue("test-context")
+		assert.NoError(t, appErr)
+		assert.False(t, value.IsNil())
+
+		var result map[string]any
+		err = value.GetAs(&result)
+		assert.NoError(t, err)
+		assert.Equal(t, "Jane", result["name"])
+		assert.Equal(t, float64(25), result["age"])
+	})
+
+	t.Run("SetContextValue - invalid value (missing required field)", func(t *testing.T) {
+		newValue, err := types.NullableAnyFrom(map[string]any{
+			"age": 25, // Missing required "name" field
+		})
+		require.NoError(t, err)
+
+		appErr := manager.SetContextValue("test-context", newValue)
+		assert.Error(t, appErr)
+	})
+
+	t.Run("SetContextValue - invalid value (wrong type)", func(t *testing.T) {
+		newValue, err := types.NullableAnyFrom(map[string]any{
+			"name": "Jane",
+			"age":  "not-a-number", // age should be a number
+		})
+		require.NoError(t, err)
+
+		appErr := manager.SetContextValue("test-context", newValue)
+		assert.Error(t, appErr)
+	})
+
+	t.Run("SetContextValue - non-existent context", func(t *testing.T) {
+		newValue, err := types.NullableAnyFrom(map[string]any{
+			"name": "Jane",
+			"age":  25,
+		})
+		require.NoError(t, err)
+
+		appErr := manager.SetContextValue("non-existent", newValue)
+		assert.Error(t, appErr)
+	})
 }

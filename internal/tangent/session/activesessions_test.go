@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
@@ -60,20 +61,37 @@ func TestCreateSession(t *testing.T) {
 	require.Error(t, goerr)
 
 	// reusing invocationID should return a loop error
-	_, goerr = client.InvokeSkill(ctx, session.GetSessionID(), session.invocationIDs[0], "k8s_troubleshooter", map[string]any{
+	var invocationID string
+	for k := range session.invocationIDs {
+		invocationID = k
+		break
+	}
+	_, goerr = client.InvokeSkill(ctx, session.GetSessionID(), invocationID, "k8s_troubleshooter", map[string]any{
 		"prompt": "I'm getting a 500 error when I try to access the API",
 	})
 	require.Error(t, goerr)
 
 	// for testing, append a new invocationID to the session
-	invocationID := uuid.New().String()
-	session.invocationIDs = append(session.invocationIDs, invocationID)
+	invocationID = uuid.New().String()
+	session.invocationIDs[invocationID] = session.viewDef
 	response, goerr := client.InvokeSkill(ctx, session.GetSessionID(), invocationID, "k8s_troubleshooter", map[string]any{
 		"prompt": "I'm getting a 500 error when I try to access the API",
 	})
-	require.NoError(t, goerr)
-
+	if !assert.NoError(t, goerr) {
+		t.Logf("error: %v", goerr.Error())
+		if response != nil {
+			t.Logf("response: %v", response)
+		}
+		t.Fail()
+	}
 	// Extract output from the protobuf struct
-	output := response.Output.GetFields()["output"].GetStringValue()
-	t.Logf("response output: %s", output)
+	if response != nil {
+		t.Logf("response output: %s", response.Output["content"])
+	}
+
+	// test get tools
+	tools, goerr := client.GetTools(ctx, session.GetSessionID())
+	require.NoError(t, goerr)
+	require.NotNil(t, tools)
+	t.Logf("tools: %v", tools)
 }

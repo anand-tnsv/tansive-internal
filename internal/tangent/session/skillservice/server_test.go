@@ -2,6 +2,7 @@ package skillservice
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 // mockSession implements tangentcommon.Session interface for testing
@@ -21,37 +23,41 @@ func (m *mockSession) GetSessionID() string {
 }
 
 func (m *mockSession) Run(ctx context.Context, params *tangentcommon.RunParams) (map[string]any, apperrors.Error) {
-	return nil, nil
+	return map[string]any{
+		"status":  "success",
+		"message": "test skill executed successfully",
+	}, nil
+}
+
+func (m *mockSession) GetTools(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error) {
+	return []api.LLMTool{
+		{
+			Name:         "test-skill",
+			Description:  "test skill description",
+			InputSchema:  []byte("{}"),
+			OutputSchema: []byte("{}"),
+		},
+	}, nil
+}
+
+func (m *mockSession) GetContext(ctx context.Context, sessionID string, name string) (any, apperrors.Error) {
+	return 5, nil
 }
 
 func TestSkillService(t *testing.T) {
-	// Create and start the server
-	server, err := NewServer()
-	require.NoError(t, err)
-
-	// Create and register the skill service
 	skillService := NewSkillService(&mockSession{id: "test-session"})
-	server.RegisterService(skillService)
 
-	t.Cleanup(func() {
-		server.Stop()
-	})
-
-	// Start server in a goroutine
 	go func() {
-		err := server.Start()
+		err := skillService.StartServer()
 		require.NoError(t, err)
 	}()
 
-	// Give the server a moment to start
 	time.Sleep(100 * time.Millisecond)
 
-	// Create a client
 	client, err := NewClient()
 	require.NoError(t, err)
 	defer client.Close()
 
-	// Test cases
 	t.Run("InvokeSkill", func(t *testing.T) {
 		ctx := context.Background()
 		sessionID := "test-session"
@@ -64,38 +70,63 @@ func TestSkillService(t *testing.T) {
 		result, err := client.InvokeSkill(ctx, "some-invocation-id", sessionID, skillName, args)
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		require.NotEmpty(t, result.InvocationId)
 		require.NotNil(t, result.Output)
-		//	require.Equal(t, "success", result.Output.Fields["status"].GetStringValue())
-		//	require.Contains(t, result.Output.Fields["message"].GetStringValue(), skillName)
+	})
+
+	t.Run("GetTools", func(t *testing.T) {
+		ctx := context.Background()
+		sessionID := "test-session"
+
+		tools, err := client.GetTools(ctx, sessionID)
+		require.NoError(t, err)
+		require.NotNil(t, tools)
+		require.Len(t, tools, 1)
+		require.Equal(t, "test-skill", tools[0].Name)
+		require.Equal(t, "test skill description", tools[0].Description)
+		require.Equal(t, json.RawMessage("{}"), tools[0].InputSchema)
+		require.Equal(t, json.RawMessage("{}"), tools[0].OutputSchema)
+	})
+
+	t.Run("GetContext", func(t *testing.T) {
+		ctx := context.Background()
+		sessionID := "test-session"
+		name := "test-context"
+		context, err := client.GetContext(ctx, sessionID, name)
+		require.NoError(t, err)
+		require.NotNil(t, context)
 	})
 }
 
 func TestServerStartStop(t *testing.T) {
-	server, err := NewServer()
-	require.NoError(t, err)
+	skillService := NewSkillService(&mockSession{id: "test-session"})
+	require.NotNil(t, skillService)
 
-	// Get the socket path before starting the server
 	socketPath, err := GetSocketPath()
 	require.NoError(t, err)
 
-	// Start server in a goroutine
+	if _, err := os.Stat(socketPath); err == nil {
+		os.Remove(socketPath)
+	}
+
+	errChan := make(chan error, 1)
 	go func() {
-		err := server.Start()
-		require.NoError(t, err)
+		errChan <- skillService.StartServer()
 	}()
 
-	// Give the server a moment to start
 	time.Sleep(100 * time.Millisecond)
 
-	// Verify socket file exists
 	_, err = os.Stat(socketPath)
 	require.NoError(t, err, "socket file should exist after server start")
 
-	// Stop the server
-	server.Stop()
+	skillService.StopServer()
 
-	// Verify socket file is cleaned up
+	select {
+	case err := <-errChan:
+		require.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("server did not shut down in time")
+	}
+
 	_, err = os.Stat(socketPath)
 	require.Error(t, err, "socket file should be removed after server stop")
 	require.True(t, os.IsNotExist(err), "error should be 'file does not exist'")

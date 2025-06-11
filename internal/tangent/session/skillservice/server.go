@@ -2,29 +2,109 @@ package skillservice
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
+	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
-	"github.com/tansive/tansive-internal/internal/tangent/session/proto"
+	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
-const (
-	defaultSocketName = "tangent.service"
-)
+const defaultSocketName = "tangent.service"
 
-// GetSocketPath returns the appropriate socket path using XDG_RUNTIME_DIR if available
+type SkillService struct {
+	skillManager tangentcommon.SkillManager
+	Router       *chi.Mux
+	server       *http.Server
+	socketPath   string
+	mu           sync.Mutex
+}
+
+func NewSkillService(skillManager tangentcommon.SkillManager) *SkillService {
+	if skillManager == nil {
+		log.Error().Msg("SkillManager is nil")
+		return nil
+	}
+	return &SkillService{
+		skillManager: skillManager,
+		Router:       chi.NewRouter(),
+	}
+}
+
+type skillInvocation struct {
+	SessionID    string                 `json:"session_id"`
+	InvocationID string                 `json:"invocation_id"`
+	SkillName    string                 `json:"skill_name"`
+	Args         map[string]interface{} `json:"args"`
+}
+
+type skillResult struct {
+	InvocationID string         `json:"invocation_id"`
+	Output       map[string]any `json:"output"`
+}
+
+func (s *SkillService) handleInvokeSkill(r *http.Request) (*httpx.Response, error) {
+	var req skillInvocation
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, ErrInvalidRequest.Msg(err.Error())
+	}
+
+	resp, err := s.skillManager.Run(r.Context(), &tangentcommon.RunParams{
+		SessionID:    req.SessionID,
+		InvocationID: req.InvocationID,
+		SkillName:    req.SkillName,
+		InputArgs:    req.Args,
+	})
+
+	if err != nil {
+		return nil, ErrSkillServiceError.Msg(err.Error())
+	}
+
+	result := skillResult{
+		InvocationID: req.InvocationID,
+		Output:       resp,
+	}
+
+	return &httpx.Response{
+		StatusCode: http.StatusOK,
+		Response:   result,
+	}, nil
+}
+
+func (s *SkillService) handleGetTools(r *http.Request) (*httpx.Response, error) {
+	tools, err := s.skillManager.GetTools(r.Context(), r.URL.Query().Get("session_id"))
+	if err != nil {
+		return nil, ErrSkillServiceError.Msg(err.Error())
+	}
+	return &httpx.Response{
+		StatusCode: http.StatusOK,
+		Response:   tools,
+	}, nil
+}
+
+func (s *SkillService) handleGetContext(r *http.Request) (*httpx.Response, error) {
+	sessionID := r.URL.Query().Get("session_id")
+	name := r.URL.Query().Get("name")
+	context, err := s.skillManager.GetContext(r.Context(), sessionID, name)
+	if err != nil {
+		return nil, ErrSkillServiceError.Msg(err.Error())
+	}
+	return &httpx.Response{
+		StatusCode: http.StatusOK,
+		Response:   context,
+	}, nil
+}
+
 func GetSocketPath() (string, error) {
-	// Try XDG_RUNTIME_DIR first
 	if xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR"); xdgRuntimeDir != "" {
 		if _, err := os.Stat(xdgRuntimeDir); err == nil {
 			return filepath.Join(xdgRuntimeDir, defaultSocketName), nil
@@ -35,147 +115,93 @@ func GetSocketPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
 	}
-
 	runtimeDir := filepath.Join(homeDir, ".local", "run")
 	if err := os.MkdirAll(runtimeDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create runtime directory: %w", err)
 	}
-
 	return filepath.Join(runtimeDir, defaultSocketName), nil
 }
 
-// Server represents a generic gRPC server that can handle multiple services
-type Server struct {
-	grpcServer *grpc.Server
-	socketPath string
-	services   []interface{}
+func (s *SkillService) MountHandlers() {
+	s.Router.Post("/skill-invocations", httpx.WrapHttpRsp(s.handleInvokeSkill))
+	s.Router.Get("/tools", httpx.WrapHttpRsp(s.handleGetTools))
+	s.Router.Get("/context", httpx.WrapHttpRsp(s.handleGetContext))
 }
 
-// NewServer creates a new generic gRPC server
-func NewServer() (*Server, error) {
+func (s *SkillService) StartServer() error {
 	socketPath, err := GetSocketPath()
 	if err != nil {
-		return nil, fmt.Errorf("failed to determine socket path: %w", err)
+		return err
 	}
-	return &Server{
-		socketPath: socketPath,
-		services:   make([]interface{}, 0),
-	}, nil
-}
 
-// RegisterService registers a service with the gRPC server
-func (s *Server) RegisterService(service interface{}) {
-	s.services = append(s.services, service)
-}
+	s.mu.Lock()
+	s.socketPath = socketPath
+	s.mu.Unlock()
 
-// Start starts the gRPC server on a Unix domain socket
-func (s *Server) Start() error {
-	socketDir := filepath.Dir(s.socketPath)
+	// Remove existing socket if it exists
+	if _, err := os.Stat(socketPath); err == nil {
+		if err := os.Remove(socketPath); err != nil {
+			return fmt.Errorf("failed to remove existing socket: %w", err)
+		}
+	}
+
+	socketDir := filepath.Dir(socketPath)
 	if err := os.MkdirAll(socketDir, 0700); err != nil {
 		return fmt.Errorf("failed to create socket directory: %w", err)
 	}
 
-	if err := os.RemoveAll(s.socketPath); err != nil {
-		return fmt.Errorf("failed to remove existing socket: %w", err)
-	}
-
-	lis, err := net.Listen("unix", s.socketPath)
+	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
-		return fmt.Errorf("failed to listen on socket: %w", err)
+		return fmt.Errorf("failed to listen on unix socket: %w", err)
+	}
+	if err := os.Chmod(socketPath, 0600); err != nil {
+		log.Warn().Err(err).Msg("failed to chmod socket")
 	}
 
-	if err := os.Chmod(s.socketPath, 0600); err != nil {
-		log.Warn().Err(err).Msg("failed to chmod socket file")
-	}
-
-	s.grpcServer = grpc.NewServer()
-
-	// Register all services
-	for _, service := range s.services {
-		switch svc := service.(type) {
-		case proto.SkillServiceServer:
-			proto.RegisterSkillServiceServer(s.grpcServer, svc)
-		// Add more service types here as needed
-		default:
-			log.Warn().Type("service", service).Msg("unknown service type, skipping registration")
-		}
-	}
-
-	reflection.Register(s.grpcServer)
+	s.MountHandlers()
+	srv := &http.Server{Handler: s.Router}
+	s.mu.Lock()
+	s.server = srv
+	s.mu.Unlock()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-sigChan
 		log.Info().Str("signal", sig.String()).Msg("received shutdown signal")
-		s.Stop()
+		s.StopServer()
 	}()
 
-	log.Info().Str("socket", s.socketPath).Msg("gRPC server started")
+	log.Info().Str("socket", socketPath).Msg("REST server started")
 
-	if err := s.grpcServer.Serve(lis); err != nil {
-		return fmt.Errorf("failed to serve: %w", err)
+	// Start server and handle shutdown
+	err = srv.Serve(listener)
+	if err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("server error: %w", err)
 	}
-
 	return nil
 }
 
-// Stop gracefully stops the gRPC server and cleans up the socket file
-func (s *Server) Stop() {
-	if s.grpcServer != nil {
-		s.grpcServer.GracefulStop()
-	}
-	if err := os.Remove(s.socketPath); err != nil {
-		log.Warn().Err(err).Str("socket", s.socketPath).Msg("failed to remove socket file")
-	}
-}
+func (s *SkillService) StopServer() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-// SkillService implements the SkillService RPC methods
-type SkillService struct {
-	proto.UnimplementedSkillServiceServer
-	skillManager tangentcommon.SkillManager
-}
+	if s.server != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-// NewSkillService creates a new skill service instance
-func NewSkillService(skillManager tangentcommon.SkillManager) *SkillService {
-	if skillManager == nil {
-		log.Error().Msg("SkillManager is nil")
-		return nil
-	}
-	return &SkillService{
-		skillManager: skillManager,
-	}
-}
-
-// InvokeSkill implements the SkillService RPC method
-func (s *SkillService) InvokeSkill(ctx context.Context, req *proto.SkillInvocation) (*proto.SkillResult, error) {
-	skillManager := s.skillManager
-	if skillManager == nil {
-		log.Error().Msg("SkillManager is nil")
-		return nil, fmt.Errorf("SkillManager is nil")
+		if err := s.server.Shutdown(ctx); err != nil {
+			log.Error().Err(err).Msg("error shutting down server")
+		}
+		s.server = nil
 	}
 
-	response, err := skillManager.Run(ctx, &tangentcommon.RunParams{
-		SessionID:    req.SessionId,
-		InvocationID: req.InvocationId,
-		SkillName:    req.SkillName,
-		InputArgs:    req.Args.AsMap(),
-	})
-
-	if err != nil {
-		// we don't return as the error has to be returned to the client
-		log.Error().Err(err).Msg("failed to run skill")
+	if s.socketPath != "" {
+		if _, err := os.Stat(s.socketPath); err == nil {
+			if err := os.Remove(s.socketPath); err != nil {
+				log.Error().Err(err).Msg("error removing socket file")
+			}
+		}
+		s.socketPath = ""
 	}
-
-	// Convert response to protobuf struct
-	outputStruct, err2 := structpb.NewStruct(response)
-	if err2 != nil {
-		log.Error().Err(err2).Msg("failed to create output struct")
-		return nil, err2
-	}
-
-	return &proto.SkillResult{
-		InvocationId: req.InvocationId,
-		Output:       outputStruct,
-	}, err
 }
