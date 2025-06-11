@@ -3,19 +3,20 @@ package session
 import (
 	"bytes"
 	"context"
-	gojson "encoding/json"
 	"fmt"
 	"io"
 	"path"
 	"reflect"
 	"time"
 
+	"encoding/json"
+
 	"github.com/go-playground/validator/v10"
-	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
@@ -26,17 +27,12 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-const (
-	// Default session configuration
-	DefaultSessionExpiration = 24 * time.Hour
-	MaxSessionVariables      = 20
-)
-
 // SessionSpec defines the structure for session creation requests
 type SessionSpec struct {
-	SkillPath string          `json:"skillPath" validate:"required,resourcePathValidator"`
-	ViewName  string          `json:"viewName" validate:"required,resourceNameValidator"`
-	Variables json.RawMessage `json:"variables" validate:"omitempty"`
+	SkillPath        string          `json:"skillPath" validate:"required,resourcePathValidator"`
+	ViewName         string          `json:"viewName" validate:"required,resourceNameValidator"`
+	SessionVariables json.RawMessage `json:"sessionVariables" validate:"omitempty"`
+	InputArgs        json.RawMessage `json:"inputArgs" validate:"omitempty"`
 }
 
 // variableSchema defines the JSON schema for session variables
@@ -52,6 +48,12 @@ const variableSchema = `
   }
 }`
 
+type SessionInfo struct {
+	SessionVariables map[string]any         `json:"sessionVariables" validate:"omitempty"`
+	InputArgs        map[string]any         `json:"inputArgs" validate:"omitempty"`
+	ViewDefinition   *policy.ViewDefinition `json:"viewDefinition" validate:"omitempty"`
+}
+
 var variableSchemaCompiled *jsonschema.Schema
 
 // sessionManager implements the SessionManager interface
@@ -61,8 +63,8 @@ type sessionManager struct {
 	viewManager     policy.ViewManager
 }
 
-func init() {
-	schema := fmt.Sprintf(variableSchema, MaxSessionVariables)
+func Init() {
+	schema := fmt.Sprintf(variableSchema, config.Config().Session.MaxVariables)
 	compiledSchema, err := compileSchema(schema)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to compile session variables schema")
@@ -87,17 +89,25 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		return nil, ErrInvalidObject.Msg("user ID is required")
 	}
 
-	// Parse and validate session spec
 	sessionSpec, err := resolveSessionSpec(rsrcSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get skill and skill set path from session spec
 	skill := path.Base(sessionSpec.SkillPath)
 	skillSetPath := path.Dir(sessionSpec.SkillPath)
 	if skill == "" || skillSetPath == "" {
 		return nil, ErrInvalidObject.Msg("invalid skill path")
+	}
+
+	inputArgs := make(map[string]any)
+	if err := json.Unmarshal(sessionSpec.InputArgs, &inputArgs); err != nil {
+		return nil, ErrInvalidObject.Msg("failed to unmarshal input args: " + err.Error())
+	}
+
+	sessionVariables := make(map[string]any)
+	if err := json.Unmarshal(sessionSpec.SessionVariables, &sessionVariables); err != nil {
+		return nil, ErrInvalidObject.Msg("failed to unmarshal session variables: " + err.Error())
 	}
 
 	// Validate view policy
@@ -105,42 +115,34 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		return nil, err
 	}
 
-	// Initialize view manager
 	viewManager, err := resolveViewByLabel(ctx, sessionSpec.ViewName)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get and validate view definition
 	viewDef, err := viewManager.GetViewDefinition(ctx)
 	if err != nil {
 		return nil, err
 	}
-	viewDefJSON, err := viewManager.GetViewDefinitionJSON(ctx)
+
+	skillSetManager, err := resolveSkillSetManager(ctx, skillSetPath, viewManager.Scope())
 	if err != nil {
 		return nil, err
 	}
 
-	// Initialize skill set manager
-	skillSetManager, err := resolveSkillSet(ctx, skillSetPath)
+	skillObj, err := skillSetManager.GetSkill(skill)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get and validate skill metadata
-	skillSetMetadata, err := skillSetManager.GetSkillMetadata()
+	err = skillObj.ValidateInput(inputArgs)
 	if err != nil {
 		return nil, err
-	}
-
-	skillSummary, ok := skillSetMetadata.GetSkill(skill)
-	if !ok {
-		return nil, ErrInvalidObject.Msg("skill not found in skillset")
 	}
 
 	// Validate action permissions
-	exportedActions := skillSummary.ExportedActions
-	allowed, err := policy.AreActionsAllowedOnResource(ctx, viewDef, skillSetManager.GetResourcePath(), exportedActions)
+	exportedActions := skillObj.GetExportedActions()
+	allowed, err := policy.AreActionsAllowedOnResource(viewDef, skillSetManager.GetResourcePath(), exportedActions)
 	if err != nil {
 		return nil, err
 	}
@@ -148,24 +150,32 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		return nil, ErrDisallowedByPolicy.Msg("use of skill is blocked by policy")
 	}
 
+	sessionInfo := SessionInfo{
+		SessionVariables: sessionVariables,
+		InputArgs:        inputArgs,
+		ViewDefinition:   viewDef,
+	}
+	sessionInfoJSON, goerr := json.Marshal(sessionInfo)
+	if goerr != nil {
+		return nil, ErrInvalidObject.Msg("failed to marshal session info: " + goerr.Error())
+	}
+
 	// Create session
 	sessionID := uuid.New()
 	session := &models.Session{
-		SessionID:      sessionID,
-		SkillSet:       skillSetPath,
-		Skill:          skill,
-		ViewID:         viewManager.ID(),
-		ViewDefinition: viewDefJSON,
-		Variables:      gojson.RawMessage(sessionSpec.Variables),
-		StatusSummary:  SessionStatusCreated,
-		Status:         nil,
-		Info:           nil,
-		UserID:         userID,
-		CatalogID:      catalogID,
-		VariantID:      variantID,
-		StartedAt:      time.Now(),
-		EndedAt:        time.Time{},
-		ExpiresAt:      time.Now().Add(DefaultSessionExpiration),
+		SessionID:     sessionID,
+		SkillSet:      skillSetPath,
+		Skill:         skill,
+		ViewID:        viewManager.ID(),
+		StatusSummary: SessionStatusCreated,
+		Status:        nil,
+		Info:          sessionInfoJSON,
+		UserID:        userID,
+		CatalogID:     catalogID,
+		VariantID:     variantID,
+		StartedAt:     time.Now(),
+		EndedAt:       time.Time{},
+		ExpiresAt:     time.Now().Add(config.Config().Session.GetExpirationTimeOrDefault()),
 	}
 
 	return &sessionManager{
@@ -196,7 +206,7 @@ func GetSession(ctx context.Context, sessionID uuid.UUID) (SessionManager, apper
 	if err != nil {
 		return nil, err
 	}
-	skillSetManager, err := resolveSkillSet(ctx, session.SkillSet)
+	skillSetManager, err := resolveSkillSetManager(ctx, session.SkillSet, viewManager.Scope())
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +246,7 @@ func validateSessionVariables(variables json.RawMessage) schemaerr.ValidationErr
 	}
 
 	if err := variableSchemaCompiled.Validate(parsed); err != nil {
-		msg := fmt.Sprintf("session variables must be key-value json objects with max %d properties: %v", MaxSessionVariables, err)
+		msg := fmt.Sprintf("session variables must be key-value json objects with max %d properties: %v", config.Config().Session.MaxVariables, err)
 		return schemaerr.ValidationErrors{schemaerr.ErrValidationFailed(msg)}
 	}
 
@@ -291,7 +301,7 @@ func (s *SessionSpec) Validate() schemaerr.ValidationErrors {
 	}
 
 	// Validate variables
-	if errs := validateSessionVariables(s.Variables); len(errs) > 0 {
+	if errs := validateSessionVariables(s.SessionVariables); len(errs) > 0 {
 		validationErrors = append(validationErrors, errs...)
 	}
 
@@ -316,13 +326,13 @@ func resolveViewByID(ctx context.Context, viewID uuid.UUID) (policy.ViewManager,
 	return viewManager, nil
 }
 
-// resolveSkillSet creates a new skill set manager for the given path
-func resolveSkillSet(ctx context.Context, skillSetPath string) (catalogmanager.SkillSetManager, apperrors.Error) {
+// resolveSkillSetManager creates a new skill set manager for the given path
+func resolveSkillSetManager(ctx context.Context, skillSetPath string, viewScope policy.Scope) (catalogmanager.SkillSetManager, apperrors.Error) {
 	if skillSetPath == "" {
 		return nil, ErrInvalidObject.Msg("skillset path is required")
 	}
 
-	skillSetManager, err := catalogmanager.GetSkillSetManager(ctx, skillSetPath)
+	skillSetManager, err := catalogmanager.GetSkillSetManager(ctx, skillSetPath, viewScope)
 	if err != nil {
 		return nil, err
 	}

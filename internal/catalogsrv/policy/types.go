@@ -1,7 +1,7 @@
 package policy
 
 import (
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
@@ -39,6 +39,7 @@ const (
 	ActionSkillSetEdit      Action = "system.skillset.edit"
 	ActionSkillSetDelete    Action = "system.skillset.delete"
 	ActionSkillSetList      Action = "system.skillset.list"
+	ActionSkillSetUse       Action = "system.skillset.use"
 )
 
 var ValidActions = []Action{
@@ -64,6 +65,7 @@ var ValidActions = []Action{
 	ActionSkillSetEdit,
 	ActionSkillSetDelete,
 	ActionSkillSetList,
+	ActionSkillSetUse,
 }
 
 type Rule struct {

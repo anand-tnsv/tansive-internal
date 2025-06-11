@@ -121,7 +121,6 @@ func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *Vie
 // according to the given view definition.
 //
 // Parameters:
-//   - ctx: The context for the operation
 //   - vd: The ViewDefinition containing the rules to evaluate
 //   - resource: The resource path to check permissions for
 //   - actions: The list of actions to validate
@@ -133,7 +132,7 @@ func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *Vie
 // Note: The function validates that the view definition, resource, and actions are non-empty.
 // It resolves the target scope and resource before performing the permission check.
 // All actions must be allowed for the function to return true.
-func AreActionsAllowedOnResource(ctx context.Context, vd *ViewDefinition, resource string, actions []Action) (bool, apperrors.Error) {
+func AreActionsAllowedOnResource(vd *ViewDefinition, resource string, actions []Action) (bool, apperrors.Error) {
 	if vd == nil {
 		return false, ErrInvalidView.Msg("view definition is nil")
 	}
@@ -144,11 +143,7 @@ func AreActionsAllowedOnResource(ctx context.Context, vd *ViewDefinition, resour
 		return false, ErrInvalidView.Msg("actions are empty")
 	}
 
-	scope, err := resolveTargetScope(ctx)
-	if err != nil {
-		return false, ErrInvalidView.New(err.Error())
-	}
-	targetResource, err := resolveTargetResource(scope, resource)
+	targetResource, err := resolveTargetResource(vd.Scope, resource)
 	if err != nil {
 		return false, ErrInvalidView.New(err.Error())
 	}

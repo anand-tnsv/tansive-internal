@@ -7,8 +7,9 @@ import (
 	"path"
 	"reflect"
 
+	"encoding/json"
+
 	"github.com/go-playground/validator/v10"
-	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
@@ -21,13 +22,14 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/pkg/api"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
 type DependencyKind string
 
 const (
-	KindSkillSet DependencyKind = "SkillSet"
+	KindSkill    DependencyKind = "Skill"
 	KindResource DependencyKind = "Resource"
 )
 
@@ -44,38 +46,60 @@ type SkillSet struct {
 // value, policy, and annotations.
 type SkillSetSpec struct {
 	Version      string            `json:"version" validate:"required"`
-	Runner       SkillSetRunner    `json:"runner" validate:"required,omitempty"`
-	Context      []SkillSetContext `json:"context" validate:"required,dive"`
+	Runners      []SkillSetRunner  `json:"runners" validate:"required,dive"`
+	Context      []SkillSetContext `json:"context" validate:"omitempty,dive"`
 	Skills       []Skill           `json:"skills" validate:"required,dive"`
-	Dependencies []Dependency      `json:"dependencies" validate:"required,dive"`
-	Annotations  map[string]string `json:"annotations" validate:"omitempty"`
+	Dependencies []Dependency      `json:"dependencies,omitempty" validate:"omitempty,dive"`
+	Annotations  map[string]string `json:"annotations,omitempty" validate:"omitempty"`
 }
 
 type SkillSetContext struct {
 	Name     string            `json:"name" validate:"required,resourceNameValidator"`
 	Provider ResourceProvider  `json:"provider,omitempty" validate:"required_without=Schema,omitempty,resourceNameValidator"`
-	Schema   json.RawMessage   `json:"schema" validate:"required_without=Provider,omitempty"`
+	Schema   json.RawMessage   `json:"schema" validate:"required_without=Provider,omitempty,jsonSchemaValidator"`
 	Value    types.NullableAny `json:"value" validate:"omitempty"`
 }
 
 type SkillSetRunner struct {
+	Name   string             `json:"name" validate:"required,resourceNameValidator"`
 	ID     catcommon.RunnerID `json:"id" validate:"required"`
 	Config map[string]any     `json:"config" validate:"required"`
 }
 
 type Skill struct {
-	Name            string            `json:"name" validate:"required,resourceNameValidator"`
+	Name            string            `json:"name" validate:"required,skillNameValidator"`
 	Description     string            `json:"description" validate:"required"`
-	InputSchema     json.RawMessage   `json:"inputSchema" validate:"required"`
-	OutputSchema    json.RawMessage   `json:"outputSchema" validate:"required"`
+	Source          string            `json:"source" validate:"required"`
+	InputSchema     json.RawMessage   `json:"inputSchema" validate:"required,jsonSchemaValidator"`
+	OutputSchema    json.RawMessage   `json:"outputSchema" validate:"required,jsonSchemaValidator"`
 	ExportedActions []policy.Action   `json:"exportedActions" validate:"required,dive"`
 	Annotations     map[string]string `json:"annotations" validate:"omitempty"`
+}
+
+func (s *Skill) GetExportedActions() []policy.Action {
+	return s.ExportedActions
+}
+
+func (s *Skill) ValidateInput(input map[string]any) apperrors.Error {
+	if len(s.InputSchema) == 0 {
+		return nil
+	}
+	schema, err := compileSchema(string(s.InputSchema))
+	if err != nil {
+		return ErrInvalidObject.Msg("failed to compile input schema")
+	}
+	err = schema.Validate(input)
+	if err != nil {
+		return ErrInvalidInput.Msg("failed to validate input schema")
+	}
+	return nil
 }
 
 type Dependency struct {
 	Path    string          `json:"path" validate:"required,resourcePathValidator"`
 	Kind    DependencyKind  `json:"kind" validate:"required,oneof=SkillSet Resource"`
 	Alias   string          `json:"alias" validate:"required,resourceNameValidator"`
+	Export  bool            `json:"export" validate:"omitempty"`
 	Actions []policy.Action `json:"actions" validate:"required,dive"`
 }
 
@@ -98,112 +122,6 @@ func (m *SkillMetadata) GetSkill(name string) (SkillSummary, bool) {
 	}
 	return SkillSummary{}, false
 }
-
-// Sample YAML:
-/*
-version: v1
-kind: SkillSet
-metadata:
-  name: customer-data-processor
-  namespace: default
-  path: /skillsets/customer-data-processor
-spec:
-  version: "1.0.0"
-  provider:
-    id: "system.commandrunner"
-    config:
-      command: "python3 skillsets/customer-data-processor.py"
-      env:
-        - key: "some-key"
-          value: "some-value"
-	  security:
-	    - type: default #could be one of: default, TEZ
-  context:
-    - name: customer-cache
-      provider:
-        id: "system.redis"
-        config:
-          host: "redis.internal"
-          port: 6379
-          db: 0
-          max_connections: 10
-          timeout: 5000
-      schema: |
-        {
-          "type": "object",
-          "properties": {
-            "customer_id": { "type": "string" },
-            "last_accessed": { "type": "string", "format": "date-time" },
-            "data": {
-              "type": "object",
-              "properties": {
-                "name": { "type": "string" },
-                "email": { "type": "string", "format": "email" },
-                "preferences": {
-                  "type": "object",
-                  "properties": {
-                    "theme": { "type": "string", "enum": ["light", "dark"] },
-                    "notifications": { "type": "boolean" }
-                  }
-                }
-              }
-            }
-          },
-          "required": ["customer_id", "data"]
-        }
-      value: null  # Optional default value, can be empty
-      annotations:
-        mcp:description: "Customer data cache using Redis"
-        mcp:tool: "redis"
-        mcp:resource: "cache"
-  skills:
-    - name: process-customer
-      description: "Process and validate customer data"
-      inputSchema: |
-        {
-          "type": "object",
-          "properties": {
-            "customer_id": { "type": "string" },
-            "data": {
-              "type": "object",
-              "properties": {
-                "name": { "type": "string" },
-                "email": { "type": "string", "format": "email" },
-                "preferences": { "type": "object" }
-              }
-            }
-          }
-        }
-      outputSchema: |
-        {
-          "type": "object",
-          "properties": {
-            "status": { "type": "string", "enum": ["success", "error"] },
-            "processed_at": { "type": "string", "format": "date-time" },
-            "validation_errors": { "type": "array", "items": { "type": "string" } }
-          }
-        }
-      exportedActions:
-        - customer.process
-        - customer.validate
-      annotations:
-        mcp:description: "Process and validate customer data with schema validation"
-        mcp:tool: "data-processor"
-  dependencies:
-    - path: "/resources/aws/s3/customer-data"
-      kind: Resource
-      actions:
-        - s3.read
-        - s3.write
-    - path: "/skillsets/data-validation"
-      kind: SkillSet
-      actions:
-        - validation.validate
-        - validation.report
-  annotations:
-    mcp:description: "Customer data processing skillset with validation and storage capabilities"
-    mcp:tool: "data-processor"
-*/
 
 // skillSetManager implements the SkillSetManager interface for managing a single skillset.
 type skillSetManager struct {
@@ -345,6 +263,129 @@ func (sm *skillSetManager) Save(ctx context.Context) apperrors.Error {
 	return nil
 }
 
+// JSON returns the JSON representation of the skillset.
+func (sm *skillSetManager) JSON(ctx context.Context) ([]byte, apperrors.Error) {
+	j, err := json.Marshal(sm.skillSet)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal skillset")
+		return nil, ErrUnableToLoadObject
+	}
+	return j, nil
+}
+
+// SpecJSON returns the JSON representation of the skillset's spec.
+func (sm *skillSetManager) SpecJSON(ctx context.Context) ([]byte, apperrors.Error) {
+	j, err := json.Marshal(sm.skillSet.Spec)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal skillset spec")
+		return nil, ErrInvalidSkillSetDefinition
+	}
+	return j, nil
+}
+
+func (sm *skillSetManager) GetRunnerDefinitionForSkill(skillName string) (SkillSetRunner, apperrors.Error) {
+	for _, skill := range sm.skillSet.Spec.Skills {
+		if skill.Name == skillName {
+			for _, runner := range sm.skillSet.Spec.Runners {
+				if runner.Name == skill.Source {
+					return runner, nil
+				}
+			}
+		}
+	}
+	return SkillSetRunner{}, ErrInvalidObject.Msg("runner not found for skill " + skillName)
+}
+
+func (sm *skillSetManager) GetRunnerDefinitionByName(runnerName string) (SkillSetRunner, apperrors.Error) {
+	for _, runner := range sm.skillSet.Spec.Runners {
+		if runner.Name == runnerName {
+			return runner, nil
+		}
+	}
+	return SkillSetRunner{}, ErrInvalidObject.Msg("runner not found")
+}
+
+func (sm *skillSetManager) GetSkill(name string) (Skill, apperrors.Error) {
+	for _, skill := range sm.skillSet.Spec.Skills {
+		if skill.Name == name {
+			return skill, nil
+		}
+	}
+	return Skill{}, ErrInvalidObject.Msg("skill not found")
+}
+
+func (sm *skillSetManager) GetAllSkills() []Skill {
+	return sm.skillSet.Spec.Skills
+}
+
+func (sm *skillSetManager) GetAllSkillsAsLLMTools(viewDef *policy.ViewDefinition) []api.LLMTool {
+	tools := []api.LLMTool{}
+	for _, skill := range sm.skillSet.Spec.Skills {
+		//if viewDef is provided, validate if our policy allows access to this skill
+		if viewDef != nil {
+			isAllowed, err := policy.AreActionsAllowedOnResource(viewDef, sm.GetResourcePath(), skill.GetExportedActions())
+			if err != nil || !isAllowed {
+				continue
+			}
+		}
+		// add the skill to the tools
+		if desc, ok := skill.Annotations["llm:description"]; ok {
+			tools = append(tools, api.LLMTool{
+				Name:         skill.Name,
+				Description:  desc,
+				InputSchema:  skill.InputSchema,
+				OutputSchema: skill.OutputSchema,
+			})
+		}
+	}
+	return tools
+}
+
+func (sm *skillSetManager) ValidateInputForSkill(ctx context.Context, skillName string, input map[string]any) apperrors.Error {
+	skill, err := sm.GetSkill(skillName)
+	if err != nil {
+		return err
+	}
+	return skill.ValidateInput(input)
+}
+
+func (sm *skillSetManager) GetContext(name string) (SkillSetContext, apperrors.Error) {
+	for _, ctx := range sm.skillSet.Spec.Context {
+		if ctx.Name == name {
+			return ctx, nil
+		}
+	}
+	return SkillSetContext{}, ErrObjectNotFound.Msg("context not found")
+}
+
+func (sm *skillSetManager) GetContextValue(name string) (types.NullableAny, apperrors.Error) {
+	ctx, err := sm.GetContext(name)
+	if err != nil {
+		return types.NilAny(), err
+	}
+	return ctx.Value, nil
+}
+
+func (sm *skillSetManager) SetContextValue(name string, value types.NullableAny) apperrors.Error {
+	for i, ctx := range sm.skillSet.Spec.Context {
+		if ctx.Name == name {
+			if !value.IsNil() {
+				compiledSchema, err := compileSchema(string(ctx.Schema))
+				if err != nil {
+					return ErrInvalidObject.Msg("failed to compile schema")
+				}
+				err = compiledSchema.Validate(value.Get())
+				if err != nil {
+					return ErrInvalidObject.Msg("failed to validate schema")
+				}
+			}
+			sm.skillSet.Spec.Context[i].Value = value
+			return nil
+		}
+	}
+	return ErrObjectNotFound.Msg("context not found")
+}
+
 // DeleteSkillSet deletes a skillset from the database.
 func DeleteSkillSet(ctx context.Context, m *interfaces.Metadata) apperrors.Error {
 	if m == nil {
@@ -393,26 +434,6 @@ func DeleteSkillSet(ctx context.Context, m *interfaces.Metadata) apperrors.Error
 	return nil
 }
 
-// JSON returns the JSON representation of the skillset.
-func (sm *skillSetManager) JSON(ctx context.Context) ([]byte, apperrors.Error) {
-	j, err := json.Marshal(sm.skillSet)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal skillset")
-		return nil, ErrUnableToLoadObject
-	}
-	return j, nil
-}
-
-// SpecJSON returns the JSON representation of the skillset's spec.
-func (sm *skillSetManager) SpecJSON(ctx context.Context) ([]byte, apperrors.Error) {
-	j, err := json.Marshal(sm.skillSet.Spec)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("Failed to marshal skillset spec")
-		return nil, ErrInvalidSkillSetDefinition
-	}
-	return j, nil
-}
-
 // Validate performs validation on the skillset, including:
 // - Kind validation
 // - Schema validation
@@ -427,6 +448,18 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 	if err == nil {
 		// Validate each skill's input and output schemas
 		for _, skill := range s.Spec.Skills {
+			isRunnerFound := false
+			// All skills must have a runner
+			for _, runner := range s.Spec.Runners {
+				if runner.Name == skill.Source {
+					isRunnerFound = true
+					break
+				}
+			}
+			if !isRunnerFound {
+				validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("skill %s has no runner", skill.Name)))
+			}
+
 			// Validate input schema
 			if len(skill.InputSchema) > 0 {
 				_, err := compileSchema(string(skill.InputSchema))
@@ -447,9 +480,15 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 		// Validate each context's schema
 		for _, ctx := range s.Spec.Context {
 			if len(ctx.Schema) > 0 {
-				_, err := compileSchema(string(ctx.Schema))
+				compiledSchema, err := compileSchema(string(ctx.Schema))
 				if err != nil {
 					validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("context %s schema: %v", ctx.Name, err)))
+				}
+				if !ctx.Value.IsNil() {
+					err = compiledSchema.Validate(ctx.Value.Get())
+					if err != nil {
+						validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("context %s value: %v", ctx.Name, err)))
+					}
 				}
 			}
 		}
@@ -476,6 +515,8 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "resourcePathValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidObjectPath(jsonFieldName))
+		case "jsonSchemaValidator":
+			validationErrors = append(validationErrors, schemaerr.ErrInvalidFieldSchema(jsonFieldName))
 		default:
 			val := e.Value()
 			param := e.Param()

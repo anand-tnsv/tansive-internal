@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
@@ -17,6 +17,7 @@ import (
 type ViewManager interface {
 	ID() uuid.UUID
 	Name() string
+	Scope() Scope
 	GetViewDefinition(ctx context.Context) (*ViewDefinition, apperrors.Error)
 	GetViewDefinitionJSON(ctx context.Context) ([]byte, apperrors.Error)
 	GetResourcePath(ctx context.Context) (string, apperrors.Error)
@@ -86,6 +87,13 @@ func (v *viewManager) GetViewDefinitionJSON(ctx context.Context) ([]byte, apperr
 		return nil, ErrInvalidView.Msg("unable to marshal view definition")
 	}
 	return json, nil
+}
+
+func (v *viewManager) Scope() Scope {
+	if v.viewDef == nil {
+		return Scope{}
+	}
+	return v.viewDef.Scope
 }
 
 func (v *viewManager) GetResourcePath(ctx context.Context) (string, apperrors.Error) {

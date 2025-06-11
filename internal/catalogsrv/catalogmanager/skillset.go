@@ -6,7 +6,8 @@ import (
 	"net/url"
 	"path"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
+
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
@@ -14,8 +15,10 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/pkg/api"
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
@@ -30,6 +33,15 @@ type SkillSetManager interface {
 	StorageRepresentation() *objectstore.ObjectStorageRepresentation
 	GetSkillMetadata() (SkillMetadata, apperrors.Error)
 	GetResourcePath() string
+	GetRunnerDefinitionForSkill(skillName string) (SkillSetRunner, apperrors.Error)
+	GetRunnerDefinitionByName(runnerName string) (SkillSetRunner, apperrors.Error)
+	GetSkill(name string) (Skill, apperrors.Error)
+	GetAllSkills() []Skill
+	GetAllSkillsAsLLMTools(viewDef *policy.ViewDefinition) []api.LLMTool
+	GetContext(name string) (SkillSetContext, apperrors.Error)
+	GetContextValue(name string) (types.NullableAny, apperrors.Error)
+	SetContextValue(name string, value types.NullableAny) apperrors.Error
+	ValidateInputForSkill(ctx context.Context, skillName string, input map[string]any) apperrors.Error
 }
 
 // NewSkillSetManager creates a new Sk sillSetManager instance from the pro vided JSON schema and metadata.
@@ -62,20 +74,30 @@ func NewSkillSetManager(ctx context.Context, rsrcJSON []byte, m *interfaces.Meta
 }
 
 // GetSkillSetManager gets a skillset manager given a skillset path.
-func GetSkillSetManager(ctx context.Context, skillSetPath string) (SkillSetManager, apperrors.Error) {
+func GetSkillSetManager(ctx context.Context, skillSetPath string, viewScope ...policy.Scope) (SkillSetManager, apperrors.Error) {
 	if skillSetPath == "" {
 		return nil, ErrInvalidObject.Msg("skillset path is required")
 	}
 
-	m := &interfaces.Metadata{
-		Catalog: catcommon.GetCatalog(ctx),
+	var m *interfaces.Metadata
+	if len(viewScope) > 0 {
+		m = &interfaces.Metadata{
+			Catalog:   viewScope[0].Catalog,
+			Variant:   types.NullableStringFrom(viewScope[0].Variant),
+			Namespace: types.NullableStringFrom(viewScope[0].Namespace),
+		}
+	} else {
+		m = &interfaces.Metadata{
+			Catalog: catcommon.GetCatalog(ctx),
+		}
+		if v := catcommon.GetVariant(ctx); v != "" {
+			m.Variant = types.NullableStringFrom(v)
+		}
+		if n := catcommon.GetNamespace(ctx); n != "" {
+			m.Namespace = types.NullableStringFrom(n)
+		}
 	}
-	if v := catcommon.GetVariant(ctx); v != "" {
-		m.Variant = types.NullableStringFrom(v)
-	}
-	if n := catcommon.GetNamespace(ctx); n != "" {
-		m.Namespace = types.NullableStringFrom(n)
-	}
+
 	skillSetName := path.Base(skillSetPath)
 	if skillSetName == "" {
 		return nil, ErrInvalidObject.Msg("skillset name is required")
@@ -366,4 +388,13 @@ func NewSkillSetKindHandler(ctx context.Context, req interfaces.RequestContext) 
 	return &skillsetKindHandler{
 		req: req,
 	}, nil
+}
+
+// This is a helper function without validation, and to be used from client code.
+func SkillSetManagerFromJSON(ctx context.Context, jsonData []byte) (SkillSetManager, apperrors.Error) {
+	sm := &skillSetManager{}
+	if err := json.Unmarshal(jsonData, &sm.skillSet); err != nil {
+		return nil, ErrSchemaValidation.Msg(err.Error())
+	}
+	return sm, nil
 }

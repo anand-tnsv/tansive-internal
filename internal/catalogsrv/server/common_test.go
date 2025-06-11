@@ -8,14 +8,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/rs/zerolog/log"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/session"
 )
 
 type TestContext struct {
@@ -110,6 +112,9 @@ func setRequestBodyAndHeader(t *testing.T, req *http.Request, data interface{}) 
 }
 
 func newDb() context.Context {
+	config.TestInit()
+	db.Init()
+	session.Init()
 	ctx := log.Logger.WithContext(context.Background())
 	ctx, err := db.ConnCtx(ctx)
 	if err != nil {

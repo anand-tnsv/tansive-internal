@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/tansive/tansive-internal/internal/common/httpclient"
 	"sigs.k8s.io/yaml"
 )
 
@@ -50,7 +51,7 @@ func describeResource(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	client := NewHTTPClient(GetConfig())
+	client := httpclient.NewClient(GetConfig())
 
 	queryParams := make(map[string]string)
 	if describeCatalog != "" {

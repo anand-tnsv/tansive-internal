@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"

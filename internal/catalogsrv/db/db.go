@@ -173,7 +173,7 @@ var pool dbmanager.ScopedDb
 
 // init initializes the database connection pool.
 // It attempts to create a new scoped database connection and logs any errors.
-func init() {
+func Init() {
 	ctx := log.Logger.WithContext(context.Background())
 	pg := dbmanager.NewScopedDb(ctx, "postgresql", configuredScopes)
 	if pg == nil {

@@ -871,7 +871,7 @@ func TestAreActionsAllowedOnResource(t *testing.T) {
 				t.Logf("some actions not allowed")
 			}
 
-			got, err := AreActionsAllowedOnResource(ctx, tt.viewDefinition, tt.resource, tt.actions)
+			got, err := AreActionsAllowedOnResource(tt.viewDefinition, tt.resource, tt.actions)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AreActionsAllowedOnResource() error = %v, wantErr %v", err, tt.wantErr)
 				return

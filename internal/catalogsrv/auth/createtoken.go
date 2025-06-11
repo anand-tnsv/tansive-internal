@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -15,6 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // TokenOptions contains options for token creation
@@ -100,7 +100,7 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOpt
 		}
 	}
 
-	tokenDuration, goerr := config.ParseTokenDuration(config.Config().Auth.DefaultTokenValidity)
+	tokenDuration, goerr := config.Config().Auth.GetDefaultTokenValidity()
 	if goerr != nil {
 		log.Ctx(ctx).Error().Err(goerr).Msg("unable to parse token duration")
 		return "", time.Time{}, ErrUnableToParseTokenDuration.MsgErr("unable to parse token duration", goerr)

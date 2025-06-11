@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func TestNewToken(t *testing.T) {
@@ -278,7 +278,7 @@ func TestTokenValidation(t *testing.T) {
 				"iss":       serverAddr,
 				"aud":       []string{serverAddr},
 				"jti":       uuid.New().String(),
-				"exp":       now.Add(-config.Config().Auth.ClockSkew / 2).Unix(), // Expired but within skew
+				"exp":       now.Add(-config.Config().Auth.GetClockSkewOrDefault() / 2).Unix(), // Expired but within skew
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
 				"ver":       string(TokenVersionV0_1),
@@ -293,7 +293,7 @@ func TestTokenValidation(t *testing.T) {
 				"iss":       serverAddr,
 				"aud":       []string{serverAddr},
 				"jti":       uuid.New().String(),
-				"exp":       now.Add(-config.Config().Auth.ClockSkew * 2).Unix(), // Expired outside skew
+				"exp":       now.Add(-config.Config().Auth.GetClockSkewOrDefault() * 2).Unix(), // Expired outside skew
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
 				"ver":       string(TokenVersionV0_1),
@@ -310,7 +310,7 @@ func TestTokenValidation(t *testing.T) {
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
-				"nbf":       now.Add(config.Config().Auth.ClockSkew / 2).Unix(), // Not yet valid but within skew
+				"nbf":       now.Add(config.Config().Auth.GetClockSkewOrDefault() / 2).Unix(), // Not yet valid but within skew
 				"ver":       string(TokenVersionV0_1),
 			},
 			isValid: true,
@@ -325,7 +325,7 @@ func TestTokenValidation(t *testing.T) {
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
-				"nbf":       now.Add(config.Config().Auth.ClockSkew * 2).Unix(), // Not yet valid outside skew
+				"nbf":       now.Add(config.Config().Auth.GetClockSkewOrDefault() * 2).Unix(), // Not yet valid outside skew
 				"ver":       string(TokenVersionV0_1),
 			},
 			isValid: false,

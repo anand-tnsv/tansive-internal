@@ -127,3 +127,7 @@ const (
 	ResourcePropertyDefinition = "definition"
 	ResourcePropertyValue      = "value"
 )
+
+const (
+	StdioRunnerID = "system.stdiorunner"
+)

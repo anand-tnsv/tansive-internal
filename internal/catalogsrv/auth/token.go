@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -15,6 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 // RequiredClaims is a list of claims that must be present in the token
@@ -106,22 +106,6 @@ func ParseAndValidateToken(ctx context.Context, tokenString string) (*Token, app
 	return tokenObj, nil
 }
 
-// SetMaxTokenAge sets the maximum allowed age for tokens
-func SetMaxTokenAge(age time.Duration) {
-	if age <= 0 {
-		age = 24 * time.Hour
-	}
-	config.Config().Auth.MaxTokenAge = age
-}
-
-// SetClockSkew sets the allowed clock skew for time-based claims
-func SetClockSkew(skew time.Duration) {
-	if skew < 0 {
-		skew = 5 * time.Minute
-	}
-	config.Config().Auth.ClockSkew = skew
-}
-
 // Validate checks if the token is valid and not expired
 func (t *Token) Validate(ctx context.Context) apperrors.Error {
 	// Check all required claims are present
@@ -151,7 +135,7 @@ func (t *Token) Validate(ctx context.Context) apperrors.Error {
 		log.Ctx(ctx).Debug().Msg("token missing or invalid exp claim")
 		return ErrInvalidToken.Msg("missing or invalid exp claim")
 	}
-	if now.After(time.Unix(int64(exp), 0).Add(config.Config().Auth.ClockSkew)) {
+	if now.After(time.Unix(int64(exp), 0).Add(config.Config().Auth.GetClockSkewOrDefault())) {
 		log.Ctx(ctx).Debug().Msg("token expired")
 		return ErrInvalidToken.Msg("token expired")
 	}
@@ -163,7 +147,7 @@ func (t *Token) Validate(ctx context.Context) apperrors.Error {
 			log.Ctx(ctx).Debug().Type("type", nbf).Msg("invalid nbf claim type")
 			return ErrInvalidToken.Msg("invalid nbf claim type")
 		}
-		if now.Before(time.Unix(int64(nbfFloat), 0).Add(-config.Config().Auth.ClockSkew)) {
+		if now.Before(time.Unix(int64(nbfFloat), 0).Add(-config.Config().Auth.GetClockSkewOrDefault())) {
 			log.Ctx(ctx).Debug().Msg("token not yet valid")
 			return ErrInvalidToken.Msg("token not yet valid")
 		}
@@ -176,7 +160,7 @@ func (t *Token) Validate(ctx context.Context) apperrors.Error {
 		return ErrInvalidToken.Msg("missing or invalid iat claim")
 	}
 	issuedAt := time.Unix(int64(iat), 0)
-	if time.Since(issuedAt) > config.Config().Auth.MaxTokenAge {
+	if time.Since(issuedAt) > config.Config().Auth.GetMaxTokenAgeOrDefault() {
 		log.Ctx(ctx).Debug().Msg("token too old")
 		return ErrInvalidToken.Msg("token too old")
 	}

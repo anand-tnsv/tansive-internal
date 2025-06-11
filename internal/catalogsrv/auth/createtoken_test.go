@@ -10,7 +10,6 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +19,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.ProjectId, uuid.UUID, uuid.UUID, *config.ConfigParam) {

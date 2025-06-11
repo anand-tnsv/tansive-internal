@@ -6,15 +6,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"encoding/json"
 	"github.com/jackc/pgtype"
-	json "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func TestViewOperations(t *testing.T) {

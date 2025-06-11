@@ -6,10 +6,13 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 )
 
 func newDb() context.Context {
+	config.TestInit()
+	db.Init()
 	ctx := log.Logger.WithContext(context.Background())
 	ctx, err := db.ConnCtx(ctx)
 	if err != nil {

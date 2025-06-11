@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	json "github.com/json-iterator/go"
+	"encoding/json"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"

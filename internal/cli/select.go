@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/tansive/tansive-internal/internal/common/httpclient"
 )
 
 // selectCatalogCmd represents the select-catalog command
@@ -25,10 +26,10 @@ Example:
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		catalogName := args[0]
-		client := NewHTTPClient(GetConfig())
+		client := httpclient.NewClient(GetConfig())
 
 		// Make the POST request to get the token
-		opts := RequestOptions{
+		opts := httpclient.RequestOptions{
 			Method: http.MethodPost,
 			Path:   fmt.Sprintf("auth/adopt-default-view/%s", catalogName),
 		}
@@ -92,10 +93,10 @@ tansive adopt-view my-catalog/my-view`,
 		}
 		catalogRef := parts[0]
 		viewLabel := parts[1]
-		client := NewHTTPClient(GetConfig())
+		client := httpclient.NewClient(GetConfig())
 
 		// Make the POST request to get the token
-		opts := RequestOptions{
+		opts := httpclient.RequestOptions{
 			Method: http.MethodPost,
 			Path:   fmt.Sprintf("auth/adopt-view/%s/%s", catalogRef, viewLabel),
 		}

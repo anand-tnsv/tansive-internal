@@ -17,6 +17,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/server"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/common/logtrace"
 )
 
@@ -48,6 +49,10 @@ func run(ctx context.Context) error {
 	if err := config.LoadConfig(opt.configFile); err != nil {
 		return fmt.Errorf("loading config file: %w", err)
 	}
+
+	db.Init()
+	session.Init()
+
 	if config.Config().ServerPort == "" {
 		return fmt.Errorf("server port not defined")
 	}
