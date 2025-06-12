@@ -11,34 +11,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
-
-type InteractiveSessionRsp struct {
-	Code       string `json:"code"`
-	TangentURL string `json:"tangent_url"`
-}
-
-type SessionTokenRsp struct {
-	Token  string    `json:"token"`
-	Expiry time.Time `json:"expiry"`
-}
-
-type ExecutionState struct {
-	SessionID        uuid.UUID              `json:"session_id"`
-	SkillSet         string                 `json:"skillset"`
-	Skill            string                 `json:"skill"`
-	View             string                 `json:"view"`
-	ViewDefinition   *policy.ViewDefinition `json:"view_definition"`
-	SessionVariables map[string]any         `json:"session_variables"`
-	InputArgs        map[string]any         `json:"input_args"`
-	Catalog          string                 `json:"catalog"`
-	Variant          string                 `json:"variant"`
-	Namespace        string                 `json:"namespace"`
-	TenantID         catcommon.TenantId     `json:"tenant_id"`
-}
 
 func newSession(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()

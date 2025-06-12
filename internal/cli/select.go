@@ -89,7 +89,11 @@ tansive adopt-view my-catalog/my-view`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parts := strings.SplitN(args[0], "/", 2)
 		if len(parts) != 2 {
-			return fmt.Errorf("invalid view format. Expected <catalog-ref>/<view-label>")
+			config := GetConfig()
+			if config.CurrentCatalog == "" {
+				return fmt.Errorf("invalid view format. Expected <catalog-ref>/<view-label>")
+			}
+			parts = []string{config.CurrentCatalog, args[0]}
 		}
 		catalogRef := parts[0]
 		viewLabel := parts[1]

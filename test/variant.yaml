@@ -1,6 +1,0 @@
-version: "v1"
-kind: Variant
-metadata:
-  name: example-variant
-  catalog: example-catalog
-  description: "Another example variant for testing purposes"

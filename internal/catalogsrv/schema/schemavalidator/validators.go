@@ -119,6 +119,40 @@ func resourcePathValidator(fl validator.FieldLevel) bool {
 	return true
 }
 
+// skillPathValidator checks if the given path is a valid skill path.
+func skillPathValidator(fl validator.FieldLevel) bool {
+	path := fl.Field().String()
+	// Ensure the path starts with a slash, indicating a root path
+	if !strings.HasPrefix(path, "/") {
+		return false
+	}
+
+	// Split the path by slashes and check each segment name
+	segments := strings.Split(path, "/")[1:]
+	re := regexp.MustCompile(resourceNameRegex)
+	sre := regexp.MustCompile(skillNameRegex)
+
+	for i, segment := range segments {
+		// If a segment is empty, continue (e.g., trailing slash is allowed)
+		if segment == "" {
+			continue
+		}
+		// if last segment, validate against skill name regex
+		if i == len(segments)-1 {
+			if !sre.MatchString(segment) {
+				return false
+			}
+		} else {
+			// Validate each folder name using the regex
+			if !re.MatchString(segment) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 func requireVersionV1(fl validator.FieldLevel) bool {
 	version := fl.Field().String()
 	return version == catcommon.VersionV1
@@ -170,5 +204,6 @@ func init() {
 	V().RegisterValidation("notNull", notNull)
 	V().RegisterValidation("requireVersionV1", requireVersionV1)
 	V().RegisterValidation("skillNameValidator", skillNameValidator)
+	V().RegisterValidation("skillPathValidator", skillPathValidator)
 	V().RegisterValidation("jsonSchemaValidator", JsonSchemaValidator)
 }

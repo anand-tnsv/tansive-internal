@@ -1,0 +1,17 @@
+version: v1
+kind: View
+metadata:
+  name: prod-view
+  catalog: test-catalog
+  variant: prod
+  description: View with full access to resources
+spec:
+  rules:
+    - intent: Allow
+      actions:
+        - system.skillset.use
+        - kubernetes.pods.list
+        - kubernetes.troubleshoot
+      targets:
+        - res://skillsets/skillsets/kubernetes-demo
+

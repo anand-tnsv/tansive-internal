@@ -30,7 +30,7 @@ import (
 
 // SessionSpec defines the structure for session creation requests
 type SessionSpec struct {
-	SkillPath        string          `json:"skillPath" validate:"required,resourcePathValidator"`
+	SkillPath        string          `json:"skillPath" validate:"required,skillPathValidator"`
 	ViewName         string          `json:"viewName" validate:"required,resourceNameValidator"`
 	SessionVariables json.RawMessage `json:"sessionVariables" validate:"omitempty"`
 	InputArgs        json.RawMessage `json:"inputArgs" validate:"omitempty"`
@@ -102,8 +102,8 @@ func NewSession(ctx context.Context, rsrcSpec []byte, opts ...RequestOptions) (S
 	// Validate required IDs first
 	catalogID := catcommon.GetCatalogID(ctx)
 	variantID := catcommon.GetVariantID(ctx)
-	if catalogID == uuid.Nil || variantID == uuid.Nil {
-		return nil, nil, ErrInvalidObject.Msg("catalog and variant IDs are required")
+	if catalogID == uuid.Nil {
+		return nil, nil, ErrInvalidObject.Msg("unable to determine catalog")
 	}
 
 	userID := catcommon.GetUserID(ctx)
@@ -133,13 +133,17 @@ func NewSession(ctx context.Context, rsrcSpec []byte, opts ...RequestOptions) (S
 	}
 
 	inputArgs := make(map[string]any)
-	if err := json.Unmarshal(sessionSpec.InputArgs, &inputArgs); err != nil {
-		return nil, nil, ErrInvalidObject.Msg("failed to unmarshal input args: " + err.Error())
+	if len(sessionSpec.InputArgs) > 0 {
+		if err := json.Unmarshal(sessionSpec.InputArgs, &inputArgs); err != nil {
+			return nil, nil, ErrInvalidObject.Msg("failed to unmarshal input args: " + err.Error())
+		}
 	}
 
 	sessionVariables := make(map[string]any)
-	if err := json.Unmarshal(sessionSpec.SessionVariables, &sessionVariables); err != nil {
-		return nil, nil, ErrInvalidObject.Msg("failed to unmarshal session variables: " + err.Error())
+	if len(sessionSpec.SessionVariables) > 0 {
+		if err := json.Unmarshal(sessionSpec.SessionVariables, &sessionVariables); err != nil {
+			return nil, nil, ErrInvalidObject.Msg("failed to unmarshal session variables: " + err.Error())
+		}
 	}
 
 	// Validate view policy
@@ -316,7 +320,7 @@ func validateSessionSpecFields(s *SessionSpec) schemaerr.ValidationErrors {
 		case "resourceNameValidator":
 			val, _ := e.Value().(string)
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
-		case "resourcePathValidator":
+		case "skillPathValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidObjectPath(jsonFieldName))
 		default:
 			val := e.Value()

@@ -1,112 +1,113 @@
 version: v1
 kind: SkillSet
 metadata:
-  name: customer-data-processor
-  variant: example-variant
-  path: /skillsets/customer-data-processor
+  name: kubernetes-demo
+  catalog: example-catalog
+  path: /skillsets
 spec:
-  version: "1.0.0"
-  runner:
-    id: "system.commandrunner"
-    config:
-      command: "python3 skillsets/customer-data-processor.py"
-      env:
-        - key: "some-key"
-          value: "some-value"
-      security:
-        - type: default #could be one of: default, TEZ
+  version: "0.1.0"
+  runners:
+    - name: my-agent-script
+      id: "system.stdiorunner"
+      config:
+        version: "0.1.0"
+        runtime: "bash"
+        runtimeConfig:
+          key: "value"
+        env:
+          TEST_VAR: "test_value"
+        script: "test_script.sh"
+        security:
+          type: dev-mode  # could be one of: dev-mode, sandboxed
+    - name: my-tools-script
+      id: "system.stdiorunner"
+      config:
+        version: "0.1.0"
+        runtime: "bash"
+        runtimeConfig:
+          key: "value"
+        env:
+          TEST_VAR: "test_value"
+        script: "tools_script.sh"
+        security:
+          type: dev-mode  # could be one of: dev-mode, sandboxed
   context:
-    - name: customer-cache
-      provider:
-        id: "system.redis"
-        config:
-          host: "redis.internal"
-          port: 6379
-          db: 0
-          max_connections: 10
-          timeout: 5000
+    - name: kubeconfig
       schema:
         type: object
         properties:
-          customer_id:
+          kubeconfig:
             type: string
-          last_accessed:
-            type: string
-            format: date-time
-          data:
-            type: object
-            properties:
-              name:
-                type: string
-              email:
-                type: string
-                format: email
-              preferences:
-                type: object
-                properties:
-                  theme:
-                    type: string
-                    enum: [light, dark]
-                  notifications:
-                    type: boolean
+            format: binary
         required:
-          - customer_id
-          - data
-      value: null  # Optional default value, can be empty
-      annotations:
-        mcp:description: "Customer data cache using Redis"
-        mcp:tool: "redis"
-        mcp:resource: "cache"
+          - kubeconfig
+      value:
+        kubeconfig: YXBpVmVyc2lvbjogdjEKa2luZDogQ29uZmlnCmNsdXN0ZXJzOgogIC0gbmFtZTogbXktY2x1c3RlcgogICAgY2x1c3RlcjoKICAgICAgc2VydmVyOiBodHRwczovL2Rldi1lbnYuZXhhbXBsZS5jb20KICAgICAgY2VydGlmaWNhdGUtYXV0aG9yaXR5LWRhdGE6IDxiYXNlNjQtZW5jb2RlZC1jYS1jZXJ0Pg==
+      annotations: {}
   skills:
-    - name: process-customer
-      description: "Process and validate customer data"
+    - name: list_pods
+      source: my-tools-script
+      description: "List pods in the cluster"
       inputSchema:
         type: object
         properties:
-          customer_id:
+          labelSelector:
             type: string
-          data:
-            type: object
-            properties:
-              name:
-                type: string
-              email:
-                type: string
-                format: email
-              preferences:
-                type: object
+            description: "Kubernetes label selector to filter pods"
+        required: []
       outputSchema:
+        type: string
+        description: "Raw output from listing pods, typically from 'kubectl get pods'"
+      exportedActions:
+        - kubernetes.pods.list
+      annotations:
+        llm:description: |
+          Lists all pods in the currently active Kubernetes cluster.
+          This skill supports an optional labelSelector argument to filter pods by label.
+          It is a read-only operation that provides visibility into running or failing workloads.
+          The output is a plain-text summary similar to kubectl get pods. Use this to diagnose the current state of the system.
+    - name: restart_deployment
+      source: my-tools-script
+      description: "Restart a deployment"
+      inputSchema:
         type: object
         properties:
-          status:
+          deployment:
             type: string
-            enum: [success, error]
-          processed_at:
-            type: string
-            format: date-time
-          validation_errors:
-            type: array
-            items:
-              type: string
+        required:
+          - deployment
+      outputSchema:
+        type: string
+        description: "Raw output from restarting the deployment, typically from 'kubectl rollout restart deployment <deployment>'"
       exportedActions:
-        - customer.process
-        - customer.validate
+        - kubernetes.deployments.restart
       annotations:
-        mcp:description: "Process and validate customer data with schema validation"
-        mcp:tool: "data-processor"
-  dependencies:
-    - path: "/resources/aws/s3/customer-data"
-      kind: Resource
-      alias: "customer-data"
-      actions:
-        - s3.read
-        - s3.write
-    - path: "/skillsets/data-validation"
-      kind: SkillSet
-      alias: "data-validation"
-      actions:
-        - validation.validate
-        - validation.report
-  annotations:
-    mcp:description: "Customer data processing skillset with validation and storage capabilities"
-    mcp:tool: "data-processor"
+        llm:description: |
+          Performs a rollout restart of a Kubernetes deployment.
+          This skill is used to trigger a fresh rollout of pods associated with a deployment,
+          typically to recover from failures or apply configuration changes.
+          It requires the deployment name as input and will execute the equivalent of kubectl rollout restart deployment <name>.
+    - name: k8s_troubleshooter
+      source: my-agent-script
+      description: "Troubleshoot kubernetes issues"
+      inputSchema:
+        type: object
+        properties:
+          prompt:
+            type: string
+            description: "Description of the issue to troubleshoot"
+        required:
+          - prompt
+      outputSchema:
+        type: string
+        description: "Troubleshooting steps and recommendations"
+      exportedActions:
+        - kubernetes.troubleshoot
+      annotations:
+        llmx:description: |
+          A Kubernetes troubleshooting assistant that helps diagnose and resolve issues in your cluster.
+          This skill accepts natural language descriptions of problems and leverages knowledge of
+          Kubernetes concepts and common failure patterns to provide targeted diagnostic steps and remediation advice.
+          It can help identify issues related to pod failures, networking problems, resource constraints,
+          configuration errors and more. The assistant will analyze the situation and suggest appropriate kubectl
+          commands and configuration changes to resolve the issue.

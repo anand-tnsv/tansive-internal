@@ -90,7 +90,7 @@ func (s *Skill) ValidateInput(input map[string]any) apperrors.Error {
 	}
 	err = schema.Validate(input)
 	if err != nil {
-		return ErrInvalidInput.Msg("failed to validate input schema")
+		return ErrInvalidInput.Msg("failed to validate input schema: " + err.Error())
 	}
 	return nil
 }

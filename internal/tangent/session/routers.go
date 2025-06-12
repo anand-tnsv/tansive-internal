@@ -15,9 +15,9 @@ type ResponseHandlerParam struct {
 
 var resourceObjectHandlers = []ResponseHandlerParam{
 	{
-		Method: http.MethodPost,
-		Path:   "/",
-		//		Handler: createSession,
+		Method:  http.MethodPost,
+		Path:    "/sessions",
+		Handler: createSession,
 	},
 	{
 		Method: http.MethodGet,
