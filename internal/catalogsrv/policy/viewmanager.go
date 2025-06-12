@@ -23,6 +23,7 @@ type ViewManager interface {
 	GetViewDefinitionJSON() ([]byte, apperrors.Error)
 	GetResourcePath() (string, apperrors.Error)
 	GetViewModel() (*models.View, apperrors.Error)
+	CatalogID() uuid.UUID
 }
 type viewManager struct {
 	view    *models.View
@@ -82,6 +83,10 @@ func (v *viewManager) GetViewDefinition() *ViewDefinition {
 
 func (v *viewManager) GetViewModel() (*models.View, apperrors.Error) {
 	return v.view, nil
+}
+
+func (v *viewManager) CatalogID() uuid.UUID {
+	return v.view.CatalogID
 }
 
 func (v *viewManager) GetViewDefinitionJSON() ([]byte, apperrors.Error) {

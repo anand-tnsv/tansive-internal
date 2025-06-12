@@ -1,4 +1,4 @@
-package session
+package server
 
 import (
 	"crypto/sha256"
@@ -10,19 +10,26 @@ import (
 	"github.com/stretchr/testify/require"
 	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
+	"github.com/tansive/tansive-internal/internal/tangent/session"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 	"github.com/tansive/tansive-internal/internal/tangent/test"
 )
 
 func TestHandleInteractiveSession(t *testing.T) {
-	SetTestMode(true)
+	session.SetTestMode(true)
 	stdiorunner.TestInit()
 	ts := test.SetupTestCatalog(t)
 	token := test.AdoptDefaultView(t, ts.Catalog)
 	t.Logf("Token: %s", token)
 
 	sessionReq := createInteractiveSession(t, token)
+	sessionReq.Interactive = true
 
+	httpReq, _ := http.NewRequest("POST", "/sessions", nil)
+	setRequestBodyAndHeader(t, httpReq, sessionReq)
+	response := executeTestRequest(t, httpReq, nil)
+	t.Logf("Response: %s", response.Body.String())
+	require.Equal(t, http.StatusOK, response.Code)
 }
 
 func createInteractiveSession(t *testing.T, token string) *tangentcommon.SessionCreateRequest {

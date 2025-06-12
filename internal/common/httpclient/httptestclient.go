@@ -55,7 +55,7 @@ func (c *TestHTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) 
 	u.RawQuery = q.Encode()
 
 	// Create the request
-	req, err := http.NewRequest(opts.Method, u.Path, bytes.NewBuffer(opts.Body))
+	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create request: %v", err)
 	}

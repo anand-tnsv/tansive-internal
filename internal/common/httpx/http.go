@@ -63,9 +63,17 @@ func WrapHttpRsp(handler RequestHandler) http.HandlerFunc {
 		if rsp.Location != "" {
 			location = append(location, rsp.Location)
 		}
-		if rsp.ContentType == "application/json" {
+		switch rsp.ContentType {
+		case "application/json":
 			SendJsonRsp(r.Context(), w, rsp.StatusCode, rsp.Response, location...)
-		} else {
+		case "text/plain":
+			w.Header().Set("Content-Type", "text/plain")
+			if rsp.StatusCode == http.StatusCreated && len(location) > 0 {
+				w.Header().Set("Location", location[0])
+			}
+			w.WriteHeader(rsp.StatusCode)
+			w.Write([]byte(rsp.Response.(string)))
+		default:
 			ErrApplicationError("unsupported response type").Send(w)
 		}
 	})

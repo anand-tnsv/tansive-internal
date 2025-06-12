@@ -33,7 +33,7 @@ func (s *AgentServer) MountHandlers() {
 	}
 	s.mountResourceHandlers(s.Router)
 	if logtrace.IsTraceEnabled() {
-		fmt.Println("Routes in tenant router")
+		fmt.Println("Routes in tangent router")
 		walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
 			fmt.Printf("%s %s\n", method, route)
 			return nil

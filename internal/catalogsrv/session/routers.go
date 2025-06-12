@@ -4,21 +4,21 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/apis"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
-var sessionTangentHandlers = []policy.ResponseHandlerParam{
+var sessionHandlers = []policy.ResponseHandlerParam{
 	{
 		Method:  http.MethodGet,
-		Path:    "/execution-state/{sessionID}",
+		Path:    "/execution-state",
 		Handler: getExecutionState,
 	},
+}
+
+var sessionTangentHandlers = []policy.ResponseHandlerParam{
 	{
 		Method:  http.MethodPost,
 		Path:    "/execution-state",
@@ -37,8 +37,14 @@ var sessionUserHandlers = []policy.ResponseHandlerParam{
 func Router() chi.Router {
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
-		r.Use(TangentContextMiddleware)
+		r.Use(tangentAuthMiddleware)
 		for _, handler := range sessionTangentHandlers {
+			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
+		}
+	})
+	r.Group(func(r chi.Router) {
+		r.Use(auth.ContextMiddleware)
+		for _, handler := range sessionHandlers {
 			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
 		}
 	})
@@ -52,14 +58,8 @@ func Router() chi.Router {
 	return r
 }
 
-func TangentContextMiddleware(next http.Handler) http.Handler {
+func tangentAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		tenantID := config.Config().DefaultTenantID
-		projectID := config.Config().DefaultProjectID
-		ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(tenantID))
-		ctx = catcommon.WithProjectID(ctx, catcommon.ProjectId(projectID))
-		log.Ctx(ctx).Info().Msgf("Setting tenant %s and project %s", tenantID, projectID)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r)
 	})
 }

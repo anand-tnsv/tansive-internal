@@ -61,7 +61,7 @@ type UserContext struct {
 // It contains information about the session's identity and permissions.
 type SessionContext struct {
 	// SessionID is the unique identifier for the session
-	SessionID string
+	SessionID uuid.UUID
 }
 
 // WithTenantID sets the tenant ID in the provided context.
@@ -153,6 +153,27 @@ func WithVariant(ctx context.Context, variant string) context.Context {
 	return WithCatalogContext(ctx, currContext)
 }
 
+func WithSessionID(ctx context.Context, sessionID uuid.UUID) context.Context {
+	currContext := GetCatalogContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
+	if currContext.SessionContext == nil {
+		currContext.SessionContext = &SessionContext{}
+	}
+	currContext.SessionContext.SessionID = sessionID
+	return WithCatalogContext(ctx, currContext)
+}
+
+func WithSessionContext(ctx context.Context, sessionContext *SessionContext) context.Context {
+	currContext := GetCatalogContext(ctx)
+	if currContext == nil {
+		currContext = &CatalogContext{}
+	}
+	currContext.SessionContext = sessionContext
+	return WithCatalogContext(ctx, currContext)
+}
+
 // GetCatalogID retrieves the catalog ID from the provided context.
 func GetCatalogID(ctx context.Context) uuid.UUID {
 	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
@@ -217,13 +238,13 @@ func GetSessionContext(ctx context.Context) *SessionContext {
 	return nil
 }
 
-func GetSessionID(ctx context.Context) string {
+func GetSessionID(ctx context.Context) uuid.UUID {
 	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
 		if catalogContext.SessionContext != nil {
 			return catalogContext.SessionContext.SessionID
 		}
 	}
-	return ""
+	return uuid.Nil
 }
 
 func GetSubjectType(ctx context.Context) SubjectType {

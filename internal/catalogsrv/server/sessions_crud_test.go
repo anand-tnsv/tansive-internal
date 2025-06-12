@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -213,7 +212,6 @@ func TestSessionCrud(t *testing.T) {
 	location := response.Header().Get("Location")
 	require.Equal(t, http.StatusCreated, response.Code)
 	require.NotEmpty(t, location)
-	sessionID := strings.TrimPrefix(location, "/sessions/")
 
 	// Test execution state creation and retrieval
 	t.Run("execution state flow", func(t *testing.T) {
@@ -247,8 +245,6 @@ func TestSessionCrud(t *testing.T) {
 		t.Cleanup(func() {
 			db.DB(newCtx).Close(newCtx)
 		})
-		config.Config().DefaultTenantID = string(tenantID)
-		config.Config().DefaultProjectID = string(projectID)
 
 		httpReq, _ = http.NewRequest("POST", "/sessions/execution-state?code="+sessionResp.Code+"&code_verifier="+codeVerifier, nil)
 		response = executeTestRequest(t, httpReq, nil)
@@ -265,11 +261,9 @@ func TestSessionCrud(t *testing.T) {
 		t.Cleanup(func() {
 			db.DB(newCtx2).Close(newCtx2)
 		})
-		config.Config().DefaultTenantID = string(tenantID)
-		config.Config().DefaultProjectID = string(projectID)
 
 		// Extract session ID from the token response
-		httpReq, _ = http.NewRequest("GET", "/sessions/execution-state/"+sessionID, nil)
+		httpReq, _ = http.NewRequest("GET", "/sessions/execution-state", nil)
 		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
 		response = executeTestRequest(t, httpReq, nil)
 		require.Equal(t, http.StatusOK, response.Code)
@@ -289,6 +283,9 @@ func TestSessionCrud(t *testing.T) {
 
 	// // Test interactive session creation
 	t.Run("interactive session creation", func(t *testing.T) {
+		config.Config().DefaultTenantID = string(tenantID)
+		config.Config().DefaultProjectID = string(projectID)
+
 		httpReq, _ := http.NewRequest("POST", "/sessions?interactive=true&code_challenge=test_challenge", nil)
 		req := `
 			{
@@ -395,6 +392,8 @@ func TestSessionCrud(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			config.Config().DefaultTenantID = string(tenantID)
+			config.Config().DefaultProjectID = string(projectID)
 			httpReq, _ := http.NewRequest("POST", "/sessions", nil)
 			setRequestBodyAndHeader(t, httpReq, tt.sessionSpec)
 			response := executeTestRequest(t, httpReq, nil, testContext)

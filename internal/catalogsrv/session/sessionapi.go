@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -46,7 +45,7 @@ func newSession(r *http.Request) (*httpx.Response, error) {
 
 	if interactive {
 		log.Ctx(ctx).Info().Msgf("Creating auth code for session %s", session.ID().String())
-		authCode, err := CreateAuthCode(ctx, session.ID(), codeChallenge)
+		authCode, err := CreateAuthCode(ctx, session, codeChallenge)
 		if err != nil {
 			return nil, err
 		}
@@ -70,12 +69,11 @@ func newSession(r *http.Request) (*httpx.Response, error) {
 
 func getExecutionState(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()
-	sessionID := chi.URLParam(r, "sessionID")
-	sessionUUID, err := uuid.Parse(sessionID)
-	if err != nil {
+	sessionID := catcommon.GetSessionID(ctx)
+	if sessionID == uuid.Nil {
 		return nil, httpx.ErrInvalidRequest("invalid session ID")
 	}
-	session, err := GetSession(ctx, sessionUUID)
+	session, err := GetSession(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,12 +95,14 @@ func createExecutionState(r *http.Request) (*httpx.Response, error) {
 		return nil, httpx.ErrInvalidRequest("code_verifier is required")
 	}
 
-	authCode, err := GetAuthCode(ctx, code, codeVerifier)
+	authCodeMetadata, err := GetAuthCode(ctx, code, codeVerifier)
 	if err != nil {
 		return nil, ErrNotAuthorized
 	}
 
-	session, err := GetSession(ctx, authCode.SessionID)
+	ctx = setContextObjects(ctx, &authCodeMetadata)
+
+	session, err := GetSession(ctx, authCodeMetadata.SessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -158,4 +158,26 @@ func createSessionToken(ctx context.Context, session SessionManager) (string, ti
 		return "", time.Time{}, err
 	}
 	return token, expiry, nil
+}
+
+func setContextObjects(ctx context.Context, m *AuthCodeMetadata) context.Context {
+	ctx = catcommon.WithTenantID(ctx, m.TenantID)
+	catalogContext := catcommon.GetCatalogContext(ctx)
+	if catalogContext == nil {
+		catalogContext = &catcommon.CatalogContext{}
+	}
+	catalogContext.CatalogID = m.CatalogID
+	catalogContext.Catalog = m.ViewScope.Catalog
+	if m.ViewScope.Variant != "" {
+		catalogContext.Variant = m.ViewScope.Variant
+	}
+	if m.ViewScope.Namespace != "" {
+		catalogContext.Namespace = m.ViewScope.Namespace
+	}
+	sessionContext := &catcommon.SessionContext{
+		SessionID: m.SessionID,
+	}
+	catalogContext.SessionContext = sessionContext
+	ctx = catcommon.WithCatalogContext(ctx, catalogContext)
+	return ctx
 }

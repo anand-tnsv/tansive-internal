@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
@@ -17,8 +19,11 @@ import (
 
 type AuthCodeMetadata struct {
 	SessionID     uuid.UUID
+	ViewScope     policy.Scope
 	Code          string
 	CodeChallenge string
+	CatalogID     uuid.UUID
+	TenantID      catcommon.TenantId
 	ExpiresAt     time.Time
 }
 
@@ -35,17 +40,26 @@ func generateRandomCode(length int) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
-func CreateAuthCode(ctx context.Context, sessionID uuid.UUID, codeChallenge string) (string, error) {
+func CreateAuthCode(ctx context.Context, session SessionManager, codeChallenge string) (string, error) {
 	code, err := generateRandomCode(32) // 32 bytes -> 43-char base64 string
 	if err != nil {
 		return "", err
 	}
 
+	viewManager, err := session.GetViewManager(ctx)
+	if err != nil {
+		return "", err
+	}
+	viewScope := viewManager.Scope()
+
 	mu.Lock()
 	authCodes[code] = AuthCodeMetadata{
-		SessionID:     sessionID,
+		SessionID:     session.ID(),
+		ViewScope:     viewScope,
 		Code:          code,
 		CodeChallenge: codeChallenge,
+		CatalogID:     viewManager.CatalogID(),
+		TenantID:      catcommon.GetTenantID(ctx),
 		ExpiresAt:     time.Now().Add(10 * time.Minute),
 	}
 	mu.Unlock()
