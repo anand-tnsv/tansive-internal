@@ -13,12 +13,12 @@ import (
 var authHandlers = []policy.ResponseHandlerParam{
 	{
 		Method:  http.MethodPost,
-		Path:    "/adopt-view/{catalogRef}/{viewLabel}",
+		Path:    "/view-adoptions/{catalogRef}/{viewLabel}",
 		Handler: adoptView,
 	},
 	{
 		Method:  http.MethodPost,
-		Path:    "/adopt-default-view/{catalogRef}",
+		Path:    "/default-view-adoptions/{catalogRef}",
 		Handler: adoptDefaultCatalogView,
 	},
 }

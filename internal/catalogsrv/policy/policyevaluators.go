@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
@@ -27,6 +28,10 @@ func (ruleSet Rules) IsActionAllowedOnResource(action Action, target TargetResou
 	matchedRulesAllow := []Rule{}
 	matchedRulesDeny := []Rule{}
 	allowMatch := false
+	// check if we have a general allow rule
+	if action == ActionAllow {
+		allowMatch = true
+	}
 	// check if there is an admin match
 	allowMatch, matchedRule := ruleSet.matchesAdmin(string(target))
 	if allowMatch {
@@ -180,13 +185,59 @@ func CanAdoptView(ctx context.Context, view string) (bool, apperrors.Error) {
 	viewResource, _ := resolveTargetResource(Scope{Catalog: catalog}, "/views/"+view)
 	ourViewDef, err := resolveAuthorizedViewDef(ctx)
 	if err != nil {
-		return false, ErrInvalidView.New(err.Error())
+		return false, ErrInvalidView.Msg(err.Error())
 	}
 	if ourViewDef == nil {
 		return false, ErrInvalidView.Msg("unable to resolve view definition")
 	}
 	allowed, _ := ourViewDef.Rules.IsActionAllowedOnResource(ActionCatalogAdoptView, viewResource)
 	return allowed, nil
+}
+
+// CanUseSkillSet checks if the current view has permission to use a skill set
+// within the catalog context.
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - skillSetPath: The path of the skill set to check usage permissions for
+//
+// Returns:
+//   - bool: true if the current view can use the specified skill set, false otherwise
+//   - apperrors.Error: nil if the check succeeds, otherwise returns an appropriate error
+//
+// Note: This function requires a valid catalog context and an authorized view definition.
+// It checks if the current view has the ActionSkillSetUse permission for the target skill set.
+func CanUseSkillSet(ctx context.Context, skillSetPath string) (bool, apperrors.Error) {
+	vd := GetViewDefinition(ctx)
+	if vd == nil {
+		return false, ErrInvalidView.Msg("unable to resolve view definition")
+	}
+	skillSetResource, _ := resolveTargetResource(vd.Scope, "/skillsets/"+skillSetPath)
+	ourViewDef, err := resolveAuthorizedViewDef(ctx)
+	if err != nil {
+		return false, ErrInvalidView.Msg(err.Error())
+	}
+	if ourViewDef == nil {
+		return false, ErrInvalidView.Msg("unable to resolve view definition")
+	}
+	allowed, _ := ourViewDef.Rules.IsActionAllowedOnResource(ActionSkillSetUse, skillSetResource)
+	return allowed, nil
+}
+
+// CanAdoptViewAsUser checks if the current user has permission to adopt a view
+// within the catalog context. We current allow by default in single user mode.
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - view: The name of the view to check adoption permissions for
+func CanAdoptViewAsUser(ctx context.Context, view string) bool {
+	if catcommon.GetSubjectType(ctx) != catcommon.SubjectTypeUser {
+		return false
+	}
+	if config.Config().SingleUserMode {
+		return true
+	}
+	return false
 }
 
 func getResourceKindFromPath(resourcePath string) string {

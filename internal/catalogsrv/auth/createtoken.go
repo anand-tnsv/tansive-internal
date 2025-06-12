@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -79,19 +78,12 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOpt
 		opt(options)
 	}
 
-	parentViewDef, err := getParentViewDefinition(ctx, options)
-	if err != nil {
-		return "", time.Time{}, err
+	if derivedView == nil {
+		return "", time.Time{}, ErrInvalidView.Msg("derived view is required")
 	}
 
-	derivedViewDef := &policy.ViewDefinition{}
-	if err := json.Unmarshal(derivedView.Rules, &derivedViewDef); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal derived view")
-		return "", time.Time{}, ErrUnableToCreateView
-	}
-
-	if err := policy.ValidateDerivedView(ctx, parentViewDef, derivedViewDef); err != nil {
-		return "", time.Time{}, err
+	if derivedView.Label == "" {
+		return "", time.Time{}, ErrInvalidView.Msg("derived view label is required")
 	}
 
 	if options.CreateDerivedView {
@@ -135,30 +127,6 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOpt
 	}
 
 	return tokenString, tokenExpiry, nil
-}
-
-// getParentViewDefinition retrieves the parent view definition
-func getParentViewDefinition(ctx context.Context, options *TokenOptions) (*policy.ViewDefinition, apperrors.Error) {
-	if options.ParentView != nil {
-		return options.ParentView, nil
-	}
-
-	if options.ParentViewID == uuid.Nil {
-		return nil, ErrUnableToCreateView
-	}
-
-	p, err := db.DB(ctx).GetView(ctx, options.ParentViewID)
-	if err != nil {
-		return nil, err
-	}
-
-	parentViewDef := &policy.ViewDefinition{}
-	if err := json.Unmarshal(p.Rules, &parentViewDef); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("unable to unmarshal parent view")
-		return nil, ErrUnableToCreateView
-	}
-
-	return parentViewDef, nil
 }
 
 // createTokenClaims creates the JWT claims for the token

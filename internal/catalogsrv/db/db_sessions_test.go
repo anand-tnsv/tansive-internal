@@ -72,6 +72,7 @@ func TestCreateSession(t *testing.T) {
 	require.NoError(t, DB(ctx).CreateView(ctx, &view))
 
 	session := models.Session{
+		SessionID: uuid.New(),
 		SkillSet:  "test_skillset",
 		Skill:     "test_skill",
 		ViewID:    view.ViewID,
@@ -549,6 +550,7 @@ func TestListSessionsByCatalog(t *testing.T) {
 	// Create multiple sessions
 	sessions := []models.Session{
 		{
+			SessionID: uuid.New(),
 			SkillSet:  "skillset1",
 			Skill:     "skill1",
 			ViewID:    view.ViewID,
@@ -563,6 +565,7 @@ func TestListSessionsByCatalog(t *testing.T) {
 			ExpiresAt: time.Now().Add(24 * time.Hour),
 		},
 		{
+			SessionID: uuid.New(),
 			SkillSet:  "skillset2",
 			Skill:     "skill2",
 			ViewID:    view.ViewID,
@@ -577,6 +580,7 @@ func TestListSessionsByCatalog(t *testing.T) {
 			ExpiresAt: time.Now().Add(24 * time.Hour),
 		},
 		{
+			SessionID: uuid.New(),
 			SkillSet:  "skillset3",
 			Skill:     "skill3",
 			ViewID:    view.ViewID,

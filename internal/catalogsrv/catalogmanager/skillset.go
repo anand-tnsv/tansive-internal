@@ -41,6 +41,7 @@ type SkillSetManager interface {
 	GetContext(name string) (SkillSetContext, apperrors.Error)
 	GetContextValue(name string) (types.NullableAny, apperrors.Error)
 	SetContextValue(name string, value types.NullableAny) apperrors.Error
+	GetRunnerTypes() []catcommon.RunnerID
 	ValidateInputForSkill(ctx context.Context, skillName string, input map[string]any) apperrors.Error
 }
 

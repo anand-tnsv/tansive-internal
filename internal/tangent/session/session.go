@@ -2,7 +2,6 @@ package session
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -127,7 +126,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		SessionID:        s.id.String(),
 		SkillName:        skillName,
 		InputArgs:        inputArgs,
-		SessionVariables: s.context.Info.SessionVariables,
+		SessionVariables: s.context.SessionVariables,
 	}
 
 	toolErr := s.callGraph.RegisterCall(toolgraph.CallID(invokerID), toolgraph.ToolName(skillName), toolgraph.CallID(invocationID))
@@ -232,13 +231,7 @@ func (s *session) fetchObjects(ctx context.Context) apperrors.Error {
 	}
 
 	// get view definition
-	if s.viewDef == nil && len(s.context.ViewDefinition) > 0 {
-		viewDef, err := getViewDefinition(ctx, s.context.ViewDefinition)
-		if err != nil {
-			return err
-		}
-		s.viewDef = viewDef
-	}
+	s.viewDef = s.context.ViewDefinition
 
 	return nil
 }
@@ -272,16 +265,6 @@ func getSkillset(ctx context.Context, client httpclient.HTTPClientInterface, ski
 	}
 
 	return sm, nil
-}
-
-func getViewDefinition(ctx context.Context, viewDefJSON []byte) (*policy.ViewDefinition, apperrors.Error) {
-	_ = ctx
-	viewDef := &policy.ViewDefinition{}
-	err := json.Unmarshal(viewDefJSON, &viewDef)
-	if err != nil {
-		return nil, ErrUnableToGetViewDefinition.Msg(err.Error())
-	}
-	return viewDef, nil
 }
 
 func (s *session) getLogger(eventType string) zerolog.Logger {

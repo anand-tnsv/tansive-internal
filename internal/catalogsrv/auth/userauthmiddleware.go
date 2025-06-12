@@ -77,6 +77,8 @@ func setDefaultSingleUserContext(ctx context.Context) (context.Context, error) {
 		UserID: "default-user",
 	}
 
+	catCtx.Subject = catcommon.SubjectTypeUser
+
 	ctx = catcommon.WithCatalogContext(ctx, catCtx)
 	return ctx, nil
 }

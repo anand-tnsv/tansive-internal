@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"encoding/json"
+
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
@@ -18,9 +19,10 @@ type ViewManager interface {
 	ID() uuid.UUID
 	Name() string
 	Scope() Scope
-	GetViewDefinition(ctx context.Context) (*ViewDefinition, apperrors.Error)
-	GetViewDefinitionJSON(ctx context.Context) ([]byte, apperrors.Error)
-	GetResourcePath(ctx context.Context) (string, apperrors.Error)
+	GetViewDefinition() *ViewDefinition
+	GetViewDefinitionJSON() ([]byte, apperrors.Error)
+	GetResourcePath() (string, apperrors.Error)
+	GetViewModel() (*models.View, apperrors.Error)
 }
 type viewManager struct {
 	view    *models.View
@@ -74,11 +76,15 @@ func (v *viewManager) Name() string {
 	return v.view.Label
 }
 
-func (v *viewManager) GetViewDefinition(ctx context.Context) (*ViewDefinition, apperrors.Error) {
-	return v.viewDef, nil
+func (v *viewManager) GetViewDefinition() *ViewDefinition {
+	return v.viewDef
 }
 
-func (v *viewManager) GetViewDefinitionJSON(ctx context.Context) ([]byte, apperrors.Error) {
+func (v *viewManager) GetViewModel() (*models.View, apperrors.Error) {
+	return v.view, nil
+}
+
+func (v *viewManager) GetViewDefinitionJSON() ([]byte, apperrors.Error) {
 	if v.viewDef == nil {
 		return nil, ErrInvalidView.Msg("view definition is nil")
 	}
@@ -96,7 +102,7 @@ func (v *viewManager) Scope() Scope {
 	return v.viewDef.Scope
 }
 
-func (v *viewManager) GetResourcePath(ctx context.Context) (string, apperrors.Error) {
+func (v *viewManager) GetResourcePath() (string, apperrors.Error) {
 	return "/views/" + v.view.Label, nil
 }
 

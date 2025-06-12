@@ -386,6 +386,14 @@ func (sm *skillSetManager) SetContextValue(name string, value types.NullableAny)
 	return ErrObjectNotFound.Msg("context not found")
 }
 
+func (sm *skillSetManager) GetRunnerTypes() []catcommon.RunnerID {
+	runnerTypes := []catcommon.RunnerID{}
+	for _, runner := range sm.skillSet.Spec.Runners {
+		runnerTypes = append(runnerTypes, runner.ID)
+	}
+	return runnerTypes
+}
+
 // DeleteSkillSet deletes a skillset from the database.
 func DeleteSkillSet(ctx context.Context, m *interfaces.Metadata) apperrors.Error {
 	if m == nil {

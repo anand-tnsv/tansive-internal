@@ -173,7 +173,7 @@ func GetView(name string) json.RawMessage {
 	return json.RawMessage(view)
 }
 
-func GetViewDefinition(variant string) json.RawMessage {
+func GetViewDefinition(variant string) *policy.ViewDefinition {
 	vd := policy.ViewDefinition{
 		Scope: policy.Scope{
 			Catalog: "test-catalog",
@@ -190,9 +190,5 @@ func GetViewDefinition(variant string) json.RawMessage {
 		rules[0].Actions = []policy.Action{"system.skillset.use", "kubernetes.pods.list", "kubernetes.troubleshoot"}
 	}
 	vd.Rules = rules
-	vdJson, err := json.Marshal(vd)
-	if err != nil {
-		panic(err)
-	}
-	return vdJson
+	return &vd
 }

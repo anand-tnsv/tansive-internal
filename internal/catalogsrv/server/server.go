@@ -11,6 +11,8 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/session"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/tangent"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/common/logtrace"
 	commonmiddleware "github.com/tansive/tansive-internal/internal/common/middleware"
@@ -56,6 +58,8 @@ func (s *CatalogServer) MountHandlers() {
 func (s *CatalogServer) mountResourceHandlers(r chi.Router) {
 	apis.Router(r)
 	r.Mount("/auth", auth.Router(r))
+	r.Mount("/sessions", session.Router())
+	r.Mount("/tangents", tangent.Router())
 	r.Get("/version", s.getVersion)
 	r.Get("/ready", s.getReadiness)
 	r.Get("/.well-known/jwks.json", auth.GetJWKSHandler(s.km))

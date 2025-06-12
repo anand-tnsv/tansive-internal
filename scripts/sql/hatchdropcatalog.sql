@@ -14,11 +14,13 @@ DROP TRIGGER IF EXISTS update_view_tokens_updated_at ON view_tokens;
 DROP TRIGGER IF EXISTS update_views_updated_at ON views;
 DROP TRIGGER IF EXISTS update_signing_keys_updated_at ON signing_keys;
 DROP TRIGGER IF EXISTS update_sessions_updated_at ON sessions;
+DROP TRIGGER IF EXISTS update_tangents_updated_at ON tangents;
 
 -- Drop functions
 DROP FUNCTION IF EXISTS set_updated_at() CASCADE;
 
 -- Drop tables (in reverse dependency order)
+DROP TABLE IF EXISTS tangents CASCADE;
 DROP TABLE IF EXISTS sessions CASCADE;
 DROP TABLE IF EXISTS view_tokens CASCADE;
 DROP TABLE IF EXISTS views CASCADE;

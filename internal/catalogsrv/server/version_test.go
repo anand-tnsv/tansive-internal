@@ -8,9 +8,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 )
 
 func TestGetVersion(t *testing.T) {
+	config.TestInit()
 	// Create a New Request
 	req, _ := http.NewRequest("GET", "/version", nil)
 	testContext := TestContext{
@@ -37,6 +39,7 @@ func TestGetVersion(t *testing.T) {
 }
 
 func TestGetReadiness(t *testing.T) {
+	config.TestInit()
 	// Create a New Request
 	req, _ := http.NewRequest("GET", "/ready", nil)
 	testContext := TestContext{
@@ -59,6 +62,7 @@ func TestGetReadiness(t *testing.T) {
 }
 
 func TestGetJWKS(t *testing.T) {
+	config.TestInit()
 	// Create a New Request
 	req, _ := http.NewRequest("GET", "/.well-known/jwks.json", nil)
 	testContext := TestContext{

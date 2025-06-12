@@ -196,6 +196,11 @@ func TestNewSession(t *testing.T) {
 				"intent": "Allow",
 				"actions": ["system.catalog.adoptView"],
 				"targets": ["res://views/parent-view"]
+			},
+			{
+				"intent": "Allow",
+				"actions": ["system.skillset.use"],
+				"targets": ["res://skillsets/skills/test-skillset"]
 			}]
 		}
 	}`
@@ -381,7 +386,7 @@ func TestNewSession(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewSession(ctx, []byte(tt.sessionSpec))
+			_, _, err := NewSession(ctx, []byte(tt.sessionSpec))
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errType != nil {
@@ -663,6 +668,11 @@ func TestSessionSaveAndGet(t *testing.T) {
 				"intent": "Allow",
 				"actions": ["system.catalog.adoptView"],
 				"targets": ["res://views/parent-view"]
+			},
+			{
+				"intent": "Allow",
+				"actions": ["system.skillset.use"],
+				"targets": ["res://skillsets/skills/test-skillset"]
 			}]
 		}
 	}`
@@ -723,7 +733,7 @@ func TestSessionSaveAndGet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create and save session
-			session, err := NewSession(ctx, []byte(tt.sessionSpec))
+			session, _, err := NewSession(ctx, []byte(tt.sessionSpec))
 			require.NoError(t, err)
 
 			err = session.Save(ctx)

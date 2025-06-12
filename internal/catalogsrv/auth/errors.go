@@ -31,6 +31,7 @@ var (
 	ErrUnauthorized       apperrors.Error = ErrAuth.New("unauthorized access").SetStatusCode(http.StatusUnauthorized)
 	ErrInvalidToken       apperrors.Error = ErrAuth.New("invalid token").SetStatusCode(http.StatusUnauthorized)
 	ErrUnableToParseToken apperrors.Error = ErrAuth.New("unable to parse token").SetStatusCode(http.StatusForbidden)
+	ErrDisallowedByPolicy apperrors.Error = ErrAuth.New("disallowed by policy").SetStatusCode(http.StatusForbidden)
 )
 
 // Token errors

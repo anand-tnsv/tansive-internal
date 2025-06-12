@@ -22,6 +22,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/tangent"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tidwall/gjson"
@@ -52,6 +53,8 @@ type SessionInfo struct {
 	SessionVariables map[string]any         `json:"sessionVariables" validate:"omitempty"`
 	InputArgs        map[string]any         `json:"inputArgs" validate:"omitempty"`
 	ViewDefinition   *policy.ViewDefinition `json:"viewDefinition" validate:"omitempty"`
+	Interactive      bool                   `json:"interactive" validate:"omitempty"`
+	CodeChallenge    string                 `json:"codeChallenge" validate:"omitempty"`
 }
 
 var variableSchemaCompiled *jsonschema.Schema
@@ -72,92 +75,126 @@ func Init() {
 	variableSchemaCompiled = compiledSchema
 }
 
+type requestOptions struct {
+	codeChallenge string
+	interactive   bool
+}
+
+type RequestOptions func(o *requestOptions)
+
+func WithCodeChallenge(codeChallenge string) RequestOptions {
+	return func(o *requestOptions) {
+		o.codeChallenge = codeChallenge
+	}
+}
+
+func WithInteractive(interactive bool) RequestOptions {
+	return func(o *requestOptions) {
+		o.interactive = interactive
+	}
+}
+
 // NewSession creates a new session with the given specification. It validates the session spec,
 // checks permissions, and initializes the session with the provided configuration.
 // The function requires valid catalog ID, variant ID, and user ID in the context.
 // Returns a SessionManager interface and any error that occurred during creation.
-func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors.Error) {
+func NewSession(ctx context.Context, rsrcSpec []byte, opts ...RequestOptions) (SessionManager, *tangent.Tangent, apperrors.Error) {
 	// Validate required IDs first
 	catalogID := catcommon.GetCatalogID(ctx)
 	variantID := catcommon.GetVariantID(ctx)
 	if catalogID == uuid.Nil || variantID == uuid.Nil {
-		return nil, ErrInvalidObject.Msg("catalog and variant IDs are required")
+		return nil, nil, ErrInvalidObject.Msg("catalog and variant IDs are required")
 	}
 
 	userID := catcommon.GetUserID(ctx)
 	if userID == "" {
-		return nil, ErrInvalidObject.Msg("user ID is required")
+		return nil, nil, ErrInvalidObject.Msg("user ID is required")
+	}
+
+	requestOptions := &requestOptions{}
+	for _, opt := range opts {
+		opt(requestOptions)
 	}
 
 	sessionSpec, err := resolveSessionSpec(rsrcSpec)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	// validate SkillSet Use policy
+	if err := validateSkillSetUsePolicy(ctx, sessionSpec.SkillPath); err != nil {
+		return nil, nil, err
 	}
 
 	skill := path.Base(sessionSpec.SkillPath)
 	skillSetPath := path.Dir(sessionSpec.SkillPath)
 	if skill == "" || skillSetPath == "" {
-		return nil, ErrInvalidObject.Msg("invalid skill path")
+		return nil, nil, ErrInvalidObject.Msg("invalid skill path")
 	}
 
 	inputArgs := make(map[string]any)
 	if err := json.Unmarshal(sessionSpec.InputArgs, &inputArgs); err != nil {
-		return nil, ErrInvalidObject.Msg("failed to unmarshal input args: " + err.Error())
+		return nil, nil, ErrInvalidObject.Msg("failed to unmarshal input args: " + err.Error())
 	}
 
 	sessionVariables := make(map[string]any)
 	if err := json.Unmarshal(sessionSpec.SessionVariables, &sessionVariables); err != nil {
-		return nil, ErrInvalidObject.Msg("failed to unmarshal session variables: " + err.Error())
+		return nil, nil, ErrInvalidObject.Msg("failed to unmarshal session variables: " + err.Error())
 	}
 
 	// Validate view policy
 	if err := validateViewPolicy(ctx, sessionSpec.ViewName); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	viewManager, err := resolveViewByLabel(ctx, sessionSpec.ViewName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	viewDef, err := viewManager.GetViewDefinition(ctx)
-	if err != nil {
-		return nil, err
-	}
+	viewDef := viewManager.GetViewDefinition()
 
 	skillSetManager, err := resolveSkillSetManager(ctx, skillSetPath, viewManager.Scope())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	skillObj, err := skillSetManager.GetSkill(skill)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = skillObj.ValidateInput(inputArgs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Validate action permissions
 	exportedActions := skillObj.GetExportedActions()
 	allowed, err := policy.AreActionsAllowedOnResource(viewDef, skillSetManager.GetResourcePath(), exportedActions)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !allowed {
-		return nil, ErrDisallowedByPolicy.Msg("use of skill is blocked by policy")
+		return nil, nil, ErrDisallowedByPolicy.Msg("use of skill is blocked by policy")
 	}
 
 	sessionInfo := SessionInfo{
 		SessionVariables: sessionVariables,
 		InputArgs:        inputArgs,
 		ViewDefinition:   viewDef,
+		Interactive:      requestOptions.interactive,
+		CodeChallenge:    requestOptions.codeChallenge,
 	}
 	sessionInfoJSON, goerr := json.Marshal(sessionInfo)
 	if goerr != nil {
-		return nil, ErrInvalidObject.Msg("failed to marshal session info: " + goerr.Error())
+		return nil, nil, ErrInvalidObject.Msg("failed to marshal session info: " + goerr.Error())
+	}
+
+	// Get Tangent
+	tangent, err := tangent.GetTangentWithCapabilities(ctx, skillSetManager.GetRunnerTypes())
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// Create session
@@ -167,7 +204,8 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		SkillSet:      skillSetPath,
 		Skill:         skill,
 		ViewID:        viewManager.ID(),
-		StatusSummary: SessionStatusCreated,
+		TangentID:     tangent.ID,
+		StatusSummary: string(SessionStatusCreated),
 		Status:        nil,
 		Info:          sessionInfoJSON,
 		UserID:        userID,
@@ -182,7 +220,7 @@ func NewSession(ctx context.Context, rsrcSpec []byte) (SessionManager, apperrors
 		session:         session,
 		skillSetManager: skillSetManager,
 		viewManager:     viewManager,
-	}, nil
+	}, tangent, nil
 }
 
 // Save persists the session to the database.
@@ -198,6 +236,7 @@ func (s *sessionManager) Save(ctx context.Context) apperrors.Error {
 // GetSession retrieves an existing session by its ID.
 // Returns a SessionManager interface and any error that occurred during retrieval.
 func GetSession(ctx context.Context, sessionID uuid.UUID) (SessionManager, apperrors.Error) {
+	log.Ctx(ctx).Info().Msgf("Getting session %s", sessionID.String())
 	session, err := db.DB(ctx).GetSession(ctx, sessionID)
 	if err != nil {
 		return nil, ErrInvalidObject.Msg("failed to get session: " + err.Error())
@@ -377,5 +416,20 @@ func validateViewPolicy(ctx context.Context, view string) apperrors.Error {
 		return ErrDisallowedByPolicy.Msg("view is not allowed to be adopted")
 	}
 
+	return nil
+}
+
+func validateSkillSetUsePolicy(ctx context.Context, skillSetPath string) apperrors.Error {
+	if skillSetPath == "" {
+		return ErrInvalidObject.Msg("skillset path is required")
+	}
+
+	allowed, err := policy.CanUseSkillSet(ctx, path.Dir(skillSetPath))
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return ErrDisallowedByPolicy.Msg("skillset is not allowed to be used")
+	}
 	return nil
 }

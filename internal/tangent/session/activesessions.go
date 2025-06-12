@@ -2,12 +2,10 @@ package session
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
-	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/tangent/session/toolgraph"
@@ -18,25 +16,17 @@ type activeSessions struct {
 }
 
 type ServerContext struct {
-	SessionID      uuid.UUID              `json:"session_id"`
-	SkillSet       string                 `json:"skillset"`
-	Skill          string                 `json:"skill"`
-	View           string                 `json:"view"`
-	ViewDefinition json.RawMessage        `json:"view_definition"`
-	Variables      json.RawMessage        `json:"variables"`
-	StatusSummary  string                 `json:"status_summary"`
-	Status         json.RawMessage        `json:"status"`
-	Info           srvsession.SessionInfo `json:"info"`
-	UserID         string                 `json:"user_id"`
-	Catalog        string                 `json:"catalog"`
-	Variant        string                 `json:"variant"`
-	Namespace      string                 `json:"namespace"`
-	TenantID       catcommon.TenantId     `json:"tenant_id"`
-	CreatedAt      time.Time              `json:"created_at"`
-	StartedAt      time.Time              `json:"started_at"`
-	EndedAt        time.Time              `json:"ended_at"`
-	UpdatedAt      time.Time              `json:"updated_at"`
-	ExpiresAt      time.Time              `json:"expires_at"`
+	SessionID        uuid.UUID              `json:"session_id"`
+	SkillSet         string                 `json:"skillset"`
+	Skill            string                 `json:"skill"`
+	View             string                 `json:"view"`
+	ViewDefinition   *policy.ViewDefinition `json:"view_definition"`
+	SessionVariables map[string]any         `json:"session_variables"`
+	InputArgs        map[string]any         `json:"input_args"`
+	Catalog          string                 `json:"catalog"`
+	Variant          string                 `json:"variant"`
+	Namespace        string                 `json:"namespace"`
+	TenantID         catcommon.TenantId     `json:"tenant_id"`
 }
 
 var sessionManager *activeSessions

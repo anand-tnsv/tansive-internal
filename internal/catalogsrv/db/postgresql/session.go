@@ -51,7 +51,6 @@ func (mm *metadataManager) createSessionWithTransaction(ctx context.Context, ses
 	}
 
 	session.TenantID = tenantID
-	session.SessionID = uuid.New() // Override anything already set
 
 	query := `
 		INSERT INTO sessions (
@@ -97,6 +96,7 @@ func (mm *metadataManager) createSessionWithTransaction(ctx context.Context, ses
 
 // GetSession retrieves a session by its ID.
 func (mm *metadataManager) GetSession(ctx context.Context, sessionID uuid.UUID) (*models.Session, apperrors.Error) {
+	log.Ctx(ctx).Info().Msgf("Getting session %s", sessionID.String())
 	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return nil, dberror.ErrMissingTenantID

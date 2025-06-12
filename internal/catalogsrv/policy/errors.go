@@ -13,11 +13,11 @@ var (
 
 // Not found errors
 var (
-	ErrCatalogNotFound   apperrors.Error = ErrViewError.New("catalog not found").SetExpandError(true).SetStatusCode(http.StatusNotFound)
-	ErrObjectNotFound    apperrors.Error = ErrViewError.New("object not found").SetStatusCode(http.StatusNotFound)
-	ErrVariantNotFound   apperrors.Error = ErrViewError.New("variant not found").SetStatusCode(http.StatusNotFound)
-	ErrNamespaceNotFound apperrors.Error = ErrViewError.New("namespace not found").SetStatusCode(http.StatusNotFound)
-	ErrViewNotFound      apperrors.Error = ErrViewError.New("view not found").SetStatusCode(http.StatusNotFound)
+	ErrCatalogNotFound   apperrors.Error = ErrViewError.New("catalog not found").SetExpandError(true).SetStatusCode(http.StatusBadRequest)
+	ErrObjectNotFound    apperrors.Error = ErrViewError.New("object not found").SetStatusCode(http.StatusBadRequest)
+	ErrVariantNotFound   apperrors.Error = ErrViewError.New("variant not found").SetStatusCode(http.StatusBadRequest)
+	ErrNamespaceNotFound apperrors.Error = ErrViewError.New("namespace not found").SetStatusCode(http.StatusBadRequest)
+	ErrViewNotFound      apperrors.Error = ErrViewError.New("view not found").SetStatusCode(http.StatusBadRequest)
 )
 
 // Operation errors
@@ -33,9 +33,10 @@ var (
 
 // Validation errors
 var (
-	ErrInvalidProject apperrors.Error = ErrViewError.New("invalid project").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidCatalog apperrors.Error = ErrViewError.New("invalid catalog").SetStatusCode(http.StatusBadRequest)
-	ErrInvalidView    apperrors.Error = ErrViewError.New("invalid view").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidProject  apperrors.Error = ErrViewError.New("invalid project").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidCatalog  apperrors.Error = ErrViewError.New("invalid catalog").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidView     apperrors.Error = ErrViewError.New("invalid view").SetStatusCode(http.StatusBadRequest)
+	ErrInvalidSkillSet apperrors.Error = ErrViewError.New("invalid skillset").SetStatusCode(http.StatusBadRequest)
 )
 
 // Schema validation errors

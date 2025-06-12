@@ -25,6 +25,9 @@ func setCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, toke
 		catalogContext.UserContext = &catcommon.UserContext{
 			UserID: strings.TrimPrefix(sub, "user/"),
 		}
+		catalogContext.Subject = catcommon.SubjectTypeUser
+	} else if strings.HasPrefix(sub, "session/") {
+		catalogContext.Subject = catcommon.SubjectTypeSession
 	}
 
 	return catalogContext

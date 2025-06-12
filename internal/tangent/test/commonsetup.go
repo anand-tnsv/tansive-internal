@@ -194,7 +194,7 @@ func SetupObjects(t *testing.T, token string) {
 
 // AdoptDefaultView adopts the default view for a catalog
 func AdoptDefaultView(t *testing.T, catalog string) string {
-	httpReq, _ := http.NewRequest("POST", "/auth/adopt-default-view/"+catalog, nil)
+	httpReq, _ := http.NewRequest("POST", "/auth/default-view-adoptions/"+catalog, nil)
 	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
 	response := ExecuteTestRequest(t, httpReq, nil)
 	require.Equal(t, http.StatusOK, response.Code)
@@ -212,7 +212,7 @@ func AdoptDefaultView(t *testing.T, catalog string) string {
 }
 
 func AdoptView(t *testing.T, catalog, viewLabel, token string) (string, time.Time) {
-	httpReq, _ := http.NewRequest("POST", "/auth/adopt-view/"+catalog+"/"+viewLabel, nil)
+	httpReq, _ := http.NewRequest("POST", "/auth/view-adoptions/"+catalog+"/"+viewLabel, nil)
 	httpReq.Header.Set("Authorization", "Bearer "+token)
 	response := ExecuteTestRequest(t, httpReq, nil)
 	require.Equal(t, http.StatusOK, response.Code)

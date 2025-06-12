@@ -57,8 +57,8 @@ func CreateOpenAISession(t *testing.T, ctx context.Context, tansiveClient *skill
 	// )
 
 	client := openai.NewClient(
-		option.WithAPIKey(getAnthropicAPIKey()),
-		option.WithBaseURL("https://api.anthropic.com/v1"),
+		option.WithAPIKey(getOpenAIAPIKey()),
+		//option.WithBaseURL("https://api.anthropic.com/v1"),
 	)
 
 	question := "My orders are not getting processed.  Use the tools at your disposal to fix the issue."
@@ -70,7 +70,7 @@ func CreateOpenAISession(t *testing.T, ctx context.Context, tansiveClient *skill
 		},
 		Tools: getTools(t, ctx, tansiveClient, session.GetSessionID()),
 		Seed:  openai.Int(0),
-		Model: AnthropicModel,
+		Model: openai.ChatModelGPT4o,
 	}
 
 	// Loop until we get a final response without tool calls

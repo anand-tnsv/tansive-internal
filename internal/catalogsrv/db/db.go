@@ -70,6 +70,13 @@ type MetadataManager interface {
 	DeleteViewByLabel(ctx context.Context, label string, catalogID uuid.UUID) apperrors.Error
 	ListViewsByCatalog(ctx context.Context, catalogID uuid.UUID) ([]*models.View, apperrors.Error)
 
+	// Tangent
+	CreateTangent(ctx context.Context, tangent *models.Tangent) apperrors.Error
+	GetTangent(ctx context.Context, id uuid.UUID) (*models.Tangent, apperrors.Error)
+	UpdateTangent(ctx context.Context, tangent *models.Tangent) apperrors.Error
+	DeleteTangent(ctx context.Context, id uuid.UUID) apperrors.Error
+	ListTangents(ctx context.Context) ([]*models.Tangent, apperrors.Error)
+
 	// ViewToken
 	CreateViewToken(ctx context.Context, token *models.ViewToken) apperrors.Error
 	GetViewToken(ctx context.Context, tokenID uuid.UUID) (*models.ViewToken, apperrors.Error)

@@ -865,7 +865,7 @@ func TestAreActionsAllowedOnResource(t *testing.T) {
 				Variant:   "test-variant",
 				Namespace: "test-namespace",
 			})
-
+			_ = ctx
 			// Debug output for canonicalized resource and rule target
 			if tt.name == "some actions not allowed" {
 				t.Logf("some actions not allowed")

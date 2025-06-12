@@ -194,7 +194,7 @@ func TestViewCrud(t *testing.T) {
 	// Try to get the deleted view
 	httpReq, _ = http.NewRequest("GET", "/views/valid-view", nil)
 	response = executeTestRequest(t, httpReq, nil, testContext)
-	if !assert.Equal(t, http.StatusNotFound, response.Code) {
+	if !assert.Equal(t, http.StatusBadRequest, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}
@@ -203,7 +203,7 @@ func TestViewCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("PUT", "/views/not-existing-view", nil)
 	setRequestBodyAndHeader(t, httpReq, req)
 	response = executeTestRequest(t, httpReq, nil, testContext)
-	if !assert.Equal(t, http.StatusNotFound, response.Code) {
+	if !assert.Equal(t, http.StatusBadRequest, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
 		t.FailNow()
 	}

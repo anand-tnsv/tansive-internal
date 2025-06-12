@@ -2,6 +2,7 @@ package policy
 
 import (
 	"encoding/json"
+
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
@@ -15,6 +16,7 @@ const (
 type Action string
 
 const (
+	ActionAllow             Action = "allow"
 	ActionCatalogAdmin      Action = "system.catalog.admin"
 	ActionCatalogList       Action = "system.catalog.list"
 	ActionCatalogAdoptView  Action = "system.catalog.adoptView"
@@ -40,6 +42,8 @@ const (
 	ActionSkillSetDelete    Action = "system.skillset.delete"
 	ActionSkillSetList      Action = "system.skillset.list"
 	ActionSkillSetUse       Action = "system.skillset.use"
+	ActionTangentCreate     Action = "system.tangent.create"
+	ActionTangentDelete     Action = "system.tangent.delete"
 )
 
 var ValidActions = []Action{

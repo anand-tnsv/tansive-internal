@@ -236,6 +236,22 @@ EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_sessions_tenant_catalog_status
 ON sessions (tenant_id, catalog_id, status_summary);
 
+CREATE TABLE IF NOT EXISTS tangents (
+  id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  public_key BYTEA NOT NULL,
+  info JSONB,
+  status VARCHAR(128) NOT NULL,
+  tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (tenant_id, id)
+);
+
+CREATE TRIGGER update_tangents_updated_at
+BEFORE UPDATE ON tangents
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
 GRANT ALL PRIVILEGES ON TABLE
 	tenants,
 	projects,
@@ -248,5 +264,6 @@ GRANT ALL PRIVILEGES ON TABLE
   views,
   view_tokens,
   signing_keys,
-  sessions
+  sessions,
+  tangents
 TO catalogrw;

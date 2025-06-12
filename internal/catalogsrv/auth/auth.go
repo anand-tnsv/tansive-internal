@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -52,6 +51,21 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 		return nil, ErrInvalidView.Msg("current view not in catalog: " + catalog.Name)
 	}
 
+	// Check if our current view has permission to adopt the view
+	allowed, err := policy.CanAdoptView(ctx, viewLabel)
+	if err != nil {
+		return nil, err
+	}
+
+	// If this is a user, check if they have permission to adopt the view
+	if !allowed {
+		allowed = policy.CanAdoptViewAsUser(ctx, viewLabel)
+	}
+
+	if !allowed {
+		return nil, ErrDisallowedByPolicy.Msg("view is not allowed to be adopted")
+	}
+
 	wantView, err := db.DB(ctx).GetViewByLabel(ctx, viewLabel, catalog.CatalogID)
 	if err != nil {
 		return nil, ErrViewNotFound.Err(err)
@@ -59,7 +73,6 @@ func adoptView(r *http.Request) (*httpx.Response, error) {
 
 	token, tokenExpiry, err := CreateToken(ctx,
 		wantView,
-		WithParentViewDefinition(ourViewDef),
 		WithAdditionalClaims(getAccessTokenClaims(ctx)),
 	)
 	if err != nil {
@@ -90,11 +103,6 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 		return nil, err
 	}
 
-	viewDef := policy.ViewDefinition{}
-	if err := json.Unmarshal(wantView.Rules, &viewDef); err != nil {
-		return nil, ErrInvalidView.Msg("invalid view definition").Err(err)
-	}
-
 	userContext := catcommon.GetUserContext(ctx)
 	if userContext == nil || userContext.UserID == "" {
 		return nil, ErrUnauthorized
@@ -102,7 +110,6 @@ func adoptDefaultCatalogView(r *http.Request) (*httpx.Response, error) {
 
 	token, tokenExpiry, err := CreateToken(ctx,
 		wantView,
-		WithParentViewDefinition(&viewDef),
 		WithAdditionalClaims(getAccessTokenClaims(ctx)),
 	)
 	if err != nil {

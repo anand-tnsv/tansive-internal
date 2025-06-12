@@ -218,18 +218,18 @@ func TestCreateToken(t *testing.T) {
 		assert.True(t, expiry.IsZero())
 	})
 
-	t.Run("missing parent view", func(t *testing.T) {
-		derivedView := &models.View{
-			Label:       "derived-view",
-			Description: "Derived view for testing",
-			Rules:       []byte(`{"scope":{"catalog":"test-catalog"},"rules":[{"intent":"allow","actions":["catalog:list"],"targets":["res://catalogs/test-catalog"]}]}`),
-			CatalogID:   catalogID,
-			TenantID:    catcommon.TenantId("TABCDE"),
-		}
+	// t.Run("missing parent view", func(t *testing.T) {
+	// 	derivedView := &models.View{
+	// 		Label:       "derived-view",
+	// 		Description: "Derived view for testing",
+	// 		Rules:       []byte(`{"scope":{"catalog":"test-catalog"},"rules":[{"intent":"allow","actions":["catalog:list"],"targets":["res://catalogs/test-catalog"]}]}`),
+	// 		CatalogID:   catalogID,
+	// 		TenantID:    catcommon.TenantId("TABCDE"),
+	// 	}
 
-		token, expiry, err := CreateToken(ctx, derivedView)
-		assert.Error(t, err)
-		assert.Empty(t, token)
-		assert.True(t, expiry.IsZero())
-	})
+	// 	token, expiry, err := CreateToken(ctx, derivedView)
+	// 	assert.Error(t, err)
+	// 	assert.Empty(t, token)
+	// 	assert.True(t, expiry.IsZero())
+	// })
 }

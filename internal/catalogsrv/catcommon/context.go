@@ -20,6 +20,15 @@ const (
 	ctxTestContextKey    ctxKeyType = "CatalogTestContext"
 )
 
+type SubjectType string
+
+const (
+	SubjectTypeUser    SubjectType = "user"
+	SubjectTypeSession SubjectType = "session"
+	SubjectTypeSystem  SubjectType = "system"
+	SubjectTypeService SubjectType = "service"
+)
+
 // CatalogContext represents the complete context for catalog operations.
 // It contains all necessary information about the catalog, variant, and user.
 type CatalogContext struct {
@@ -35,6 +44,10 @@ type CatalogContext struct {
 	Variant string
 	// UserContext contains information about the authenticated user
 	UserContext *UserContext
+	// SessionContext contains information about the session
+	SessionContext *SessionContext
+	// Subject is the type of principal that is acting on the catalog
+	Subject SubjectType
 }
 
 // UserContext represents the context of an authenticated user in the system.
@@ -42,6 +55,13 @@ type CatalogContext struct {
 type UserContext struct {
 	// UserID is the unique identifier for the user
 	UserID string
+}
+
+// SessionContext represents the context of a session in the system.
+// It contains information about the session's identity and permissions.
+type SessionContext struct {
+	// SessionID is the unique identifier for the session
+	SessionID string
 }
 
 // WithTenantID sets the tenant ID in the provided context.
@@ -182,10 +202,35 @@ func GetUserContext(ctx context.Context) *UserContext {
 }
 
 func GetUserID(ctx context.Context) string {
-	if userContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
-		return userContext.UserContext.UserID
+	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
+		if catalogContext.UserContext != nil {
+			return catalogContext.UserContext.UserID
+		}
 	}
 	return ""
+}
+
+func GetSessionContext(ctx context.Context) *SessionContext {
+	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
+		return catalogContext.SessionContext
+	}
+	return nil
+}
+
+func GetSessionID(ctx context.Context) string {
+	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
+		if catalogContext.SessionContext != nil {
+			return catalogContext.SessionContext.SessionID
+		}
+	}
+	return ""
+}
+
+func GetSubjectType(ctx context.Context) SubjectType {
+	if catalogContext, ok := ctx.Value(ctxCatalogContextKey).(*CatalogContext); ok {
+		return catalogContext.Subject
+	}
+	return SubjectType("")
 }
 
 // WithTestContext sets the test context in the provided context.

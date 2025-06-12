@@ -31,7 +31,7 @@ Example:
 		// Make the POST request to get the token
 		opts := httpclient.RequestOptions{
 			Method: http.MethodPost,
-			Path:   fmt.Sprintf("auth/adopt-default-view/%s", catalogName),
+			Path:   fmt.Sprintf("auth/default-view-adoptions/%s", catalogName),
 		}
 
 		body, _, err := client.DoRequest(opts)
@@ -98,7 +98,7 @@ tansive adopt-view my-catalog/my-view`,
 		// Make the POST request to get the token
 		opts := httpclient.RequestOptions{
 			Method: http.MethodPost,
-			Path:   fmt.Sprintf("auth/adopt-view/%s/%s", catalogRef, viewLabel),
+			Path:   fmt.Sprintf("auth/view-adoptions/%s/%s", catalogRef, viewLabel),
 		}
 
 		body, _, err := client.DoRequest(opts)
