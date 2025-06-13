@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
+	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
 // sessionCmd represents the session command
@@ -91,22 +92,43 @@ Example:
 		if err := json.Unmarshal(body, &response); err != nil {
 			return fmt.Errorf("failed to parse response: %v", err)
 		}
-
-		if jsonOutput {
-			printJSON(response)
-		} else {
-			fmt.Printf("Interactive session created\n")
-			if response.Code != "" {
-				fmt.Printf("Code: %s\n", response.Code)
-			}
-			if response.TangentURL != "" {
-				fmt.Printf("Tangent URL: %s\n", response.TangentURL)
-			}
-			fmt.Printf("Code Verifier: %s\n", codeVerifier)
+		req := &tangentcommon.SessionCreateRequest{
+			Interactive:  true,
+			Code:         response.Code,
+			CodeVerifier: codeVerifier,
+		}
+		err = createSession(req, response.TangentURL)
+		if err != nil {
+			return err
 		}
 
 		return nil
 	},
+}
+
+func createSession(req *tangentcommon.SessionCreateRequest, serverURL string) error {
+	tangentConfig := TangentConfig{
+		ServerURL: serverURL,
+	}
+	client := httpclient.NewClient(&tangentConfig)
+	reqJSON, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %v", err)
+	}
+
+	opts := httpclient.RequestOptions{
+		Method: http.MethodPost,
+		Path:   "/sessions",
+		Body:   reqJSON,
+	}
+
+	body, _, err := client.DoRequest(opts)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(body))
+	return nil
 }
 
 var (

@@ -14,6 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/eventlogger"
 	"github.com/tansive/tansive-internal/internal/tangent/runners"
 	"github.com/tansive/tansive-internal/internal/tangent/session/toolgraph"
@@ -29,7 +30,6 @@ type session struct {
 	viewDef              *policy.ViewDefinition
 	token                string
 	tokenExpiry          time.Time
-	serverURL            string
 	callGraph            *toolgraph.CallGraph
 	invocationIDs        map[string]*policy.ViewDefinition
 	interactiveIOWriters *tangentcommon.IOWriters
@@ -204,7 +204,7 @@ func (s *session) fetchObjects(ctx context.Context) apperrors.Error {
 	client := getHTTPClient(&clientConfig{
 		token:       s.token,
 		tokenExpiry: s.tokenExpiry,
-		serverURL:   s.serverURL,
+		serverURL:   config.Config().TansiveServer.GetURL(),
 	})
 
 	// get skillset

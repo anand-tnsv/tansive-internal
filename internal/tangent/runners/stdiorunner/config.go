@@ -3,6 +3,8 @@ package stdiorunner
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 )
 
 type RunnerConfig struct {
@@ -11,9 +13,9 @@ type RunnerConfig struct {
 
 var runnerConfig *RunnerConfig
 
-func init() {
+func Init() {
 	runnerConfig = &RunnerConfig{
-		ScriptDir: "~/tansive_scripts",
+		ScriptDir: config.Config().StdioRunner.ScriptDir,
 	}
 }
 
@@ -35,6 +37,9 @@ func TestInit() {
 			panic("could not find project root (go.mod)")
 		}
 		projectRoot = parent
+	}
+	if runnerConfig == nil {
+		runnerConfig = &RunnerConfig{}
 	}
 
 	runnerConfig.ScriptDir = filepath.Join(projectRoot, "test_scripts")

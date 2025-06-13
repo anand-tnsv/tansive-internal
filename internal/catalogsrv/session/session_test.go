@@ -12,6 +12,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
@@ -411,6 +412,8 @@ func TestNewSession(t *testing.T) {
 }
 
 func TestSessionSpec_Validate(t *testing.T) {
+	config.TestInit()
+	Init()
 	tests := []struct {
 		name    string
 		spec    SessionSpec
@@ -492,6 +495,8 @@ func marshalJSON(t *testing.T, v interface{}) []byte {
 }
 
 func TestSessionSaveAndGet(t *testing.T) {
+	config.TestInit()
+	Init()
 	// Initialize context with logger and database connection
 	ctx := newDb()
 	defer db.DB(ctx).Close(ctx)
@@ -792,5 +797,65 @@ func TestSessionSaveAndGet(t *testing.T) {
 		_, err := GetSession(ctx, nonExistentID)
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, ErrInvalidObject))
+	})
+
+	// Test upsert functionality
+	t.Run("session upsert updates existing session", func(t *testing.T) {
+		// Create initial session
+		initialSpec := `{
+			"skillPath": "/skills/test-skillset/test-skill",
+			"viewName": "parent-view",
+			"sessionVariables": {
+				"key1": "initial_value"
+			},
+			"inputArgs": {
+				"input": "initial_input"
+			}
+		}`
+		session, _, err := NewSession(ctx, []byte(initialSpec))
+		require.NoError(t, err)
+		err = session.Save(ctx)
+		require.NoError(t, err)
+
+		// Get the session ID
+		sessionID := session.(*sessionManager).session.SessionID
+
+		// Create a new session with the same ID but different values
+		updatedSpec := `{
+			"skillPath": "/skills/test-skillset/test-skill",
+			"viewName": "parent-view",
+			"sessionVariables": {
+				"key1": "updated_value",
+				"key2": "new_value"
+			},
+			"inputArgs": {
+				"input": "updated_input",
+				"new_param": "new_value"
+			}
+		}`
+		updatedSession, _, err := NewSession(ctx, []byte(updatedSpec))
+		require.NoError(t, err)
+		updatedSession.(*sessionManager).session.SessionID = sessionID // Force same ID
+		err = updatedSession.Save(ctx)
+		require.NoError(t, err)
+
+		// Retrieve the session and verify it was updated
+		retrievedSession, err := GetSession(ctx, sessionID)
+		require.NoError(t, err)
+		require.NotNil(t, retrievedSession)
+
+		// Verify the session was updated with new values
+		var retrievedInfo SessionInfo
+		if goerr := json.Unmarshal(retrievedSession.(*sessionManager).session.Info, &retrievedInfo); goerr != nil {
+			t.Fatalf("failed to unmarshal retrieved info: %v", goerr)
+		}
+
+		// Verify session variables were updated
+		assert.Equal(t, "updated_value", retrievedInfo.SessionVariables["key1"])
+		assert.Equal(t, "new_value", retrievedInfo.SessionVariables["key2"])
+
+		// Verify input args were updated
+		assert.Equal(t, "updated_input", retrievedInfo.InputArgs["input"])
+		assert.Equal(t, "new_value", retrievedInfo.InputArgs["new_param"])
 	})
 }

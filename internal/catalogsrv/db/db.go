@@ -91,7 +91,7 @@ type MetadataManager interface {
 	DeleteSigningKey(ctx context.Context, keyID uuid.UUID) apperrors.Error
 
 	// Session
-	CreateSession(ctx context.Context, session *models.Session) apperrors.Error
+	UpsertSession(ctx context.Context, session *models.Session) apperrors.Error
 	GetSession(ctx context.Context, sessionID uuid.UUID) (*models.Session, apperrors.Error)
 	UpdateSessionStatus(ctx context.Context, sessionID uuid.UUID, statusSummary string, status json.RawMessage) apperrors.Error
 	UpdateSessionEnd(ctx context.Context, sessionID uuid.UUID, statusSummary string, status json.RawMessage) apperrors.Error

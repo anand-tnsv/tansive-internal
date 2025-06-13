@@ -187,7 +187,7 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) ap
 	}(logCtx)
 
 	// Run will block until the session is complete
-	log.Ctx(ctx).Info().Msg("running session")
+	log.Ctx(ctx).Info().Str("skill", session.context.Skill).Msg("running session")
 	apperr := session.Run(ctx, "", session.context.Skill, session.context.InputArgs)
 	cancel()
 	wg.Wait()

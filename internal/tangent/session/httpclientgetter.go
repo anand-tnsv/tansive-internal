@@ -8,6 +8,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
+	"github.com/tansive/tansive-internal/internal/tangent/runners"
 )
 
 type clientConfig struct {
@@ -74,4 +75,5 @@ func Init() {
 		tokenExpiry: time.Now().Add(1 * time.Hour),
 		serverURL:   config.Config().TansiveServer.GetURL(),
 	})
+	runners.Init()
 }

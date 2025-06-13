@@ -230,7 +230,7 @@ func NewSession(ctx context.Context, rsrcSpec []byte, opts ...RequestOptions) (S
 // Save persists the session to the database.
 // Returns an error if the save operation fails.
 func (s *sessionManager) Save(ctx context.Context) apperrors.Error {
-	err := db.DB(ctx).CreateSession(ctx, s.session)
+	err := db.DB(ctx).UpsertSession(ctx, s.session)
 	if err != nil {
 		return ErrInvalidObject.Msg("failed to save session: " + err.Error())
 	}

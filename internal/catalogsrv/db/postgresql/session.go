@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/dberror"
@@ -14,8 +13,8 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
-// CreateSession creates a new session in the database.
-func (mm *metadataManager) CreateSession(ctx context.Context, session *models.Session) (err apperrors.Error) {
+// UpsertSession creates a new session in the database.
+func (mm *metadataManager) UpsertSession(ctx context.Context, session *models.Session) (err apperrors.Error) {
 	tx, errStd := mm.conn().BeginTx(ctx, nil)
 	if errStd != nil {
 		log.Ctx(ctx).Error().Err(errStd).Msg("failed to begin transaction")
@@ -29,7 +28,7 @@ func (mm *metadataManager) CreateSession(ctx context.Context, session *models.Se
 		}
 	}()
 
-	err = mm.createSessionWithTransaction(ctx, session, tx)
+	err = mm.upsertSessionWithTransaction(ctx, session, tx)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to create session")
 		return err
@@ -43,8 +42,8 @@ func (mm *metadataManager) CreateSession(ctx context.Context, session *models.Se
 	return nil
 }
 
-// createSessionWithTransaction handles the actual session creation within a transaction.
-func (mm *metadataManager) createSessionWithTransaction(ctx context.Context, session *models.Session, tx *sql.Tx) apperrors.Error {
+// upsertSessionWithTransaction handles the actual session creation within a transaction.
+func (mm *metadataManager) upsertSessionWithTransaction(ctx context.Context, session *models.Session, tx *sql.Tx) apperrors.Error {
 	tenantID := catcommon.GetTenantID(ctx)
 	if tenantID == "" {
 		return dberror.ErrMissingTenantID
@@ -59,6 +58,21 @@ func (mm *metadataManager) createSessionWithTransaction(ctx context.Context, ses
 			variant_id, tenant_id, started_at, ended_at, expires_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		ON CONFLICT (tenant_id, session_id) DO UPDATE SET
+			skillset = EXCLUDED.skillset,
+			skill = EXCLUDED.skill,
+			view_id = EXCLUDED.view_id,
+			tangent_id = EXCLUDED.tangent_id,
+			status_summary = EXCLUDED.status_summary,
+			status = EXCLUDED.status,
+			info = EXCLUDED.info,
+			user_id = EXCLUDED.user_id,
+			catalog_id = EXCLUDED.catalog_id,
+			variant_id = EXCLUDED.variant_id,
+			started_at = EXCLUDED.started_at,
+			ended_at = EXCLUDED.ended_at,
+			expires_at = EXCLUDED.expires_at,
+			updated_at = NOW()
 		RETURNING session_id
 	`
 
@@ -81,13 +95,7 @@ func (mm *metadataManager) createSessionWithTransaction(ctx context.Context, ses
 	).Scan(&session.SessionID)
 
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			switch {
-			case pgErr.Code == "23505":
-				return dberror.ErrAlreadyExists.Msg("session already exists")
-			}
-		}
-		log.Ctx(ctx).Error().Err(err).Msg("failed to insert session")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to insert/update session")
 		return dberror.ErrDatabase.Err(err)
 	}
 

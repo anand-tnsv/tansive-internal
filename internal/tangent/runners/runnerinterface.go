@@ -26,3 +26,7 @@ func NewRunner(ctx context.Context, sessionID string, runnerDef catalogmanager.S
 		return nil, apperrors.New(fmt.Sprintf("invalid runner id: %s", runnerDef.ID))
 	}
 }
+
+func Init() {
+	stdiorunner.Init()
+}

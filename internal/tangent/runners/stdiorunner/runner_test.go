@@ -10,14 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
-func init() {
-	TestInit()
-}
-
 func TestNew(t *testing.T) {
+	config.TestInit()
+	TestInit()
 	tests := []struct {
 		name       string
 		jsonConfig json.RawMessage

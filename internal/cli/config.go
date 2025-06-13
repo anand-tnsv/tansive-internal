@@ -183,6 +183,29 @@ func (cfg *Config) GetTokenExpiry() time.Time {
 	return t
 }
 
+type TangentConfig struct {
+	ServerURL   string
+	APIKey      string
+	Token       string
+	TokenExpiry time.Time
+}
+
+func (cfg *TangentConfig) GetServerURL() string {
+	return MorphServer(cfg.ServerURL)
+}
+
+func (cfg *TangentConfig) GetAPIKey() string {
+	return cfg.APIKey
+}
+
+func (cfg *TangentConfig) GetToken() string {
+	return cfg.Token
+}
+
+func (cfg *TangentConfig) GetTokenExpiry() time.Time {
+	return cfg.TokenExpiry
+}
+
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",

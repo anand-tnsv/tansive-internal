@@ -87,7 +87,7 @@ func TestCreateSession(t *testing.T) {
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
-	err := DB(ctx).CreateSession(ctx, &session)
+	err := DB(ctx).UpsertSession(ctx, &session)
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, session.SessionID)
 }
@@ -156,7 +156,7 @@ func TestGetSession(t *testing.T) {
 		EndedAt:   time.Now().Add(time.Hour),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
-	assert.NoError(t, db.CreateSession(ctx, &session))
+	assert.NoError(t, db.UpsertSession(ctx, &session))
 
 	// Positive case
 	retrieved, err := db.GetSession(ctx, session.SessionID)
@@ -239,7 +239,7 @@ func TestUpdateSessionStatus(t *testing.T) {
 		EndedAt:   time.Now().Add(time.Hour),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
-	assert.NoError(t, DB(ctx).CreateSession(ctx, &session))
+	assert.NoError(t, DB(ctx).UpsertSession(ctx, &session))
 
 	// Update status
 	var newStatus pgtype.JSONB
@@ -320,7 +320,7 @@ func TestUpdateSessionEnd(t *testing.T) {
 		EndedAt:   time.Now().Add(time.Hour),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
-	assert.NoError(t, DB(ctx).CreateSession(ctx, &session))
+	assert.NoError(t, DB(ctx).UpsertSession(ctx, &session))
 
 	// Update status and end session
 	var newStatus pgtype.JSONB
@@ -403,7 +403,7 @@ func TestUpdateSessionInfo(t *testing.T) {
 		EndedAt:   time.Now().Add(time.Hour),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
-	assert.NoError(t, DB(ctx).CreateSession(ctx, &session))
+	assert.NoError(t, DB(ctx).UpsertSession(ctx, &session))
 
 	// Update info
 	var newInfo pgtype.JSONB
@@ -483,7 +483,7 @@ func TestDeleteSession(t *testing.T) {
 		EndedAt:   time.Now().Add(time.Hour),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
-	assert.NoError(t, DB(ctx).CreateSession(ctx, &session))
+	assert.NoError(t, DB(ctx).UpsertSession(ctx, &session))
 
 	// Delete
 	err := DB(ctx).DeleteSession(ctx, session.SessionID)
@@ -597,7 +597,7 @@ func TestListSessionsByCatalog(t *testing.T) {
 	}
 
 	for i := range sessions {
-		assert.NoError(t, DB(ctx).CreateSession(ctx, &sessions[i]))
+		assert.NoError(t, DB(ctx).UpsertSession(ctx, &sessions[i]))
 	}
 
 	// List sessions
