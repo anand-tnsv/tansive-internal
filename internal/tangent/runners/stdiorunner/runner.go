@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
@@ -25,16 +26,20 @@ type runner struct {
 	writers   []*tangentcommon.IOWriters
 }
 
+func (r *runner) ID() string {
+	return catcommon.StdioRunnerID
+}
+
+func (r *runner) AddWriters(writers ...*tangentcommon.IOWriters) {
+	r.writers = append(r.writers, writers...)
+}
+
 // New creates a new runner with the given configuration.
 // The configuration must be valid JSON that can be unmarshaled into a Config.
 // The writers must provide non-nil io.Writer implementations for both stdout and stderr.
 // Returns an error if the configuration is invalid or writers are not properly configured.
 func New(ctx context.Context, sessionID string, configMap map[string]any, writers ...*tangentcommon.IOWriters) (*runner, apperrors.Error) {
 	var config Config
-
-	if len(writers) == 0 {
-		return nil, ErrInvalidWriters
-	}
 
 	for _, writer := range writers {
 		if writer == nil || writer.Out == nil || writer.Err == nil {

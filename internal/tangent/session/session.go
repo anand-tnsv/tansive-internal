@@ -93,19 +93,6 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		return ErrUnableToGetSkillset.Msg("skillset not found")
 	}
 
-	// get command io writers
-	if s.interactiveIOWriters == nil {
-		s.interactiveIOWriters = &tangentcommon.IOWriters{
-			Out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", "stdiorunner").Logger(),
-			Err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", "stdiorunner").Logger(),
-		}
-	}
-
-	sessionLog, unsubSessionLog := GetEventBus().Subscribe(s.getTopic(TopicSessionLog), 100)
-	defer unsubSessionLog()
-	interactiveLog, unsubInteractiveLog := GetEventBus().Subscribe(s.getTopic(TopicInteractiveLog), 100)
-	defer unsubInteractiveLog()
-
 	skill, err := s.resolveSkill(skillName)
 	if err != nil {
 		return err
@@ -114,10 +101,20 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		return err
 	}
 
-	runner, err := s.getRunner(ctx, skillName, append(ioWriters, s.interactiveIOWriters)...)
+	runner, err := s.getRunner(ctx, skillName, ioWriters...)
 	if err != nil {
 		return err
 	}
+
+	// get command io writers
+	if s.interactiveIOWriters == nil {
+		s.interactiveIOWriters = &tangentcommon.IOWriters{
+			Out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
+			Err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
+		}
+	}
+
+	runner.AddWriters(s.interactiveIOWriters)
 
 	invocationID := uuid.New().String()
 	// create the arguments
@@ -178,19 +175,8 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		})
 	}()
 
-loop:
-	for {
-		select {
-		case <-gracefulExitChan:
-			log.Ctx(ctx).Info().Msg("Interactive skill exited")
-			break loop
-		case event := <-interactiveLog:
-			_ = event
-			//fmt.Println(event.Data)
-		case event := <-sessionLog:
-			fmt.Println(event.Data)
-		}
-	}
+	<-gracefulExitChan
+	log.Ctx(ctx).Info().Msg("Interactive skill exited")
 
 	wg.Wait()
 

@@ -29,7 +29,9 @@ func TestLogWriter(t *testing.T) {
 
 	select {
 	case event := <-ch:
-		assert.Equal(t, string(testMsg), event.Data)
+		data, ok := event.Data.([]byte)
+		assert.True(t, ok, "event.Data should be a byte slice")
+		assert.Equal(t, testMsg, data)
 	case <-time.After(time.Second):
 		t.Fatal("timeout waiting for log message")
 	}
@@ -49,7 +51,9 @@ func TestNewLogger(t *testing.T) {
 
 	select {
 	case event := <-ch:
-		msg := event.Data.(string)
+		data, ok := event.Data.([]byte)
+		assert.True(t, ok, "event.Data should be a byte slice")
+		msg := string(data)
 		fmt.Println(msg)
 		assert.Contains(t, msg, "test info message")
 		assert.Contains(t, msg, "\"level\":\"info\"")

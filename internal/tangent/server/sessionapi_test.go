@@ -1,9 +1,12 @@
 package server
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -28,8 +31,9 @@ func TestHandleInteractiveSession(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/sessions", nil)
 	setRequestBodyAndHeader(t, httpReq, sessionReq)
 	response := executeTestRequest(t, httpReq, nil)
-	t.Logf("Response: %s", response.Body.String())
 	require.Equal(t, http.StatusOK, response.Code)
+	err := validateNDJSON(response.Body.Bytes())
+	require.NoError(t, err)
 }
 
 func createInteractiveSession(t *testing.T, token string) *tangentcommon.SessionCreateRequest {
@@ -65,4 +69,37 @@ func createInteractiveSession(t *testing.T, token string) *tangentcommon.Session
 		Code:         sessionResp.Code,
 		CodeVerifier: codeVerifier,
 	}
+}
+
+// ValidateNDJSON checks whether each line in the input is a valid JSON object.
+// Returns nil if valid, or an error describing the first invalid line.
+func validateNDJSON(data []byte) error {
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	lineNum := 1
+
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		trimmed := bytes.TrimSpace(line)
+
+		// Skip empty lines (optional; remove this block to require non-empty lines)
+		if len(trimmed) == 0 {
+			lineNum++
+			continue
+		}
+
+		fmt.Printf("line: %s\n", string(trimmed))
+
+		var tmp any
+		if err := json.Unmarshal(trimmed, &tmp); err != nil {
+			return fmt.Errorf("invalid JSON at line %d: %w", lineNum, err)
+		}
+		lineNum++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error scanning input: %w", err)
+	}
+	fmt.Printf("lineNum: %d\n", lineNum)
+
+	return nil
 }

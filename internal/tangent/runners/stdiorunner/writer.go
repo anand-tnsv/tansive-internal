@@ -32,6 +32,10 @@ func (w *writer) Write(p []byte) (int, error) {
 		firstErr   error
 	)
 
+	if len(w.writers) == 0 {
+		return len(p), nil
+	}
+
 	for _, wtr := range w.writers {
 		var target io.Writer
 		switch w.writerType {

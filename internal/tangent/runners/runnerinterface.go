@@ -13,6 +13,8 @@ import (
 
 // Runner is the interface for all runners.
 type Runner interface {
+	ID() string
+	AddWriters(writers ...*tangentcommon.IOWriters)
 	Run(ctx context.Context, args *tangentcommon.SkillInputArgs) apperrors.Error
 }
 

@@ -67,17 +67,6 @@ func (rw *ResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return hj.Hijack()
 }
 
-// CloseNotify implements http.CloseNotifier (deprecated, but still sometimes used)
-func (rw *ResponseWriter) CloseNotify() <-chan bool {
-	if cn, ok := rw.ResponseWriter.(http.CloseNotifier); ok {
-		return cn.CloseNotify()
-	}
-	// dummy channel to prevent nil panic
-	ch := make(chan bool, 1)
-	close(ch)
-	return ch
-}
-
 // Push implements http.Pusher if supported (for HTTP/2)
 func (rw *ResponseWriter) Push(target string, opts *http.PushOptions) error {
 	if p, ok := rw.ResponseWriter.(http.Pusher); ok {

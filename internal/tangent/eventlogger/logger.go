@@ -15,7 +15,9 @@ type LogWriter struct {
 
 // Write publishes a log message to the specified topic on the EventBus.
 func (lw *LogWriter) Write(p []byte) (n int, err error) {
-	lw.Bus.Publish(lw.Topic, string(p), 100*time.Millisecond)
+	dup := make([]byte, len(p))
+	copy(dup, p)
+	lw.Bus.Publish(lw.Topic, dup, 100*time.Millisecond)
 	return len(p), nil
 }
 

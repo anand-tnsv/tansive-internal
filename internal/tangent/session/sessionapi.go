@@ -3,9 +3,9 @@ package session
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -37,20 +37,24 @@ func createSession(r *http.Request) (*httpx.Response, error) {
 		return nil, httpx.ErrInvalidRequest("only interactive sessions are supported")
 	}
 
-	err = handleInteractiveSession(ctx, req)
+	session, err := handleInteractiveSession(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
 	rsp := &httpx.Response{
 		StatusCode:  http.StatusOK,
-		Response:    "ok",
-		ContentType: "text/plain",
+		ContentType: "application/x-ndjson",
+		Chunked:     true,
+		WriteChunks: func(w http.ResponseWriter) error {
+			return runSession(ctx, w, session)
+		},
 	}
+
 	return rsp, nil
 }
 
-func handleInteractiveSession(ctx context.Context, req *tangentcommon.SessionCreateRequest) apperrors.Error {
+func handleInteractiveSession(ctx context.Context, req *tangentcommon.SessionCreateRequest) (*session, apperrors.Error) {
 	client := getTansiveSrvClient()
 
 	opts := httpclient.RequestOptions{
@@ -64,40 +68,24 @@ func handleInteractiveSession(ctx context.Context, req *tangentcommon.SessionCre
 
 	body, _, err := client.DoRequest(opts)
 	if err != nil {
-		return ErrFailedRequestToTansiveServer.Msg("unable to create execution state: " + err.Error())
+		return nil, ErrFailedRequestToTansiveServer.Msg("unable to create execution state: " + err.Error())
 	}
 
 	rsp := &srvsession.SessionTokenRsp{}
 	if err := json.Unmarshal(body, rsp); err != nil {
-		return ErrFailedRequestToTansiveServer.Msg("unable to parse token response: " + err.Error())
+		return nil, ErrFailedRequestToTansiveServer.Msg("unable to parse token response: " + err.Error())
 	}
 
 	executionState, apperr := getExecutionState(ctx, rsp)
 	if apperr != nil {
-		return apperr
+		return nil, apperr
 	}
 
 	session, apperr := createActiveSession(ctx, executionState, rsp.Token, rsp.Expiry)
 	if apperr != nil {
-		return apperr
+		return nil, apperr
 	}
-
-	// Create writers to capture command outputs
-	outWriter := tangentcommon.NewBufferedWriter()
-	errWriter := tangentcommon.NewBufferedWriter()
-
-	apperr = session.Run(ctx, "", session.context.Skill, session.context.InputArgs, &tangentcommon.IOWriters{
-		Out: outWriter,
-		Err: errWriter,
-	})
-
-	fmt.Printf("outWriter: %s", outWriter.String())
-	fmt.Printf("errWriter: %s", errWriter.String())
-
-	if apperr != nil {
-		return apperr
-	}
-	return nil
+	return session, nil
 }
 
 func getExecutionState(ctx context.Context, rsp *srvsession.SessionTokenRsp) (*srvsession.ExecutionState, apperrors.Error) {
@@ -155,4 +143,59 @@ func createActiveSession(ctx context.Context, executionState *srvsession.Executi
 	}
 
 	return session, nil
+}
+
+func runSession(ctx context.Context, w http.ResponseWriter, session *session) apperrors.Error {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		log.Ctx(ctx).Error().Msg("response writer does not support flushing")
+		return ErrSessionError.Msg("response writer does not support flushing")
+	}
+
+	sessionLog, unsubSessionLog := GetEventBus().Subscribe(session.getTopic(TopicSessionLog), 100)
+	defer unsubSessionLog()
+	interactiveLog, unsubInteractiveLog := GetEventBus().Subscribe(session.getTopic(TopicInteractiveLog), 100)
+	defer unsubInteractiveLog()
+
+	logCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func(ctx context.Context) {
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event := <-sessionLog:
+				data, ok := event.Data.([]byte)
+				if !ok {
+					continue
+				}
+				w.Write(data)
+				flusher.Flush()
+			case event := <-interactiveLog:
+				data, ok := event.Data.([]byte)
+				if !ok {
+					continue
+				}
+				w.Write(data)
+				flusher.Flush()
+			}
+		}
+	}(logCtx)
+
+	// Run will block until the session is complete
+	log.Ctx(ctx).Info().Msg("running session")
+	apperr := session.Run(ctx, "", session.context.Skill, session.context.InputArgs)
+	cancel()
+	wg.Wait()
+
+	log.Ctx(ctx).Info().Msg("session completed")
+	if apperr != nil {
+		log.Ctx(ctx).Error().Err(apperr).Msg("session failed")
+		return apperr
+	}
+
+	return nil
 }
