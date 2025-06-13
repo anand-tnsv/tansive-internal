@@ -1,4 +1,4 @@
-package skillservice
+package api
 
 import (
 	"bytes"
@@ -8,9 +8,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
-
-	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 type Client struct {
@@ -138,7 +138,7 @@ func (c *Client) InvokeSkill(ctx context.Context, sessionID, invocationID, skill
 	return nil, fmt.Errorf("failed to invoke skill after %d retries: %w", c.config.maxRetries, lastErr)
 }
 
-func (c *Client) GetTools(ctx context.Context, sessionID string) ([]api.LLMTool, error) {
+func (c *Client) GetTools(ctx context.Context, sessionID string) ([]LLMTool, error) {
 	var lastErr error
 	for i := 0; i < c.config.maxRetries; i++ {
 		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/tools?session_id=%s", sessionID), nil)
@@ -159,7 +159,7 @@ func (c *Client) GetTools(ctx context.Context, sessionID string) ([]api.LLMTool,
 			return nil, fmt.Errorf("get tools failed: %s", string(respBody))
 		}
 
-		var tools []api.LLMTool
+		var tools []LLMTool
 		if err := json.NewDecoder(resp.Body).Decode(&tools); err != nil {
 			return nil, fmt.Errorf("failed to decode tools: %w", err)
 		}
@@ -197,4 +197,24 @@ func (c *Client) GetContext(ctx context.Context, sessionID string, name string) 
 	}
 
 	return nil, fmt.Errorf("failed to get context after %d retries: %w", c.config.maxRetries, lastErr)
+}
+
+const DefaultSocketName = "tangent.service"
+
+func GetSocketPath() (string, error) {
+	if xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR"); xdgRuntimeDir != "" {
+		if _, err := os.Stat(xdgRuntimeDir); err == nil {
+			return filepath.Join(xdgRuntimeDir, DefaultSocketName), nil
+		}
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	runtimeDir := filepath.Join(homeDir, ".local", "run")
+	if err := os.MkdirAll(runtimeDir, 0700); err != nil {
+		return "", fmt.Errorf("failed to create runtime directory: %w", err)
+	}
+	return filepath.Join(runtimeDir, DefaultSocketName), nil
 }

@@ -1,9 +1,16 @@
 package httpclient
 
+import (
+	"io"
+)
+
 // HTTPClientInterface defines the interface for HTTP client implementations
 type HTTPClientInterface interface {
 	// DoRequest makes an HTTP request with the given options
 	DoRequest(opts RequestOptions) ([]byte, string, error)
+
+	// StreamRequest makes an HTTP request with the given options and streams the response
+	StreamRequest(opts RequestOptions) (io.ReadCloser, error)
 
 	// CreateResource creates a new resource using the given JSON data
 	CreateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, string, error)

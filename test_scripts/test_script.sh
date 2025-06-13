@@ -2,7 +2,7 @@
 
 # Print raw input
 echo "Raw input: $1"
-
+sdfds
 # Parse JSON using jq if available, otherwise use basic parsing
 if command -v jq >/dev/null 2>&1; then
     echo "Parsed JSON:"

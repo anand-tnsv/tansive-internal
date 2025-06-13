@@ -9,13 +9,14 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 // Runner is the interface for all runners.
 type Runner interface {
 	ID() string
 	AddWriters(writers ...*tangentcommon.IOWriters)
-	Run(ctx context.Context, args *tangentcommon.SkillInputArgs) apperrors.Error
+	Run(ctx context.Context, args *api.SkillInputArgs) apperrors.Error
 }
 
 func NewRunner(ctx context.Context, sessionID string, runnerDef catalogmanager.SkillSetRunner, writers ...*tangentcommon.IOWriters) (Runner, apperrors.Error) {

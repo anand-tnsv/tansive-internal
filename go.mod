@@ -9,6 +9,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/anand-gl/jsoncanonicalizer v0.1.0
 	github.com/avast/retry-go/v4 v4.6.1
+	github.com/fatih/color v1.18.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator/v10 v10.26.0
@@ -49,7 +50,7 @@ require (
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect

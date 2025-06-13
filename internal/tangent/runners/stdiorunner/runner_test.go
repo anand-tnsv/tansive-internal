@@ -12,6 +12,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 func TestNew(t *testing.T) {
@@ -298,7 +299,7 @@ func TestRun(t *testing.T) {
 			if err := json.Unmarshal(tt.args, &args); err != nil {
 				t.Fatalf("failed to unmarshal args: %v", err)
 			}
-			skillArgs := &tangentcommon.SkillInputArgs{
+			skillArgs := &api.SkillInputArgs{
 				InvocationID:     "test-invocation",
 				SessionID:        "test-session",
 				SkillName:        "test-skill",
@@ -428,7 +429,7 @@ func TestDevModeSecurity(t *testing.T) {
 			if err := json.Unmarshal(tt.args, &args); err != nil {
 				t.Fatalf("failed to unmarshal args: %v", err)
 			}
-			skillArgs := &tangentcommon.SkillInputArgs{
+			skillArgs := &api.SkillInputArgs{
 				InvocationID:     "test-invocation",
 				SessionID:        "test-session",
 				SkillName:        "test-skill",

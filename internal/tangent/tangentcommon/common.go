@@ -10,6 +10,6 @@ import (
 const DefaultConfigFile = "config.toml"
 
 func InitLogger() {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	log.Logger = zerolog.New(os.Stderr).With().Timestamp().Logger()
 }

@@ -54,7 +54,7 @@ func TestSkillService(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	client, err := NewClient()
+	client, err := api.NewClient()
 	require.NoError(t, err)
 	defer client.Close()
 

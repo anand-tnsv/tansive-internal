@@ -241,3 +241,70 @@ func (c *HTTPClient) ListResources(resourceType string, queryParams map[string]s
 	body, _, err := c.DoRequest(opts)
 	return body, err
 }
+
+// StreamRequest makes an HTTP request with the given options and returns a reader for streaming the response
+func (c *HTTPClient) StreamRequest(opts RequestOptions) (io.ReadCloser, error) {
+	// Build the URL with query parameters
+	u, err := url.Parse(c.config.GetServerURL())
+	if err != nil {
+		return nil, fmt.Errorf("invalid server URL: %v", err)
+	}
+	u.Path = path.Join(u.Path, opts.Path)
+
+	// Add query parameters
+	q := u.Query()
+	for k, v := range opts.QueryParams {
+		q.Set(k, v)
+	}
+	u.RawQuery = q.Encode()
+
+	// Create the request
+	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+
+	// Check if we have a valid current token
+	if c.config.GetToken() != "" && !c.config.GetTokenExpiry().IsZero() {
+		expiry := c.config.GetTokenExpiry()
+		if time.Now().Before(expiry) {
+			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
+		} else {
+			// Token expired or invalid, fall back to API key
+			if c.config.GetAPIKey() != "" {
+				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
+			}
+		}
+	} else if c.config.GetAPIKey() != "" {
+		// No current token, use API key
+		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
+	}
+
+	// Make the request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %v", err)
+	}
+
+	// Check for error status codes
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		var serverErr ServerError
+		if err := json.Unmarshal(body, &serverErr); err == nil && serverErr.Error != "" {
+			return nil, &HTTPError{
+				StatusCode: resp.StatusCode,
+				Message:    serverErr.Error,
+			}
+		}
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    string(body),
+		}
+	}
+
+	return resp.Body, nil
+}

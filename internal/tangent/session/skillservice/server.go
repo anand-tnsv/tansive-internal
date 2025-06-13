@@ -17,6 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 const defaultSocketName = "tangent.service"
@@ -40,20 +41,20 @@ func NewSkillService(skillManager tangentcommon.SkillManager) *SkillService {
 	}
 }
 
-type skillInvocation struct {
-	SessionID    string         `json:"session_id"`
-	InvocationID string         `json:"invocation_id"`
-	SkillName    string         `json:"skill_name"`
-	Args         map[string]any `json:"args"`
-}
+// type skillInvocation struct {
+// 	SessionID    string         `json:"session_id"`
+// 	InvocationID string         `json:"invocation_id"`
+// 	SkillName    string         `json:"skill_name"`
+// 	Args         map[string]any `json:"args"`
+// }
 
-type skillResult struct {
-	InvocationID string         `json:"invocation_id"`
-	Output       map[string]any `json:"output"`
-}
+// type skillResult struct {
+// 	InvocationID string         `json:"invocation_id"`
+// 	Output       map[string]any `json:"output"`
+// }
 
 func (s *SkillService) handleInvokeSkill(r *http.Request) (*httpx.Response, error) {
-	var req skillInvocation
+	var req api.SkillInvocation
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, ErrInvalidRequest.Msg(err.Error())
 	}
@@ -69,7 +70,7 @@ func (s *SkillService) handleInvokeSkill(r *http.Request) (*httpx.Response, erro
 		return nil, ErrSkillServiceError.Msg(err.Error())
 	}
 
-	result := skillResult{
+	result := api.SkillResult{
 		InvocationID: req.InvocationID,
 		Output:       resp,
 	}

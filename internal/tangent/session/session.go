@@ -118,7 +118,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 
 	invocationID := uuid.New().String()
 	// create the arguments
-	args := tangentcommon.SkillInputArgs{
+	args := api.SkillInputArgs{
 		InvocationID:     invocationID,
 		SessionID:        s.id.String(),
 		SkillName:        skillName,
@@ -144,7 +144,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		defer wg.Done()
 		defer cancel()
 
-		log.Info().Msg("Running interactive skill: " + skillName)
+		log.Info().Msg("Running interactive skill")
 		err := runner.Run(childCtx, &args)
 		if err != nil {
 			log.Error().Err(err).Msg("Error running shell command")
@@ -154,7 +154,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 			resultChan <- nil
 		}
 
-	}(s.getLogger(TopicSessionLog))
+	}(s.getLogger(TopicSessionLog).With().Str("runner", runner.ID()).Str("skill", skillName).Logger())
 
 	// Set up a graceful exit to allow for draining logs/event bus before exiting
 	gracefulExitChan := make(chan struct{}, 1)

@@ -14,8 +14,8 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
-	"github.com/tansive/tansive-internal/internal/tangent/session/skillservice"
 	"github.com/tansive/tansive-internal/internal/tangent/test"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 func TestOpenAI(t *testing.T) {
@@ -43,7 +43,7 @@ func TestOpenAI(t *testing.T) {
 	CreateSkillService()
 	// wait for few milliseconds to ensure the skill service is running
 	time.Sleep(100 * time.Millisecond)
-	client, goerr := skillservice.NewClient()
+	client, goerr := api.NewClient()
 	require.NoError(t, goerr)
 	defer client.Close()
 
@@ -53,7 +53,7 @@ func TestOpenAI(t *testing.T) {
 	CreateOpenAISession(t, ctx, client, session)
 }
 
-func CreateOpenAISession(t *testing.T, ctx context.Context, tansiveClient *skillservice.Client, session *session) {
+func CreateOpenAISession(t *testing.T, ctx context.Context, tansiveClient *api.Client, session *session) {
 	// client := openai.NewClient(
 	// 	option.WithAPIKey(getOpenAIAPIKey()),
 	// )
@@ -115,7 +115,7 @@ func CreateOpenAISession(t *testing.T, ctx context.Context, tansiveClient *skill
 	}
 }
 
-func getTools(t *testing.T, ctx context.Context, client *skillservice.Client, sessionID string) []openai.ChatCompletionToolParam {
+func getTools(t *testing.T, ctx context.Context, client *api.Client, sessionID string) []openai.ChatCompletionToolParam {
 	tools, err := client.GetTools(ctx, sessionID)
 	if err != nil {
 		t.Fatalf("failed to get tools: %v", err)

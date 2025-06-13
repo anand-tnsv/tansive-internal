@@ -10,9 +10,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
-	"github.com/tansive/tansive-internal/internal/tangent/session/skillservice"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 	"github.com/tansive/tansive-internal/internal/tangent/test"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 func TestCreateSession(t *testing.T) {
@@ -53,7 +53,7 @@ func TestCreateSession(t *testing.T) {
 	CreateSkillService()
 	// wait for few milliseconds to ensure the skill service is running
 	time.Sleep(100 * time.Millisecond)
-	client, goerr := skillservice.NewClient()
+	client, goerr := api.NewClient()
 	require.NoError(t, goerr)
 	defer client.Close()
 
@@ -113,7 +113,7 @@ func TestCreateSession(t *testing.T) {
 	t.Logf("tools: %v", tools)
 }
 
-func isError(response *skillservice.SkillResult) bool {
+func isError(response *api.SkillResult) bool {
 	_, ok := response.Output["error"]
 	return ok
 }

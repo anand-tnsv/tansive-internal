@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -122,12 +124,26 @@ func createSession(req *tangentcommon.SessionCreateRequest, serverURL string) er
 		Body:   reqJSON,
 	}
 
-	body, _, err := client.DoRequest(opts)
+	reader, err := client.StreamRequest(opts)
 	if err != nil {
 		return err
 	}
+	defer reader.Close()
 
-	fmt.Println(string(body))
+	bufReader := bufio.NewReader(reader)
+
+	// Read chunks until EOF
+	for {
+		line, err := bufReader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		PrettyPrintNDJSONLine([]byte(line))
+		//fmt.Println(line)
+	}
 	return nil
 }
 

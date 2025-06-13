@@ -19,26 +19,6 @@ var resourceObjectHandlers = []ResponseHandlerParam{
 		Path:    "/",
 		Handler: createSession,
 	},
-	{
-		Method: http.MethodGet,
-		Path:   "/{id}",
-		//		Handler: getSession,
-	},
-	{
-		Method: http.MethodGet,
-		Path:   "/",
-		//		Handler: listSessions,
-	},
-	{
-		Method: http.MethodDelete,
-		Path:   "/{id}",
-		//		Handler: deleteSession,
-	},
-	{
-		Method: http.MethodPost,
-		Path:   "/skills/{skillName}/applySkill",
-		//Handler: applySkill,
-	},
 }
 
 func Router(r chi.Router) {

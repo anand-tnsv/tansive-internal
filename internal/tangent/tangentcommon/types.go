@@ -27,11 +27,3 @@ type SkillManager interface {
 	GetContext(ctx context.Context, sessionID string, name string) (any, apperrors.Error)
 	Run(ctx context.Context, params *RunParams) (map[string]any, apperrors.Error)
 }
-
-type SkillInputArgs struct {
-	InvocationID     string         `json:"invocationID"`
-	SessionID        string         `json:"sessionID"`
-	SkillName        string         `json:"skillName"`
-	InputArgs        map[string]any `json:"inputArgs"`
-	SessionVariables map[string]any `json:"sessionVariables"`
-}

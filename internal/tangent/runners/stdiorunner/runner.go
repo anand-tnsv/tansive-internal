@@ -16,6 +16,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
+	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 // runner implements the runners.Runner interface.
@@ -70,7 +71,7 @@ func New(ctx context.Context, sessionID string, configMap map[string]any, writer
 // DevMode security allows execution of scripts from the configured script directory
 // with minimal restrictions, intended for development and testing purposes only.
 // NOT FOR PRODUCTION USE - lacks security measures required for production environments.
-func (r *runner) Run(ctx context.Context, args *tangentcommon.SkillInputArgs) apperrors.Error {
+func (r *runner) Run(ctx context.Context, args *api.SkillInputArgs) apperrors.Error {
 	if args == nil {
 		return ErrInvalidArgs.Msg("args is nil")
 	}
@@ -81,7 +82,7 @@ func (r *runner) Run(ctx context.Context, args *tangentcommon.SkillInputArgs) ap
 	return ErrInvalidSecurity.Msg("security type not supported: " + string(r.config.Security.Type))
 }
 
-func (r *runner) runWithDevModeSecurity(ctx context.Context, args *tangentcommon.SkillInputArgs) apperrors.Error {
+func (r *runner) runWithDevModeSecurity(ctx context.Context, args *api.SkillInputArgs) apperrors.Error {
 	scriptPath := filepath.Join(runnerConfig.ScriptDir, filepath.Clean(r.config.Script))
 	if !strings.HasPrefix(scriptPath, filepath.Clean(runnerConfig.ScriptDir)+string(os.PathSeparator)) {
 		return ErrInvalidScript.Msg("script path escapes trusted directory")
@@ -126,7 +127,7 @@ func (r *runner) runWithDevModeSecurity(ctx context.Context, args *tangentcommon
 	return nil
 }
 
-func (r *runner) writeWrappedScript(wrappedPath, scriptPath string, args *tangentcommon.SkillInputArgs) error {
+func (r *runner) writeWrappedScript(wrappedPath, scriptPath string, args *api.SkillInputArgs) error {
 	jsonArgs, err := json.Marshal(args)
 	if err != nil {
 		return fmt.Errorf("could not normalize JSON args: %w", err)
