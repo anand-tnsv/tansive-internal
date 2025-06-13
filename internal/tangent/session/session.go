@@ -39,6 +39,7 @@ func (s *session) GetSessionID() string {
 }
 
 func (s *session) Run(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
+	log.Ctx(ctx).Info().Msgf("Skill Use Requested: %s", skillName)
 	if invokerID != "" {
 		if _, ok := s.invocationIDs[invokerID]; !ok {
 			log.Ctx(ctx).Error().Str("invocation_id", invokerID).Msg("invocationID not found")
@@ -121,8 +122,8 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 	}
 
 	interactiveIOWriters := &tangentcommon.IOWriters{
-		Out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
-		Err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
+		Out: s.getLogger(TopicInteractiveLog).With().Str("actor", "skill").Str("source", "stdout").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
+		Err: s.getLogger(TopicInteractiveLog).With().Str("actor", "skill").Str("source", "stderr").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
 	}
 
 	runner.AddWriters(interactiveIOWriters)
@@ -161,7 +162,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		defer wg.Done()
 		defer cancel()
 
-		ctx = log.Ctx(ctx).With().Str("runner", runner.ID()).Logger().WithContext(ctx)
+		ctx = log.Ctx(ctx).With().Str("runner", runner.ID()).Str("actor", "runner").Logger().WithContext(ctx)
 		log.Ctx(ctx).Info().Msgf("running skill: %s", skillName)
 		err := runner.Run(ctx, &args)
 		if err != nil {

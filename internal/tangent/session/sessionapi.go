@@ -195,7 +195,7 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) ap
 
 	// Run will block until the session is complete
 	log.Ctx(ctx).Info().Str("skill", session.context.Skill).Msg("running session")
-	runCtx := session.getLogger(TopicSessionLog).With().Str("skill", session.context.Skill).Logger().WithContext(ctx)
+	runCtx := session.getLogger(TopicSessionLog).With().Str("skill", session.context.Skill).Str("actor", "system").Logger().WithContext(ctx)
 	apperr := session.Run(runCtx, "", session.context.Skill, session.context.InputArgs)
 	cancel()
 	wg.Wait()

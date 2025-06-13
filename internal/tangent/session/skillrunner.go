@@ -87,7 +87,7 @@ func (s *skillRunner) Run(ctx context.Context, params *tangentcommon.RunParams) 
 	errWriter := tangentcommon.NewBufferedWriter()
 
 	// Run the skill
-	runCtx := session.getLogger(TopicSessionLog).With().Str("session_id", session.id.String()).Str("skill", session.context.Skill).Logger().WithContext(ctx)
+	runCtx := session.getLogger(TopicSessionLog).With().Str("actor", "system").Str("session_id", session.id.String()).Str("skill", session.context.Skill).Logger().WithContext(ctx)
 	apperr := session.Run(runCtx, params.InvocationID, params.SkillName, params.InputArgs, &tangentcommon.IOWriters{
 		Out: outWriter,
 		Err: errWriter,

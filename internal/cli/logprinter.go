@@ -27,13 +27,19 @@ var endLabel = color.New(color.FgRed).Add(color.Bold)
 
 // Predefined palette of distinct colors for skills
 var colorPalette = []*color.Color{
-	color.New(color.FgBlue),
 	color.New(color.FgGreen),
 	color.New(color.FgCyan),
 	color.New(color.FgMagenta),
 	color.New(color.FgYellow),
 	color.New(color.FgRed),
+	color.New(color.FgBlue),
 }
+
+var systemColor = color.New(color.FgHiWhite)              // For internal/system messages
+var runnerColor = color.New(color.FgHiWhite, color.Faint) // For runner-specific actions
+var tansiveColor = color.New(color.FgHiMagenta)           // For core Tansive operations
+
+var _ = tansiveColor
 
 var colorIndex = 0
 
@@ -50,6 +56,8 @@ func PrettyPrintNDJSONLine(line []byte) {
 	source := str(m["source"])
 	level := str(m["level"])
 	policy := str(m["policy_decision"])
+	actor := str(m["actor"])
+	runner := str(m["runner"])
 	t := int64From(m["time"]) // milliseconds since epoch
 
 	// Initialize session if needed
@@ -91,7 +99,13 @@ func PrettyPrintNDJSONLine(line []byte) {
 
 	// Print timestamp and skill name first
 	fmt.Print("  " + timestamp + " ")
-	skillColor.Printf("%s", skill)
+	if actor == "system" {
+		systemColor.Printf("%s", "[tansive]")
+	} else if actor == "runner" {
+		runnerColor.Printf("[%s]", runner)
+	} else if actor == "skill" {
+		skillColor.Printf("%s", skill)
+	}
 
 	// stderr: only ❗ and message in red
 	if policy == "true" {
