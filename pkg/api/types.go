@@ -9,9 +9,17 @@ type LLMTool struct {
 	OutputSchema json.RawMessage `json:"outputSchema,omitempty"`
 }
 
+type RunMode string
+
+const (
+	RunModeInteractive RunMode = "interactive"
+	RunModeBatch       RunMode = "batch"
+)
+
 type SkillInputArgs struct {
 	InvocationID     string         `json:"invocationID"`
 	ServiceEndpoint  string         `json:"serviceEndpoint"`
+	RunMode          RunMode        `json:"runMode"`
 	SessionID        string         `json:"sessionID"`
 	SkillName        string         `json:"skillName"`
 	InputArgs        map[string]any `json:"inputArgs"`

@@ -41,6 +41,7 @@ func (s *session) GetSessionID() string {
 func (s *session) Run(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
 	if invokerID != "" {
 		if _, ok := s.invocationIDs[invokerID]; !ok {
+			log.Ctx(ctx).Error().Str("invocation_id", invokerID).Msg("invocationID not found")
 			return ErrInvalidInvocationID.Msg("invocationID not found")
 		}
 	}
@@ -49,15 +50,20 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 		return err
 	}
 
-	isAllowed, err := s.ValidateRunPolicy(ctx, invokerID, skillName)
+	isAllowed, actions, err := s.ValidateRunPolicy(ctx, invokerID, skillName)
 	if err != nil {
 		return err
 	}
 	if !isAllowed {
-		return ErrBlockedByPolicy.Msg("blocked by policy")
+		msg := fmt.Sprintf("blocked by Tansive policy: view '%s' does not authorize any of required actions - %v - to use this skill", s.context.View, actions)
+		log.Ctx(ctx).Error().Str("policy_decision", "true").Msg(msg)
+		return ErrBlockedByPolicy.Msg(msg)
 	}
+	msg := fmt.Sprintf("allowed by Tansive policy: view '%s' authorizes actions - %v - to use this skill", s.context.View, actions)
+	log.Ctx(ctx).Info().Str("policy_decision", "true").Msg(msg)
 
 	if err := s.ValidateInputForSkill(ctx, skillName, inputArgs); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("invalid input for skill")
 		return err
 	}
 
@@ -65,17 +71,27 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 	return s.runInteractiveSkill(ctx, invokerID, skillName, inputArgs, ioWriters...)
 }
 
-func (s *session) ValidateRunPolicy(ctx context.Context, invokerID string, skillName string) (bool, apperrors.Error) {
+func (s *session) ValidateRunPolicy(ctx context.Context, invokerID string, skillName string) (bool, []string, apperrors.Error) {
 	if s.skillSet == nil {
-		return false, ErrUnableToGetSkillset.Msg("skillset not found")
+		log.Ctx(ctx).Error().Msg("skillSet not found")
+		return false, nil, ErrUnableToGetSkillset.Msg("skillset not found")
 	}
 
 	skill, err := s.resolveSkill(skillName)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
-	return policy.AreActionsAllowedOnResource(s.viewDef, s.skillSet.GetResourcePath(), skill.GetExportedActions())
+	actions := []string{}
+	allowed, err := policy.AreActionsAllowedOnResource(s.viewDef, s.skillSet.GetResourcePath(), skill.GetExportedActions())
+	if err != nil {
+		return false, nil, err
+	}
+	for _, action := range skill.GetExportedActions() {
+		actions = append(actions, string(action))
+	}
+
+	return allowed, actions, nil
 }
 
 func (s *session) ValidateInputForSkill(ctx context.Context, skillName string, inputArgs map[string]any) apperrors.Error {
@@ -87,7 +103,6 @@ func (s *session) ValidateInputForSkill(ctx context.Context, skillName string, i
 }
 
 func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
-	log.Ctx(ctx).Info().Msg("Running interactive skill")
 	if s.skillSet == nil {
 		return ErrUnableToGetSkillset.Msg("skillset not found")
 	}
@@ -121,6 +136,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 	args := api.SkillInputArgs{
 		InvocationID:     invocationID,
 		ServiceEndpoint:  serviceEndpoint,
+		RunMode:          api.RunModeInteractive,
 		SessionID:        s.id.String(),
 		SkillName:        skillName,
 		InputArgs:        inputArgs,
@@ -141,21 +157,22 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	go func(log zerolog.Logger) {
+	go func(ctx context.Context) {
 		defer wg.Done()
 		defer cancel()
 
-		log.Info().Msg("Running interactive skill")
-		err := runner.Run(childCtx, &args)
+		ctx = log.Ctx(ctx).With().Str("runner", runner.ID()).Logger().WithContext(ctx)
+		log.Ctx(ctx).Info().Msgf("running skill: %s", skillName)
+		err := runner.Run(ctx, &args)
 		if err != nil {
-			log.Error().Err(err).Msg("Error running shell command")
+			log.Ctx(ctx).Error().Err(err).Msgf("error running skill: %s", skillName)
 			resultChan <- err
 		} else {
-			log.Info().Msg("Interactive skill completed successfully")
+			log.Ctx(ctx).Info().Msgf("skill completed successfully: %s", skillName)
 			resultChan <- nil
 		}
 
-	}(s.getLogger(TopicSessionLog).With().Str("runner", runner.ID()).Str("skill", skillName).Logger())
+	}(childCtx)
 
 	// Set up a graceful exit to allow for draining logs/event bus before exiting
 	gracefulExitChan := make(chan struct{}, 1)
@@ -168,7 +185,6 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 			cancel()
 		}
 
-		log.Ctx(ctx).Info().Msg("Interactive skill exited")
 		time.AfterFunc(100*time.Millisecond, func() {
 			once.Do(func() {
 				gracefulExitChan <- struct{}{}
@@ -177,7 +193,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 	}()
 
 	<-gracefulExitChan
-	log.Ctx(ctx).Info().Msg("Interactive skill exited")
+	log.Info().Msg("interactive skill exited")
 
 	wg.Wait()
 

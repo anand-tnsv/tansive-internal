@@ -69,11 +69,13 @@ func handleInteractiveSession(ctx context.Context, req *tangentcommon.SessionCre
 
 	body, _, err := client.DoRequest(opts)
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to create execution state")
 		return nil, ErrFailedRequestToTansiveServer.Msg("unable to create execution state: " + err.Error())
 	}
 
 	rsp := &srvsession.SessionTokenRsp{}
 	if err := json.Unmarshal(body, rsp); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to parse token response")
 		return nil, ErrFailedRequestToTansiveServer.Msg("unable to parse token response: " + err.Error())
 	}
 
@@ -82,8 +84,10 @@ func handleInteractiveSession(ctx context.Context, req *tangentcommon.SessionCre
 		return nil, apperr
 	}
 
+	ctx = log.Ctx(ctx).With().Str("session_id", executionState.SessionID.String()).Logger().WithContext(ctx)
 	session, apperr := createActiveSession(ctx, executionState, rsp.Token, rsp.Expiry)
 	if apperr != nil {
+		log.Ctx(ctx).Error().Err(apperr).Msg("unable to create active session")
 		return nil, apperr
 	}
 	return session, nil
@@ -110,11 +114,13 @@ func getExecutionState(ctx context.Context, rsp *srvsession.SessionTokenRsp) (*s
 
 	body, _, err := client.DoRequest(opts)
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to get execution state")
 		return nil, ErrFailedRequestToTansiveServer.Msg("unable to get execution state: " + err.Error())
 	}
 
 	executionState := &srvsession.ExecutionState{}
 	if err := json.Unmarshal(body, executionState); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to parse execution state")
 		return nil, ErrFailedRequestToTansiveServer.Msg("unable to parse execution state: " + err.Error())
 	}
 
@@ -140,6 +146,7 @@ func createActiveSession(ctx context.Context, executionState *srvsession.Executi
 
 	session, err := ActiveSessionManager().CreateSession(ctx, serverCtx, token, tokenExpiry)
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to create session")
 		return nil, err
 	}
 
@@ -188,7 +195,8 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) ap
 
 	// Run will block until the session is complete
 	log.Ctx(ctx).Info().Str("skill", session.context.Skill).Msg("running session")
-	apperr := session.Run(ctx, "", session.context.Skill, session.context.InputArgs)
+	runCtx := session.getLogger(TopicSessionLog).With().Str("skill", session.context.Skill).Logger().WithContext(ctx)
+	apperr := session.Run(runCtx, "", session.context.Skill, session.context.InputArgs)
 	cancel()
 	wg.Wait()
 

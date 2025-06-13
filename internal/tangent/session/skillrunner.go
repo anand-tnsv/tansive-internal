@@ -87,7 +87,8 @@ func (s *skillRunner) Run(ctx context.Context, params *tangentcommon.RunParams) 
 	errWriter := tangentcommon.NewBufferedWriter()
 
 	// Run the skill
-	apperr := session.Run(ctx, params.InvocationID, params.SkillName, params.InputArgs, &tangentcommon.IOWriters{
+	runCtx := session.getLogger(TopicSessionLog).With().Str("session_id", session.id.String()).Str("skill", session.context.Skill).Logger().WithContext(ctx)
+	apperr := session.Run(runCtx, params.InvocationID, params.SkillName, params.InputArgs, &tangentcommon.IOWriters{
 		Out: outWriter,
 		Err: errWriter,
 	})
@@ -100,7 +101,7 @@ func processOutput(outWriter *tangentcommon.BufferedWriter, errWriter *tangentco
 
 	if err != nil {
 		if err == ErrBlockedByPolicy {
-			response["error"] = "This operation is blocked by Tansive policy. Please contact the administrator of your Tansive system to request access."
+			response["error"] = err.Error() + " Please contact the administrator of your Tansive system to request access."
 		} else {
 			response["error"] = err.Error()
 		}

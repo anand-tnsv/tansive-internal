@@ -48,6 +48,8 @@ func PrettyPrintNDJSONLine(line []byte) {
 	skill := str(m["skill"])
 	msg := str(m["message"])
 	source := str(m["source"])
+	level := str(m["level"])
+	policy := str(m["policy_decision"])
 	t := int64From(m["time"]) // milliseconds since epoch
 
 	// Initialize session if needed
@@ -92,7 +94,15 @@ func PrettyPrintNDJSONLine(line []byte) {
 	skillColor.Printf("%s", skill)
 
 	// stderr: only ❗ and message in red
-	if source == "stderr" {
+	if policy == "true" {
+		fmt.Print(" ")
+		color.New(color.FgHiRed).Print("🛡️ ")
+		if level == "error" {
+			color.New(color.FgHiRed).Println(msg)
+		} else {
+			color.New(color.FgHiGreen).Println(msg)
+		}
+	} else if source == "stderr" || level == "error" {
 		fmt.Print(" ")
 		color.New(color.FgHiRed).Print("❗ ")
 		color.New(color.FgHiRed).Println(msg)
