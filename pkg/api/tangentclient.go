@@ -57,7 +57,7 @@ func WithRetryDelay(delay time.Duration) ClientOption {
 	}
 }
 
-func NewClient(opts ...ClientOption) (*Client, error) {
+func NewClient(socketPath string, opts ...ClientOption) (*Client, error) {
 	config := clientConfig{
 		dialTimeout: 5 * time.Second,
 		maxRetries:  3,
@@ -67,9 +67,8 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 		opt(&config)
 	}
 
-	socketPath, err := GetSocketPath()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get socket path: %w", err)
+	if socketPath == "" {
+		return nil, fmt.Errorf("socket path is required")
 	}
 
 	transport := &http.Transport{

@@ -11,12 +11,12 @@ spec:
       id: "system.stdiorunner"
       config:
         version: "0.1.0"
-        runtime: "bash"
+        runtime: "binary"
         runtimeConfig:
           key: "value"
         env:
           TEST_VAR: "test_value"
-        script: "test_script.sh"
+        script: "openai-demo"
         security:
           type: dev-mode  # could be one of: dev-mode, sandboxed
     - name: my-tools-script

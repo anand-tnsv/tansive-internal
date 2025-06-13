@@ -43,7 +43,9 @@ func TestOpenAI(t *testing.T) {
 	CreateSkillService()
 	// wait for few milliseconds to ensure the skill service is running
 	time.Sleep(100 * time.Millisecond)
-	client, goerr := api.NewClient()
+	serviceEndpoint, goerr := api.GetSocketPath()
+	require.NoError(t, goerr)
+	client, goerr := api.NewClient(serviceEndpoint)
 	require.NoError(t, goerr)
 	defer client.Close()
 

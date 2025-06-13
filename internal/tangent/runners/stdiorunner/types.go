@@ -42,6 +42,7 @@ const (
 	RuntimeNode   Runtime = "node"   // uses node.js
 	RuntimeNPX    Runtime = "npx"    // uses npx
 	RuntimeNPM    Runtime = "npm"    // uses npm
+	RuntimeBinary Runtime = "binary" // uses binary
 )
 
 // SecurityType specifies the security profile for command execution.
@@ -67,6 +68,7 @@ var ValidRunTimes = map[Runtime]struct{}{
 	RuntimeNode:   {},
 	RuntimeNPX:    {},
 	RuntimeNPM:    {},
+	RuntimeBinary: {},
 }
 
 // ValidSecurityTypes defines the supported security profiles.

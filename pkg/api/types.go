@@ -11,6 +11,7 @@ type LLMTool struct {
 
 type SkillInputArgs struct {
 	InvocationID     string         `json:"invocationID"`
+	ServiceEndpoint  string         `json:"serviceEndpoint"`
 	SessionID        string         `json:"sessionID"`
 	SkillName        string         `json:"skillName"`
 	InputArgs        map[string]any `json:"inputArgs"`

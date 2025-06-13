@@ -24,15 +24,14 @@ import (
 )
 
 type session struct {
-	id                   uuid.UUID
-	context              *ServerContext
-	skillSet             catalogmanager.SkillSetManager
-	viewDef              *policy.ViewDefinition
-	token                string
-	tokenExpiry          time.Time
-	callGraph            *toolgraph.CallGraph
-	invocationIDs        map[string]*policy.ViewDefinition
-	interactiveIOWriters *tangentcommon.IOWriters
+	id            uuid.UUID
+	context       *ServerContext
+	skillSet      catalogmanager.SkillSetManager
+	viewDef       *policy.ViewDefinition
+	token         string
+	tokenExpiry   time.Time
+	callGraph     *toolgraph.CallGraph
+	invocationIDs map[string]*policy.ViewDefinition
 }
 
 func (s *session) GetSessionID() string {
@@ -106,20 +105,22 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID string, ski
 		return err
 	}
 
-	// get command io writers
-	if s.interactiveIOWriters == nil {
-		s.interactiveIOWriters = &tangentcommon.IOWriters{
-			Out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
-			Err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
-		}
+	interactiveIOWriters := &tangentcommon.IOWriters{
+		Out: s.getLogger(TopicInteractiveLog).With().Str("source", "stdout").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
+		Err: s.getLogger(TopicInteractiveLog).With().Str("source", "stderr").Str("runner", runner.ID()).Str("skill", skillName).Logger(),
 	}
 
-	runner.AddWriters(s.interactiveIOWriters)
+	runner.AddWriters(interactiveIOWriters)
 
 	invocationID := uuid.New().String()
+	serviceEndpoint, goerr := api.GetSocketPath()
+	if goerr != nil {
+		return ErrUnableToGetSkillset.Msg("failed to get socket path")
+	}
 	// create the arguments
 	args := api.SkillInputArgs{
 		InvocationID:     invocationID,
+		ServiceEndpoint:  serviceEndpoint,
 		SessionID:        s.id.String(),
 		SkillName:        skillName,
 		InputArgs:        inputArgs,

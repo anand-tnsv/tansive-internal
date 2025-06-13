@@ -135,16 +135,25 @@ func (r *runner) writeWrappedScript(wrappedPath, scriptPath string, args *api.Sk
 
 	escapedArgs := strings.ReplaceAll(string(jsonArgs), "'", "'\\''")
 
-	execCmd, err := resolveRuntimeCommand(r.config.Runtime)
-	if err != nil {
-		return fmt.Errorf("unsupported runtime: %w", err)
-	}
+	var content string
+	if r.config.Runtime == RuntimeBinary {
+		content = fmt.Sprintf(`#!/bin/bash
+set -euo pipefail
 
-	content := fmt.Sprintf(`#!/bin/bash
+exec '%s' '%s'
+`, scriptPath, escapedArgs)
+	} else {
+		execCmd, err := resolveRuntimeCommand(r.config.Runtime)
+		if err != nil {
+			return fmt.Errorf("unsupported runtime: %w", err)
+		}
+
+		content = fmt.Sprintf(`#!/bin/bash
 set -euo pipefail
 
 exec '%s' '%s' '%s'
 `, execCmd, scriptPath, escapedArgs)
+	}
 
 	return os.WriteFile(wrappedPath, []byte(content), 0644)
 }
@@ -161,6 +170,8 @@ func resolveRuntimeCommand(runtime Runtime) (string, error) {
 		return "npx", nil
 	case RuntimeNPM:
 		return "npm", nil
+	case RuntimeBinary:
+		return "", nil
 	default:
 		return "", fmt.Errorf("invalid runtime: %s", runtime)
 	}
