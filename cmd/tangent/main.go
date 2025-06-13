@@ -12,6 +12,7 @@ import (
 
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/server"
+	"github.com/tansive/tansive-internal/internal/tangent/session"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 
 	"github.com/rs/zerolog/log"
@@ -47,6 +48,7 @@ func run(ctx context.Context) error {
 	if config.Config().ServerPort == "" {
 		return fmt.Errorf("server port not defined")
 	}
+	session.Init()
 
 	s, err := server.CreateNewServer()
 	if err != nil {
@@ -67,6 +69,11 @@ func run(ctx context.Context) error {
 		slog.Info().Str("port", config.Config().ServerPort).Msg("server started")
 		serverErrors <- srv.ListenAndServe()
 	}()
+
+	skillService, err := session.CreateSkillService()
+	if err != nil {
+		return fmt.Errorf("creating skill service: %w", err)
+	}
 
 	// Channel to listen for an interrupt or terminate signal from the OS.
 	shutdown := make(chan os.Signal, 1)
@@ -90,6 +97,7 @@ func run(ctx context.Context) error {
 				slog.Error().Err(err).Msg("could not stop server")
 			}
 		}
+		skillService.StopServer()
 	}
 
 	slog.Info().Msg("server stopped")

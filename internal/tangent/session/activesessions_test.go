@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
 	"github.com/tansive/tansive-internal/internal/tangent/session/skillservice"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
@@ -15,6 +16,8 @@ import (
 )
 
 func TestCreateSession(t *testing.T) {
+	config.TestInit()
+	Init()
 	SetTestMode(true)
 	stdiorunner.TestInit()
 	ts := test.SetupTestCatalog(t)

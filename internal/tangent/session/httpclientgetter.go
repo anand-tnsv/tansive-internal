@@ -7,6 +7,7 @@ import (
 
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 )
 
 type clientConfig struct {
@@ -67,10 +68,10 @@ func SetTestMode(testMode bool) {
 	isTestMode = testMode
 }
 
-func init() {
+func Init() {
 	setTansiveSrvClient(context.Background(), &clientConfig{
 		token:       "some-token",
 		tokenExpiry: time.Now().Add(1 * time.Hour),
-		serverURL:   "http://localhost:8080",
+		serverURL:   config.Config().TansiveServer.GetURL(),
 	})
 }

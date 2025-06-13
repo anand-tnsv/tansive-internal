@@ -9,7 +9,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/anand-gl/jsoncanonicalizer v0.1.0
 	github.com/avast/retry-go/v4 v4.6.1
-	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator/v10 v10.26.0

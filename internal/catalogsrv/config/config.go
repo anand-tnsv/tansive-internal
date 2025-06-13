@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/denisbrodbeck/machineid"
 )
 
 // SessionConfig holds session-related configuration
@@ -281,10 +280,7 @@ func LoadConfig(filename string) error {
 
 	// Generate key encryption password if not set
 	if cfg.Auth.KeyEncryptionPasswd == "" {
-		id, err := machineid.ProtectedID("catalogsrv.tansive.io")
-		if err != nil {
-			return fmt.Errorf("unable to obtain unique id to generate key passwd: %v", err)
-		}
+		id := "catalogsrv.tansive.io"
 		cfg.Auth.KeyEncryptionPasswd = id
 	}
 

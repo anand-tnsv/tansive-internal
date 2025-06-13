@@ -172,7 +172,7 @@ func (s *SkillService) StartServer() error {
 		s.StopServer()
 	}()
 
-	log.Info().Str("socket", socketPath).Msg("REST server started")
+	log.Info().Str("socket", socketPath).Msg("local service started")
 
 	// Start server and handle shutdown
 	err = srv.Serve(listener)

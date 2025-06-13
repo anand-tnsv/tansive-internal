@@ -14,18 +14,18 @@ import (
 	"github.com/tansive/tansive-internal/pkg/api"
 )
 
-func CreateSkillService() apperrors.Error {
+func CreateSkillService() (*skillservice.SkillService, apperrors.Error) {
 	// Create and register the skill service
 	skillService := skillservice.NewSkillService(&skillRunner{})
 
 	go func() {
 		err := skillService.StartServer()
 		if err != nil {
-			log.Error().Err(err).Msg("failed to start skill service server")
+			log.Fatal().Err(err).Msg("failed to start skill service server")
 		}
 	}()
 
-	return nil
+	return skillService, nil
 }
 
 type skillRunner struct{}

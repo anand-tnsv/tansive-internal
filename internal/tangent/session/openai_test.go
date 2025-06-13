@@ -12,6 +12,7 @@ import (
 	"github.com/openai/openai-go/option"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
 	"github.com/tansive/tansive-internal/internal/tangent/session/skillservice"
 	"github.com/tansive/tansive-internal/internal/tangent/test"
@@ -19,6 +20,7 @@ import (
 
 func TestOpenAI(t *testing.T) {
 	t.Skip("Skipping openai test")
+	config.TestInit()
 	SetTestMode(true)
 	stdiorunner.TestInit()
 	ts := test.SetupTestCatalog(t)

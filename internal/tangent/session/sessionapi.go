@@ -13,6 +13,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
@@ -99,7 +100,7 @@ func getExecutionState(ctx context.Context, rsp *srvsession.SessionTokenRsp) (*s
 	client := getHTTPClient(&clientConfig{
 		token:       rsp.Token,
 		tokenExpiry: rsp.Expiry,
-		serverURL:   "http://localhost:8080",
+		serverURL:   config.Config().TansiveServer.GetURL(),
 	})
 
 	opts := httpclient.RequestOptions{

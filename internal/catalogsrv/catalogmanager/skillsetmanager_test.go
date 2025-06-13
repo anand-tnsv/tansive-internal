@@ -65,7 +65,7 @@ func TestSkillSetValidation(t *testing.T) {
 							"provider": {
 								"id": "system.redis",
 								"config": {
-									"host": "localhost"
+									"host": "local.tansive.io"
 								}
 							},
 							"schema": {"type": "object"},
@@ -231,7 +231,7 @@ func TestSkillSetValidation(t *testing.T) {
 							"provider": {
 								"id": "system.redis",
 								"config": {
-									"host": "localhost"
+									"host": "local.tansive.io"
 								}
 							},
 							"schema": {"type": "object"}
@@ -372,7 +372,7 @@ func TestSkillSetManagerSave(t *testing.T) {
 					"provider": {
 						"id": "system.redis",
 						"config": {
-							"host": "localhost"
+							"host": "local.tansive.io"
 						}
 					}
 				}
@@ -621,7 +621,7 @@ func TestSkillSetManagerDelete(t *testing.T) {
 						"provider": {
 							"id": "system.redis",
 							"config": {
-								"host": "localhost"
+								"host": "local.tansive.io"
 							}
 						}
 					}

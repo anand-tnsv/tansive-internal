@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/runners/stdiorunner"
 	"github.com/tansive/tansive-internal/internal/tangent/session"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
@@ -19,6 +20,8 @@ import (
 )
 
 func TestHandleInteractiveSession(t *testing.T) {
+	config.TestInit()
+	session.Init()
 	session.SetTestMode(true)
 	stdiorunner.TestInit()
 	ts := test.SetupTestCatalog(t)
@@ -81,7 +84,6 @@ func validateNDJSON(data []byte) error {
 		line := scanner.Bytes()
 		trimmed := bytes.TrimSpace(line)
 
-		// Skip empty lines (optional; remove this block to require non-empty lines)
 		if len(trimmed) == 0 {
 			lineNum++
 			continue
