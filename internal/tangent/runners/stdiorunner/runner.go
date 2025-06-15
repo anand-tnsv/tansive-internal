@@ -22,9 +22,10 @@ import (
 // runner implements the runners.Runner interface.
 // It manages command execution lifecycle and output streaming.
 type runner struct {
-	sessionID string
-	config    Config
-	writers   []*tangentcommon.IOWriters
+	sessionID   string
+	config      Config
+	homeDirPath string
+	writers     []*tangentcommon.IOWriters
 }
 
 func (r *runner) ID() string {
@@ -97,6 +98,7 @@ func (r *runner) runWithDevModeSecurity(ctx context.Context, args *api.SkillInpu
 		return ErrExecutionFailed.Msg("failed to create home directory: " + err.Error())
 	}
 
+	r.homeDirPath = homeDirPath
 	wrappedScriptPath := filepath.Join(homeDirPath, "wrapped.sh")
 	if err := r.writeWrappedScript(wrappedScriptPath, scriptPath, args); err != nil {
 		return ErrExecutionFailed.Msg("failed to create wrapped script: " + err.Error())
@@ -186,4 +188,8 @@ func appendOrReplaceEnv(env []string, key, value string) []string {
 		}
 	}
 	return append(env, prefix+value)
+}
+
+func (r *runner) GetHomeDirPath() string {
+	return r.homeDirPath
 }

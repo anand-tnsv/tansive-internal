@@ -323,7 +323,7 @@ func (sm *skillSetManager) GetAllSkillsAsLLMTools(viewDef *policy.ViewDefinition
 	for _, skill := range sm.skillSet.Spec.Skills {
 		//if viewDef is provided, validate if our policy allows access to this skill
 		if viewDef != nil {
-			isAllowed, err := policy.AreActionsAllowedOnResource(viewDef, sm.GetResourcePath(), skill.GetExportedActions())
+			isAllowed, _, err := policy.AreActionsAllowedOnResource(viewDef, sm.GetResourcePath(), skill.GetExportedActions())
 			if err != nil || !isAllowed {
 				continue
 			}

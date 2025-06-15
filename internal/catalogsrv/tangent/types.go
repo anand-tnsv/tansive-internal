@@ -25,7 +25,7 @@ func GetTangentWithCapabilities(ctx context.Context, capabilities []catcommon.Ru
 		ID: uuid.New(),
 		TangentInfo: TangentInfo{
 			CreatedBy:    "system",
-			URL:          "http://local.tansive.io:8468",
+			URL:          "http://local.tansive.dev:8468",
 			Capabilities: capabilities,
 		},
 	}, nil

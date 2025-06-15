@@ -165,6 +165,23 @@ func LoadConfig(filename string) error {
 	return nil
 }
 
+func GetAuditLogDir() string {
+	// get os application data directory
+	appDataDir, err := os.UserConfigDir()
+	if err != nil {
+		panic(err)
+	}
+	auditLogDir := filepath.Join(appDataDir, "tansive", "audit")
+	return auditLogDir
+}
+
+func CreateAuditLogDir() {
+	auditLogDir := GetAuditLogDir()
+	if _, err := os.Stat(auditLogDir); os.IsNotExist(err) {
+		os.MkdirAll(auditLogDir, 0755)
+	}
+}
+
 // ConfigFormatVersion is the current version of the configuration file format
 const ConfigFormatVersion = "0.1.0"
 
@@ -173,6 +190,7 @@ func init() {
 		// Log the error but don't panic
 		fmt.Printf("Error loading config: %v\n", err)
 	}
+	CreateAuditLogDir()
 }
 
 func TestInit() {
@@ -196,4 +214,5 @@ func TestInit() {
 	if err := LoadConfig(filepath.Join(projectRoot, "tangent.conf")); err != nil {
 		panic(fmt.Errorf("error loading config: %v", err))
 	}
+	CreateAuditLogDir()
 }

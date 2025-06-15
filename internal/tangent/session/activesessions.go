@@ -49,6 +49,7 @@ func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, t
 		callGraph:     toolgraph.NewCallGraph(3), // max depth of 3
 		invocationIDs: make(map[string]*policy.ViewDefinition),
 	}
+	session.auditLogger = session.getLogger(TopicAuditLog)
 	as.sessions[c.SessionID] = session
 	return session, nil
 }

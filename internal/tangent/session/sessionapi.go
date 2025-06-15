@@ -160,6 +160,10 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) ap
 		return ErrSessionError.Msg("response writer does not support flushing")
 	}
 
+	auditLogCtx, cancelAuditLog := context.WithCancel(context.Background())
+	InitAuditLog(auditLogCtx, session)
+	defer cancelAuditLog()
+
 	sessionLog, unsubSessionLog := GetEventBus().Subscribe(session.getTopic(TopicSessionLog), 100)
 	defer unsubSessionLog()
 	interactiveLog, unsubInteractiveLog := GetEventBus().Subscribe(session.getTopic(TopicInteractiveLog), 100)
@@ -196,6 +200,10 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) ap
 	// Run will block until the session is complete
 	log.Ctx(ctx).Info().Str("skill", session.context.Skill).Msg("running session")
 	runCtx := session.getLogger(TopicSessionLog).With().Str("skill", session.context.Skill).Str("actor", "system").Logger().WithContext(ctx)
+	session.auditLogger.Info().
+		Str("event", "session_start").
+		Any("session_variables", session.context.SessionVariables).
+		Msg("starting session")
 	apperr := session.Run(runCtx, "", session.context.Skill, session.context.InputArgs)
 	cancel()
 	wg.Wait()
@@ -203,8 +211,9 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) ap
 	log.Ctx(ctx).Info().Msg("session completed")
 	if apperr != nil {
 		log.Ctx(ctx).Error().Err(apperr).Msg("session failed")
+		session.auditLogger.Error().Err(apperr).Msg("session failed")
 		return apperr
 	}
-
+	session.auditLogger.Info().Msg("session completed")
 	return nil
 }

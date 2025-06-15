@@ -50,7 +50,7 @@ func setupTest(t *testing.T) (context.Context, catcommon.TenantId, catcommon.Pro
 	// Set up test configuration
 	cfg := config.Config()
 	cfg.Auth.DefaultTokenValidity = "1h"
-	cfg.ServerHostName = "local.tansive.io"
+	cfg.ServerHostName = "local.tansive.dev"
 	cfg.ServerPort = "8678"
 	cfg.Auth.KeyEncryptionPasswd = "test-password"
 

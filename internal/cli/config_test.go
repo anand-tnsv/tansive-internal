@@ -143,8 +143,8 @@ func TestMorphServer(t *testing.T) {
 		},
 		{
 			name:     "with port but no protocol",
-			input:    "local.tansive.io:8080",
-			expected: "http://local.tansive.io:8080",
+			input:    "local.tansive.dev:8080",
+			expected: "http://local.tansive.dev:8080",
 		},
 	}
 

@@ -103,7 +103,7 @@ func (s *CatalogServer) getReadiness(w http.ResponseWriter, r *http.Request) {
 func (s *CatalogServer) HandleCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "http://local.tansive.io:8190")
+		w.Header().Set("Access-Control-Allow-Origin", "http://local.tansive.dev:8190")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")                                                       // Allowed methods
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, X-Hatch-IDToken") // Allowed headers
 

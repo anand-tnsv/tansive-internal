@@ -137,31 +137,33 @@ func ValidateDerivedView(ctx context.Context, parent *ViewDefinition, child *Vie
 // Note: The function validates that the view definition, resource, and actions are non-empty.
 // It resolves the target scope and resource before performing the permission check.
 // All actions must be allowed for the function to return true.
-func AreActionsAllowedOnResource(vd *ViewDefinition, resource string, actions []Action) (bool, apperrors.Error) {
+func AreActionsAllowedOnResource(vd *ViewDefinition, resource string, actions []Action) (bool, map[Intent][]Rule, apperrors.Error) {
 	if vd == nil {
-		return false, ErrInvalidView.Msg("view definition is nil")
+		return false, nil, ErrInvalidView.Msg("view definition is nil")
 	}
 	if resource == "" {
-		return false, ErrInvalidView.Msg("resource is empty")
+		return false, nil, ErrInvalidView.Msg("resource is empty")
 	}
 	if len(actions) == 0 {
-		return false, ErrInvalidView.Msg("actions are empty")
+		return false, nil, ErrInvalidView.Msg("actions are empty")
 	}
 
 	targetResource, err := resolveTargetResource(vd.Scope, resource)
 	if err != nil {
-		return false, ErrInvalidView.New(err.Error())
+		return false, nil, ErrInvalidView.New(err.Error())
 	}
 
 	vd = canonicalizeViewDefinition(vd)
+	var basis map[Intent][]Rule
 
 	for _, action := range actions {
-		allowed, _ := vd.Rules.IsActionAllowedOnResource(action, targetResource)
+		allowed := false
+		allowed, basis = vd.Rules.IsActionAllowedOnResource(action, targetResource)
 		if !allowed {
-			return false, nil
+			return false, basis, nil
 		}
 	}
-	return true, nil
+	return true, basis, nil
 }
 
 // CanAdoptView determines if the current view has permission to adopt another view
