@@ -14,4 +14,5 @@ var (
 	ErrInvalidViewDef     apperrors.Error = ErrSessionError.New("invalid view definition").SetStatusCode(http.StatusBadRequest)
 	ErrDisallowedByPolicy apperrors.Error = ErrSessionError.New("disallowed by policy").SetStatusCode(http.StatusForbidden)
 	ErrNotAuthorized      apperrors.Error = ErrSessionError.New("not authorized").SetStatusCode(http.StatusForbidden)
+	ErrInvalidRequest     apperrors.Error = ErrSessionError.New("invalid request").SetStatusCode(http.StatusBadRequest)
 )

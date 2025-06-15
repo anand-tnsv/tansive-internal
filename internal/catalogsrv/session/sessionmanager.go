@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
@@ -17,6 +18,8 @@ type SessionManager interface {
 	GetViewManager(ctx context.Context) (policy.ViewManager, apperrors.Error)
 	GetExecutionState(ctx context.Context) *ExecutionState
 	SetStatusSummary(ctx context.Context, statusSummary SessionStatus) apperrors.Error
+	GetStatusSummaryInfo(ctx context.Context) *SessionSummaryInfo
+	SetStatus(ctx context.Context, statusSummary SessionStatus, status ExecutionStatus) apperrors.Error
 }
 
 func (s *sessionManager) ID() uuid.UUID {
@@ -55,4 +58,33 @@ func (s *sessionManager) SetStatusSummary(ctx context.Context, statusSummary Ses
 		return err
 	}
 	return nil
+}
+
+func (s *sessionManager) SetStatus(ctx context.Context, statusSummary SessionStatus, status ExecutionStatus) apperrors.Error {
+	statusJSON, err := json.Marshal(status)
+	if err != nil {
+		return ErrInvalidObject.Msg("failed to marshal status: " + err.Error())
+	}
+	err = db.DB(ctx).UpdateSessionStatus(ctx, s.session.SessionID, string(statusSummary), statusJSON)
+	if err != nil {
+		return ErrInvalidObject.Msg("failed to update session status: " + err.Error())
+	}
+	return nil
+}
+
+func (s *sessionManager) GetStatusSummaryInfo(ctx context.Context) *SessionSummaryInfo {
+	var status ExecutionStatus
+	if err := json.Unmarshal(s.session.Status, &status); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal status")
+		status = ExecutionStatus{}
+	}
+	return &SessionSummaryInfo{
+		SessionID:     s.session.SessionID,
+		UserID:        s.session.UserID,
+		CreatedAt:     s.session.CreatedAt,
+		StartedAt:     s.session.StartedAt,
+		EndedAt:       s.session.EndedAt,
+		StatusSummary: SessionStatus(s.session.StatusSummary),
+		Error:         status.Error,
+	}
 }

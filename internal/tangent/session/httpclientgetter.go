@@ -71,7 +71,7 @@ func SetTestMode(testMode bool) {
 
 func Init() {
 	setTansiveSrvClient(context.Background(), &clientConfig{
-		token:       "some-token",
+		token:       "",
 		tokenExpiry: time.Now().Add(1 * time.Hour),
 		serverURL:   config.Config().TansiveServer.GetURL(),
 	})

@@ -50,6 +50,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("loading config file: %w", err)
 	}
 
+	config.Init()
 	db.Init()
 	session.Init()
 

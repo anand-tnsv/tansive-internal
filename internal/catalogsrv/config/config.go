@@ -85,6 +85,15 @@ func (a *AuthConfig) GetDefaultTokenValidityOrDefault() time.Duration {
 	return duration
 }
 
+// AuditLogConfig holds audit log-related configuration
+type AuditLogConfig struct {
+	Path string `toml:"path"`
+}
+
+func (a *AuditLogConfig) GetPath() string {
+	return a.Path
+}
+
 // ConfigParam holds all configuration parameters for the catalog service
 type ConfigParam struct {
 	// Configuration version
@@ -99,6 +108,9 @@ type ConfigParam struct {
 
 	// Session configuration
 	Session SessionConfig `toml:"session"`
+
+	// Audit log configuration
+	AuditLog AuditLogConfig `toml:"audit_log"`
 
 	// Auth configuration
 	Auth AuthConfig `toml:"auth"`
@@ -251,6 +263,16 @@ func ValidateConfig(cfg *ConfigParam) error {
 	}
 	if cfg.DB.SSLMode == "" {
 		return fmt.Errorf("db.sslmode is required")
+	}
+
+	// Audit log validation
+	if cfg.AuditLog.Path == "" {
+		// get the user config directory
+		userConfigDir, err := os.UserConfigDir()
+		if err != nil {
+			return fmt.Errorf("error getting user config directory: %v", err)
+		}
+		cfg.AuditLog.Path = filepath.Join(userConfigDir, "tansive", "auditlogs")
 	}
 
 	return nil

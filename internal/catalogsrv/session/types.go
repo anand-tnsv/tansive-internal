@@ -23,9 +23,27 @@ const (
 	SessionStatusTerminated SessionStatus = "terminated"
 )
 
+var validSessionStatus = map[SessionStatus]struct{}{
+	SessionStatusCreated:    {},
+	SessionStatusRunning:    {},
+	SessionStatusCompleted:  {},
+	SessionStatusFailed:     {},
+	SessionStatusExpired:    {},
+	SessionStatusCancelled:  {},
+	SessionStatusPaused:     {},
+	SessionStatusResumed:    {},
+	SessionStatusSuspended:  {},
+	SessionStatusTerminated: {},
+}
+
+func IsValidSessionStatus(status SessionStatus) bool {
+	_, ok := validSessionStatus[status]
+	return ok
+}
+
 type InteractiveSessionRsp struct {
 	Code       string `json:"code"`
-	TangentURL string `json:"tangent_url"`
+	TangentURL string `json:"tangentURL"`
 }
 
 type SessionTokenRsp struct {
@@ -34,15 +52,39 @@ type SessionTokenRsp struct {
 }
 
 type ExecutionState struct {
-	SessionID        uuid.UUID              `json:"session_id"`
-	SkillSet         string                 `json:"skillset"`
+	SessionID        uuid.UUID              `json:"sessionID"`
+	SkillSet         string                 `json:"skillSet"`
 	Skill            string                 `json:"skill"`
 	View             string                 `json:"view"`
-	ViewDefinition   *policy.ViewDefinition `json:"view_definition"`
-	SessionVariables map[string]any         `json:"session_variables"`
-	InputArgs        map[string]any         `json:"input_args"`
+	ViewDefinition   *policy.ViewDefinition `json:"viewDefinition"`
+	SessionVariables map[string]any         `json:"sessionVariables"`
+	InputArgs        map[string]any         `json:"inputArgs"`
 	Catalog          string                 `json:"catalog"`
 	Variant          string                 `json:"variant"`
 	Namespace        string                 `json:"namespace"`
-	TenantID         catcommon.TenantId     `json:"tenant_id"`
+	TenantID         catcommon.TenantId     `json:"tenantID"`
+}
+
+type ExecutionStatus struct {
+	AuditLog string         `json:"auditLog"`
+	Error    map[string]any `json:"error"`
+}
+
+type ExecutionStatusUpdate struct {
+	StatusSummary SessionStatus   `json:"statusSummary"`
+	Status        ExecutionStatus `json:"status"`
+}
+
+type SessionSummaryInfo struct {
+	SessionID     uuid.UUID      `json:"sessionID"`
+	UserID        string         `json:"userID"`
+	CreatedAt     time.Time      `json:"createdAt"`
+	StartedAt     time.Time      `json:"startedAt"`
+	EndedAt       time.Time      `json:"endedAt"`
+	StatusSummary SessionStatus  `json:"statusSummary"`
+	Error         map[string]any `json:"error"`
+}
+
+type SessionList struct {
+	SessionSummaryInfo []SessionSummaryInfo `json:"sessionSummaryInfo"`
 }

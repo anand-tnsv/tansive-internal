@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
@@ -180,4 +182,121 @@ func setContextObjects(ctx context.Context, m *AuthCodeMetadata) context.Context
 	catalogContext.SessionContext = sessionContext
 	ctx = catcommon.WithCatalogContext(ctx, catalogContext)
 	return ctx
+}
+
+func updateExecutionState(r *http.Request) (*httpx.Response, error) {
+	ctx := r.Context()
+	sessionID := catcommon.GetSessionID(ctx)
+	if sessionID == uuid.Nil {
+		return nil, ErrInvalidRequest.Msg("invalid session ID")
+	}
+	session, err := GetSession(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	var body []byte
+	if r.Body != nil {
+		var err error
+		body, err = io.ReadAll(r.Body)
+		if err != nil {
+			return nil, ErrInvalidRequest.Msg("invalid request body")
+		}
+	} else {
+		return nil, ErrInvalidRequest.Msg("request body is required")
+	}
+
+	var update ExecutionStatusUpdate
+	if err := json.Unmarshal(body, &update); err != nil {
+		return nil, ErrInvalidRequest.Msg("invalid request body")
+	}
+
+	if update.Status.AuditLog != "" {
+		logFilePath, err := WriteAuditLogFile(ctx, session.ID(), update.Status.AuditLog)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to write audit log")
+			// continue anyway
+		}
+		log.Ctx(ctx).Info().Msgf("wrote audit log to %s", logFilePath)
+		update.Status.AuditLog = logFilePath // replace the audit log with the file path
+	}
+
+	if !IsValidSessionStatus(update.StatusSummary) {
+		return nil, ErrInvalidRequest.Msg("invalid status summary")
+	}
+
+	session.SetStatus(ctx, update.StatusSummary, update.Status)
+	return &httpx.Response{
+		StatusCode: http.StatusOK,
+		Response:   &ExecutionStatusUpdate{},
+	}, nil
+}
+
+func getSessions(r *http.Request) (*httpx.Response, error) {
+	ctx := r.Context()
+	sessionList, err := db.DB(ctx).ListSessionsByCatalog(ctx, catcommon.GetCatalogID(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	sessionListInfo := make([]SessionSummaryInfo, len(sessionList))
+	for i, session := range sessionList {
+		var status ExecutionStatus
+		if err := json.Unmarshal([]byte(session.Status), &status); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal status")
+			status = ExecutionStatus{}
+		}
+		sessionListInfo[i] = SessionSummaryInfo{
+			SessionID:     session.SessionID,
+			UserID:        session.UserID,
+			CreatedAt:     session.CreatedAt,
+			StartedAt:     session.StartedAt,
+			EndedAt:       session.EndedAt,
+			StatusSummary: SessionStatus(session.StatusSummary),
+			Error:         status.Error,
+		}
+	}
+
+	return &httpx.Response{
+		StatusCode: http.StatusOK,
+		Response:   sessionList,
+	}, nil
+}
+
+func getSessionSummaryByID(r *http.Request) (*httpx.Response, error) {
+	ctx := r.Context()
+
+	sessionID := r.URL.Query().Get("sessionID")
+	if sessionID == "" {
+		return nil, httpx.ErrInvalidRequest("sessionID is required")
+	}
+
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil, httpx.ErrInvalidRequest("invalid sessionID")
+	}
+
+	session, err := db.DB(ctx).GetSession(ctx, sessionUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	var status ExecutionStatus
+	if err := json.Unmarshal([]byte(session.Status), &status); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal status")
+		status = ExecutionStatus{}
+	}
+
+	sessionSummaryInfo := SessionSummaryInfo{
+		SessionID:     session.SessionID,
+		UserID:        session.UserID,
+		CreatedAt:     session.CreatedAt,
+		StartedAt:     session.StartedAt,
+		EndedAt:       session.EndedAt,
+		StatusSummary: SessionStatus(session.StatusSummary),
+		Error:         status.Error,
+	}
+	return &httpx.Response{
+		StatusCode: http.StatusOK,
+		Response:   sessionSummaryInfo,
+	}, nil
 }

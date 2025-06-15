@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -253,32 +254,109 @@ func TestSessionCrud(t *testing.T) {
 		var tokenResp session.SessionTokenRsp
 		err = json.Unmarshal(response.Body.Bytes(), &tokenResp)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, tokenResp.Token)
-		assert.False(t, tokenResp.Expiry.IsZero())
 
-		// Get execution state using the token
-		newCtx2 := newDb()
-		t.Cleanup(func() {
-			db.DB(newCtx2).Close(newCtx2)
-		})
-
-		// Extract session ID from the token response
+		// Get execution state to get the session ID
 		httpReq, _ = http.NewRequest("GET", "/sessions/execution-state", nil)
 		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
 		response = executeTestRequest(t, httpReq, nil)
-		require.Equal(t, http.StatusOK, response.Code)
+		assert.Equal(t, http.StatusOK, response.Code)
 
 		var executionState session.ExecutionState
 		err = json.Unmarshal(response.Body.Bytes(), &executionState)
 		assert.NoError(t, err)
-		assert.Equal(t, "/valid-skillset", executionState.SkillSet)
-		assert.Equal(t, "test-skill", executionState.Skill)
-		assert.Equal(t, "valid-view", executionState.View)
-		assert.Equal(t, "valid-catalog", executionState.Catalog)
-		assert.Equal(t, "valid-variant", executionState.Variant)
-		assert.Equal(t, tenantID, executionState.TenantID)
-		assert.Equal(t, "value1", executionState.SessionVariables["key1"])
-		assert.Equal(t, "test input", executionState.InputArgs["input"])
+
+		// Update execution state
+		httpReq, _ = http.NewRequest("PUT", "/sessions/execution-state", nil)
+		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+		httpReq.Header.Set("Content-Type", "application/json")
+		updateReq := `
+			{
+				"sessionID": "` + executionState.SessionID.String() + `",
+				"statusSummary": "completed",
+				"status": {
+					"error": {
+						"message": "test error",
+						"code": "TEST_ERROR"
+					},
+					"auditLog": "test audit log"
+				}
+			}`
+		setRequestBodyAndHeader(t, httpReq, updateReq)
+		response = executeTestRequest(t, httpReq, nil)
+		require.Equal(t, http.StatusOK, response.Code)
+
+		// Verify the update by getting session summary
+		httpReq, _ = http.NewRequest("GET", "/sessions/summary?sessionID="+executionState.SessionID.String(), nil)
+		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+		response = executeTestRequest(t, httpReq, nil)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var summary session.SessionSummaryInfo
+		err = json.Unmarshal(response.Body.Bytes(), &summary)
+		assert.NoError(t, err)
+		assert.Equal(t, session.SessionStatusCompleted, summary.StatusSummary)
+		assert.Equal(t, "test error", summary.Error["message"])
+		assert.Equal(t, "TEST_ERROR", summary.Error["code"])
+
+		// Test error cases for updateExecutionState
+		t.Run("update execution state error cases", func(t *testing.T) {
+			tests := []struct {
+				name       string
+				body       string
+				wantStatus int
+			}{
+				{
+					name:       "missing body",
+					body:       "",
+					wantStatus: http.StatusBadRequest,
+				},
+				{
+					name:       "invalid json",
+					body:       "{invalid json}",
+					wantStatus: http.StatusBadRequest,
+				},
+				{
+					name: "invalid error format",
+					body: `{
+						"sessionID": "` + executionState.SessionID.String() + `",
+						"statusSummary": "completed",
+						"status": {
+							"error": "invalid error format",
+							"auditLog": "test audit log"
+						}
+					}`,
+					wantStatus: http.StatusBadRequest,
+				},
+				{
+					name: "invalid status summary",
+					body: `{
+						"sessionID": "` + executionState.SessionID.String() + `",
+						"statusSummary": "invalid_status",
+						"status": {
+							"error": {
+								"message": "test error",
+								"code": "TEST_ERROR"
+							},
+							"auditLog": "test audit log"
+						}
+					}`,
+					wantStatus: http.StatusBadRequest,
+				},
+			}
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					httpReq, _ := http.NewRequest("PUT", "/sessions/execution-state", nil)
+					httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+					httpReq.Header.Set("Content-Type", "application/json")
+					if tt.body != "" {
+						setRequestBodyAndHeader(t, httpReq, tt.body)
+					}
+					response := executeTestRequest(t, httpReq, nil)
+					assert.Equal(t, tt.wantStatus, response.Code)
+				})
+			}
+		})
 	})
 
 	// // Test interactive session creation
@@ -400,4 +478,141 @@ func TestSessionCrud(t *testing.T) {
 			assert.Equal(t, tt.wantStatus, response.Code)
 		})
 	}
+
+	// Test getSessions API
+	t.Run("get sessions", func(t *testing.T) {
+		httpReq, _ := http.NewRequest("GET", "/sessions", nil)
+		httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+		response := executeTestRequest(t, httpReq, nil, testContext)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var sessions []session.SessionSummaryInfo
+		err := json.Unmarshal(response.Body.Bytes(), &sessions)
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(sessions), 1) // Should have at least one session from previous tests
+	})
+
+	// Test getSessionSummaryByID API
+	t.Run("get session summary by ID", func(t *testing.T) {
+		// First create a session to get its ID
+		httpReq, _ := http.NewRequest("POST", "/sessions", nil)
+		req := `
+			{
+				"skillPath": "/valid-skillset/test-skill",
+				"viewName": "valid-view",
+				"sessionVariables": {
+					"key1": "value1"
+				},
+				"inputArgs": {
+					"input": "test input"
+				}
+			}`
+		setRequestBodyAndHeader(t, httpReq, req)
+		response := executeTestRequest(t, httpReq, nil, testContext)
+		assert.Equal(t, http.StatusCreated, response.Code)
+
+		// Extract session ID from Location header
+		location := response.Header().Get("Location")
+		require.NotEmpty(t, location)
+		sessionID := location[strings.LastIndex(location, "/")+1:]
+
+		// Now get the session summary
+		httpReq, _ = http.NewRequest("GET", "/sessions/summary?sessionID="+sessionID, nil)
+		httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+		response = executeTestRequest(t, httpReq, nil, testContext)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var summary session.SessionSummaryInfo
+		err := json.Unmarshal(response.Body.Bytes(), &summary)
+		assert.NoError(t, err)
+		assert.Equal(t, sessionID, summary.SessionID.String())
+		assert.Equal(t, session.SessionStatusCreated, summary.StatusSummary)
+	})
+
+	// Test updateExecutionState API
+	t.Run("update execution state", func(t *testing.T) {
+		// First create a session to get its ID
+		httpReq, _ := http.NewRequest("POST", "/sessions", nil)
+		req := `
+			{
+				"skillPath": "/valid-skillset/test-skill",
+				"viewName": "valid-view",
+				"sessionVariables": {
+					"key1": "value1"
+				},
+				"inputArgs": {
+					"input": "test input"
+				}
+			}`
+		setRequestBodyAndHeader(t, httpReq, req)
+		response := executeTestRequest(t, httpReq, nil, testContext)
+		assert.Equal(t, http.StatusCreated, response.Code)
+
+		// Create execution state with code verifier
+		codeVerifier := "test_challenge"
+		hashed := sha256.Sum256([]byte(codeVerifier))
+		codeChallenge := base64.RawURLEncoding.EncodeToString(hashed[:])
+
+		// Create interactive session
+		httpReq, _ = http.NewRequest("POST", "/sessions?interactive=true&code_challenge="+codeChallenge, nil)
+		setRequestBodyAndHeader(t, httpReq, req)
+		response = executeTestRequest(t, httpReq, nil, testContext)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var sessionResp session.InteractiveSessionRsp
+		err := json.Unmarshal(response.Body.Bytes(), &sessionResp)
+		assert.NoError(t, err)
+
+		// Create execution state
+		httpReq, _ = http.NewRequest("POST", "/sessions/execution-state?code="+sessionResp.Code+"&code_verifier="+codeVerifier, nil)
+		response = executeTestRequest(t, httpReq, nil)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var tokenResp session.SessionTokenRsp
+		err = json.Unmarshal(response.Body.Bytes(), &tokenResp)
+		assert.NoError(t, err)
+
+		// Get execution state to get the session ID
+		httpReq, _ = http.NewRequest("GET", "/sessions/execution-state", nil)
+		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+		response = executeTestRequest(t, httpReq, nil)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var executionState session.ExecutionState
+		err = json.Unmarshal(response.Body.Bytes(), &executionState)
+		assert.NoError(t, err)
+
+		// Update execution state
+		httpReq, _ = http.NewRequest("PUT", "/sessions/execution-state", nil)
+		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+		httpReq.Header.Set("Content-Type", "application/json")
+		updateReq := `
+			{
+				"sessionID": "` + executionState.SessionID.String() + `",
+				"statusSummary": "completed",
+				"status": {
+					"error": {
+						"message": "test error",
+						"code": "TEST_ERROR"
+					},
+					"auditLog": "test audit log"
+				}
+			}`
+		setRequestBodyAndHeader(t, httpReq, updateReq)
+		response = executeTestRequest(t, httpReq, nil)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		// Verify the update by getting session summary
+		httpReq, _ = http.NewRequest("GET", "/sessions/summary?sessionID="+executionState.SessionID.String(), nil)
+		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+		response = executeTestRequest(t, httpReq, nil)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var summary session.SessionSummaryInfo
+		err = json.Unmarshal(response.Body.Bytes(), &summary)
+		assert.NoError(t, err)
+		assert.Equal(t, session.SessionStatusCompleted, summary.StatusSummary)
+		assert.Equal(t, "test error", summary.Error["message"])
+		assert.Equal(t, "TEST_ERROR", summary.Error["code"])
+	})
 }

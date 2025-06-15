@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	authHeaderPrefix = "Bearer "
-	genericAuthError = "authentication failed"
+	AuthHeaderPrefix = "Bearer "
+	GenericAuthError = "authentication failed"
 )
 
 // ContextMiddleware handles authentication and context setup for incoming requests
@@ -28,20 +28,20 @@ func ContextMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			log.Ctx(ctx).Debug().Msg("missing authorization header")
-			httpx.ErrUnAuthorized(genericAuthError).Send(w)
+			httpx.ErrUnAuthorized(GenericAuthError).Send(w)
 			return
 		}
 
-		if !strings.HasPrefix(authHeader, authHeaderPrefix) {
+		if !strings.HasPrefix(authHeader, AuthHeaderPrefix) {
 			log.Ctx(ctx).Debug().Msg("invalid authorization header format")
-			httpx.ErrUnAuthorized(genericAuthError).Send(w)
+			httpx.ErrUnAuthorized(GenericAuthError).Send(w)
 			return
 		}
 
-		token := strings.TrimSpace(strings.TrimPrefix(authHeader, authHeaderPrefix))
+		token := strings.TrimSpace(strings.TrimPrefix(authHeader, AuthHeaderPrefix))
 		if token == "" {
 			log.Ctx(ctx).Debug().Msg("empty token")
-			httpx.ErrUnAuthorized(genericAuthError).Send(w)
+			httpx.ErrUnAuthorized(GenericAuthError).Send(w)
 			return
 		}
 
@@ -49,7 +49,7 @@ func ContextMiddleware(next http.Handler) http.Handler {
 		ctx, err = ValidateToken(ctx, token)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msg("token validation failed")
-			httpx.ErrUnAuthorized(genericAuthError).Send(w)
+			httpx.ErrUnAuthorized(GenericAuthError).Send(w)
 			return
 		}
 
