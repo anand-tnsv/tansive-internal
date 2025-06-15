@@ -136,6 +136,19 @@ func (bus *EventBus) CloseTopic(topic string) {
 	}
 }
 
+func (bus *EventBus) CloseAllForPattern(pattern string) {
+	bus.Lock()
+	defer bus.Unlock()
+
+	for topic, subMap := range bus.subscribers {
+		if matchTopic(pattern, topic) {
+			for _, sub := range subMap {
+				sub.Close()
+			}
+		}
+	}
+}
+
 // Publish sends an event to all subscribers of a topic.
 // Non-blocking; will drop events for slow subscribers.
 func (bus *EventBus) Publish(topic string, data any, timeout time.Duration) {

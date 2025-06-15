@@ -6,6 +6,7 @@ import (
 
 	jsonitor "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
+	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/session/hashlog"
 )
@@ -17,7 +18,7 @@ func GetAuditLogPath(sessionID string) string {
 	return auditLogPath
 }
 
-func InitAuditLog(ctx context.Context, session *session) {
+func InitAuditLog(ctx context.Context, session *session) apperrors.Error {
 	auditLogPath := GetAuditLogPath(session.id.String())
 	log.Ctx(ctx).Info().Str("audit_log_path", auditLogPath).Msg("initializing audit log")
 	session.auditLogger = session.getLogger(TopicAuditLog).With().Str("actor", "system").Logger()
@@ -25,13 +26,18 @@ func InitAuditLog(ctx context.Context, session *session) {
 	logWriter, err := hashlog.NewHashLogWriter(auditLogPath, 100)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create audit logger")
+		session.auditLogComplete <- ""
+		return ErrSessionError.Msg("failed to create audit logger")
 	}
 	auditLog, unsubAuditLog := GetEventBus().Subscribe(session.getTopic(TopicAuditLog), 100)
+
+	session.auditLogComplete = make(chan string, 1)
 
 	finalizeLog := func() {
 		logWriter.Flush()
 		logWriter.Close()
 		unsubAuditLog()
+		session.auditLogComplete <- auditLogPath
 	}
 
 	go func() {
@@ -63,4 +69,5 @@ func InitAuditLog(ctx context.Context, session *session) {
 			}
 		}
 	}()
+	return nil
 }

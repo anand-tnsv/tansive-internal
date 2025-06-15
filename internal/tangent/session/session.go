@@ -2,7 +2,9 @@ package session
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
+	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
@@ -24,15 +27,16 @@ import (
 )
 
 type session struct {
-	id            uuid.UUID
-	context       *ServerContext
-	skillSet      catalogmanager.SkillSetManager
-	viewDef       *policy.ViewDefinition
-	token         string
-	tokenExpiry   time.Time
-	callGraph     *toolgraph.CallGraph
-	invocationIDs map[string]*policy.ViewDefinition
-	auditLogger   zerolog.Logger
+	id               uuid.UUID
+	context          *ServerContext
+	skillSet         catalogmanager.SkillSetManager
+	viewDef          *policy.ViewDefinition
+	token            string
+	tokenExpiry      time.Time
+	callGraph        *toolgraph.CallGraph
+	invocationIDs    map[string]*policy.ViewDefinition
+	auditLogger      zerolog.Logger
+	auditLogComplete chan string
 }
 
 func (s *session) GetSessionID() string {
@@ -100,7 +104,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 
 	if err != nil {
 		s.auditLogger.Error().
-			Str("event", "skill_completed").
+			Str("event", "skill_end").
 			Str("status", "failed").
 			Str("invocation_id", invocationID).
 			Err(err).
@@ -108,7 +112,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 			Msg("skill completed")
 	} else {
 		s.auditLogger.Info().
-			Str("event", "skill_completed").
+			Str("event", "skill_end").
 			Str("status", "success").
 			Str("invocation_id", invocationID).
 			Str("skill", skillName).
@@ -340,14 +344,8 @@ func (s *session) getLogger(eventType string) zerolog.Logger {
 	return eventlogger.NewLogger(GetEventBus(), s.getTopic(eventType)).With().Str("session_id", s.id.String()).Logger()
 }
 
-const (
-	TopicInteractiveLog = "interactive.log"
-	TopicAuditLog       = "audit.log"
-	TopicSessionLog     = "session.log"
-)
-
 func (s *session) getTopic(eventType string) string {
-	return fmt.Sprintf("session.%s.%s", s.id.String(), eventType)
+	return GetSessionTopic(s.id.String(), eventType)
 }
 
 func (s *session) getSkillsAsLLMTools() ([]api.LLMTool, apperrors.Error) {
@@ -379,6 +377,59 @@ func (s *session) setContext(name string, value any) apperrors.Error {
 	return s.skillSet.SetContextValue(name, nullableAny)
 }
 
-func (s *session) SaveSession(ctx context.Context) apperrors.Error {
+func (s *session) Finalize(ctx context.Context, apperr apperrors.Error) apperrors.Error {
+	auditLogPath := ""
+	auditLog := ""
+
+	select {
+	case auditLogPath = <-s.auditLogComplete:
+		log.Ctx(ctx).Info().Str("audit_log_path", auditLogPath).Msg("audit log complete")
+	case <-time.After(10 * time.Second):
+		log.Ctx(ctx).Error().Msg("audit log not complete after 10 seconds")
+	}
+
+	if auditLogPath != "" {
+		var err error
+		auditLog, err = srvsession.CompressAndEncodeAuditLogFile(auditLogPath)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to compress and encode audit log")
+		}
+	}
+
+	sessionStatus := srvsession.ExecutionStatusUpdate{
+		StatusSummary: srvsession.SessionStatusCompleted,
+		Status: srvsession.ExecutionStatus{
+			AuditLog: auditLog,
+		},
+	}
+	if apperr != nil {
+		sessionStatus.StatusSummary = srvsession.SessionStatusFailed
+		sessionStatus.Status.Error = map[string]any{
+			"message": apperr.Error(),
+		}
+	}
+
+	client := getHTTPClient(&clientConfig{
+		token:       s.token,
+		tokenExpiry: s.tokenExpiry,
+		serverURL:   config.Config().TansiveServer.GetURL(),
+	})
+
+	body, err := json.Marshal(sessionStatus)
+	if err != nil {
+		return ErrFailedRequestToTansiveServer.Msg(err.Error())
+	}
+
+	opts := httpclient.RequestOptions{
+		Method: http.MethodPut,
+		Path:   "sessions/execution-state",
+		Body:   body,
+	}
+
+	_, _, err = client.DoRequest(opts)
+	if err != nil {
+		return ErrFailedRequestToTansiveServer.Msg(err.Error())
+	}
+
 	return nil
 }

@@ -48,6 +48,7 @@ func createSession(r *http.Request) (*httpx.Response, error) {
 		ContentType: "application/x-ndjson",
 		Chunked:     true,
 		WriteChunks: func(w http.ResponseWriter) error {
+			ctx := log.Ctx(ctx).With().Str("session_id", session.id.String()).Logger().WithContext(ctx)
 			return runSession(ctx, w, session)
 		},
 	}
@@ -153,16 +154,22 @@ func createActiveSession(ctx context.Context, executionState *srvsession.Executi
 	return session, nil
 }
 
-func runSession(ctx context.Context, w http.ResponseWriter, session *session) apperrors.Error {
+func runSession(ctx context.Context, w http.ResponseWriter, session *session) (apperr apperrors.Error) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		log.Ctx(ctx).Error().Msg("response writer does not support flushing")
 		return ErrSessionError.Msg("response writer does not support flushing")
 	}
 
+	defer session.Finalize(ctx, apperr)
+
 	auditLogCtx, cancelAuditLog := context.WithCancel(context.Background())
-	InitAuditLog(auditLogCtx, session)
 	defer cancelAuditLog()
+
+	apperr = InitAuditLog(auditLogCtx, session)
+	if apperr != nil {
+		log.Ctx(ctx).Error().Err(apperr).Msg("unable to initialize audit log")
+	}
 
 	sessionLog, unsubSessionLog := GetEventBus().Subscribe(session.getTopic(TopicSessionLog), 100)
 	defer unsubSessionLog()
@@ -198,22 +205,24 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) ap
 	}(logCtx)
 
 	// Run will block until the session is complete
-	log.Ctx(ctx).Info().Str("skill", session.context.Skill).Msg("running session")
-	runCtx := session.getLogger(TopicSessionLog).With().Str("skill", session.context.Skill).Str("actor", "system").Logger().WithContext(ctx)
 	session.auditLogger.Info().
 		Str("event", "session_start").
 		Any("session_variables", session.context.SessionVariables).
 		Msg("starting session")
-	apperr := session.Run(runCtx, "", session.context.Skill, session.context.InputArgs)
+
+	log.Ctx(ctx).Info().Str("skill", session.context.Skill).Msg("running session")
+	runCtx := session.getLogger(TopicSessionLog).With().Str("skill", session.context.Skill).Str("actor", "system").Logger().WithContext(ctx)
+	apperr = session.Run(runCtx, "", session.context.Skill, session.context.InputArgs)
 	cancel()
 	wg.Wait()
 
-	log.Ctx(ctx).Info().Msg("session completed")
 	if apperr != nil {
 		log.Ctx(ctx).Error().Err(apperr).Msg("session failed")
-		session.auditLogger.Error().Err(apperr).Msg("session failed")
+		session.auditLogger.Error().Str("event", "session_end").Err(apperr).Msg("session failed")
 		return apperr
 	}
-	session.auditLogger.Info().Msg("session completed")
+
+	session.auditLogger.Info().Str("event", "session_end").Msg("session completed")
+	log.Ctx(ctx).Info().Msg("session completed")
 	return nil
 }

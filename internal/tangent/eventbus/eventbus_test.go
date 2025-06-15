@@ -376,3 +376,80 @@ func TestWildcardMatching(t *testing.T) {
 		})
 	}
 }
+
+func TestCloseAllForPattern(t *testing.T) {
+	bus := New()
+	bufferSize := 1
+
+	// Create subscribers for different topics
+	userLoginCh, unsub1 := bus.Subscribe("user.login", bufferSize)
+	defer unsub1()
+	userLogoutCh, unsub2 := bus.Subscribe("user.logout", bufferSize)
+	defer unsub2()
+	userProfileCh, unsub3 := bus.Subscribe("user.profile", bufferSize)
+	defer unsub3()
+	otherCh, unsub4 := bus.Subscribe("other.topic", bufferSize)
+	defer unsub4()
+
+	// Publish initial events to all topics
+	bus.Publish("user.login", "login-data", 100*time.Millisecond)
+	bus.Publish("user.logout", "logout-data", 100*time.Millisecond)
+	bus.Publish("user.profile", "profile-data", 100*time.Millisecond)
+	bus.Publish("other.topic", "other-data", 100*time.Millisecond)
+
+	// Drain initial messages
+	<-userLoginCh
+	<-userLogoutCh
+	<-userProfileCh
+	<-otherCh
+
+	// Close all user.* topics
+	bus.CloseAllForPattern("user.*")
+
+	// Allow cleanup to complete
+	time.Sleep(10 * time.Millisecond)
+
+	// Verify user.* channels are closed
+	for i, ch := range []<-chan Event{userLoginCh, userLogoutCh, userProfileCh} {
+		select {
+		case _, ok := <-ch:
+			if ok {
+				t.Errorf("user.* subscriber %d: channel should be closed after CloseAllForPattern", i)
+			}
+		case <-time.After(200 * time.Millisecond):
+			t.Errorf("user.* subscriber %d: channel read timed out after CloseAllForPattern", i)
+		}
+	}
+
+	// Publish a new event to other.topic to verify it's still active
+	bus.Publish("other.topic", "new-other-data", 100*time.Millisecond)
+
+	// Verify other topic's subscriber is still active
+	select {
+	case event, ok := <-otherCh:
+		if !ok {
+			t.Error("expected otherCh to be open, but it was closed")
+		} else if event.Data != "new-other-data" {
+			t.Errorf("expected new-other-data, got %v", event.Data)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Error("timeout waiting for event on other topic")
+	}
+
+	// Try to publish again to the closed topics
+	bus.Publish("user.login", "new-login-data", 100*time.Millisecond)
+	bus.Publish("user.logout", "new-logout-data", 100*time.Millisecond)
+	bus.Publish("user.profile", "new-profile-data", 100*time.Millisecond)
+
+	// Verify no new events are received on closed channels
+	for i, ch := range []<-chan Event{userLoginCh, userLogoutCh, userProfileCh} {
+		select {
+		case event, ok := <-ch:
+			if ok {
+				t.Errorf("user.* subscriber %d: received event after CloseAllForPattern: %+v", i, event)
+			}
+		case <-time.After(200 * time.Millisecond):
+			// Expected path
+		}
+	}
+}

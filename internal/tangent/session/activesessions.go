@@ -73,6 +73,7 @@ func (as *activeSessions) DeleteSession(id uuid.UUID) apperrors.Error {
 	if _, exists := as.sessions[id]; !exists {
 		return ErrInvalidSession
 	}
+	GetEventBus().CloseAllForPattern(GetAllSessionTopics(id.String()))
 	delete(as.sessions, id)
 	return nil
 }

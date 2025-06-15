@@ -171,7 +171,7 @@ func GetAuditLogDir() string {
 	if err != nil {
 		panic(err)
 	}
-	auditLogDir := filepath.Join(appDataDir, "tansive", "audit")
+	auditLogDir := filepath.Join(appDataDir, "tangent", "auditlogs")
 	return auditLogDir
 }
 
