@@ -19,7 +19,7 @@ var (
 
 // listCmd represents the list command
 var listCmd = &cobra.Command{
-	Use:   "list <resourceType>",
+	Use:   "list RESOURCE_TYPE [flags]",
 	Short: "List resources of a specific type",
 	Long: `List resources of a specific type. Supported resource types include:
   - catalogs
@@ -31,13 +31,26 @@ var listCmd = &cobra.Command{
   - sessions
 
 Examples:
+  # List all catalogs
   tansive list catalogs
-  tansive list variants -c catalog
-  tansive list namespaces -c catalog -v variant
-  tansive list views -c catalog -v variant
-  tansive list resources -c catalog -v variant
-  tansive list skillsets -c catalog -v variant
-  tansive list sessions`,
+
+  # List variants in a catalog
+  tansive list variants -c my-catalog
+
+  # List namespaces in a catalog and variant
+  tansive list namespaces -c my-catalog -v my-variant
+
+  # List views in a specific context
+  tansive list views -c my-catalog -v my-variant
+
+  # List resources in a specific context
+  tansive list resources -c my-catalog -v my-variant -n my-namespace
+
+  # List skillsets in a specific context
+  tansive list skillsets -c my-catalog -v my-variant
+
+  # List resources in JSON format
+  tansive list resources -j`,
 	Args: cobra.ExactArgs(1),
 	RunE: listResources,
 }

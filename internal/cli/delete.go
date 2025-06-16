@@ -15,18 +15,26 @@ var (
 )
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete <resourceType>/<resourceName>",
+	Use:   "delete RESOURCE_TYPE/RESOURCE_NAME [flags]",
 	Short: "Delete a resource by type and name",
-	Long: `Delete a resource by type and name. The format is <resourceType>/<resourceName>.
+	Long: `Delete a resource by type and name. The format is RESOURCE_TYPE/RESOURCE_NAME.
 Supported resource types include:
   - catalog/<catalog-name>
   - views/<view-name>
   - resources/<path/to/resource>
 
-Example:
+Examples:
+  # Delete a catalog
   tansive delete catalog/my-catalog
+
+  # Delete a view
   tansive delete views/my-view
-  tansive delete resources/path/to/resource`,
+
+  # Delete a resource
+  tansive delete resources/path/to/resource
+
+  # Delete a resource in a specific context
+  tansive delete resources/path/to/resource -c my-catalog -v my-variant -n my-namespace`,
 	Args: cobra.ExactArgs(1),
 	RunE: deleteResource,
 }

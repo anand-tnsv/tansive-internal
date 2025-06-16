@@ -21,14 +21,23 @@ var (
 
 // putCmd represents the put command
 var putCmd = &cobra.Command{
-	Use:   "put <resource-path>",
+	Use:   "put RESOURCE_PATH [flags]",
 	Short: "Update a resource value by path",
-	Long: `Update a resource value by path. The format is <resource-path>.
+	Long: `Update a resource value by path. The format is RESOURCE_PATH.
 You can provide the data either through a file (-f) or directly (-d).
 
 Examples:
-  tansive put res/path/to/resource -f data.json
-  tansive put res/path/to/resource -d '{"name":"example","value":42}'`,
+  # Update a resource using a JSON file
+  tansive put resources/path/to/resource -f data.json
+
+  # Update a resource using inline JSON data
+  tansive put resources/path/to/resource -d '{"name":"example","value":42}'
+
+  # Update a resource in a specific context
+  tansive put resources/path/to/resource -f data.json -c my-catalog -v my-variant -n my-namespace
+
+  # Update a resource and output in JSON format
+  tansive put resources/path/to/resource -f data.json -j`,
 	Args: cobra.ExactArgs(1),
 	RunE: putResourceValue,
 }

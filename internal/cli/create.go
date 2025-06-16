@@ -16,7 +16,7 @@ var (
 
 // createCmd represents the create command
 var createCmd = &cobra.Command{
-	Use:   "create -f FILENAME",
+	Use:   "create -f FILENAME [flags]",
 	Short: "Create a resource from a file",
 	Long: `Create a resource from a file. The resource type is determined by the 'kind' field in the YAML file.
 Supported resource types include:
@@ -27,10 +27,18 @@ Supported resource types include:
   - Resources
   - Skillsets
 
-Example:
+Examples:
+  # Create a new catalog
   tansive create -f catalog.yaml
+
+  # Create a variant in a specific catalog
   tansive create -f variant.yaml -c my-catalog
-  tansive create -f namespace.yaml -c my-catalog -v my-variant`,
+
+  # Create a namespace in a catalog and variant
+  tansive create -f namespace.yaml -c my-catalog -v my-variant
+
+  # Create a resource in a specific context
+  tansive create -f resource.yaml -c my-catalog -v my-variant -n my-namespace`,
 	RunE: createResource,
 }
 

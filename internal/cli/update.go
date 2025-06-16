@@ -17,7 +17,7 @@ var (
 
 // updateCmd represents the update command
 var updateCmd = &cobra.Command{
-	Use:   "apply -f FILENAME",
+	Use:   "apply -f FILENAME [flags]",
 	Short: "Apply a resource from a file (create if not exists, update if exists)",
 	Long: `Apply a resource from a file. The resource type is determined by the 'kind' field in the YAML file.
 This command follows the Kubernetes-style apply pattern - it will create the resource if it doesn't exist,
@@ -31,10 +31,21 @@ Supported resource types include:
   - Resources
   - Skillsets
 
-Example:
+Examples:
+  # Apply a catalog configuration
   tansive apply -f catalog.yaml
+
+  # Apply a variant in a specific catalog
   tansive apply -f variant.yaml -c my-catalog
-  tansive apply -f namespace.yaml -c my-catalog -v my-variant`,
+
+  # Apply a namespace in a catalog and variant
+  tansive apply -f namespace.yaml -c my-catalog -v my-variant
+
+  # Apply a resource in a specific context
+  tansive apply -f resource.yaml -c my-catalog -v my-variant -n my-namespace
+
+  # Apply a resource and output in JSON format
+  tansive apply -f resource.yaml -j`,
 	RunE: updateResource,
 }
 

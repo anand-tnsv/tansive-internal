@@ -16,11 +16,24 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "tansive",
+	Use:   "tansive [command] [flags]",
 	Short: "Tansive CLI - A command line interface for managing Tansive resources",
 	Long: `Tansive CLI is a command line interface for managing Tansive resources.
 It allows you to create, read, update, and delete resources using YAML files.
-The CLI supports various resource types including catalogs, variants, namespaces, and workspaces.`,
+The CLI supports various resource types including catalogs, variants, namespaces, and workspaces.
+
+Examples:
+  # Create a new catalog
+  tansive create -f catalog.yaml
+
+  # Get a resource value
+  tansive get resources/path/to/resource
+
+  # Delete a catalog
+  tansive delete catalog/my-catalog
+
+  # List all resources
+  tansive list resources`,
 	PersistentPreRun: preRunHandlePersistents,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()

@@ -19,13 +19,23 @@ var (
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
-	Use:   "get <resource-path>",
+	Use:   "get RESOURCE_PATH [flags]",
 	Short: "Get a resource value by path",
-	Long: `Get a resource value by path. The format is <resource-path>.
+	Long: `Get a resource value by path. The format is RESOURCE_PATH.
 This command only works with resources and returns their current values.
 
-Example:
-  tansive get resources/path/to/resource`,
+Examples:
+  # Get a resource value
+  tansive get resources/path/to/resource
+
+  # Get a resource value in a specific catalog
+  tansive get resources/path/to/resource -c my-catalog
+
+  # Get a resource value in a specific context
+  tansive get resources/path/to/resource -c my-catalog -v my-variant -n my-namespace
+
+  # Get a resource value in JSON format
+  tansive get resources/path/to/resource -j`,
 	Args: cobra.ExactArgs(1),
 	RunE: getResourceValue,
 }

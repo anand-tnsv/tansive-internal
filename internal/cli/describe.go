@@ -19,18 +19,29 @@ var (
 
 // describeCmd represents the describe command
 var describeCmd = &cobra.Command{
-	Use:   "describe <resourceType>/<resourceName>",
+	Use:   "describe RESOURCE_TYPE/RESOURCE_NAME [flags]",
 	Short: "Describe a resource by type and name",
-	Long: `Describe a resource by type and name. The format is <resourceType>/<resourceName>.
+	Long: `Describe a resource by type and name. The format is RESOURCE_TYPE/RESOURCE_NAME.
 Supported resource types include:
   - catalogs/<catalog-name>
   - views/<view-name>
   - resources/<path/to/resource>
 
-Example:
+Examples:
+  # Describe a catalog
   tansive describe catalogs/my-catalog
+
+  # Describe a view
   tansive describe views/my-view
-  tansive describe resources/path/to/resource`,
+
+  # Describe a resource
+  tansive describe resources/path/to/resource
+
+  # Describe a resource in a specific context
+  tansive describe resources/path/to/resource -c my-catalog -v my-variant -n my-namespace
+
+  # Describe a resource in JSON format
+  tansive describe resources/path/to/resource -j`,
 	Args: cobra.ExactArgs(1),
 	RunE: describeResource,
 }

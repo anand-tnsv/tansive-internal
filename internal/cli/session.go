@@ -19,14 +19,20 @@ import (
 
 // sessionCmd represents the session command
 var sessionCmd = &cobra.Command{
-	Use:   "session",
+	Use:   "session [command]",
 	Short: "Manage sessions in the Catalog",
-	Long:  `Create, get, and manage sessions in the Catalog.`,
+	Long: `Create, get, and manage sessions in the Catalog.
+A session represents an instance of a skill execution with its own state and context.
+
+Available Commands:
+  create         Create a new session
+  list-sessions  List all sessions
+  describe       Describe a specific session`,
 }
 
 // createSessionCmd represents the create subcommand
 var createSessionCmd = &cobra.Command{
-	Use:   "create <skill-path>",
+	Use:   "create SKILL_PATH [flags]",
 	Short: "Create a new session in the Catalog",
 	Long: `Create a new session in the Catalog. This will create a session with the specified skill path and view.
 The command will:
@@ -34,7 +40,17 @@ The command will:
 2. Optionally set session variables and input arguments
 3. Return the session ID and other details
 
-Example:
+Examples:
+  # Create a session with a specific view
+  tansive session create /valid-skillset/test-skill --view valid-view
+
+  # Create a session with session variables
+  tansive session create /valid-skillset/test-skill --session-vars '{"key1":"value1"}'
+
+  # Create a session with input arguments
+  tansive session create /valid-skillset/test-skill --input-args '{"input":"test input"}'
+
+  # Create a session with all options
   tansive session create /valid-skillset/test-skill --view valid-view --session-vars '{"key1":"value1"}' --input-args '{"input":"test input"}'`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -203,9 +219,22 @@ func printSessions(response []byte) error {
 
 // listSessionsCmd represents the list-sessions subcommand
 var listSessionsCmd = &cobra.Command{
-	Use:   "list-sessions",
+	Use:   "list-sessions [flags]",
 	Short: "List all sessions in the Catalog",
-	Long:  `List all sessions in the Catalog, showing their status, timestamps, and other details.`,
+	Long: `List all sessions in the Catalog, showing their status, timestamps, and other details.
+The output includes:
+- Session ID
+- Status
+- Start time
+- Last update time
+- Created by
+
+Examples:
+  # List all sessions
+  tansive session list-sessions
+
+  # List sessions in JSON format
+  tansive session list-sessions -j`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := httpclient.NewClient(GetConfig())
 
@@ -220,13 +249,17 @@ var listSessionsCmd = &cobra.Command{
 
 // describeSessionCmd represents the describe subcommand
 var describeSessionCmd = &cobra.Command{
-	Use:   "describe <session-id>",
+	Use:   "describe SESSION_ID [flags]",
 	Short: "Describe a session in the Catalog",
 	Long: `Describe a session in the Catalog by its ID. This will show detailed information about the session,
 including its status, timestamps, and other metadata.
 
-Example:
-  tansive session describe 123e4567-e89b-12d3-a456-426614174000`,
+Examples:
+  # Describe a specific session
+  tansive session describe 123e4567-e89b-12d3-a456-426614174000
+
+  # Describe a session in JSON format
+  tansive session describe 123e4567-e89b-12d3-a456-426614174000 -j`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID := args[0]
