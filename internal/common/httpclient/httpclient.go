@@ -1,3 +1,7 @@
+// Package httpclient provides a configurable HTTP client for making requests to REST APIs.
+// It supports authentication via API keys and tokens, handles common HTTP operations,
+// and provides error handling for server responses. The package requires a Configurator
+// implementation for server configuration and authentication details.
 package httpclient
 
 import (
@@ -14,6 +18,8 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// Configurator defines the interface for providing server configuration and authentication details.
+// Implementations must provide server URL, API key, and token management capabilities.
 type Configurator interface {
 	GetServerURL() string
 	GetAPIKey() string
@@ -21,29 +27,32 @@ type Configurator interface {
 	GetTokenExpiry() time.Time
 }
 
-// ServerError represents an error response from the server
+// ServerError represents an error response from the server with a result code and error message.
 type ServerError struct {
-	Result int    `json:"result"`
-	Error  string `json:"error"`
+	Result int    `json:"result"` // HTTP status code or result code from server
+	Error  string `json:"error"`  // Error message from server
 }
 
-// HTTPError represents an error response from the server with a status code
+// HTTPError represents an error response from the server with HTTP status code and message.
 type HTTPError struct {
-	StatusCode int
-	Message    string
+	StatusCode int    // HTTP status code of the error
+	Message    string // Error message or response body
 }
 
+// Error implements the error interface for HTTPError.
 func (e *HTTPError) Error() string {
 	return e.Message
 }
 
-// HTTPClient represents a client for making HTTP requests to the catalog server
+// HTTPClient represents a client for making HTTP requests to a REST API server.
+// It handles authentication, request building, and response processing.
 type HTTPClient struct {
 	config     Configurator
 	httpClient *http.Client
 }
 
-// NewClient creates a new HTTP client using the provided configuration
+// NewClient creates a new HTTP client using the provided configuration.
+// The config parameter must implement the Configurator interface.
 func NewClient(config Configurator) *HTTPClient {
 	return &HTTPClient{
 		config:     config,
@@ -51,69 +60,62 @@ func NewClient(config Configurator) *HTTPClient {
 	}
 }
 
-// RequestOptions contains options for making HTTP requests
+// RequestOptions contains options for making HTTP requests.
+// All fields are required except QueryParams and Body.
 type RequestOptions struct {
-	Method      string
-	Path        string
-	QueryParams map[string]string
-	Body        []byte
+	Method      string            // HTTP method (GET, POST, PUT, DELETE)
+	Path        string            // API endpoint path
+	QueryParams map[string]string // Optional query parameters
+	Body        []byte            // Optional request body
 }
 
-// DoRequest makes an HTTP request with the given options
+// DoRequest makes an HTTP request with the given options.
+// Returns the response body, Location header (if present), and any error that occurred.
+// Handles authentication using either token or API key based on availability and validity.
 func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
-	// Build the URL with query parameters
 	u, err := url.Parse(c.config.GetServerURL())
 	if err != nil {
 		return nil, "", fmt.Errorf("invalid server URL: %v", err)
 	}
 	u.Path = path.Join(u.Path, opts.Path)
 
-	// Add query parameters
 	q := u.Query()
 	for k, v := range opts.QueryParams {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
 
-	// Create the request
 	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 
-	// Check if we have a valid current token
 	if c.config.GetToken() != "" && !c.config.GetTokenExpiry().IsZero() {
 		expiry := c.config.GetTokenExpiry()
 		if time.Now().Before(expiry) {
 			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
 		} else {
-			// Token expired or invalid, fall back to API key
 			if c.config.GetAPIKey() != "" {
 				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 			}
 		}
 	} else if c.config.GetAPIKey() != "" {
-		// No current token, use API key
 		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 	}
 
-	// Make the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, "", fmt.Errorf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
-	// Read the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	// Check for error status codes
 	if resp.StatusCode >= 400 {
 		var serverErr ServerError
 		if err := json.Unmarshal(body, &serverErr); err == nil && serverErr.Error != "" {
@@ -131,7 +133,10 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 	return body, resp.Header.Get("Location"), nil
 }
 
-// CreateResource creates a new resource using the given JSON data
+// CreateResource creates a new resource using the given JSON data.
+// resourceType specifies the API endpoint, data contains the resource JSON,
+// and queryParams are optional query parameters.
+// Returns the response body, Location header, and any error that occurred.
 func (c *HTTPClient) CreateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, string, error) {
 	opts := RequestOptions{
 		Method:      http.MethodPost,
@@ -142,13 +147,14 @@ func (c *HTTPClient) CreateResource(resourceType string, data []byte, queryParam
 	return c.DoRequest(opts)
 }
 
-// GetResource retrieves a resource using the given resource name
+// GetResource retrieves a resource using the given resource name.
+// resourceType specifies the API endpoint, resourceName identifies the resource,
+// queryParams are optional query parameters, and objectType is an optional type qualifier.
+// Returns the response body and any error that occurred.
 func (c *HTTPClient) GetResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) ([]byte, error) {
-	// Clean the path components to avoid spurious slashes
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
-	// Construct the path ensuring no double slashes
 	path := strings.TrimSuffix(resourceType, "/")
 
 	if objectType != "" {
@@ -166,12 +172,14 @@ func (c *HTTPClient) GetResource(resourceType string, resourceName string, query
 	return body, err
 }
 
-// DeleteResource deletes a resource using the given resource name
+// DeleteResource deletes a resource using the given resource name.
+// resourceType specifies the API endpoint, resourceName identifies the resource,
+// queryParams are optional query parameters, and objectType is an optional type qualifier.
+// Returns any error that occurred during the deletion.
 func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) error {
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
-	// Construct the path ensuring no double slashes
 	path := strings.TrimSuffix(resourceType, "/")
 
 	if objectType != "" {
@@ -189,19 +197,20 @@ func (c *HTTPClient) DeleteResource(resourceType string, resourceName string, qu
 	return err
 }
 
-// UpdateResource updates an existing resource using the given JSON data
+// UpdateResource updates an existing resource using the given JSON data.
+// resourceType specifies the API endpoint, data contains the updated resource JSON,
+// queryParams are optional query parameters, and objectType is an optional type qualifier.
+// The data must contain a metadata.name field.
+// Returns the response body and any error that occurred.
 func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParams map[string]string, objectType string) ([]byte, error) {
-	// Get the resource name from metadata.name
 	resourceName := gjson.GetBytes(data, "metadata.name").String()
 	if resourceName == "" {
 		return nil, fmt.Errorf("metadata.name is required for update")
 	}
 
-	// Clean the path components to avoid spurious slashes
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
-	// Construct the path ensuring no double slashes
 	path := strings.TrimSuffix(resourceType, "/")
 
 	if objectType != "" {
@@ -220,6 +229,10 @@ func (c *HTTPClient) UpdateResource(resourceType string, data []byte, queryParam
 	return body, err
 }
 
+// UpdateResourceValue updates a specific resource value at the given path.
+// resourcePath specifies the full API endpoint path, data contains the update JSON,
+// and queryParams are optional query parameters.
+// Returns the response body and any error that occurred.
 func (c *HTTPClient) UpdateResourceValue(resourcePath string, data []byte, queryParams map[string]string) ([]byte, error) {
 	opts := RequestOptions{
 		Method:      http.MethodPut,
@@ -231,7 +244,9 @@ func (c *HTTPClient) UpdateResourceValue(resourcePath string, data []byte, query
 	return body, err
 }
 
-// ListResources lists resources of a specific type
+// ListResources lists resources of a specific type.
+// resourceType specifies the API endpoint, and queryParams are optional query parameters.
+// Returns the response body and any error that occurred.
 func (c *HTTPClient) ListResources(resourceType string, queryParams map[string]string) ([]byte, error) {
 	opts := RequestOptions{
 		Method:      http.MethodGet,
@@ -242,54 +257,47 @@ func (c *HTTPClient) ListResources(resourceType string, queryParams map[string]s
 	return body, err
 }
 
-// StreamRequest makes an HTTP request with the given options and returns a reader for streaming the response
+// StreamRequest makes an HTTP request with the given options and returns a reader for streaming the response.
+// Similar to DoRequest but returns an io.ReadCloser for streaming large responses.
+// The caller is responsible for closing the returned reader.
 func (c *HTTPClient) StreamRequest(opts RequestOptions) (io.ReadCloser, error) {
-	// Build the URL with query parameters
 	u, err := url.Parse(c.config.GetServerURL())
 	if err != nil {
 		return nil, fmt.Errorf("invalid server URL: %v", err)
 	}
 	u.Path = path.Join(u.Path, opts.Path)
 
-	// Add query parameters
 	q := u.Query()
 	for k, v := range opts.QueryParams {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
 
-	// Create the request
 	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 
-	// Check if we have a valid current token
 	if c.config.GetToken() != "" && !c.config.GetTokenExpiry().IsZero() {
 		expiry := c.config.GetTokenExpiry()
 		if time.Now().Before(expiry) {
 			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
 		} else {
-			// Token expired or invalid, fall back to API key
 			if c.config.GetAPIKey() != "" {
 				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 			}
 		}
 	} else if c.config.GetAPIKey() != "" {
-		// No current token, use API key
 		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 	}
 
-	// Make the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %v", err)
 	}
 
-	// Check for error status codes
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()

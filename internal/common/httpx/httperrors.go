@@ -8,6 +8,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
+// Error represents an HTTP error response with status code and description.
 type Error struct {
 	Description string `json:"description"`
 	StatusCode  int    `json:"http_status_code"`
@@ -18,8 +19,11 @@ type errorRsp struct {
 	Error  string `json:"error"`
 }
 
+// Failure represents the error result code in error responses.
 const Failure int = 0
 
+// Send writes the error response to the provided ResponseWriter.
+// If the writer is nil, no action is taken.
 func (e *Error) Send(w http.ResponseWriter) {
 	if w != nil {
 		rsp := &errorRsp{
@@ -39,14 +43,18 @@ func (e *Error) Send(w http.ResponseWriter) {
 	}
 }
 
+// Error returns the error description.
 func (e *Error) Error() string {
 	return e.Description
 }
 
+// Is reports whether the error matches the target error.
 func (current Error) Is(other error) bool {
 	return current.Error() == other.Error()
 }
 
+// SendError sends an application error as an HTTP error response.
+// If the error is nil, no action is taken.
 func SendError(w http.ResponseWriter, err apperrors.Error) {
 	if err == nil {
 		return
@@ -64,6 +72,7 @@ func SendError(w http.ResponseWriter, err apperrors.Error) {
 
 // Common Errors
 
+// ErrPostReqNotSupported returns an error for unsupported POST requests.
 func ErrPostReqNotSupported() *Error {
 	return &Error{
 		Description: "post request not supported",
@@ -71,6 +80,7 @@ func ErrPostReqNotSupported() *Error {
 	}
 }
 
+// ErrGetReqNotSupported returns an error for unsupported GET requests.
 func ErrGetReqNotSupported() *Error {
 	return &Error{
 		Description: "get request not supported",
@@ -78,6 +88,7 @@ func ErrGetReqNotSupported() *Error {
 	}
 }
 
+// ErrReqMethodNotSupported returns an error for unsupported HTTP methods.
 func ErrReqMethodNotSupported() *Error {
 	return &Error{
 		Description: "request method not supported",
@@ -85,6 +96,7 @@ func ErrReqMethodNotSupported() *Error {
 	}
 }
 
+// ErrUnableToParseReqData returns an error when request data cannot be parsed.
 func ErrUnableToParseReqData() *Error {
 	return &Error{
 		Description: "unable to parse request data",
@@ -92,6 +104,7 @@ func ErrUnableToParseReqData() *Error {
 	}
 }
 
+// ErrUnableToReadRequest returns an error when request data cannot be read.
 func ErrUnableToReadRequest() *Error {
 	return &Error{
 		Description: "unable to read request data",
@@ -99,6 +112,8 @@ func ErrUnableToReadRequest() *Error {
 	}
 }
 
+// ErrApplicationError returns an error for application-level failures.
+// If no message is provided, a default message is used.
 func ErrApplicationError(err ...string) *Error {
 	var s string
 	if len(err) > 0 {
@@ -112,6 +127,8 @@ func ErrApplicationError(err ...string) *Error {
 	}
 }
 
+// ErrUnAuthorized returns an error for unauthorized requests.
+// If no message is provided, a default message is used.
 func ErrUnAuthorized(str ...string) *Error {
 	var s string
 	if len(str) > 0 {
@@ -125,6 +142,7 @@ func ErrUnAuthorized(str ...string) *Error {
 	}
 }
 
+// ErrMissingKeyInRequest returns an error when authentication key is missing.
 func ErrMissingKeyInRequest() *Error {
 	return &Error{
 		Description: "missing authentication key in request",
@@ -132,6 +150,8 @@ func ErrMissingKeyInRequest() *Error {
 	}
 }
 
+// ErrInvalidRequest returns an error for invalid request data.
+// If no message is provided, a default message is used.
 func ErrInvalidRequest(str ...string) *Error {
 	var s string
 	if len(str) > 0 {
@@ -145,6 +165,7 @@ func ErrInvalidRequest(str ...string) *Error {
 	}
 }
 
+// ErrInvalidTenantId returns an error for invalid tenant ID.
 func ErrInvalidTenantId() *Error {
 	return &Error{
 		Description: "invalid tenant id",
@@ -152,6 +173,7 @@ func ErrInvalidTenantId() *Error {
 	}
 }
 
+// ErrInvalidProjectId returns an error for invalid project ID.
 func ErrInvalidProjectId() *Error {
 	return &Error{
 		Description: "invalid project id",
@@ -159,6 +181,7 @@ func ErrInvalidProjectId() *Error {
 	}
 }
 
+// ErrInvalidNodeId returns an error for invalid node ID.
 func ErrInvalidNodeId() *Error {
 	return &Error{
 		Description: "invalid node id",
@@ -166,6 +189,7 @@ func ErrInvalidNodeId() *Error {
 	}
 }
 
+// ErrInvalidCatalog returns an error for invalid catalog.
 func ErrInvalidCatalog() *Error {
 	return &Error{
 		Description: "invalid catalog",
@@ -173,6 +197,8 @@ func ErrInvalidCatalog() *Error {
 	}
 }
 
+// ErrInvalidView returns an error for invalid view.
+// If no message is provided, a default message is used.
 func ErrInvalidView(err ...string) *Error {
 	var s string
 	if len(err) > 0 {
@@ -186,6 +212,7 @@ func ErrInvalidView(err ...string) *Error {
 	}
 }
 
+// ErrInvalidVariant returns an error for invalid variant.
 func ErrInvalidVariant() *Error {
 	return &Error{
 		Description: "invalid variant",
@@ -193,6 +220,7 @@ func ErrInvalidVariant() *Error {
 	}
 }
 
+// ErrInvalidNamespace returns an error for invalid namespace.
 func ErrInvalidNamespace() *Error {
 	return &Error{
 		Description: "invalid namespace",
@@ -200,6 +228,7 @@ func ErrInvalidNamespace() *Error {
 	}
 }
 
+// ErrInvalidWorkspace returns an error for invalid workspace.
 func ErrInvalidWorkspace() *Error {
 	return &Error{
 		Description: "invalid workspace",
@@ -207,6 +236,7 @@ func ErrInvalidWorkspace() *Error {
 	}
 }
 
+// ErrInvalidOnboardingKey returns an error for invalid onboarding key.
 func ErrInvalidOnboardingKey() *Error {
 	return &Error{
 		Description: "invalid onboarding key",
@@ -214,6 +244,7 @@ func ErrInvalidOnboardingKey() *Error {
 	}
 }
 
+// ErrInvalidUser returns an error for invalid user.
 func ErrInvalidUser() *Error {
 	return &Error{
 		Description: "invalid user",
@@ -221,6 +252,7 @@ func ErrInvalidUser() *Error {
 	}
 }
 
+// ErrUnableToServeRequest returns an error when request cannot be served.
 func ErrUnableToServeRequest() *Error {
 	return &Error{
 		Description: "unable to serve request",
@@ -228,6 +260,7 @@ func ErrUnableToServeRequest() *Error {
 	}
 }
 
+// ErrRequestTimeout returns an error for request timeout.
 func ErrRequestTimeout() *Error {
 	return &Error{
 		Description: "request timed out",
@@ -235,6 +268,7 @@ func ErrRequestTimeout() *Error {
 	}
 }
 
+// ErrRequestTooLarge returns an error when request body exceeds size limit.
 func ErrRequestTooLarge(limit int64) *Error {
 	return &Error{
 		Description: fmt.Sprintf("request body too large (limit: %d bytes)", limit),

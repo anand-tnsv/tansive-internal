@@ -1,5 +1,8 @@
 package eventbus
 
+// Implements a trivial in-memory pub/sub event bus. Used for communication between the different goroutines.  There are opportunities for
+// some optimization, but there shouldn't be bottlnecks for a hundred or so skills running in parallel.
+
 import (
 	"context"
 	"fmt"

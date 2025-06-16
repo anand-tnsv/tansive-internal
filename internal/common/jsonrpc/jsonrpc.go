@@ -1,3 +1,6 @@
+// Package jsonrpc provides utilities for handling JSON-RPC 2.0 protocol messages.
+// It supports request/response handling, notifications, and error management.
+// The package requires valid JSON-serializable types for parameters and results.
 package jsonrpc
 
 import (
@@ -8,14 +11,14 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
-// Helper functions to deal with JSON-RPC 2.0 requests and responses
-
-// JSON-RPC version
+// Version specifies the JSON-RPC protocol version
 const Version = "2.0"
 
+// MethodType represents a JSON-RPC method name
 type MethodType string
 
-// Request represents a JSON-RPC 2.0 request or notification
+// Request represents a JSON-RPC 2.0 request or notification.
+// ID is optional for notifications.
 type Request struct {
 	JSONRPC string            `json:"jsonrpc"`
 	ID      string            `json:"id,omitempty"`
@@ -23,7 +26,8 @@ type Request struct {
 	Params  types.NullableAny `json:"params,omitempty"`
 }
 
-// Response represents a JSON-RPC 2.0 response
+// Response represents a JSON-RPC 2.0 response.
+// Either Result or Error must be set, but not both.
 type Response struct {
 	JSONRPC string       `json:"jsonrpc"`
 	ID      string       `json:"id"`
@@ -31,14 +35,18 @@ type Response struct {
 	Error   *ErrorObject `json:"error,omitempty"`
 }
 
-// ErrorObject represents a JSON-RPC 2.0 error object
+// ErrorObject represents a JSON-RPC 2.0 error object.
+// Code must be a valid JSON-RPC error code.
+// Message should be a short description of the error.
+// Data is optional and can contain additional error information.
 type ErrorObject struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
 }
 
-// ConstructRequest creates a JSON-RPC request message
+// ConstructRequest creates a JSON-RPC request message.
+// Returns an error if params cannot be converted to NullableAny.
 func ConstructRequest(id string, method MethodType, params any) ([]byte, error) {
 	p, err := types.NullableAnyFrom(params)
 	if err != nil {
@@ -53,7 +61,8 @@ func ConstructRequest(id string, method MethodType, params any) ([]byte, error) 
 	return json.Marshal(req)
 }
 
-// ConstructNotification creates a JSON-RPC notification (no response expected)
+// ConstructNotification creates a JSON-RPC notification (no response expected).
+// Returns an error if params cannot be converted to NullableAny.
 func ConstructNotification(method MethodType, params any) ([]byte, error) {
 	p, err := types.NullableAnyFrom(params)
 	if err != nil {
@@ -67,7 +76,8 @@ func ConstructNotification(method MethodType, params any) ([]byte, error) {
 	return json.Marshal(req)
 }
 
-// ConstructSuccessResponse creates a JSON-RPC response with a result
+// ConstructSuccessResponse creates a JSON-RPC response with a result.
+// The result must be JSON-serializable.
 func ConstructSuccessResponse(id string, result any) ([]byte, error) {
 	resp := Response{
 		JSONRPC: Version,
@@ -77,7 +87,8 @@ func ConstructSuccessResponse(id string, result any) ([]byte, error) {
 	return json.Marshal(resp)
 }
 
-// ConstructErrorResponse creates a JSON-RPC error response
+// ConstructErrorResponse creates a JSON-RPC error response.
+// The data parameter is optional and must be JSON-serializable if provided.
 func ConstructErrorResponse(id string, code int, message string, data any) ([]byte, error) {
 	resp := Response{
 		JSONRPC: Version,
@@ -91,7 +102,8 @@ func ConstructErrorResponse(id string, code int, message string, data any) ([]by
 	return json.Marshal(resp)
 }
 
-// ParseRequest unmarshals a JSON-RPC request or notification
+// ParseRequest unmarshals a JSON-RPC request or notification.
+// Returns an error if the request is invalid or missing required fields.
 func ParseRequest(data []byte) (*Request, error) {
 	var req Request
 	if err := json.Unmarshal(data, &req); err != nil {
@@ -103,7 +115,8 @@ func ParseRequest(data []byte) (*Request, error) {
 	return &req, nil
 }
 
-// ParseResponse unmarshals a JSON-RPC response
+// ParseResponse unmarshals a JSON-RPC response.
+// Returns an error if the response is invalid or has both result and error.
 func ParseResponse(data []byte) (*Response, error) {
 	var resp Response
 	if err := json.Unmarshal(data, &resp); err != nil {
@@ -118,18 +131,19 @@ func ParseResponse(data []byte) (*Response, error) {
 	return &resp, nil
 }
 
-// Example error codes from JSON-RPC 2.0 spec
+// Standard JSON-RPC 2.0 error codes
 const (
-	ErrCodeParseError        = -32700
-	ErrCodeInvalidRequest    = -32600
-	ErrCodeMethodNotFound    = -32601
-	ErrCodeInvalidParams     = -32602
-	ErrCodeInternalError     = -32603
-	ErrCodeConcurrentCommand = -32001
-	ErrCodeBadCommand        = -32002
+	ErrCodeParseError        = -32700 // Invalid JSON was received
+	ErrCodeInvalidRequest    = -32600 // The JSON sent is not a valid Request object
+	ErrCodeMethodNotFound    = -32601 // The method does not exist
+	ErrCodeInvalidParams     = -32602 // Invalid method parameter(s)
+	ErrCodeInternalError     = -32603 // Internal JSON-RPC error
+	ErrCodeConcurrentCommand = -32001 // Command is already running
+	ErrCodeBadCommand        = -32002 // Command is invalid
 )
 
-// FormatErrorMessage returns a user-friendly error message from an error
+// FormatErrorMessage returns a user-friendly error message from an error.
+// Returns an empty string if err is nil.
 func FormatErrorMessage(err error) string {
 	if err == nil {
 		return ""

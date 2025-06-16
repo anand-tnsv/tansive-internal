@@ -16,13 +16,16 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// TestHTTPClient represents a test client for making HTTP requests directly to the catalog server
+// TestHTTPClient represents a test client for making HTTP requests directly to the catalog server.
+// It uses httptest.NewRecorder to capture responses without making actual network calls.
 type TestHTTPClient struct {
 	config     Configurator
 	httpServer *server.CatalogServer
 }
 
-// NewTestClient creates a new test HTTP client using the provided configuration
+// NewTestClient creates a new test HTTP client using the provided configuration.
+// It initializes a test server instance and mounts the necessary handlers.
+// Returns an error if server creation fails.
 func NewTestClient(config Configurator) (*TestHTTPClient, error) {
 	s, err := server.CreateNewServer()
 	if err != nil {
@@ -36,9 +39,10 @@ func NewTestClient(config Configurator) (*TestHTTPClient, error) {
 	}, nil
 }
 
-// DoRequest makes an HTTP request with the given options directly to the test server
+// DoRequest makes an HTTP request with the given options directly to the test server.
+// Uses httptest.NewRecorder to capture the response without making network calls.
+// Returns the response body, Location header (if present), and any error that occurred.
 func (c *TestHTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
-	// Build the URL with query parameters
 	u, err := url.Parse(c.config.GetServerURL())
 	if err != nil {
 		return nil, "", fmt.Errorf("invalid server URL: %v", err)
@@ -48,48 +52,36 @@ func (c *TestHTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) 
 	}
 	u.Path = path.Join(u.Path, opts.Path)
 
-	// Add query parameters
 	q := u.Query()
 	for k, v := range opts.QueryParams {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
 
-	// Create the request
 	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 
-	// Check if we have a valid current token
 	if c.config.GetToken() != "" && !c.config.GetTokenExpiry().IsZero() {
 		expiry := c.config.GetTokenExpiry()
 		if time.Now().Before(expiry) {
 			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
 		} else {
-			// Token expired or invalid, fall back to API key
 			if c.config.GetAPIKey() != "" {
 				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 			}
 		}
 	} else if c.config.GetAPIKey() != "" {
-		// No current token, use API key
 		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 	}
 
-	// Create a response recorder
 	rr := httptest.NewRecorder()
-
-	// Serve the request directly
 	c.httpServer.Router.ServeHTTP(rr, req)
-
-	// Read the response body
 	body := rr.Body.Bytes()
 
-	// Check for error status codes
 	if rr.Code >= 400 {
 		var serverErr ServerError
 		if err := json.Unmarshal(body, &serverErr); err == nil && serverErr.Error != "" {
@@ -107,7 +99,10 @@ func (c *TestHTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) 
 	return body, rr.Header().Get("Location"), nil
 }
 
-// CreateResource creates a new resource using the given JSON data
+// CreateResource creates a new resource using the given JSON data.
+// resourceType specifies the API endpoint, data contains the resource JSON,
+// and queryParams are optional query parameters.
+// Returns the response body, Location header, and any error that occurred.
 func (c *TestHTTPClient) CreateResource(resourceType string, data []byte, queryParams map[string]string) ([]byte, string, error) {
 	opts := RequestOptions{
 		Method:      http.MethodPost,
@@ -118,13 +113,14 @@ func (c *TestHTTPClient) CreateResource(resourceType string, data []byte, queryP
 	return c.DoRequest(opts)
 }
 
-// GetResource retrieves a resource using the given resource name
+// GetResource retrieves a resource using the given resource name.
+// resourceType specifies the API endpoint, resourceName identifies the resource,
+// queryParams are optional query parameters, and objectType is an optional type qualifier.
+// Returns the response body and any error that occurred.
 func (c *TestHTTPClient) GetResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) ([]byte, error) {
-	// Clean the path components to avoid spurious slashes
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
-	// Construct the path ensuring no double slashes
 	path := strings.TrimSuffix(resourceType, "/")
 
 	if objectType != "" {
@@ -142,12 +138,14 @@ func (c *TestHTTPClient) GetResource(resourceType string, resourceName string, q
 	return body, err
 }
 
-// DeleteResource deletes a resource using the given resource name
+// DeleteResource deletes a resource using the given resource name.
+// resourceType specifies the API endpoint, resourceName identifies the resource,
+// queryParams are optional query parameters, and objectType is an optional type qualifier.
+// Returns any error that occurred during the deletion.
 func (c *TestHTTPClient) DeleteResource(resourceType string, resourceName string, queryParams map[string]string, objectType string) error {
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
-	// Construct the path ensuring no double slashes
 	path := strings.TrimSuffix(resourceType, "/")
 
 	if objectType != "" {
@@ -165,19 +163,20 @@ func (c *TestHTTPClient) DeleteResource(resourceType string, resourceName string
 	return err
 }
 
-// UpdateResource updates an existing resource using the given JSON data
+// UpdateResource updates an existing resource using the given JSON data.
+// resourceType specifies the API endpoint, data contains the updated resource JSON,
+// queryParams are optional query parameters, and objectType is an optional type qualifier.
+// The data must contain a metadata.name field.
+// Returns the response body and any error that occurred.
 func (c *TestHTTPClient) UpdateResource(resourceType string, data []byte, queryParams map[string]string, objectType string) ([]byte, error) {
-	// Get the resource name from metadata.name
 	resourceName := gjson.GetBytes(data, "metadata.name").String()
 	if resourceName == "" {
 		return nil, fmt.Errorf("metadata.name is required for update")
 	}
 
-	// Clean the path components to avoid spurious slashes
 	resourceType = strings.Trim(resourceType, "/")
 	resourceName = strings.Trim(resourceName, "/")
 
-	// Construct the path ensuring no double slashes
 	path := strings.TrimSuffix(resourceType, "/")
 
 	if objectType != "" {
@@ -196,7 +195,10 @@ func (c *TestHTTPClient) UpdateResource(resourceType string, data []byte, queryP
 	return body, err
 }
 
-// UpdateResourceValue updates a resource value using the given JSON data
+// UpdateResourceValue updates a specific resource value at the given path.
+// resourcePath specifies the full API endpoint path, data contains the update JSON,
+// and queryParams are optional query parameters.
+// Returns the response body and any error that occurred.
 func (c *TestHTTPClient) UpdateResourceValue(resourcePath string, data []byte, queryParams map[string]string) ([]byte, error) {
 	opts := RequestOptions{
 		Method:      http.MethodPut,
@@ -208,7 +210,9 @@ func (c *TestHTTPClient) UpdateResourceValue(resourcePath string, data []byte, q
 	return body, err
 }
 
-// ListResources lists resources of a specific type
+// ListResources lists resources of a specific type.
+// resourceType specifies the API endpoint, and queryParams are optional query parameters.
+// Returns the response body and any error that occurred.
 func (c *TestHTTPClient) ListResources(resourceType string, queryParams map[string]string) ([]byte, error) {
 	opts := RequestOptions{
 		Method:      http.MethodGet,
@@ -219,9 +223,10 @@ func (c *TestHTTPClient) ListResources(resourceType string, queryParams map[stri
 	return body, err
 }
 
-// StreamRequest makes an HTTP request with the given options and returns a reader for streaming the response
+// StreamRequest makes an HTTP request with the given options and returns a reader for streaming the response.
+// Similar to DoRequest but returns an io.ReadCloser for streaming large responses.
+// The caller is responsible for closing the returned reader.
 func (c *TestHTTPClient) StreamRequest(opts RequestOptions) (io.ReadCloser, error) {
-	// Build the URL with query parameters
 	u, err := url.Parse(c.config.GetServerURL())
 	if err != nil {
 		return nil, fmt.Errorf("invalid server URL: %v", err)
@@ -231,48 +236,39 @@ func (c *TestHTTPClient) StreamRequest(opts RequestOptions) (io.ReadCloser, erro
 	}
 	u.Path = path.Join(u.Path, opts.Path)
 
-	// Add query parameters
 	q := u.Query()
 	for k, v := range opts.QueryParams {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
 
-	// Create the request
 	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 
-	// Check if we have a valid current token
 	if c.config.GetToken() != "" && !c.config.GetTokenExpiry().IsZero() {
 		expiry := c.config.GetTokenExpiry()
 		if time.Now().Before(expiry) {
 			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
 		} else {
-			// Token expired or invalid, fall back to API key
 			if c.config.GetAPIKey() != "" {
 				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 			}
 		}
 	} else if c.config.GetAPIKey() != "" {
-		// No current token, use API key
 		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 	}
 
-	// Create a response recorder
 	rr := httptest.NewRecorder()
-
-	// Serve the request directly
 	c.httpServer.Router.ServeHTTP(rr, req)
 
-	// Check for error status codes
 	if rr.Code >= 400 {
+		body, _ := io.ReadAll(rr.Body)
 		var serverErr ServerError
-		if err := json.Unmarshal(rr.Body.Bytes(), &serverErr); err == nil && serverErr.Error != "" {
+		if err := json.Unmarshal(body, &serverErr); err == nil && serverErr.Error != "" {
 			return nil, &HTTPError{
 				StatusCode: rr.Code,
 				Message:    serverErr.Error,
@@ -280,10 +276,9 @@ func (c *TestHTTPClient) StreamRequest(opts RequestOptions) (io.ReadCloser, erro
 		}
 		return nil, &HTTPError{
 			StatusCode: rr.Code,
-			Message:    rr.Body.String(),
+			Message:    string(body),
 		}
 	}
 
-	// Create a reader from the response body
-	return io.NopCloser(bytes.NewReader(rr.Body.Bytes())), nil
+	return io.NopCloser(rr.Body), nil
 }

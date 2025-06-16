@@ -1,3 +1,5 @@
+// Package common provides utilities for generating unique identifiers and handling common operations.
+// It supports various ID types and secure random number generation.
 package common
 
 import (
@@ -6,24 +8,29 @@ import (
 	"fmt"
 )
 
+// IdType represents the type of identifier to generate
 type IdType int
 
+// Supported ID types
 const (
-	ID_TYPE_GENERIC = iota
-	ID_TYPE_TENANT
-	ID_TYPE_USER
-	ID_TYPE_PROJECT
+	ID_TYPE_GENERIC IdType = iota // Generic identifier
+	ID_TYPE_TENANT                // Tenant identifier
+	ID_TYPE_USER                  // User identifier
+	ID_TYPE_PROJECT               // Project identifier
 )
 
+// Constants for ID generation
 const (
-	AIRLINE_CODE_LEN = 6
-	// Define character sets for better readability and maintainability
-	LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	DIGITS  = "0123456789"
-	CHARS   = LETTERS + DIGITS
+	AIRLINE_CODE_LEN = 6 // Length of the airline-style code portion of IDs
+
+	// Character sets for ID generation
+	LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" // Uppercase letters
+	DIGITS  = "0123456789"                 // Numeric digits
+	CHARS   = LETTERS + DIGITS             // Combined character set
 )
 
-// secureRandomInt generates a cryptographically secure random number between 0 and max
+// secureRandomInt generates a cryptographically secure random number between 0 and max.
+// Returns an error if random number generation fails.
 func secureRandomInt(max int) (int, error) {
 	var buf [8]byte
 	_, err := rand.Read(buf[:])
@@ -35,11 +42,11 @@ func secureRandomInt(max int) (int, error) {
 	return int(n % uint64(max)), nil
 }
 
-// GetUniqueId generates a unique ID with a prefix based on the type
-// This may not be unique, since this is randomly generated.
-// Has a practical collision probability of 1.5% in 10 million keys.
-// Retrying a couple of times in our use-case is better than having a key generation service
-// *Check uniqueness in DB before using the key
+// GetUniqueId generates a unique ID with a prefix based on the type.
+// The ID format is a single character prefix followed by an airline-style code.
+// Note: This is randomly generated and may not be globally unique.
+// Collision probability is approximately 1.5% in 10 million keys.
+// Returns an error if ID generation fails.
 func GetUniqueId(t IdType) (string, error) {
 	code, err := airlineCode(AIRLINE_CODE_LEN)
 	if err != nil {
@@ -59,23 +66,22 @@ func GetUniqueId(t IdType) (string, error) {
 	return prefix + code, nil
 }
 
-// airlineCode generates a random alphanumeric string of a given length like Airline PNR Code
+// airlineCode generates a random alphanumeric string of a given length.
+// The first character is always a letter, followed by alphanumeric characters.
+// Returns an error if length is invalid or random generation fails.
 func airlineCode(length int) (string, error) {
 	if length <= 0 {
 		return "", fmt.Errorf("length must be positive, got %d", length)
 	}
 
-	// Pre-allocate the result slice for better performance
 	result := make([]byte, length)
 
-	// First character must be a letter
 	letterIdx, err := secureRandomInt(len(LETTERS))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate first character: %w", err)
 	}
 	result[0] = LETTERS[letterIdx]
 
-	// Generate remaining characters
 	for i := 1; i < length; i++ {
 		idx, err := secureRandomInt(len(CHARS))
 		if err != nil {

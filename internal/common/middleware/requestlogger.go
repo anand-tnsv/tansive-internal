@@ -1,3 +1,6 @@
+// Package middleware provides HTTP middleware components for request logging, timeout handling,
+// and panic recovery. It integrates with zerolog for structured logging and supports request
+// tracing through unique request IDs.
 package middleware
 
 import (
@@ -10,6 +13,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
+// requestIdContextKey is a custom type for context key to store request IDs.
 type requestIdContextKey string
 
 const (
@@ -17,7 +21,9 @@ const (
 	RequestIDHeader = "X-Tansive-Request-ID"
 )
 
-// RequestLogger logs the request and adds a request ID to context and response header.
+// RequestLogger creates middleware that logs incoming requests and adds a unique request ID
+// to both the request context and response headers. It logs request details including URL,
+// method, path, remote IP, and protocol. The request ID is used for request tracing.
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -53,6 +59,8 @@ func RequestLogger(next http.Handler) http.Handler {
 	})
 }
 
+// newRequestId generates a unique request identifier. It attempts to create a UUID first,
+// falling back to a timestamp-based ID if UUID generation fails.
 func newRequestId() string {
 	u, err := uuid.NewRandom()
 	if err == nil {

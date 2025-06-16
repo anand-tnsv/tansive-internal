@@ -100,7 +100,6 @@ func PrettyPrintNDJSONLine(line []byte) {
 
 	msg = indentMultiline(msg, "                                   ")
 
-	// Print timestamp and skill name first
 	fmt.Print("  " + timestamp + " ")
 	if actor == "system" {
 		systemColor.Printf("%s", "[tansive]")
@@ -110,7 +109,7 @@ func PrettyPrintNDJSONLine(line []byte) {
 		skillColor.Printf("%s", skill)
 	}
 
-	// stderr: only ❗ and message in red
+	// errors: only ❗ and message in red
 	if policy == "true" {
 		fmt.Print(" ")
 		color.New(color.FgHiRed).Print("🛡️ ")
@@ -131,7 +130,8 @@ func PrettyPrintNDJSONLine(line []byte) {
 		fmt.Println(msg)
 	}
 
-	// Print end time if message indicates session completion
+	// Print end time if message indicates session completion. This is quite brittle,
+	// we should track by event type. Nothing breaks loose right now.
 	if strings.Contains(msg, "Interactive skill completed successfully") {
 		endTime := time.UnixMilli(sess.endTime).Local()
 		endLabel.Printf("\n    End:   %s\n", endTime.Format("2006-01-02 15:04:05.000 MST"))

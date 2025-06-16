@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"context"
+	"errors"
 
 	"encoding/json"
 
@@ -141,7 +142,7 @@ func (om *objectManager) UpsertSkillSetObject(ctx context.Context, ss *models.Sk
 	err := om.CreateCatalogObject(ctx, obj)
 	if err != nil {
 		// If the object already exists, that's fine - we can continue
-		if !err.Is(dberror.ErrAlreadyExists) {
+		if !errors.Is(err, dberror.ErrAlreadyExists) {
 			return err
 		}
 	}

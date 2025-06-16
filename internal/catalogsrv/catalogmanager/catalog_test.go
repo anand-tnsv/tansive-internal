@@ -2,6 +2,7 @@ package catalogmanager
 
 import (
 	"errors"
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -89,13 +90,19 @@ func TestNewCatalogManager(t *testing.T) {
 			// Convert JSON to []byte
 			jsonData := []byte(tt.jsonData)
 
+			if tt.name == "invalid kind" {
+				log.Println("err: ", err)
+			}
 			// Create a new catalog manager
 			cm, err := NewCatalogManager(ctx, jsonData, "CatalogName")
 
 			// Check if the error string matches the expected error string
-			if !errors.Is(tt.expected, err) {
+			if !errors.Is(err, tt.expected) {
 				t.Errorf("got error %v, expected error %v", err, tt.expected)
 			} else if tt.expected == nil {
+				if tt.name == "invalid kind" {
+					log.Println("cm: ", cm)
+				}
 				// If no error is expected, validate catalog properties
 				assert.NotNil(t, cm)
 				assert.Equal(t, "valid-catalog", cm.Name())

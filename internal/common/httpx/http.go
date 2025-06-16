@@ -1,3 +1,7 @@
+// Package httpx provides HTTP request/response handling utilities and middleware.
+// It includes support for JSON responses, error handling, request parsing,
+// and streaming responses. The package requires valid http.ResponseWriter
+// implementations for response handling.
 package httpx
 
 import (
@@ -8,6 +12,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 )
 
+// GetRequestData parses JSON request body into the provided data structure.
+// Only supports POST and PUT methods. Returns error if request body is empty
+// or cannot be parsed.
 func GetRequestData(r *http.Request, data any) error {
 	if r.Method != http.MethodPost && r.Method != http.MethodPut {
 		return ErrReqMethodNotSupported()
@@ -22,19 +29,25 @@ func GetRequestData(r *http.Request, data any) error {
 	return nil
 }
 
+// WriteChunksFunc defines a function type for writing chunked response data.
 type WriteChunksFunc func(w http.ResponseWriter) error
 
+// Response represents an HTTP response with configurable status code,
+// content type, and optional chunked transfer encoding.
 type Response struct {
 	StatusCode  int
-	Location    string //in case of http.StatusAccepted
+	Location    string
 	Response    any
 	ContentType string
-	Chunked     bool // indicates if the response should be sent as chunked
+	Chunked     bool
 	WriteChunks WriteChunksFunc
 }
 
+// RequestHandler defines a function type for handling HTTP requests.
 type RequestHandler func(r *http.Request) (*Response, error)
 
+// WrapHttpRsp wraps a RequestHandler to provide standardized HTTP response handling,
+// including error handling and content type management.
 func WrapHttpRsp(handler RequestHandler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rsp, err := handler(r)
@@ -98,17 +111,19 @@ func WrapHttpRsp(handler RequestHandler) http.HandlerFunc {
 	})
 }
 
-// StreamResponse represents a streaming response that can write multiple chunks
+// StreamResponse represents a streaming response configuration with
+// status code, content type, and chunk writing function.
 type StreamResponse struct {
 	StatusCode  int
 	ContentType string
 	WriteChunk  func(w http.ResponseWriter) error
 }
 
-// StreamHandler is a function that handles streaming responses
+// StreamHandler defines a function type for handling streaming HTTP responses.
 type StreamHandler func(r *http.Request) (*StreamResponse, error)
 
-// WrapStreamHandler wraps a StreamHandler to handle HTTP streaming responses
+// WrapStreamHandler wraps a StreamHandler to provide standardized streaming
+// response handling with proper error handling and chunked transfer encoding.
 func WrapStreamHandler(handler StreamHandler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rsp, err := handler(r)
@@ -135,19 +150,16 @@ func WrapStreamHandler(handler StreamHandler) http.HandlerFunc {
 			return
 		}
 
-		// Set up streaming response
 		w.Header().Set("Content-Type", rsp.ContentType)
 		w.Header().Set("Transfer-Encoding", "chunked")
 		w.WriteHeader(rsp.StatusCode)
 
-		// Create a flusher to ensure chunks are sent immediately
 		flusher, ok := w.(http.Flusher)
 		if !ok {
 			ErrApplicationError("streaming not supported").Send(w)
 			return
 		}
 
-		// Write chunks until WriteChunk returns an error or nil
 		for {
 			if err := rsp.WriteChunk(w); err != nil {
 				log.Ctx(r.Context()).Error().Err(err).Msg("Error writing chunk")

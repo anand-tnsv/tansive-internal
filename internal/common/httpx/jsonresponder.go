@@ -9,9 +9,11 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/logtrace"
 )
 
+// SendJsonRsp sends a JSON response with the given status code and message.
+// If location is provided and status code is http.StatusCreated (201),
+// sets the Location header. Handles both pre-marshaled JSON and structs.
 func SendJsonRsp(ctx context.Context, w http.ResponseWriter, statusCode int, msg any, location ...string) {
 	var msgJson []byte
-	// check if msg is already a json string
 	if jsonStr, ok := msg.(string); ok {
 		b := []byte(jsonStr)
 		if json.Valid(b) {
@@ -36,5 +38,4 @@ func SendJsonRsp(ctx context.Context, w http.ResponseWriter, statusCode int, msg
 	}
 	w.WriteHeader(statusCode)
 	w.Write(msgJson)
-
 }

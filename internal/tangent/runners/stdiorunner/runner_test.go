@@ -175,6 +175,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
+	config.TestInit()
+	TestInit()
 	tests := []struct {
 		name      string
 		config    json.RawMessage
@@ -312,7 +314,7 @@ func TestRun(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errorType != nil {
-					assert.Equal(t, tt.errorType, err)
+					assert.ErrorIs(t, err, tt.errorType)
 				}
 			} else {
 				assert.NoError(t, err)
@@ -325,6 +327,8 @@ func TestRun(t *testing.T) {
 }
 
 func TestDevModeSecurity(t *testing.T) {
+	config.TestInit()
+	TestInit()
 	tests := []struct {
 		name      string
 		config    json.RawMessage
@@ -442,7 +446,7 @@ func TestDevModeSecurity(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errorType != nil {
-					assert.Equal(t, tt.errorType, err)
+					assert.ErrorIs(t, err, tt.errorType)
 				}
 			} else {
 				assert.NoError(t, err)
