@@ -51,9 +51,9 @@ var sessionUserHandlers = []policy.ResponseHandlerParam{
 		Handler: getSessionSummaryByID,
 	},
 	{
-		Method: http.MethodGet,
-		Path:   "/{sessionID}/auditlog",
-		//		Handler: getAuditLogByID,
+		Method:  http.MethodGet,
+		Path:    "/{sessionID}/auditlog",
+		Handler: getAuditLogByID,
 	},
 }
 

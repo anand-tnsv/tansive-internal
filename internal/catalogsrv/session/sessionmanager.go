@@ -83,7 +83,7 @@ func (s *sessionManager) GetStatusSummaryInfo(ctx context.Context) *SessionSumma
 		UserID:        s.session.UserID,
 		CreatedAt:     s.session.CreatedAt,
 		StartedAt:     s.session.StartedAt,
-		EndedAt:       s.session.EndedAt,
+		UpdatedAt:     s.session.UpdatedAt,
 		StatusSummary: SessionStatus(s.session.StatusSummary),
 		Error:         status.Error,
 	}

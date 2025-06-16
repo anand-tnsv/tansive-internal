@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -141,10 +142,136 @@ func createSession(req *tangentcommon.SessionCreateRequest, serverURL string) er
 			}
 			return err
 		}
-		PrettyPrintNDJSONLine([]byte(line))
-		//fmt.Println(line)
+		if jsonOutput {
+			fmt.Print(line)
+		} else {
+			PrettyPrintNDJSONLine([]byte(line))
+		}
 	}
 	return nil
+}
+
+// printSessions prints a list of sessions in a table format
+func printSessions(response []byte) error {
+	sessions := []srvsession.SessionSummaryInfo{}
+	if err := json.Unmarshal(response, &sessions); err != nil {
+		return fmt.Errorf("failed to parse response: %v", err)
+	}
+
+	if jsonOutput {
+		output := map[string]any{
+			"result": 1,
+			"value":  sessions,
+		}
+
+		jsonBytes, err := json.MarshalIndent(output, "", "    ")
+		if err != nil {
+			return fmt.Errorf("failed to format JSON output: %v", err)
+		}
+		fmt.Println(string(jsonBytes))
+	} else {
+		// Print header
+		fmt.Printf("%-36s %-12s %-25s %-25s %-20s\n", "SESSION ID", "STATUS", "STARTED", "UPDATED", "CREATED BY")
+		fmt.Println(strings.Repeat("-", 120))
+
+		// Print each session (max 10)
+		count := 0
+		for _, session := range sessions {
+			if count >= 10 {
+				break
+			}
+
+			// Format timestamps
+			startedAt := session.StartedAt.Format("2006-01-02 15:04:05 MST")
+			endedAt := "N/A"
+			// Check for invalid/zero dates (year 0000 or empty)
+			if !session.UpdatedAt.IsZero() && session.UpdatedAt.Year() > 0 {
+				endedAt = session.UpdatedAt.Format("2006-01-02 15:04:05 MST")
+			}
+
+			fmt.Printf("%-36s %-12s %-25s %-25s %-20s\n",
+				session.SessionID,
+				session.StatusSummary,
+				startedAt,
+				endedAt,
+				session.UserID)
+			count++
+		}
+	}
+	return nil
+}
+
+// listSessionsCmd represents the list-sessions subcommand
+var listSessionsCmd = &cobra.Command{
+	Use:   "list-sessions",
+	Short: "List all sessions in the Catalog",
+	Long:  `List all sessions in the Catalog, showing their status, timestamps, and other details.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client := httpclient.NewClient(GetConfig())
+
+		response, err := client.ListResources("sessions", nil)
+		if err != nil {
+			return err
+		}
+
+		return printSessions(response)
+	},
+}
+
+// describeSessionCmd represents the describe subcommand
+var describeSessionCmd = &cobra.Command{
+	Use:   "describe <session-id>",
+	Short: "Describe a session in the Catalog",
+	Long: `Describe a session in the Catalog by its ID. This will show detailed information about the session,
+including its status, timestamps, and other metadata.
+
+Example:
+  tansive session describe 123e4567-e89b-12d3-a456-426614174000`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		sessionID := args[0]
+		client := httpclient.NewClient(GetConfig())
+
+		queryParams := map[string]string{
+			"sessionID": sessionID,
+		}
+		response, err := client.GetResource("sessions", sessionID, queryParams, "")
+		if err != nil {
+			return err
+		}
+
+		var session srvsession.SessionSummaryInfo
+		if err := json.Unmarshal(response, &session); err != nil {
+			return fmt.Errorf("failed to parse response: %v", err)
+		}
+
+		if jsonOutput {
+			output := map[string]any{
+				"result": 1,
+				"value":  session,
+			}
+
+			jsonBytes, err := json.MarshalIndent(output, "", "    ")
+			if err != nil {
+				return fmt.Errorf("failed to format JSON output: %v", err)
+			}
+			fmt.Println(string(jsonBytes))
+		} else {
+			// Print session details in a readable format
+			fmt.Printf("Session ID: %s\n", session.SessionID)
+			fmt.Printf("Status: %s\n", session.StatusSummary)
+			fmt.Printf("Created At: %s\n", session.CreatedAt.Format("2006-01-02 15:04:05 MST"))
+			fmt.Printf("Started At: %s\n", session.StartedAt.Format("2006-01-02 15:04:05 MST"))
+			if !session.UpdatedAt.IsZero() && session.UpdatedAt.Year() > 0 {
+				fmt.Printf("Updated At: %s\n", session.UpdatedAt.Format("2006-01-02 15:04:05 MST"))
+			}
+			fmt.Printf("Created By: %s\n", session.UserID)
+			if len(session.Error) > 0 {
+				fmt.Printf("Error: %v\n", session.Error)
+			}
+		}
+		return nil
+	},
 }
 
 var (
@@ -156,6 +283,8 @@ var (
 func init() {
 	rootCmd.AddCommand(sessionCmd)
 	sessionCmd.AddCommand(createSessionCmd)
+	sessionCmd.AddCommand(listSessionsCmd)
+	sessionCmd.AddCommand(describeSessionCmd)
 
 	createSessionCmd.Flags().StringVar(&viewName, "view", "", "Name of the view to use (required)")
 	createSessionCmd.MarkFlagRequired("view")

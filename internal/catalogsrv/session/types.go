@@ -80,7 +80,7 @@ type SessionSummaryInfo struct {
 	UserID        string         `json:"userID"`
 	CreatedAt     time.Time      `json:"createdAt"`
 	StartedAt     time.Time      `json:"startedAt"`
-	EndedAt       time.Time      `json:"endedAt"`
+	UpdatedAt     time.Time      `json:"updatedAt"`
 	StatusSummary SessionStatus  `json:"statusSummary"`
 	Error         map[string]any `json:"error"`
 }

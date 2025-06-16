@@ -98,3 +98,33 @@ func CompressAndEncodeAuditLogFile(path string) (string, error) {
 	}
 	return buf.String(), nil
 }
+
+// DecodeAndUncompressAuditLogFile decodes a base64-encoded log and uncompresses it with Snappy.
+func DecodeAndUncompressAuditLogFile(encoded string, path string) error {
+	// Decode base64
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return fmt.Errorf("base64 decode failed: %w", err)
+	}
+
+	snappyReader := snappy.NewReader(bytes.NewReader(decoded))
+
+	// Write to a temporary file first
+	tmpPath := path + ".tmp"
+	outFile, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer outFile.Close()
+
+	if _, err := io.Copy(outFile, snappyReader); err != nil {
+		return fmt.Errorf("decompression failed: %w", err)
+	}
+
+	// Atomically move temp file to final path
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("rename to final path failed: %w", err)
+	}
+
+	return nil
+}

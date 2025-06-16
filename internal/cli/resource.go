@@ -90,6 +90,8 @@ func MapResourceTypeToURL(resourceType string) (string, error) {
 		return "resources", nil
 	case "skillset", "sk", "skillsets":
 		return "skillsets", nil
+	case "session", "sess", "sessions":
+		return "sessions", nil
 	default:
 		return "", fmt.Errorf("unknown resource type: %s", resourceType)
 	}

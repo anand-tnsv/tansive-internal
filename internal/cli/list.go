@@ -28,6 +28,7 @@ var listCmd = &cobra.Command{
   - views
   - resources
   - skillsets
+  - sessions
 
 Examples:
   tansive list catalogs
@@ -35,7 +36,8 @@ Examples:
   tansive list namespaces -c catalog -v variant
   tansive list views -c catalog -v variant
   tansive list resources -c catalog -v variant
-  tansive list skillsets -c catalog -v variant`,
+  tansive list skillsets -c catalog -v variant
+  tansive list sessions`,
 	Args: cobra.ExactArgs(1),
 	RunE: listResources,
 }
@@ -67,6 +69,23 @@ func listResources(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if urlResourceType == "views" {
+		return printViews(response)
+	}
+
+	return nil
+}
+
+func init() {
+	rootCmd.AddCommand(listCmd)
+
+	// Add flags
+	listCmd.Flags().StringVarP(&listCatalog, "catalog", "c", "", "Catalog name")
+	listCmd.Flags().StringVarP(&listVariant, "variant", "v", "", "Variant name")
+	listCmd.Flags().StringVarP(&listNamespace, "namespace", "n", "", "Namespace name")
+}
+
+func printViews(response []byte) error {
 	if jsonOutput {
 		// For JSON output, keep the existing format
 		var responseData map[string]any
@@ -92,12 +111,12 @@ func listResources(cmd *cobra.Command, args []string) error {
 		}
 
 		// Print the resource type in plural form
-		fmt.Printf("%s:\n", cases.Title(language.English).String(urlResourceType))
+		fmt.Printf("%s:\n", cases.Title(language.English).String("views"))
 
-		if views, ok := responseData["views"].([]interface{}); ok {
+		if views, ok := responseData["views"].([]any); ok {
 			// Print each item with proper indentation
 			for _, item := range views {
-				if viewMap, ok := item.(map[string]interface{}); ok {
+				if viewMap, ok := item.(map[string]any); ok {
 					if name, ok := viewMap["name"].(string); ok {
 						fmt.Printf("- %s\n", name)
 					}
@@ -106,13 +125,4 @@ func listResources(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return nil
-}
-
-func init() {
-	rootCmd.AddCommand(listCmd)
-
-	// Add flags
-	listCmd.Flags().StringVarP(&listCatalog, "catalog", "c", "", "Catalog name")
-	listCmd.Flags().StringVarP(&listVariant, "variant", "v", "", "Variant name")
-	listCmd.Flags().StringVarP(&listNamespace, "namespace", "n", "", "Namespace name")
 }

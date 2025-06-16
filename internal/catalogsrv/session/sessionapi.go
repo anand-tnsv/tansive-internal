@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -250,7 +251,7 @@ func getSessions(r *http.Request) (*httpx.Response, error) {
 			UserID:        session.UserID,
 			CreatedAt:     session.CreatedAt,
 			StartedAt:     session.StartedAt,
-			EndedAt:       session.EndedAt,
+			UpdatedAt:     session.UpdatedAt,
 			StatusSummary: SessionStatus(session.StatusSummary),
 			Error:         status.Error,
 		}
@@ -258,7 +259,7 @@ func getSessions(r *http.Request) (*httpx.Response, error) {
 
 	return &httpx.Response{
 		StatusCode: http.StatusOK,
-		Response:   sessionList,
+		Response:   sessionListInfo,
 	}, nil
 }
 
@@ -291,12 +292,35 @@ func getSessionSummaryByID(r *http.Request) (*httpx.Response, error) {
 		UserID:        session.UserID,
 		CreatedAt:     session.CreatedAt,
 		StartedAt:     session.StartedAt,
-		EndedAt:       session.EndedAt,
+		UpdatedAt:     session.UpdatedAt,
 		StatusSummary: SessionStatus(session.StatusSummary),
 		Error:         status.Error,
 	}
 	return &httpx.Response{
 		StatusCode: http.StatusOK,
 		Response:   sessionSummaryInfo,
+	}, nil
+}
+
+func getAuditLogByID(r *http.Request) (*httpx.Response, error) {
+	ctx := r.Context()
+	sessionID := chi.URLParam(r, "sessionID")
+	if sessionID == "" {
+		return nil, httpx.ErrInvalidRequest("sessionID is required")
+	}
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil, httpx.ErrInvalidRequest("invalid sessionID")
+	}
+
+	auditLog, err := EncodeAuditLogFile(ctx, sessionUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &httpx.Response{
+		StatusCode:  http.StatusOK,
+		ContentType: "text/plain",
+		Response:    auditLog,
 	}, nil
 }

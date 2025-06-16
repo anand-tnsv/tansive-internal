@@ -8,19 +8,21 @@ import (
 	"runtime"
 
 	"github.com/spf13/cobra"
+	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
+	"github.com/tansive/tansive-internal/internal/common/httpclient"
 	"github.com/tansive/tansive-internal/internal/tangent/session/hashlog"
 )
 
-// auditCmd represents the audit command
-var auditCmd = &cobra.Command{
-	Use:   "audit",
+// auditLogCmd represents the audit command
+var auditLogCmd = &cobra.Command{
+	Use:   "audit-log",
 	Short: "Audit related commands",
 	Long:  `Commands for auditing and verifying logs.`,
 }
 
 // verifyLogCmd represents the verify-log subcommand
 var verifyLogCmd = &cobra.Command{
-	Use:   "verify-log <log-file>",
+	Use:   "verify <log-file>",
 	Short: "Verify the integrity of a log file",
 	Long: `Verify the integrity of a log file by checking its hash chain and HMAC.
 The command will:
@@ -29,7 +31,7 @@ The command will:
 3. Report any verification failures
 
 Example:
-  tansive session audit verify-log /path/to/logfile.log`,
+  tansive session audit-log verify /path/to/logfile.log`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logFile := args[0]
@@ -83,7 +85,7 @@ Example:
 
 // renderHtmlCmd represents the render-html subcommand
 var renderHtmlCmd = &cobra.Command{
-	Use:   "render-html <log-file>",
+	Use:   "view <log-file>",
 	Short: "Generate an HTML visualization of the log file",
 	Long: `Generate an HTML visualization of the log file. The command will:
 1. Read the specified log file
@@ -91,8 +93,8 @@ var renderHtmlCmd = &cobra.Command{
 3. Optionally open the generated HTML file in the default browser
 
 Example:
-  tansive session audit render-html /path/to/logfile.log
-  tansive session audit render-html /path/to/logfile.log -v`,
+  tansive session audit-log view /path/to/logfile.tlog
+  tansive session audit-log view /path/to/logfile.log --no-open`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		logFile := args[0]
@@ -133,7 +135,7 @@ Example:
 		}
 
 		// Open in browser if -v flag is set
-		if viewInBrowser {
+		if !noOpen {
 			var err error
 			switch runtime.GOOS {
 			case "darwin":
@@ -152,15 +154,49 @@ Example:
 	},
 }
 
+// getAuditLogCmd represents the get subcommand
+var getAuditLogCmd = &cobra.Command{
+	Use:   "get <session-id>",
+	Short: "Get the audit log for a session",
+	Long: `Get the audit log for a specific session in the Catalog. This will show the history of events
+and changes that occurred during the session's lifecycle.
+
+Example:
+  tansive session audit-log get 123e4567-e89b-12d3-a456-426614174000`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		sessionID := args[0]
+		client := httpclient.NewClient(GetConfig())
+
+		response, err := client.GetResource("sessions", sessionID+"/auditlog", nil, "")
+		if err != nil {
+			return err
+		}
+
+		auditLogFile := sessionID + ".tlog"
+		if outputFile != "" {
+			auditLogFile = outputFile
+		}
+		if err := srvsession.DecodeAndUncompressAuditLogFile(string(response), auditLogFile); err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
 var (
-	viewInBrowser bool
+	noOpen     bool
+	outputFile string
 )
 
 func init() {
-	sessionCmd.AddCommand(auditCmd)
-	auditCmd.AddCommand(verifyLogCmd)
-	auditCmd.AddCommand(renderHtmlCmd)
+	sessionCmd.AddCommand(auditLogCmd)
+	auditLogCmd.AddCommand(verifyLogCmd)
+	auditLogCmd.AddCommand(renderHtmlCmd)
+	auditLogCmd.AddCommand(getAuditLogCmd)
 
 	// Add view flag to render-html command
-	renderHtmlCmd.Flags().BoolVarP(&viewInBrowser, "view", "v", false, "Open the generated HTML file in the default browser")
+	renderHtmlCmd.Flags().BoolVarP(&noOpen, "no-open", "n", false, "Do not open the generated HTML file in the default browser")
+	// Add output file flag to get command
+	getAuditLogCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Specify the output file path (default: <session-id>.tlog)")
 }
