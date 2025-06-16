@@ -49,6 +49,8 @@ Examples:
 	RunE: updateResource,
 }
 
+// updateResource handles applying a resource from a file
+// It attempts to create the resource first, then updates if it already exists
 func updateResource(cmd *cobra.Command, args []string) error {
 	filename, err := cmd.Flags().GetString("filename")
 	if err != nil {
@@ -121,6 +123,7 @@ func updateResource(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// init initializes the update command with its flags and adds it to the root command
 func init() {
 	// Add flags to the update command
 	updateCmd.Flags().StringP("filename", "f", "", "Filename to use to update the resource")

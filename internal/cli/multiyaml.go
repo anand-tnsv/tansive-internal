@@ -11,6 +11,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ParseMultiYAML parses a file containing multiple YAML documents
+// Returns a slice of maps containing the parsed YAML documents
 func ParseMultiYAML(filename string) ([]map[string]any, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {

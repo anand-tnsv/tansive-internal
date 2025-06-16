@@ -39,6 +39,8 @@ Examples:
 	RunE: deleteResource,
 }
 
+// deleteResource handles the deletion of a resource by type and name
+// It validates the input format and sends the delete request to the server
 func deleteResource(cmd *cobra.Command, args []string) error {
 	parts := strings.SplitN(args[0], "/", 2)
 	if len(parts) != 2 {
@@ -80,6 +82,7 @@ func deleteResource(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// init initializes the delete command with its flags and adds it to the root command
 func init() {
 	rootCmd.AddCommand(deleteCmd)
 

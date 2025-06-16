@@ -42,6 +42,8 @@ Examples:
 	RunE: putResourceValue,
 }
 
+// putResourceValue handles updating a resource value by path
+// It validates the input and sends the update request to the server
 func putResourceValue(cmd *cobra.Command, args []string) error {
 	// Split the argument into resource type and name
 	parts := strings.SplitN(args[0], "/", 2)
@@ -117,6 +119,7 @@ func putResourceValue(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// init initializes the put command with its flags and adds it to the root command
 func init() {
 	rootCmd.AddCommand(putCmd)
 

@@ -155,6 +155,7 @@ Examples:
 	},
 }
 
+// init initializes the select-catalog and adopt-view commands and adds them to the root command
 func init() {
 	rootCmd.AddCommand(selectCatalogCmd)
 	rootCmd.AddCommand(adoptViewCmd)

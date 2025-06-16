@@ -43,6 +43,8 @@ var _ = tansiveColor
 
 var colorIndex = 0
 
+// PrettyPrintNDJSONLine formats and prints a single NDJSON line with color-coded output
+// It handles session tracking, timestamps, and different message types
 func PrettyPrintNDJSONLine(line []byte) {
 	var m map[string]any
 	if err := json.Unmarshal(line, &m); err != nil {
@@ -132,6 +134,7 @@ func PrettyPrintNDJSONLine(line []byte) {
 	}
 }
 
+// str safely converts an interface{} to string, returning empty string if conversion fails
 func str(v any) string {
 	if s, ok := v.(string); ok {
 		return s
@@ -139,6 +142,7 @@ func str(v any) string {
 	return ""
 }
 
+// int64From safely converts an interface{} to int64, handling different numeric types
 func int64From(v any) int64 {
 	switch x := v.(type) {
 	case float64:
@@ -150,6 +154,7 @@ func int64From(v any) int64 {
 	}
 }
 
+// indentMultiline adds indentation to all lines except the first in a multiline string
 func indentMultiline(text, indent string) string {
 	lines := strings.Split(text, "\n")
 	if len(lines) <= 1 {

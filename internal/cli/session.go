@@ -125,6 +125,8 @@ Examples:
 	},
 }
 
+// createSession creates a new session with the given request parameters
+// It streams the session output and formats it based on the output format
 func createSession(req *tangentcommon.SessionCreateRequest, serverURL string) error {
 	tangentConfig := TangentConfig{
 		ServerURL: serverURL,
@@ -167,7 +169,7 @@ func createSession(req *tangentcommon.SessionCreateRequest, serverURL string) er
 	return nil
 }
 
-// printSessions prints a list of sessions in a table format
+// printSessions formats and prints a list of sessions in either JSON or table format
 func printSessions(response []byte) error {
 	sessions := []srvsession.SessionSummaryInfo{}
 	if err := json.Unmarshal(response, &sessions); err != nil {
@@ -313,6 +315,7 @@ var (
 	viewName       string
 )
 
+// init initializes the session command and its subcommands
 func init() {
 	rootCmd.AddCommand(sessionCmd)
 	sessionCmd.AddCommand(createSessionCmd)

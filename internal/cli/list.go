@@ -55,6 +55,8 @@ Examples:
 	RunE: listResources,
 }
 
+// listResources handles listing resources of a specific type
+// It retrieves the resources and formats the output based on the resource type
 func listResources(cmd *cobra.Command, args []string) error {
 	resourceType := args[0]
 
@@ -89,6 +91,7 @@ func listResources(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// init initializes the list command with its flags and adds it to the root command
 func init() {
 	rootCmd.AddCommand(listCmd)
 
@@ -98,6 +101,7 @@ func init() {
 	listCmd.Flags().StringVarP(&listNamespace, "namespace", "n", "", "Namespace name")
 }
 
+// printViews formats and prints the views in either JSON or human-readable format
 func printViews(response []byte) error {
 	if jsonOutput {
 		// For JSON output, keep the existing format

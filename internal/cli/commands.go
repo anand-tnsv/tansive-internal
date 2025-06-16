@@ -69,6 +69,7 @@ func Execute() {
 	}
 }
 
+// preRunHandlePersistents handles persistent flags and configuration loading before command execution
 func preRunHandlePersistents(cmd *cobra.Command, args []string) {
 	// if a config file is provided, load config from config file
 	if configFile == "" {
@@ -103,6 +104,7 @@ func preRunHandlePersistents(cmd *cobra.Command, args []string) {
 	}
 }
 
+// newVersionCmd creates and returns a new version command
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",

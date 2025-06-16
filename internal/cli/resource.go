@@ -15,6 +15,7 @@ type Resource struct {
 }
 
 // LoadResourceFromFile loads a resource from a YAML file and converts it to JSON
+// Returns the JSON data and a parsed Resource struct
 func LoadResourceFromFile(filename string) ([]byte, *Resource, error) {
 	// Read the YAML file
 	data, err := os.ReadFile(filename)
@@ -40,6 +41,7 @@ func LoadResourceFromFile(filename string) ([]byte, *Resource, error) {
 	return jsonData, &resource, nil
 }
 
+// replaceTabsWithSpaces replaces all tab characters with four spaces in a byte slice
 func replaceTabsWithSpaces(b []byte) []byte {
 	space := []byte("    ")
 	var result []byte
@@ -54,6 +56,7 @@ func replaceTabsWithSpaces(b []byte) []byte {
 }
 
 // GetResourceType returns the API endpoint path for a given resource kind
+// Maps resource kinds to their corresponding API endpoints
 func GetResourceType(kind string) (string, error) {
 	switch kind {
 	case "Catalog":
@@ -76,6 +79,7 @@ func GetResourceType(kind string) (string, error) {
 }
 
 // MapResourceTypeToURL maps a resource type string to its URL format
+// Handles various aliases for each resource type
 func MapResourceTypeToURL(resourceType string) (string, error) {
 	switch resourceType {
 	case "catalog", "cat", "catalogs":

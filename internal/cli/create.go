@@ -42,6 +42,8 @@ Examples:
 	RunE: createResource,
 }
 
+// createResource handles the creation of a resource from a file
+// It validates the input, loads the resource, and sends it to the server
 func createResource(cmd *cobra.Command, args []string) error {
 	filename, err := cmd.Flags().GetString("filename")
 	if err != nil {
@@ -92,6 +94,7 @@ func createResource(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// init initializes the create command with its flags and adds it to the root command
 func init() {
 	// Add flags to the create command
 	createCmd.Flags().StringP("filename", "f", "", "Filename to use to create the resource")

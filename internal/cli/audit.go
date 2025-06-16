@@ -212,6 +212,7 @@ var (
 	outputFile string
 )
 
+// init initializes the audit log command and its subcommands with their respective flags
 func init() {
 	sessionCmd.AddCommand(auditLogCmd)
 	auditLogCmd.AddCommand(verifyLogCmd)
