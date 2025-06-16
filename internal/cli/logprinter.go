@@ -60,6 +60,7 @@ func PrettyPrintNDJSONLine(line []byte) {
 	policy := str(m["policy_decision"])
 	actor := str(m["actor"])
 	runner := str(m["runner"])
+	errorMsg := str(m["error"])
 	t := int64From(m["time"]) // milliseconds since epoch
 
 	// Initialize session if needed
@@ -122,6 +123,9 @@ func PrettyPrintNDJSONLine(line []byte) {
 		fmt.Print(" ")
 		color.New(color.FgHiRed).Print("❗ ")
 		color.New(color.FgHiRed).Println(msg)
+		if errorMsg != "" {
+			color.New(color.FgHiRed).Println("                                   ", errorMsg)
+		}
 	} else {
 		fmt.Print(" ▶ ")
 		fmt.Println(msg)
