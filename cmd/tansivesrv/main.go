@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -122,7 +123,7 @@ func createDefaultTenantAndProject(ctx context.Context) error {
 	err = retry.Do(
 		func() error {
 			if err := db.DB(dbCtx).CreateTenant(dbCtx, catcommon.TenantId(config.Config().DefaultTenantID)); err != nil {
-				if err == dberror.ErrAlreadyExists {
+				if errors.Is(err, dberror.ErrAlreadyExists) {
 					return nil
 				}
 				return err
@@ -142,7 +143,7 @@ func createDefaultTenantAndProject(ctx context.Context) error {
 	err = retry.Do(
 		func() error {
 			if err := db.DB(dbCtx).CreateProject(dbCtx, catcommon.ProjectId(config.Config().DefaultProjectID)); err != nil {
-				if err == dberror.ErrAlreadyExists {
+				if errors.Is(err, dberror.ErrAlreadyExists) {
 					return nil
 				}
 				return err

@@ -6,6 +6,8 @@ package httpclient
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,6 +25,7 @@ import (
 type Configurator interface {
 	GetServerURL() string
 	GetAPIKey() string
+	GetSigningKey() (string, []byte)
 	GetToken() string
 	GetTokenExpiry() time.Time
 }
@@ -85,13 +88,14 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 	}
 	u.RawQuery = q.Encode()
 
-	req, err := http.NewRequest(opts.Method, u.String(), bytes.NewBuffer(opts.Body))
+	bodyReader := bytes.NewBuffer(opts.Body)
+	req, err := http.NewRequest(opts.Method, u.String(), bodyReader)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create request: %v", err)
 	}
-
 	req.Header.Set("Content-Type", "application/json")
 
+	// Use token if valid
 	if c.config.GetToken() != "" && !c.config.GetTokenExpiry().IsZero() {
 		expiry := c.config.GetTokenExpiry()
 		if time.Now().Before(expiry) {
@@ -103,6 +107,29 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 		}
 	} else if c.config.GetAPIKey() != "" {
 		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
+	}
+	// Sign request if SigningKey is present
+	keyID, privateKeyBytes := c.config.GetSigningKey()
+	if len(privateKeyBytes) == ed25519.PrivateKeySize {
+		privateKey := ed25519.PrivateKey(privateKeyBytes)
+
+		timestamp := time.Now().UTC().Format(time.RFC3339)
+
+		// Canonical string to sign
+		stringToSign := strings.Join([]string{
+			opts.Method,
+			u.Path,
+			u.RawQuery,
+			string(opts.Body),
+			timestamp,
+		}, "\n")
+
+		signature := ed25519.Sign(privateKey, []byte(stringToSign))
+		signatureB64 := base64.StdEncoding.EncodeToString(signature)
+
+		req.Header.Set("X-Tangent-Signature", signatureB64)
+		req.Header.Set("X-Tangent-Signature-Timestamp", timestamp)
+		req.Header.Set("X-TangentID", keyID)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -284,13 +311,7 @@ func (c *HTTPClient) StreamRequest(opts RequestOptions) (io.ReadCloser, error) {
 		expiry := c.config.GetTokenExpiry()
 		if time.Now().Before(expiry) {
 			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
-		} else {
-			if c.config.GetAPIKey() != "" {
-				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
-			}
 		}
-	} else if c.config.GetAPIKey() != "" {
-		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 	}
 
 	resp, err := c.httpClient.Do(req)

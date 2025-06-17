@@ -20,7 +20,7 @@ import (
 
 func TestOpenAI(t *testing.T) {
 	t.Skip("Skipping openai test")
-	config.TestInit()
+	config.TestInit(t)
 	SetTestMode(true)
 	stdiorunner.TestInit()
 	ts := test.SetupTestCatalog(t)

@@ -166,6 +166,11 @@ func (cfg *Config) GetAPIKey() string {
 	return cfg.APIKey
 }
 
+// GetSigningKey returns the API key from the configuration
+func (cfg *Config) GetSigningKey() (string, []byte) {
+	return "", nil
+}
+
 // GetToken returns the current token from the configuration
 func (cfg *Config) GetToken() string {
 	return cfg.CurrentToken
@@ -185,7 +190,6 @@ func (cfg *Config) GetTokenExpiry() time.Time {
 
 type TangentConfig struct {
 	ServerURL   string
-	APIKey      string
 	Token       string
 	TokenExpiry time.Time
 }
@@ -195,7 +199,11 @@ func (cfg *TangentConfig) GetServerURL() string {
 }
 
 func (cfg *TangentConfig) GetAPIKey() string {
-	return cfg.APIKey
+	return ""
+}
+
+func (cfg *TangentConfig) GetSigningKey() (string, []byte) {
+	return "", nil
 }
 
 func (cfg *TangentConfig) GetToken() string {

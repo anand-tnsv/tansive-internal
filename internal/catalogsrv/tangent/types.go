@@ -9,9 +9,12 @@ import (
 )
 
 type TangentInfo struct {
-	CreatedBy    string               `json:"createdBy"`
-	URL          string               `json:"url"`
-	Capabilities []catcommon.RunnerID `json:"capabilities"`
+	ID                     uuid.UUID            `json:"id"`
+	CreatedBy              string               `json:"createdBy"`
+	URL                    string               `json:"url"`
+	Capabilities           []catcommon.RunnerID `json:"capabilities"`
+	PublicKeyAccessKey     []byte               `json:"publicKeyAccessKey"`
+	PublicKeyLogSigningKey []byte               `json:"publicKeyLogSigningKey"`
 }
 
 type Tangent struct {

@@ -16,7 +16,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	config.TestInit()
+	config.TestInit(t)
 	TestInit()
 	tests := []struct {
 		name       string
@@ -175,7 +175,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	config.TestInit()
+	config.TestInit(t)
 	TestInit()
 	tests := []struct {
 		name      string
@@ -327,7 +327,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestDevModeSecurity(t *testing.T) {
-	config.TestInit()
+	config.TestInit(t)
 	TestInit()
 	tests := []struct {
 		name      string

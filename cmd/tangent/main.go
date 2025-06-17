@@ -48,6 +48,9 @@ func run(ctx context.Context) error {
 	if config.Config().ServerPort == "" {
 		return fmt.Errorf("server port not defined")
 	}
+	if err := config.RegisterTangent(); err != nil {
+		return fmt.Errorf("registering tangent: %w", err)
+	}
 	session.Init()
 
 	s, err := server.CreateNewServer()

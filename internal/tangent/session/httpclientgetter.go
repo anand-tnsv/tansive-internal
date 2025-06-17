@@ -1,20 +1,19 @@
 package session
 
 import (
-	"context"
-	"sync"
 	"time"
 
-	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/runners"
 )
 
 type clientConfig struct {
-	token       string
-	tokenExpiry time.Time
-	serverURL   string
+	signingKey   []byte
+	signingKeyID string
+	token        string
+	tokenExpiry  time.Time
+	serverURL    string
 }
 
 func (c *clientConfig) GetToken() string {
@@ -25,42 +24,35 @@ func (c *clientConfig) GetTokenExpiry() time.Time {
 	return c.tokenExpiry
 }
 
-func (c *clientConfig) GetServerURL() string {
-	return c.serverURL
-}
-
 func (c *clientConfig) GetAPIKey() string {
 	return ""
 }
 
-func getHTTPClient(config *clientConfig) httpclient.HTTPClientInterface {
+func (c *clientConfig) GetServerURL() string {
+	return c.serverURL
+}
+
+func (c *clientConfig) GetSigningKey() (string, []byte) {
+	if len(c.signingKey) == 0 || c.signingKeyID == "" {
+		return "", nil
+	}
+	return c.signingKeyID, c.signingKey
+}
+
+func getHTTPClient(clientConfig *clientConfig) httpclient.HTTPClientInterface {
+	runtimeConfig := config.GetRuntimeConfig()
+	if runtimeConfig != nil && runtimeConfig.Registered {
+		clientConfig.signingKey = runtimeConfig.AccessKey.PrivateKey
+		clientConfig.signingKeyID = runtimeConfig.TangentID.String()
+	}
 	if isTestMode {
-		c, err := httpclient.NewTestClient(config)
+		c, err := httpclient.NewTestClient(clientConfig)
 		if err != nil {
 			return nil
 		}
 		return c
 	}
-	return httpclient.NewClient(config)
-}
-
-var (
-	tansiveSrvClientConfig *clientConfig
-	tansiveSrvMutex        sync.RWMutex
-)
-
-func setTansiveSrvClient(ctx context.Context, config *clientConfig) apperrors.Error {
-	_ = ctx
-	tansiveSrvMutex.Lock()
-	tansiveSrvClientConfig = config
-	tansiveSrvMutex.Unlock()
-	return nil
-}
-
-func getTansiveSrvClient() httpclient.HTTPClientInterface {
-	tansiveSrvMutex.RLock()
-	defer tansiveSrvMutex.RUnlock()
-	return getHTTPClient(tansiveSrvClientConfig)
+	return httpclient.NewClient(clientConfig)
 }
 
 var isTestMode bool
@@ -70,10 +62,5 @@ func SetTestMode(testMode bool) {
 }
 
 func Init() {
-	setTansiveSrvClient(context.Background(), &clientConfig{
-		token:       "",
-		tokenExpiry: time.Now().Add(1 * time.Hour),
-		serverURL:   config.Config().TansiveServer.GetURL(),
-	})
 	runners.Init()
 }

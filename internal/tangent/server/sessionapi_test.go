@@ -20,7 +20,7 @@ import (
 )
 
 func TestHandleInteractiveSession(t *testing.T) {
-	config.TestInit()
+	config.TestInit(t)
 	session.Init()
 	session.SetTestMode(true)
 	stdiorunner.TestInit()

@@ -2,6 +2,8 @@ package httpclient
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,6 +78,30 @@ func (c *TestHTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) 
 		}
 	} else if c.config.GetAPIKey() != "" {
 		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
+	}
+
+	// Sign request if SigningKey is present
+	keyID, privateKeyBytes := c.config.GetSigningKey()
+	if len(privateKeyBytes) == ed25519.PrivateKeySize {
+		privateKey := ed25519.PrivateKey(privateKeyBytes)
+
+		timestamp := time.Now().UTC().Format(time.RFC3339)
+
+		// Canonical string to sign
+		stringToSign := strings.Join([]string{
+			opts.Method,
+			u.Path,
+			u.RawQuery,
+			string(opts.Body),
+			timestamp,
+		}, "\n")
+
+		signature := ed25519.Sign(privateKey, []byte(stringToSign))
+		signatureB64 := base64.StdEncoding.EncodeToString(signature)
+
+		req.Header.Set("X-Tangent-Signature", signatureB64)
+		req.Header.Set("X-Tangent-Signature-Timestamp", timestamp)
+		req.Header.Set("X-TangentID", keyID)
 	}
 
 	rr := httptest.NewRecorder()
@@ -253,13 +279,7 @@ func (c *TestHTTPClient) StreamRequest(opts RequestOptions) (io.ReadCloser, erro
 		expiry := c.config.GetTokenExpiry()
 		if time.Now().Before(expiry) {
 			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
-		} else {
-			if c.config.GetAPIKey() != "" {
-				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
-			}
 		}
-	} else if c.config.GetAPIKey() != "" {
-		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 	}
 
 	rr := httptest.NewRecorder()

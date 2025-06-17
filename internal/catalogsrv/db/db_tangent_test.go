@@ -36,6 +36,7 @@ func TestCreateTangent(t *testing.T) {
 
 	// Create first tangent
 	tangent := models.Tangent{
+		ID:        uuid.New(),
 		Info:      info.Bytes,
 		PublicKey: []byte("test-public-key-1"),
 		Status:    "active",
@@ -57,6 +58,7 @@ func TestCreateTangent(t *testing.T) {
 
 	// Create new tangent with different ID
 	newTangent := models.Tangent{
+		ID:        uuid.New(),
 		Info:      info.Bytes,
 		PublicKey: []byte("test-public-key-3"),
 		Status:    "pending",
@@ -87,6 +89,7 @@ func TestGetTangent(t *testing.T) {
 	assert.NoError(t, info.Set(`{"meta": "get_test"}`))
 
 	tangent := models.Tangent{
+		ID:        uuid.New(),
 		Info:      info.Bytes,
 		PublicKey: []byte("test-public-key-get"),
 		Status:    "active",
@@ -132,6 +135,7 @@ func TestUpdateTangent(t *testing.T) {
 	assert.NoError(t, info.Set(`{"meta": "update_test"}`))
 
 	tangent := models.Tangent{
+		ID:        uuid.New(),
 		Info:      info.Bytes,
 		PublicKey: []byte("test-public-key-update"),
 		Status:    "active",
@@ -195,6 +199,7 @@ func TestDeleteTangent(t *testing.T) {
 	assert.NoError(t, info.Set(`{"meta": "delete_test"}`))
 
 	tangent := models.Tangent{
+		ID:        uuid.New(),
 		Info:      info.Bytes,
 		PublicKey: []byte("test-public-key-delete"),
 		Status:    "active",
@@ -236,16 +241,19 @@ func TestListTangents(t *testing.T) {
 	// Create multiple tangents
 	tangents := []models.Tangent{
 		{
+			ID:        uuid.New(),
 			Info:      info.Bytes,
 			PublicKey: []byte("test-public-key-1"),
 			Status:    "active",
 		},
 		{
+			ID:        uuid.New(),
 			Info:      info.Bytes,
 			PublicKey: []byte("test-public-key-2"),
 			Status:    "pending",
 		},
 		{
+			ID:        uuid.New(),
 			Info:      info.Bytes,
 			PublicKey: []byte("test-public-key-3"),
 			Status:    "completed",

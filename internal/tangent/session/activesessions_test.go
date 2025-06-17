@@ -16,7 +16,7 @@ import (
 )
 
 func TestCreateSession(t *testing.T) {
-	config.TestInit()
+	config.TestInit(t)
 	Init()
 	SetTestMode(true)
 	stdiorunner.TestInit()

@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -100,7 +101,7 @@ func processOutput(outWriter *tangentcommon.BufferedWriter, errWriter *tangentco
 	response := make(map[string]any)
 
 	if err != nil {
-		if err == ErrBlockedByPolicy {
+		if errors.Is(err, ErrBlockedByPolicy) {
 			response["error"] = err.Error() + " Please contact the administrator of your Tansive system to request access."
 		} else {
 			response["error"] = err.Error()

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -70,6 +71,10 @@ var cfg *ConfigParam
 // Config returns the current configuration
 func Config() *ConfigParam {
 	return cfg
+}
+
+func GetURL() string {
+	return "http://" + Config().ServerHostName + ":" + Config().ServerPort
 }
 
 // ParseDuration parses a duration string in the format "<number><unit>" where unit can be:
@@ -162,38 +167,15 @@ func LoadConfig(filename string) error {
 		return fmt.Errorf("invalid configuration: %v", err)
 	}
 
+	RuntimeInit()
+
 	return nil
-}
-
-func GetAuditLogDir() string {
-	// get os application data directory
-	appDataDir, err := os.UserConfigDir()
-	if err != nil {
-		panic(err)
-	}
-	auditLogDir := filepath.Join(appDataDir, "tangent", "auditlogs")
-	return auditLogDir
-}
-
-func CreateAuditLogDir() {
-	auditLogDir := GetAuditLogDir()
-	if _, err := os.Stat(auditLogDir); os.IsNotExist(err) {
-		os.MkdirAll(auditLogDir, 0755)
-	}
 }
 
 // ConfigFormatVersion is the current version of the configuration file format
 const ConfigFormatVersion = "0.1.0"
 
-func init() {
-	if err := LoadConfig("tangent.conf"); err != nil {
-		// Log the error but don't panic
-		fmt.Printf("Error loading config: %v\n", err)
-	}
-	CreateAuditLogDir()
-}
-
-func TestInit() {
+func TestInit(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -214,5 +196,7 @@ func TestInit() {
 	if err := LoadConfig(filepath.Join(projectRoot, "tangent.conf")); err != nil {
 		panic(fmt.Errorf("error loading config: %v", err))
 	}
-	CreateAuditLogDir()
+	t.Cleanup(func() {
+		deleteRuntimeConfig()
+	})
 }

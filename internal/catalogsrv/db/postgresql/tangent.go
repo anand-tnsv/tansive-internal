@@ -48,8 +48,9 @@ func (mm *metadataManager) createTangentWithTransaction(ctx context.Context, tan
 	}
 
 	tangent.TenantID = string(tenantID)
+
 	if tangent.ID == uuid.Nil {
-		tangent.ID = uuid.New()
+		return dberror.ErrInvalidInput.Msg("tangent id is required")
 	}
 
 	query := `

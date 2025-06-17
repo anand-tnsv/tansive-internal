@@ -57,7 +57,9 @@ func createSession(r *http.Request) (*httpx.Response, error) {
 }
 
 func handleInteractiveSession(ctx context.Context, req *tangentcommon.SessionCreateRequest) (*session, apperrors.Error) {
-	client := getTansiveSrvClient()
+	client := getHTTPClient(&clientConfig{
+		serverURL: config.Config().TansiveServer.GetURL(),
+	})
 
 	opts := httpclient.RequestOptions{
 		Method: http.MethodPost,
