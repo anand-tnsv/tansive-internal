@@ -24,7 +24,7 @@ spec:
     - name: my-agent-script
       id: "system.stdiorunner"
       config:
-        version: "0.1.0"
+        version: "0.1.0-alpha.1"
         runtime: "bash"
         runtimeConfig:
           key: "value"
@@ -36,7 +36,7 @@ spec:
     - name: my-tools-script
       id: "system.stdiorunner"
       config:
-        version: "0.1.0"
+        version: "0.1.0-alpha.1"
         runtime: "bash"
         runtimeConfig:
           key: "value"

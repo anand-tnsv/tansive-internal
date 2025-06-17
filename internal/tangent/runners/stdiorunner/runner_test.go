@@ -3,6 +3,7 @@ package stdiorunner
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -27,8 +28,8 @@ func TestNew(t *testing.T) {
 	}{
 		{
 			name: "valid config",
-			jsonConfig: json.RawMessage(`{
-				"version": "0.1.0",
+			jsonConfig: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {
 					"key1": "value1"
@@ -40,13 +41,13 @@ func TestNew(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			wantErr: false,
 		},
 		{
 			name: "environment variables set correctly",
-			jsonConfig: json.RawMessage(`{
-				"version": "0.1.0",
+			jsonConfig: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {
@@ -58,7 +59,7 @@ func TestNew(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			wantErr: false,
 			check: func(t *testing.T, r *runner) {
 				assert.Equal(t, "test_value", r.config.Env["TEST_VAR"])
@@ -68,8 +69,8 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "invalid runtime",
-			jsonConfig: json.RawMessage(`{
-				"version": "0.1.0",
+			jsonConfig: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "invalid",
 				"runtimeConfig": {},
 				"env": {},
@@ -77,14 +78,14 @@ func TestNew(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			wantErr:   true,
 			errorType: ErrInvalidRuntime,
 		},
 		{
 			name: "invalid security type",
-			jsonConfig: json.RawMessage(`{
-				"version": "0.1.0",
+			jsonConfig: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {},
@@ -92,21 +93,21 @@ func TestNew(t *testing.T) {
 				"security": {
 					"type": "invalid"
 				}
-			}`),
+			}`, Version)),
 			wantErr:   true,
 			errorType: ErrInvalidSecurity,
 		},
 		{
 			name: "missing script",
-			jsonConfig: json.RawMessage(`{
-				"version": "0.1.0",
+			jsonConfig: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {},
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			wantErr:   true,
 			errorType: ErrInvalidScript,
 		},
@@ -187,8 +188,8 @@ func TestRun(t *testing.T) {
 	}{
 		{
 			name: "successful execution",
-			config: json.RawMessage(`{
-				"version": "0.1.0",
+			config: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {
@@ -198,7 +199,7 @@ func TestRun(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			args: json.RawMessage(`{
 				"arg1": "value1",
 				"arg2": "value2"
@@ -207,8 +208,8 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name: "environment variables passed correctly",
-			config: json.RawMessage(`{
-				"version": "0.1.0",
+			config: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {
@@ -220,7 +221,7 @@ func TestRun(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			args: json.RawMessage(`{
 				"arg1": "value1",
 				"arg2": "value2",
@@ -236,8 +237,8 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name: "script not found",
-			config: json.RawMessage(`{
-				"version": "0.1.0",
+			config: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {
@@ -247,7 +248,7 @@ func TestRun(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			args: json.RawMessage(`{
 				"arg1": "value1",
 				"arg2": "value2"
@@ -257,8 +258,8 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name: "script execution failure",
-			config: json.RawMessage(`{
-				"version": "0.1.0",
+			config: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {
@@ -268,7 +269,7 @@ func TestRun(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			args: json.RawMessage(`{
 				"arg1": "value1",
 				"arg2": "value2",
@@ -339,8 +340,8 @@ func TestDevModeSecurity(t *testing.T) {
 	}{
 		{
 			name: "script path escaping attempt",
-			config: json.RawMessage(`{
-				"version": "0.1.0",
+			config: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {
@@ -350,7 +351,7 @@ func TestDevModeSecurity(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			args: json.RawMessage(`{
 				"arg1": "value1",
 				"arg2": "value2"
@@ -360,8 +361,8 @@ func TestDevModeSecurity(t *testing.T) {
 		},
 		{
 			name: "command injection attempt",
-			config: json.RawMessage(`{
-				"version": "0.1.0",
+			config: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {
@@ -371,7 +372,7 @@ func TestDevModeSecurity(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			args: json.RawMessage(`{
 				"arg1": "value1; rm -rf /",
 				"arg2": "value2; cat /etc/passwd"
@@ -386,8 +387,8 @@ func TestDevModeSecurity(t *testing.T) {
 		},
 		{
 			name: "home directory access attempt",
-			config: json.RawMessage(`{
-				"version": "0.1.0",
+			config: json.RawMessage(fmt.Sprintf(`{
+				"version": "%s",
 				"runtime": "bash",
 				"runtimeConfig": {},
 				"env": {
@@ -397,7 +398,7 @@ func TestDevModeSecurity(t *testing.T) {
 				"security": {
 					"type": "dev-mode"
 				}
-			}`),
+			}`, Version)),
 			args: json.RawMessage(`{
 				"arg1": "value1",
 				"arg2": "value2",

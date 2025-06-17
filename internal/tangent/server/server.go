@@ -60,8 +60,8 @@ type GetVersionRsp struct {
 func (s *AgentServer) getVersion(w http.ResponseWriter, r *http.Request) {
 	log.Ctx(r.Context()).Debug().Msg("GetVersion")
 	rsp := &GetVersionRsp{
-		ServerVersion: "Tansive Tangent Server: 0.1.0",
-		ApiVersion:    "v1alpha1",
+		ServerVersion: "Tansive Tangent Server: " + Version,
+		ApiVersion:    session.Version,
 	}
 	httpx.SendJsonRsp(r.Context(), w, http.StatusOK, rsp)
 }

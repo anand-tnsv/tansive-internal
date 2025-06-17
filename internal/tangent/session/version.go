@@ -1,4 +1,4 @@
-package stdiorunner
+package session
 
 import (
 	"github.com/Masterminds/semver/v3"

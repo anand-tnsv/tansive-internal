@@ -1,4 +1,4 @@
-package stdiorunner
+package server
 
 import (
 	"github.com/Masterminds/semver/v3"
