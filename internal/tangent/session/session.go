@@ -398,7 +398,8 @@ func (s *session) Finalize(ctx context.Context, apperr apperrors.Error) apperror
 	sessionStatus := srvsession.ExecutionStatusUpdate{
 		StatusSummary: srvsession.SessionStatusCompleted,
 		Status: srvsession.ExecutionStatus{
-			AuditLog: auditLog,
+			AuditLog:                auditLog,
+			AuditLogVerificationKey: s.auditLogInfo.auditLogPubKey,
 		},
 	}
 	if apperr != nil {

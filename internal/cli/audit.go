@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
@@ -33,7 +35,7 @@ var verifyLogCmd = &cobra.Command{
 	Long: `Verify the integrity of a log file by checking its hash chain and HMAC.
 The command will:
 1. Read the specified log file
-2. Verify the hash chain and HMAC for each entry
+2. Verify the hash chain and signature for each entry
 3. Report any verification failures
 
 Examples:
@@ -53,11 +55,35 @@ Examples:
 		}
 		defer file.Close()
 
-		// TODO: Get HMAC key from configuration or environment
-		hmacKey := []byte("tansive-dev-hmac-key") // This should be properly configured
+		// read the first line of the file and reset the file pointer to the beginning
+		firstLine, err := bufio.NewReader(file).ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("failed to read first line of log file: %v", err)
+		}
+		_, err = file.Seek(0, io.SeekStart)
+		if err != nil {
+			return fmt.Errorf("failed to reset file pointer: %v", err)
+		}
+
+		type logLine struct {
+			Payload map[string]any `json:"payload"`
+		}
+
+		line := logLine{}
+		if err := json.Unmarshal([]byte(firstLine), &line); err != nil {
+			return fmt.Errorf("failed to get metadata from log file: %v", err)
+		}
+		sessionID, ok := line.Payload["session_id"].(string)
+		if !ok {
+			return fmt.Errorf("session_id not found in log file")
+		}
+		verificationKey, err := getVerificationKey(sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to get verification key: %v", err)
+		}
 
 		// Verify the log
-		if err := hashlog.VerifyHashedLog(file, hmacKey); err != nil {
+		if err := hashlog.VerifyHashedLog(file, verificationKey); err != nil {
 			if jsonOutput {
 				output := map[string]any{
 					"result": 0,
@@ -91,6 +117,19 @@ Examples:
 		}
 		return nil
 	},
+}
+
+func getVerificationKey(sessionID string) ([]byte, error) {
+	client := httpclient.NewClient(GetConfig())
+	response, err := client.GetResource("sessions", sessionID+"/auditlog/verification-key", nil, "")
+	if err != nil {
+		return nil, err
+	}
+	verificationKey := srvsession.AuditLogVerificationKey{}
+	if err := json.Unmarshal(response, &verificationKey); err != nil {
+		return nil, err
+	}
+	return verificationKey.Key, nil
 }
 
 // renderHtmlCmd represents the render-html subcommand

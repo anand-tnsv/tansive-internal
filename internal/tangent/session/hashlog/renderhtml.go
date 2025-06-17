@@ -6,6 +6,7 @@ import (
 	"html"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -70,11 +71,36 @@ func RenderHashedLogToHTML(path string) error {
 		}
 		nodes[id] = node
 	}
+	// for _, node := range nodes {
+	// 	if node.InvokerID == "" || nodes[node.InvokerID] == nil {
+	// 		roots = append(roots, node)
+	// 	} else {
+	// 		nodes[node.InvokerID].Children = append(nodes[node.InvokerID].Children, node)
+	// 	}
+	// }
+	var generalRoot *SkillNode
 	for _, node := range nodes {
-		if node.InvokerID == "" || nodes[node.InvokerID] == nil {
-			roots = append(roots, node)
+		if node.ID == "__general__" {
+			generalRoot = node
+			continue
+		}
+		if parent, ok := nodes[node.InvokerID]; ok {
+			parent.Children = append(parent.Children, node)
 		} else {
-			nodes[node.InvokerID].Children = append(nodes[node.InvokerID].Children, node)
+			// No valid invoker_id — treat as child of __general__
+			if generalRoot != nil {
+				generalRoot.Children = append(generalRoot.Children, node)
+			}
+		}
+	}
+	if generalRoot != nil {
+		roots = []*SkillNode{generalRoot}
+	} else {
+		// fallback
+		for _, node := range nodes {
+			if node.InvokerID == "" {
+				roots = append(roots, node)
+			}
 		}
 	}
 
@@ -245,6 +271,17 @@ details summary {
 		}
 		fmt.Fprint(out, `</div></details>`)
 	}
+
+	// Sort roots: render "__general__" first, then others in stable order
+	sort.SliceStable(roots, func(i, j int) bool {
+		if roots[i].ID == "__general__" {
+			return true
+		}
+		if roots[j].ID == "__general__" {
+			return false
+		}
+		return roots[i].ID < roots[j].ID
+	})
 
 	for _, root := range roots {
 		renderNode(root, 0)
