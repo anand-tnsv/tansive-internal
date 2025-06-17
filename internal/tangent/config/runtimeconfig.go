@@ -58,6 +58,9 @@ func GetRuntimeConfigDir() string {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to get user config dir")
 	}
+	if isTestMode {
+		return filepath.Join(appDataDir, "tangent", "runtime-test")
+	}
 	return filepath.Join(appDataDir, "tangent", "runtime")
 }
 

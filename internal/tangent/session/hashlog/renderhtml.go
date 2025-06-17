@@ -29,6 +29,8 @@ func RenderHashedLogToHTML(path string) error {
 	invocationMap := make(map[string][]HashedLogEntry)
 	invokerMap := make(map[string]string)
 	firstSessionID := ""
+	tangentID := ""
+	tangentURL := ""
 
 	for scanner.Scan() {
 		var entry HashedLogEntry
@@ -47,6 +49,12 @@ func RenderHashedLogToHTML(path string) error {
 		}
 		if firstSessionID == "" {
 			firstSessionID = str(p["session_id"])
+		}
+		if tangentID == "" {
+			tangentID = str(p["tangent_id"])
+		}
+		if tangentURL == "" {
+			tangentURL = str(p["tangent_url"])
 		}
 	}
 
@@ -98,7 +106,7 @@ body {
   body { background: #111; color: #ccc; }
 }
 h1 { font-size: 1.6em; margin-bottom: 0.3em; }
-h2 { font-weight: normal; color: #888; font-size: 1em; margin-bottom: 1.5em; }
+h2 { font-weight: normal; color: #aaa; font-size: 1em; margin-bottom: 0em; }
 .entry {
   border-left: 4px solid #ccc;
   margin: 1em 0;
@@ -142,7 +150,10 @@ details summary {
 .indent { margin-left: 2em; }
 </style></head><body>
 <h1>Tansive™ Session Log</h1>
-<h2>Session: `+html.EscapeString(firstSessionID)+`</h2>
+<h2><strong>Session:</strong> `+html.EscapeString(firstSessionID)+`</h2>
+<h2><strong>Tangent ID:</strong> `+html.EscapeString(tangentID)+`</h2>
+<h2><strong>Tangent URL:</strong> `+html.EscapeString(tangentURL)+`</h2>
+<br />
 `)
 
 	var renderNode func(node *SkillNode, depth int)

@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"path/filepath"
+	"time"
 
 	jsonitor "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
@@ -34,6 +35,13 @@ func InitAuditLog(ctx context.Context, session *session) apperrors.Error {
 	session.auditLogComplete = make(chan string, 1)
 
 	finalizeLog := func() {
+		session.auditLogger.Info().
+			Str("tangent_id", config.GetRuntimeConfig().TangentID.String()).
+			Str("tangent_url", config.GetURL()).
+			Str("event", "log_finalize").
+			Msg("log finalized")
+		// sleep to drain the channel
+		time.Sleep(100 * time.Millisecond)
 		logWriter.Flush()
 		logWriter.Close()
 		unsubAuditLog()
@@ -69,5 +77,10 @@ func InitAuditLog(ctx context.Context, session *session) apperrors.Error {
 			}
 		}
 	}()
+	session.auditLogger.Info().
+		Str("tangent_id", config.GetRuntimeConfig().TangentID.String()).
+		Str("tangent_url", config.GetURL()).
+		Str("event", "log_start").
+		Msg("log started")
 	return nil
 }
