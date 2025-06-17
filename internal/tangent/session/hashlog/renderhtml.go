@@ -18,6 +18,18 @@ type VerificationStatus struct {
 }
 
 func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus) error {
+	// Sanitize and validate input path
+	cleanPath := filepath.Clean(path)
+	if cleanPath == "" || cleanPath == "." {
+		return fmt.Errorf("invalid input path")
+	}
+
+	// Ensure the path is absolute
+	absPath, err := filepath.Abs(cleanPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve absolute path: %w", err)
+	}
+
 	type SkillNode struct {
 		ID        string
 		InvokerID string
@@ -26,7 +38,7 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 	}
 
 	// Read and group entries by invocation_id
-	f, err := os.Open(path)
+	f, err := os.Open(absPath)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -111,7 +123,11 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 	}
 
 	// Start HTML output
-	htmlPath := strings.TrimSuffix(path, filepath.Ext(path)) + ".html"
+	htmlPath := strings.TrimSuffix(absPath, filepath.Ext(absPath)) + ".html"
+	// Ensure the HTML file is created in the same directory as the input file
+	if filepath.Dir(htmlPath) != filepath.Dir(absPath) {
+		return fmt.Errorf("invalid output path: must be in same directory as input")
+	}
 	out, err := os.Create(htmlPath)
 	if err != nil {
 		return fmt.Errorf("failed to create html output: %w", err)

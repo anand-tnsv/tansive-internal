@@ -417,7 +417,15 @@ func (om *objectManager) DeleteNamespaceObjects(ctx context.Context, t catcommon
 	}()
 
 	// Get the current directory with FOR UPDATE lock
-	query := `SELECT directory FROM ` + tableName + ` WHERE tenant_id = $1 AND directory_id = $2 FOR UPDATE;`
+	var query string
+	switch tableName {
+	case "resource_directory":
+		query = `SELECT directory FROM resource_directory WHERE tenant_id = $1 AND directory_id = $2 FOR UPDATE;`
+	case "skillset_directory":
+		query = `SELECT directory FROM skillset_directory WHERE tenant_id = $1 AND directory_id = $2 FOR UPDATE;`
+	default:
+		return nil, dberror.ErrInvalidInput.Msg("invalid catalog object type")
+	}
 	var dir []byte
 	err = tx.QueryRowContext(ctx, query, tenantID, directoryID).Scan(&dir)
 	if err != nil {
@@ -462,7 +470,14 @@ func (om *objectManager) DeleteNamespaceObjects(ctx context.Context, t catcommon
 	}
 
 	// Update the directory within the transaction
-	query = `UPDATE ` + tableName + ` SET directory = $1 WHERE directory_id = $2 AND tenant_id = $3;`
+	switch tableName {
+	case "resource_directory":
+		query = `UPDATE resource_directory SET directory = $1 WHERE directory_id = $2 AND tenant_id = $3;`
+	case "skillset_directory":
+		query = `UPDATE skillset_directory SET directory = $1 WHERE directory_id = $2 AND tenant_id = $3;`
+	default:
+		return nil, dberror.ErrInvalidInput.Msg("invalid catalog object type")
+	}
 	_, err = tx.ExecContext(ctx, query, updatedDir, directoryID, tenantID)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to update directory")

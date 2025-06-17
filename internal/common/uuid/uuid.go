@@ -52,6 +52,11 @@ func IsUUIDv7(id UUID) bool {
 // The timestamp is extracted from the top 48 bits of the UUID.
 func GetTimestampFromUUID(u UUID) time.Time {
 	tsMillis := binary.BigEndian.Uint64(u[0:8]) >> 16
+	// Check if the value is within int64 bounds
+	if tsMillis > uint64(1<<63-1) {
+		// If overflow would occur, return the maximum valid time
+		return time.UnixMilli(1<<63 - 1)
+	}
 	return time.UnixMilli(int64(tsMillis))
 }
 

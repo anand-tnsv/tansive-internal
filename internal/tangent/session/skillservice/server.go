@@ -160,7 +160,13 @@ func (s *SkillService) StartServer() error {
 	}
 
 	s.MountHandlers()
-	srv := &http.Server{Handler: s.Router}
+	srv := &http.Server{
+		Handler:           s.Router,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
 	s.mu.Lock()
 	s.server = srv
 	s.mu.Unlock()

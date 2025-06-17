@@ -60,8 +60,12 @@ func run(ctx context.Context) error {
 	s.MountHandlers()
 
 	srv := &http.Server{
-		Addr:    ":" + config.Config().ServerPort,
-		Handler: s.Router,
+		Addr:              ":" + config.Config().ServerPort,
+		Handler:           s.Router,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	// Channel to listen for errors coming from the listener.

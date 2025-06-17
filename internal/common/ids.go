@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"math"
 )
 
 // IdType represents the type of identifier to generate
@@ -32,14 +33,27 @@ const (
 // secureRandomInt generates a cryptographically secure random number between 0 and max.
 // Returns an error if random number generation fails.
 func secureRandomInt(max int) (int, error) {
-	var buf [8]byte
-	_, err := rand.Read(buf[:])
-	if err != nil {
-		return 0, fmt.Errorf("failed to generate random number: %w", err)
+	if max <= 0 {
+		return 0, fmt.Errorf("max must be positive, got %d", max)
+	}
+	if max > math.MaxInt32 {
+		return 0, fmt.Errorf("max too large: %d", max)
 	}
 
-	n := binary.BigEndian.Uint64(buf[:])
-	return int(n % uint64(max)), nil
+	// Find the largest multiple of max within uint64 to avoid modulo bias
+	limit := (math.MaxUint64 / uint64(max)) * uint64(max)
+
+	for {
+		var buf [8]byte
+		if _, err := rand.Read(buf[:]); err != nil {
+			return 0, fmt.Errorf("failed to generate random bytes: %w", err)
+		}
+		n := binary.BigEndian.Uint64(buf[:])
+		if n < limit {
+			return int(n % uint64(max)), nil
+		}
+		// Otherwise retry
+	}
 }
 
 // GetUniqueId generates a unique ID with a prefix based on the type.
