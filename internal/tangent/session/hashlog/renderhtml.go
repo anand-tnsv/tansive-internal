@@ -266,10 +266,12 @@ details summary {
 			fmt.Fprint(out, `</div>`)
 		}
 
+		fmt.Fprint(out, `</div></details>`)
+
 		for _, child := range node.Children {
 			renderNode(child, depth+1)
 		}
-		fmt.Fprint(out, `</div></details>`)
+
 	}
 
 	// Sort roots: render "__general__" first, then others in stable order
