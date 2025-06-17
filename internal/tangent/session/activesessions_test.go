@@ -109,7 +109,7 @@ func TestCreateSession(t *testing.T) {
 	})
 	require.NoError(t, goerr)
 	require.True(t, isError(response))
-	t.Logf("response output: %v", response)
+	t.Logf("response outpu: %v", response)
 
 	// // test get tools
 	tools, goerr := client.GetTools(ctx, session.GetSessionID())

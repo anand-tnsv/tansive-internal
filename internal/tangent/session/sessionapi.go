@@ -207,7 +207,7 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) (a
 	}(logCtx)
 
 	// Run will block until the session is complete
-	session.auditLogger.Info().
+	session.auditLogInfo.auditLogger.Info().
 		Str("event", "session_start").
 		Any("session_variables", session.context.SessionVariables).
 		Msg("starting session")
@@ -220,11 +220,11 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) (a
 
 	if apperr != nil {
 		log.Ctx(ctx).Error().Err(apperr).Msg("session failed")
-		session.auditLogger.Error().Str("event", "session_end").Err(apperr).Msg("session failed")
+		session.auditLogInfo.auditLogger.Error().Str("event", "session_end").Err(apperr).Msg("session failed")
 		return apperr
 	}
 
-	session.auditLogger.Info().Str("event", "session_end").Msg("session completed")
+	session.auditLogInfo.auditLogger.Info().Str("event", "session_end").Msg("session completed")
 	log.Ctx(ctx).Info().Msg("session completed")
 	return nil
 }

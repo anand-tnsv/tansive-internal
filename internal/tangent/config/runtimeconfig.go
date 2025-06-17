@@ -93,6 +93,16 @@ func LoadRuntimeConfig() error {
 	} else {
 		runtimeConfig.TangentID = uuid.New()
 		runtimeConfig.Registered = false
+		accessKey, err := createKeyPair()
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to create access key")
+		}
+		logKey, err := createKeyPair()
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to create log key")
+		}
+		runtimeConfig.AccessKey = accessKey
+		runtimeConfig.LogSigningKey = logKey
 		if err := saveRuntimeConfig(); err != nil {
 			log.Fatal().Err(err).Msg("failed to save runtime config")
 		}
@@ -112,19 +122,11 @@ func RegisterTangent() error {
 		return nil
 	}
 
-	accessKey, err := createKeyPair()
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create access key")
-	}
-	logKey, err := createKeyPair()
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create log key")
-	}
 	tangentInfo := &srvtangent.TangentInfo{
 		ID:                     runtimeConfig.TangentID,
 		URL:                    GetURL(),
-		PublicKeyAccessKey:     accessKey.PublicKey,
-		PublicKeyLogSigningKey: logKey.PublicKey,
+		PublicKeyAccessKey:     runtimeConfig.AccessKey.PublicKey,
+		PublicKeyLogSigningKey: runtimeConfig.LogSigningKey.PublicKey,
 		Capabilities: []catcommon.RunnerID{
 			catcommon.StdioRunnerID,
 		},
@@ -167,8 +169,6 @@ func RegisterTangent() error {
 	runtimeConfig.TangentID = uuid.MustParse(strings.TrimPrefix(string(location), "/tangents/"))
 	runtimeConfig.Registered = true
 	runtimeConfig.RegisteredAt = time.Now()
-	runtimeConfig.AccessKey = accessKey
-	runtimeConfig.LogSigningKey = logKey
 
 	return saveRuntimeConfig()
 }

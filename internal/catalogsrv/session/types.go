@@ -66,8 +66,9 @@ type ExecutionState struct {
 }
 
 type ExecutionStatus struct {
-	AuditLog string         `json:"auditLog"`
-	Error    map[string]any `json:"error"`
+	AuditLog                string         `json:"auditLog"`
+	AuditLogVerificationKey []byte         `json:"auditLogVerificationKey"`
+	Error                   map[string]any `json:"error"`
 }
 
 type ExecutionStatusUpdate struct {
@@ -83,6 +84,10 @@ type SessionSummaryInfo struct {
 	UpdatedAt     time.Time      `json:"updatedAt"`
 	StatusSummary SessionStatus  `json:"statusSummary"`
 	Error         map[string]any `json:"error"`
+}
+
+type AuditLogVerificationKey struct {
+	Key []byte `json:"key"`
 }
 
 type SessionList struct {

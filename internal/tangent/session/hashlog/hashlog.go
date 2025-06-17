@@ -1,8 +1,9 @@
 package hashlog
 
 import (
-	"crypto/hmac"
+	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"sync"
@@ -13,10 +14,10 @@ import (
 var json = jsonitor.ConfigCompatibleWithStandardLibrary
 
 type HashedLogEntry struct {
-	Payload  map[string]any `json:"payload"`
-	PrevHash string         `json:"prevHash"`
-	Hash     string         `json:"hash"`
-	HMAC     string         `json:"hmac"`
+	Payload   map[string]any `json:"payload"`
+	PrevHash  string         `json:"prevHash"`
+	Hash      string         `json:"hash"`
+	Signature string         `json:"signature"`
 }
 
 type HashLogWriter struct {
@@ -26,10 +27,14 @@ type HashLogWriter struct {
 	mu            sync.Mutex
 	buffer        []HashedLogEntry
 	prevHash      string
-	hmacKey       []byte
+	privKey       []byte
+	closed        bool
 }
 
-func NewHashLogWriter(path string, flushInterval int) (*HashLogWriter, error) {
+func NewHashLogWriter(path string, flushInterval int, privKey []byte) (*HashLogWriter, error) {
+	if len(privKey) != ed25519.PrivateKeySize {
+		return nil, fmt.Errorf("invalid private key: must be %d bytes, got %d", ed25519.PrivateKeySize, len(privKey))
+	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
@@ -39,7 +44,7 @@ func NewHashLogWriter(path string, flushInterval int) (*HashLogWriter, error) {
 		path:          path,
 		flushInterval: flushInterval,
 		buffer:        make([]HashedLogEntry, 0, flushInterval),
-		hmacKey:       getHMACKey(),
+		privKey:       privKey,
 	}, nil
 }
 
@@ -47,7 +52,6 @@ func (lw *HashLogWriter) AddEntry(payload map[string]any) error {
 	lw.mu.Lock()
 	defer lw.mu.Unlock()
 
-	// Copy payload
 	cloned := make(map[string]any, len(payload))
 	for k, v := range payload {
 		cloned[k] = v
@@ -58,7 +62,7 @@ func (lw *HashLogWriter) AddEntry(payload map[string]any) error {
 		PrevHash: lw.prevHash,
 	}
 
-	// Compute hash of (PrevHash + Payload)
+	// Compute hash
 	dataToHash, err := json.Marshal(struct {
 		Payload  map[string]any `json:"payload"`
 		PrevHash string         `json:"prevHash"`
@@ -73,8 +77,8 @@ func (lw *HashLogWriter) AddEntry(payload map[string]any) error {
 	entry.Hash = fmt.Sprintf("%x", hash[:])
 	lw.prevHash = entry.Hash
 
-	// Compute HMAC over (Payload + PrevHash + Hash)
-	hmacInput, err := json.Marshal(struct {
+	// Sign (Payload + PrevHash + Hash)
+	signInput, err := json.Marshal(struct {
 		Payload  map[string]any `json:"payload"`
 		PrevHash string         `json:"prevHash"`
 		Hash     string         `json:"hash"`
@@ -84,11 +88,10 @@ func (lw *HashLogWriter) AddEntry(payload map[string]any) error {
 		Hash:     entry.Hash,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to marshal HMAC input: %w", err)
+		return fmt.Errorf("failed to marshal sign input: %w", err)
 	}
-	h := hmac.New(sha256.New, lw.hmacKey)
-	h.Write(hmacInput)
-	entry.HMAC = fmt.Sprintf("%x", h.Sum(nil))
+	signature := ed25519.Sign(lw.privKey, signInput)
+	entry.Signature = base64.StdEncoding.EncodeToString(signature)
 
 	lw.buffer = append(lw.buffer, entry)
 	if len(lw.buffer) >= lw.flushInterval {
@@ -118,13 +121,18 @@ func (lw *HashLogWriter) Flush() error {
 }
 
 func (lw *HashLogWriter) Close() error {
-	if err := lw.Flush(); err != nil {
+	lw.mu.Lock()
+	defer lw.mu.Unlock()
+
+	if lw.closed {
+		return nil
+	}
+
+	if err := lw.flushLocked(); err != nil {
 		return err
 	}
-	return lw.file.Close()
-}
 
-// Replace this with proper key management
-func getHMACKey() []byte {
-	return []byte("tansive-dev-hmac-key") // ❗ Replace with secure key storage
+	err := lw.file.Close()
+	lw.closed = true
+	return err
 }

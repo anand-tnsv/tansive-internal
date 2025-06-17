@@ -2,13 +2,18 @@ package hashlog
 
 import (
 	"bufio"
-	"crypto/hmac"
+	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io"
 )
 
-func VerifyHashedLog(r io.Reader, hmacKey []byte) error {
+func VerifyHashedLog(r io.Reader, pubKey []byte) error {
+	if len(pubKey) != ed25519.PublicKeySize {
+		return fmt.Errorf("invalid ed25519 public key size: got %d", len(pubKey))
+	}
+
 	scanner := bufio.NewScanner(r)
 	lineNum := 0
 	expectedPrevHash := ""
@@ -44,8 +49,8 @@ func VerifyHashedLog(r io.Reader, hmacKey []byte) error {
 			return fmt.Errorf("line %d: prevHash mismatch", lineNum)
 		}
 
-		// Verify HMAC
-		hmacInput := struct {
+		// Verify signature
+		signInput := struct {
 			Payload  map[string]any `json:"payload"`
 			PrevHash string         `json:"prevHash"`
 			Hash     string         `json:"hash"`
@@ -54,15 +59,16 @@ func VerifyHashedLog(r io.Reader, hmacKey []byte) error {
 			PrevHash: entry.PrevHash,
 			Hash:     entry.Hash,
 		}
-		hmacData, err := json.Marshal(hmacInput)
+		signData, err := json.Marshal(signInput)
 		if err != nil {
-			return fmt.Errorf("line %d: failed to marshal HMAC input: %w", lineNum, err)
+			return fmt.Errorf("line %d: failed to marshal signature input: %w", lineNum, err)
 		}
-		mac := hmac.New(sha256.New, hmacKey)
-		mac.Write(hmacData)
-		expectedHMAC := fmt.Sprintf("%x", mac.Sum(nil))
-		if entry.HMAC != expectedHMAC {
-			return fmt.Errorf("line %d: HMAC mismatch", lineNum)
+		signature, err := base64.StdEncoding.DecodeString(entry.Signature)
+		if err != nil {
+			return fmt.Errorf("line %d: invalid base64 signature: %w", lineNum, err)
+		}
+		if !ed25519.Verify(pubKey, signData, signature) {
+			return fmt.Errorf("line %d: signature verification failed", lineNum)
 		}
 
 		expectedPrevHash = entry.Hash

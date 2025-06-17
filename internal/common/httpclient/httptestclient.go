@@ -279,7 +279,13 @@ func (c *TestHTTPClient) StreamRequest(opts RequestOptions) (io.ReadCloser, erro
 		expiry := c.config.GetTokenExpiry()
 		if time.Now().Before(expiry) {
 			req.Header.Set("Authorization", "Bearer "+c.config.GetToken())
+		} else {
+			if c.config.GetAPIKey() != "" {
+				req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
+			}
 		}
+	} else if c.config.GetAPIKey() != "" {
+		req.Header.Set("Authorization", "Bearer "+c.config.GetAPIKey())
 	}
 
 	rr := httptest.NewRecorder()

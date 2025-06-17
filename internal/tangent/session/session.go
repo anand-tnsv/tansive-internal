@@ -27,16 +27,15 @@ import (
 )
 
 type session struct {
-	id               uuid.UUID
-	context          *ServerContext
-	skillSet         catalogmanager.SkillSetManager
-	viewDef          *policy.ViewDefinition
-	token            string
-	tokenExpiry      time.Time
-	callGraph        *toolgraph.CallGraph
-	invocationIDs    map[string]*policy.ViewDefinition
-	auditLogger      zerolog.Logger
-	auditLogComplete chan string
+	id            uuid.UUID
+	context       *ServerContext
+	skillSet      catalogmanager.SkillSetManager
+	viewDef       *policy.ViewDefinition
+	token         string
+	tokenExpiry   time.Time
+	callGraph     *toolgraph.CallGraph
+	invocationIDs map[string]*policy.ViewDefinition
+	auditLogInfo  auditLogInfo
 }
 
 func (s *session) GetSessionID() string {
@@ -46,7 +45,7 @@ func (s *session) GetSessionID() string {
 func (s *session) Run(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
 	log.Ctx(ctx).Info().Msgf("requested skill: %s", skillName)
 	invocationID := uuid.New().String()
-	s.auditLogger.Info().
+	s.auditLogInfo.auditLogger.Info().
 		Str("event", "skill_start").
 		Str("invoker_id", invokerID).
 		Str("invocation_id", invocationID).
@@ -71,7 +70,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 	if !isAllowed {
 		msg := fmt.Sprintf("blocked by Tansive policy: view '%s' does not authorize any of required actions - %v - to use this skill", s.context.View, actions)
 		log.Ctx(ctx).Error().Str("policy_decision", "true").Msg(msg)
-		s.auditLogger.Error().
+		s.auditLogInfo.auditLogger.Error().
 			Str("event", "policy_decision").
 			Str("decision", "blocked").
 			Str("invocation_id", invocationID).
@@ -84,7 +83,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 	}
 	msg := fmt.Sprintf("allowed by Tansive policy: view '%s' authorizes actions - %v - to use this skill", s.context.View, actions)
 	log.Ctx(ctx).Info().Str("policy_decision", "true").Msg(msg)
-	s.auditLogger.Info().
+	s.auditLogInfo.auditLogger.Info().
 		Str("event", "policy_decision").
 		Str("decision", "allowed").
 		Str("invocation_id", invocationID).
@@ -103,7 +102,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 	err = s.runInteractiveSkill(ctx, invokerID, invocationID, skillName, inputArgs, ioWriters...)
 
 	if err != nil {
-		s.auditLogger.Error().
+		s.auditLogInfo.auditLogger.Error().
 			Str("event", "skill_end").
 			Str("status", "failed").
 			Str("invocation_id", invocationID).
@@ -111,7 +110,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 			Str("skill", skillName).
 			Msg("skill completed")
 	} else {
-		s.auditLogger.Info().
+		s.auditLogInfo.auditLogger.Info().
 			Str("event", "skill_end").
 			Str("status", "success").
 			Str("invocation_id", invocationID).
@@ -212,7 +211,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 
 		ctx = log.Ctx(ctx).With().Str("runner", runner.ID()).Str("actor", "runner").Logger().WithContext(ctx)
 		log.Ctx(ctx).Info().Msgf("running skill: %s", skillName)
-		s.auditLogger.Info().
+		s.auditLogInfo.auditLogger.Info().
 			Str("event", "runner_start").
 			Str("runner", runner.ID()).
 			Str("invocation_id", invocationID).
@@ -221,7 +220,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 		err := runner.Run(ctx, &args)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msgf("error running skill: %s", skillName)
-			s.auditLogger.Error().
+			s.auditLogInfo.auditLogger.Error().
 				Str("event", "runner_completed").
 				Str("status", "failed").
 				Str("invocation_id", invocationID).
@@ -232,7 +231,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 			resultChan <- err
 		} else {
 			log.Ctx(ctx).Info().Msgf("skill completed successfully: %s", skillName)
-			s.auditLogger.Info().
+			s.auditLogInfo.auditLogger.Info().
 				Str("event", "runner_completed").
 				Str("status", "success").
 				Str("invocation_id", invocationID).
@@ -382,7 +381,7 @@ func (s *session) Finalize(ctx context.Context, apperr apperrors.Error) apperror
 	auditLog := ""
 
 	select {
-	case auditLogPath = <-s.auditLogComplete:
+	case auditLogPath = <-s.auditLogInfo.auditLogComplete:
 		log.Ctx(ctx).Info().Str("audit_log_path", auditLogPath).Msg("audit log complete")
 	case <-time.After(10 * time.Second):
 		log.Ctx(ctx).Error().Msg("audit log not complete after 10 seconds")

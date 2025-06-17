@@ -55,6 +55,11 @@ var sessionUserHandlers = []policy.ResponseHandlerParam{
 		Path:    "/{sessionID}/auditlog",
 		Handler: getAuditLogByID,
 	},
+	{
+		Method:  http.MethodGet,
+		Path:    "/{sessionID}/auditlog/verification-key",
+		Handler: getAuditLogVerificationKeyByID,
+	},
 }
 
 func Router() chi.Router {

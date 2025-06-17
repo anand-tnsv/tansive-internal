@@ -8,6 +8,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/session/toolgraph"
 )
 
@@ -49,7 +50,8 @@ func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, t
 		callGraph:     toolgraph.NewCallGraph(3), // max depth of 3
 		invocationIDs: make(map[string]*policy.ViewDefinition),
 	}
-	session.auditLogger = session.getLogger(TopicAuditLog)
+	session.auditLogInfo.auditLogger = session.getLogger(TopicAuditLog)
+	session.auditLogInfo.auditLogPubKey = config.GetRuntimeConfig().LogSigningKey.PublicKey
 	as.sessions[c.SessionID] = session
 	return session, nil
 }

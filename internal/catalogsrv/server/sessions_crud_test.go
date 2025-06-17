@@ -14,6 +14,7 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/session"
+	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
 func TestSessionCrud(t *testing.T) {
@@ -338,6 +339,7 @@ func TestSessionCrud(t *testing.T) {
 								"code": "TEST_ERROR"
 							},
 							"auditLog": "test audit log"
+							"auditLogVerificationKey": "test audit log verification key"
 						}
 					}`,
 					wantStatus: http.StatusBadRequest,
@@ -614,5 +616,127 @@ func TestSessionCrud(t *testing.T) {
 		assert.Equal(t, session.SessionStatusCompleted, summary.StatusSummary)
 		assert.Equal(t, "test error", summary.Error["message"])
 		assert.Equal(t, "TEST_ERROR", summary.Error["code"])
+	})
+
+	// Test getAuditLogVerificationKeyByID API
+	t.Run("get audit log verification key by ID", func(t *testing.T) {
+		// First create a session to get its ID
+		httpReq, _ := http.NewRequest("POST", "/sessions", nil)
+		req := `
+			{
+				"skillPath": "/valid-skillset/test-skill",
+				"viewName": "valid-view",
+				"sessionVariables": {
+					"key1": "value1"
+				},
+				"inputArgs": {
+					"input": "test input"
+				}
+			}`
+		setRequestBodyAndHeader(t, httpReq, req)
+		response := executeTestRequest(t, httpReq, nil, testContext)
+		assert.Equal(t, http.StatusCreated, response.Code)
+
+		// Extract session ID from Location header
+		location := response.Header().Get("Location")
+		require.NotEmpty(t, location)
+		//sessionID := location[strings.LastIndex(location, "/")+1:]
+
+		// Create execution state with code verifier
+		codeVerifier := "test_challenge"
+		hashed := sha256.Sum256([]byte(codeVerifier))
+		codeChallenge := base64.RawURLEncoding.EncodeToString(hashed[:])
+
+		// Create interactive session
+		httpReq, _ = http.NewRequest("POST", "/sessions?interactive=true&code_challenge="+codeChallenge, nil)
+		setRequestBodyAndHeader(t, httpReq, req)
+		response = executeTestRequest(t, httpReq, nil, testContext)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var sessionResp session.InteractiveSessionRsp
+		err := json.Unmarshal(response.Body.Bytes(), &sessionResp)
+		assert.NoError(t, err)
+
+		// Create execution state
+		httpReq, _ = http.NewRequest("POST", "/sessions/execution-state?code="+sessionResp.Code+"&code_verifier="+codeVerifier, nil)
+		response = executeTestRequest(t, httpReq, nil)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var tokenResp session.SessionTokenRsp
+		err = json.Unmarshal(response.Body.Bytes(), &tokenResp)
+		assert.NoError(t, err)
+
+		// Get execution state to get the session ID
+		httpReq, _ = http.NewRequest("GET", "/sessions/execution-state", nil)
+		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+		response = executeTestRequest(t, httpReq, nil)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		var executionState session.ExecutionState
+		err = json.Unmarshal(response.Body.Bytes(), &executionState)
+		assert.NoError(t, err)
+
+		sessionID := executionState.SessionID.String()
+
+		// Update execution state with audit log and verification key
+		httpReq, _ = http.NewRequest("PUT", "/sessions/execution-state", nil)
+		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+		httpReq.Header.Set("Content-Type", "application/json")
+		updateReq := `
+			{
+				"sessionID": "` + sessionID + `",
+				"statusSummary": "completed",
+				"status": {
+					"error": {
+						"message": "test error",
+						"code": "TEST_ERROR"
+					},
+					"auditLog": "dGVzdCBhdWRpdCBsb2c=",
+					"auditLogVerificationKey": "dGVzdCBhdWRpdCBsb2cgdmVyaWZpY2F0aW9uIGtleQ=="
+				}
+			}`
+		setRequestBodyAndHeader(t, httpReq, updateReq)
+		response = executeTestRequest(t, httpReq, nil)
+		assert.Equal(t, http.StatusOK, response.Code)
+
+		// Get audit log verification key
+		httpReq, _ = http.NewRequest("GET", "/sessions/"+sessionID+"/auditlog/verification-key", nil)
+		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+		response = executeTestRequest(t, httpReq, nil)
+		require.Equal(t, http.StatusOK, response.Code)
+
+		var verificationKey session.AuditLogVerificationKey
+		err = json.Unmarshal(response.Body.Bytes(), &verificationKey)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte("test audit log verification key"), verificationKey.Key)
+
+		// Test error cases
+		t.Run("error cases", func(t *testing.T) {
+			tests := []struct {
+				name       string
+				sessionID  string
+				wantStatus int
+			}{
+				{
+					name:       "invalid session ID",
+					sessionID:  "invalid-uuid",
+					wantStatus: http.StatusBadRequest,
+				},
+				{
+					name:       "non-existent session",
+					sessionID:  uuid.New().String(),
+					wantStatus: http.StatusBadRequest,
+				},
+			}
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					httpReq, _ := http.NewRequest("GET", "/sessions/"+tt.sessionID+"/auditlog/verification-key", nil)
+					httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
+					response := executeTestRequest(t, httpReq, nil)
+					assert.Equal(t, tt.wantStatus, response.Code)
+				})
+			}
+		})
 	})
 }

@@ -191,9 +191,11 @@ func updateExecutionState(r *http.Request) (*httpx.Response, error) {
 	if sessionID == uuid.Nil {
 		return nil, ErrInvalidRequest.Msg("invalid session ID")
 	}
+	log.Ctx(ctx).Info().Msgf("updating execution state for session %s", sessionID.String())
 	session, err := GetSession(ctx, sessionID)
 	if err != nil {
-		return nil, err
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get session")
+		return nil, ErrUnableToGetSession
 	}
 	var body []byte
 	if r.Body != nil {
@@ -236,7 +238,8 @@ func getSessions(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()
 	sessionList, err := db.DB(ctx).ListSessionsByCatalog(ctx, catcommon.GetCatalogID(ctx))
 	if err != nil {
-		return nil, err
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get session")
+		return nil, ErrUnableToGetSession
 	}
 
 	sessionListInfo := make([]SessionSummaryInfo, len(sessionList))
@@ -278,7 +281,8 @@ func getSessionSummaryByID(r *http.Request) (*httpx.Response, error) {
 
 	session, err := db.DB(ctx).GetSession(ctx, sessionUUID)
 	if err != nil {
-		return nil, err
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get session")
+		return nil, ErrUnableToGetSession
 	}
 
 	var status ExecutionStatus
@@ -315,6 +319,7 @@ func getAuditLogByID(r *http.Request) (*httpx.Response, error) {
 
 	auditLog, err := EncodeAuditLogFile(ctx, sessionUUID)
 	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to encode audit log")
 		return nil, err
 	}
 
@@ -322,5 +327,46 @@ func getAuditLogByID(r *http.Request) (*httpx.Response, error) {
 		StatusCode:  http.StatusOK,
 		ContentType: "text/plain",
 		Response:    auditLog,
+	}, nil
+}
+
+func getAuditLogVerificationKeyByID(r *http.Request) (*httpx.Response, error) {
+	ctx := r.Context()
+	sessionID := chi.URLParam(r, "sessionID")
+	if sessionID == "" {
+		return nil, httpx.ErrInvalidRequest("sessionID is required")
+	}
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil, httpx.ErrInvalidRequest("invalid sessionID")
+	}
+
+	session, err := db.DB(ctx).GetSession(ctx, sessionUUID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get session")
+		return nil, ErrUnableToGetSession
+	}
+
+	var status ExecutionStatus
+	if err := json.Unmarshal([]byte(session.Status), &status); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to unmarshal status")
+		return nil, ErrInvalidRequest.Msg("invalid status")
+	}
+
+	if status.AuditLog == "" {
+		return nil, ErrInvalidRequest.Msg("audit log is not available")
+	}
+
+	if len(status.AuditLogVerificationKey) == 0 {
+		return nil, ErrInvalidRequest.Msg("audit log verification key is not available")
+	}
+
+	auditLogVerificationKey := AuditLogVerificationKey{
+		Key: status.AuditLogVerificationKey,
+	}
+
+	return &httpx.Response{
+		StatusCode: http.StatusOK,
+		Response:   auditLogVerificationKey,
 	}, nil
 }

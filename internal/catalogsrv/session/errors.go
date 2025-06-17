@@ -15,4 +15,5 @@ var (
 	ErrDisallowedByPolicy apperrors.Error = ErrSessionError.New("disallowed by policy").SetStatusCode(http.StatusForbidden)
 	ErrNotAuthorized      apperrors.Error = ErrSessionError.New("not authorized").SetStatusCode(http.StatusForbidden)
 	ErrInvalidRequest     apperrors.Error = ErrSessionError.New("invalid request").SetStatusCode(http.StatusBadRequest)
+	ErrUnableToGetSession apperrors.Error = ErrSessionError.New("unable to get session").SetStatusCode(http.StatusBadRequest)
 )
