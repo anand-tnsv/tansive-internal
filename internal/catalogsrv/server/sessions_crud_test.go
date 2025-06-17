@@ -55,7 +55,7 @@ func TestSessionCrud(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "valid-catalog",
@@ -75,7 +75,7 @@ func TestSessionCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "valid-variant",
@@ -95,7 +95,7 @@ func TestSessionCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/skillsets", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "SkillSet",
 			"metadata": {
 				"name": "valid-skillset",
@@ -153,7 +153,7 @@ func TestSessionCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "valid-view",

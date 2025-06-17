@@ -29,7 +29,7 @@ func TestCreateView(t *testing.T) {
 			name: "valid view",
 			jsonData: `
 		{
-		    "version": "v1",
+		    "apiVersion": "0.1.0-alpha.1",
 		    "kind": "View",
 		    "metadata": {
 		        "name": "valid-view",
@@ -50,7 +50,7 @@ func TestCreateView(t *testing.T) {
 			name: "valid view 2",
 			jsonData: `
 		{
-		    "version": "v1",
+		    "apiVersion": "0.1.0-alpha.1",
 		    "kind": "View",
 		    "metadata": {
 		        "name": "valid-view2",
@@ -71,7 +71,7 @@ func TestCreateView(t *testing.T) {
 			name: "valid view",
 			jsonData: `
 		{
-		    "version": "v1",
+		    "apiVersion": "0.1.0-alpha.1",
 		    "kind": "View",
 		    "metadata": {
 		        "name": "valid-view3",
@@ -92,7 +92,7 @@ func TestCreateView(t *testing.T) {
 			name: "valid view",
 			jsonData: `
 		{
-		    "version": "v1",
+		    "apiVersion": "0.1.0-alpha.1",
 		    "kind": "View",
 		    "metadata": {
 		        "name": "valid-view4",
@@ -113,7 +113,7 @@ func TestCreateView(t *testing.T) {
 			name: "empty rules",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "empty-rules-view",
@@ -130,7 +130,7 @@ func TestCreateView(t *testing.T) {
 			name: "invalid version",
 			jsonData: `
 				{
-				    "version": "v2",
+				    "apiVersion": "v2",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "invalid-version-view",
@@ -151,7 +151,7 @@ func TestCreateView(t *testing.T) {
 			name: "invalid kind",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "InvalidKind",
 				    "metadata": {
 				        "name": "invalid-kind-view",
@@ -172,7 +172,7 @@ func TestCreateView(t *testing.T) {
 			name: "invalid name format",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "invalid name format",
@@ -193,7 +193,7 @@ func TestCreateView(t *testing.T) {
 			name: "invalid rule effect",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "invalid-rule-effect",
@@ -214,7 +214,7 @@ func TestCreateView(t *testing.T) {
 			name: "invalid rule action",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "invalid-rule-action",
@@ -235,7 +235,7 @@ func TestCreateView(t *testing.T) {
 			name: "invalid resource URI",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "invalid-resource-uri",
@@ -256,7 +256,7 @@ func TestCreateView(t *testing.T) {
 			name: "valid view with multiple actions",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "valid-view-multi-action",
@@ -277,7 +277,7 @@ func TestCreateView(t *testing.T) {
 			name: "invalid rule action with mixed valid and invalid",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "invalid-mixed-actions",
@@ -298,7 +298,7 @@ func TestCreateView(t *testing.T) {
 			name: "deduplication of actions and resources",
 			jsonData: `
 				{
-				    "version": "v1",
+				    "apiVersion": "0.1.0-alpha.1",
 				    "kind": "View",
 				    "metadata": {
 				        "name": "dedup-test-view",
@@ -319,7 +319,7 @@ func TestCreateView(t *testing.T) {
 			name: "test with scopes",
 			jsonData: `
 		{
-		    "version": "v1",
+		    "apiVersion": "0.1.0-alpha.1",
 		    "kind": "View",
 		    "metadata": {
 		        "name": "scope-override-test",
@@ -340,7 +340,7 @@ func TestCreateView(t *testing.T) {
 			name: "test with resource URI",
 			jsonData: `
 		{
-		    "version": "v1",
+		    "apiVersion": "0.1.0-alpha.1",
 		    "kind": "View",
 		    "metadata": {
 		        "name": "test-with-resource-uri",
@@ -366,7 +366,7 @@ func TestCreateView(t *testing.T) {
 			name: "test with adopt view",
 			jsonData: `
 		{
-		    "version": "v1",
+		    "apiVersion": "0.1.0-alpha.1",
 		    "kind": "View",
 		    "metadata": {
 		        "name": "test-with-adopt-view",
@@ -470,7 +470,7 @@ func TestUpdateView(t *testing.T) {
 
 	// Create initial view
 	initialView := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "View",
 		"metadata": {
 			"name": "test-view",
@@ -496,7 +496,7 @@ func TestUpdateView(t *testing.T) {
 
 	// Test successful update with multiple actions
 	updateView := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "View",
 		"metadata": {
 			"name": "test-view",
@@ -540,7 +540,7 @@ func TestUpdateView(t *testing.T) {
 
 	// Test updating non-existent view
 	nonExistentView := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "View",
 		"metadata": {
 			"name": "non-existent-view",
@@ -562,7 +562,7 @@ func TestUpdateView(t *testing.T) {
 
 	// Test updating with invalid catalog
 	invalidCatalogView := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "View",
 		"metadata": {
 			"name": "test-view",
@@ -591,7 +591,7 @@ func TestUpdateView(t *testing.T) {
 
 	// Test updating with invalid schema
 	invalidSchemaView := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "View",
 		"metadata": {
 			"name": "test-view",
@@ -614,7 +614,7 @@ func TestUpdateView(t *testing.T) {
 
 	// Test deduplication in update
 	updateViewWithDuplicates := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "View",
 		"metadata": {
 			"name": "test-view",
@@ -711,7 +711,7 @@ func TestDeleteView(t *testing.T) {
 
 	for _, tv := range testViews {
 		view := `{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "%s",
@@ -861,7 +861,7 @@ func TestGetView(t *testing.T) {
 
 	for _, tv := range testViews {
 		view := `{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "%s",

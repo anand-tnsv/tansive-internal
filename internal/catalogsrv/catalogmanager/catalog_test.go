@@ -20,7 +20,7 @@ func TestNewCatalogManager(t *testing.T) {
 			name: "valid catalog",
 			jsonData: `
 {
-    "version": "v1",
+    "apiVersion": "0.1.0-alpha.1",
     "kind": "Catalog",
     "metadata": {
         "name": "valid-catalog",
@@ -33,7 +33,7 @@ func TestNewCatalogManager(t *testing.T) {
 			name: "invalid version",
 			jsonData: `
 {
-    "version": "v2",
+    "apiVersion": "v2",
     "kind": "Catalog",
     "metadata": {
         "name": "invalid-version-catalog",
@@ -46,7 +46,7 @@ func TestNewCatalogManager(t *testing.T) {
 			name: "invalid kind",
 			jsonData: `
 {
-    "version": "v1",
+    "apiVersion": "0.1.0-alpha.1",
     "kind": "InvalidKind",
     "metadata": {
         "name": "invalid-kind-catalog",

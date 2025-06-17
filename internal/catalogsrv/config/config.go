@@ -189,7 +189,7 @@ func ParseDuration(input string) (time.Duration, error) {
 // ValidateConfig checks if all required configuration values are present and valid
 func ValidateConfig(cfg *ConfigParam) error {
 	// Check if the config file format version is supported
-	if cfg.FormatVersion != ConfigFormatVersion {
+	if cfg.FormatVersion != Version {
 		return fmt.Errorf("unsupported config file format version: %s", cfg.FormatVersion)
 	}
 

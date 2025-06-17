@@ -184,7 +184,7 @@ func skillSetManagerFromObject(ctx context.Context, obj *models.CatalogObject, m
 	}
 
 	sm.skillSet.Kind = catcommon.SkillSetKind
-	sm.skillSet.Version = storageRep.Version
+	sm.skillSet.ApiVersion = storageRep.Version
 	sm.skillSet.Metadata = *m
 	sm.skillSet.Metadata.Description = storageRep.Description
 

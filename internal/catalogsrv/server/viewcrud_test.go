@@ -52,7 +52,7 @@ func TestViewCrud(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "valid-catalog",
@@ -75,7 +75,7 @@ func TestViewCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "valid-variant",
@@ -95,7 +95,7 @@ func TestViewCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "valid-view",
@@ -140,7 +140,7 @@ func TestViewCrud(t *testing.T) {
 	// Update the view
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "valid-view",
@@ -243,7 +243,7 @@ func TestViewList(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "list-catalog",
@@ -268,7 +268,7 @@ func TestViewList(t *testing.T) {
 	for _, v := range views {
 		req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "` + v.Name + `",

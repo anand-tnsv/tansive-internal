@@ -32,10 +32,10 @@ import (
 // Resource represents a single resource in the catalog system.
 // It contains metadata, schema, and value information.
 type Resource struct {
-	Version  string              `json:"version" validate:"required,requireVersionV1"`
-	Kind     string              `json:"kind" validate:"required,oneof=Resource"`
-	Metadata interfaces.Metadata `json:"metadata" validate:"required"`
-	Spec     ResourceSpec        `json:"spec,omitempty"` // we can have empty collections
+	ApiVersion string              `json:"apiVersion" validate:"required,validateVersion"`
+	Kind       string              `json:"kind" validate:"required,oneof=Resource"`
+	Metadata   interfaces.Metadata `json:"metadata" validate:"required"`
+	Spec       ResourceSpec        `json:"spec,omitempty"` // we can have empty collections
 }
 
 // ResourceSpec defines the specification for a resource, including its schema,
@@ -219,7 +219,7 @@ func (rm *resourceManager) GetValueJSON(ctx context.Context) ([]byte, apperrors.
 // StorageRepresentation returns the object storage representation of the resource.
 func (rm *resourceManager) StorageRepresentation() *objectstore.ObjectStorageRepresentation {
 	s := objectstore.ObjectStorageRepresentation{
-		Version: rm.resource.Version,
+		Version: rm.resource.ApiVersion,
 		Type:    catcommon.CatalogObjectTypeResource,
 	}
 	s.Spec, _ = json.Marshal(rm.resource.Spec)
@@ -267,7 +267,7 @@ func (rm *resourceManager) Save(ctx context.Context) apperrors.Error {
 		Type:    t,
 		Hash:    newHash,
 		Data:    data,
-		Version: rm.resource.Version,
+		Version: rm.resource.ApiVersion,
 	}
 
 	// Get the directory ID for the resource

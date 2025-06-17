@@ -11,7 +11,13 @@ import (
 	"time"
 )
 
-func RenderHashedLogToHTML(path string) error {
+type VerificationStatus struct {
+	Verified  bool
+	Error     error
+	KeyDigest string
+}
+
+func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus) error {
 	type SkillNode struct {
 		ID        string
 		InvokerID string
@@ -175,12 +181,20 @@ details summary {
 }
 .indent { margin-left: 2em; }
 </style></head><body>
-<h1>Tansive™ Session Log</h1>
+<h1>Tansive™ Session Audit Log</h1>
 <h2><strong>Session:</strong> `+html.EscapeString(firstSessionID)+`</h2>
 <h2><strong>Tangent ID:</strong> `+html.EscapeString(tangentID)+`</h2>
 <h2><strong>Tangent URL:</strong> `+html.EscapeString(tangentURL)+`</h2>
-<br />
 `)
+
+	if len(verificationStatus) > 0 {
+		fmt.Fprintf(out, `<h2><strong>Verification Status:</strong> %s</h2>`, html.EscapeString(str(verificationStatus[0].Verified)))
+		fmt.Fprintf(out, `<h2><strong>Key Digest:</strong> %s</h2>`, html.EscapeString(verificationStatus[0].KeyDigest))
+		if verificationStatus[0].Error != nil {
+			fmt.Fprintf(out, `<h2><strong>Error:</strong> %s</h2>`, html.EscapeString(verificationStatus[0].Error.Error()))
+		}
+	}
+	fmt.Fprint(out, `<br />`)
 
 	var renderNode func(node *SkillNode, depth int)
 	renderNode = func(node *SkillNode, depth int) {

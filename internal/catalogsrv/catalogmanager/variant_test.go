@@ -21,7 +21,7 @@ func TestNewVariantManager(t *testing.T) {
 			name: "valid variant",
 			jsonData: `
 {
-    "version": "v1",
+    "apiVersion": "0.1.0-alpha.1",
     "kind": "Variant",
     "metadata": {
         "name": "valid-variant",
@@ -35,7 +35,7 @@ func TestNewVariantManager(t *testing.T) {
 			name: "invalid version",
 			jsonData: `
 {
-    "version": "v2",
+    "apiVersion": "v2",
     "kind": "Variant",
     "metadata": {
         "name": "invalid-version-variant",
@@ -49,7 +49,7 @@ func TestNewVariantManager(t *testing.T) {
 			name: "invalid kind",
 			jsonData: `
 {
-    "version": "v1",
+    "apiVersion": "0.1.0-alpha.1",
     "kind": "InvalidKind",
     "metadata": {
         "name": "invalid-kind-variant",

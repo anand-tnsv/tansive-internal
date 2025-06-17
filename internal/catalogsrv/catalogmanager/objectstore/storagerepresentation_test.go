@@ -324,7 +324,7 @@ func TestSchemaStorageRepresentation(t *testing.T) {
 	`
 	var baseHash, equivalentHash string
 	s := ObjectStorageRepresentation{
-		Version: "v1",
+		Version: "0.1.0-alpha.1",
 		Type:    catcommon.CatalogObjectTypeResource,
 		Spec:    []byte(baseJson),
 	}

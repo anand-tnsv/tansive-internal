@@ -73,7 +73,7 @@ func TestNewSession(t *testing.T) {
 
 	// Create a skillset
 	skillsetJson := []byte(`{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "SkillSet",
 		"metadata": {
 			"name": "test-skillset",
@@ -179,7 +179,7 @@ func TestNewSession(t *testing.T) {
 
 	// Create a parent view
 	parentView := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "View",
 		"metadata": {
 			"name": "parent-view",
@@ -549,7 +549,7 @@ func TestSessionSaveAndGet(t *testing.T) {
 
 	// Create a skillset
 	skillsetJson := []byte(`{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "SkillSet",
 		"metadata": {
 			"name": "test-skillset",
@@ -655,7 +655,7 @@ func TestSessionSaveAndGet(t *testing.T) {
 
 	// Create a parent view
 	parentView := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "View",
 		"metadata": {
 			"name": "parent-view",

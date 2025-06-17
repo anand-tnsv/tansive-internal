@@ -69,7 +69,7 @@ func SetupTest(t *testing.T) *testSetup {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "test-catalog",
@@ -95,7 +95,7 @@ func SetupObjects(t *testing.T, token string) {
 	httpReq, _ := http.NewRequest("POST", "/variants", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "dev",
@@ -111,7 +111,7 @@ func SetupObjects(t *testing.T, token string) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "prod",
@@ -145,7 +145,7 @@ func SetupObjects(t *testing.T, token string) {
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "dev-view",
@@ -170,7 +170,7 @@ func SetupObjects(t *testing.T, token string) {
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "prod-view",

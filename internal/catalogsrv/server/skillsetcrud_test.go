@@ -51,7 +51,7 @@ func TestSkillSetCrud(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "valid-catalog",
@@ -71,7 +71,7 @@ func TestSkillSetCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "valid-variant",
@@ -91,7 +91,7 @@ func TestSkillSetCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/skillsets", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "SkillSet",
 			"metadata": {
 				"name": "valid-skillset",
@@ -223,7 +223,7 @@ func TestSkillSetCrud(t *testing.T) {
 	// Update the skillset
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "SkillSet",
 			"metadata": {
 				"name": "valid-skillset",
@@ -412,7 +412,7 @@ func TestSkillSetList(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "list-catalog",
@@ -429,7 +429,7 @@ func TestSkillSetList(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "list-variant",
@@ -467,7 +467,7 @@ func TestSkillSetList(t *testing.T) {
 	for _, s := range skillsets {
 		req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "SkillSet",
 			"metadata": {
 				"name": "` + s.Name + `",

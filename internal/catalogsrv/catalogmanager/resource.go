@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"encoding/json"
+
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/objectstore"
@@ -126,7 +127,7 @@ func resourceManagerFromObject(ctx context.Context, obj *models.CatalogObject, m
 	}
 
 	rm.resource.Kind = catcommon.ResourceKind
-	rm.resource.Version = storageRep.Version
+	rm.resource.ApiVersion = storageRep.Version
 	rm.resource.Metadata = *m
 	rm.resource.Metadata.Description = storageRep.Description
 

@@ -11,7 +11,7 @@ import (
 )
 
 const skillsetDef = `
-version: v1
+apiVersion: 0.1.0-alpha.1
 kind: SkillSet
 metadata:
   name: kubernetes-demo
@@ -151,7 +151,7 @@ func SkillsetAgent() string {
 
 const devView = `
 {
-  "version": "v1",
+  "apiVersion": "0.1.0-alpha.1",
   "kind": "View",
   "metadata": {
     "name": "dev-view",

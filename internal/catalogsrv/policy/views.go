@@ -24,10 +24,10 @@ import (
 
 // viewSchema represents the structure of a view definition
 type viewSchema struct {
-	Version  string              `json:"version" validate:"required,requireVersionV1"`
-	Kind     string              `json:"kind" validate:"required,kindValidator"`
-	Metadata interfaces.Metadata `json:"metadata" validate:"required"`
-	Spec     viewSpec            `json:"spec" validate:"required"`
+	ApiVersion string              `json:"apiVersion" validate:"required,validateVersion"`
+	Kind       string              `json:"kind" validate:"required,kindValidator"`
+	Metadata   interfaces.Metadata `json:"metadata" validate:"required"`
+	Spec       viewSpec            `json:"spec" validate:"required"`
 }
 
 // viewSpec contains the spec of a view
@@ -77,7 +77,7 @@ func (v *viewSchema) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "kindValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind(jsonFieldName))
-		case "requireVersionV1":
+		case "validateVersion":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidVersion(jsonFieldName))
 		case "viewRuleIntentValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidViewRuleIntent(jsonFieldName))
@@ -302,8 +302,8 @@ func (v *viewKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
 
 	// Convert the view model to JSON
 	viewSchema := &viewSchema{
-		Version: catcommon.VersionV1,
-		Kind:    catcommon.ViewKind,
+		ApiVersion: schemavalidator.Version,
+		Kind:       catcommon.ViewKind,
 		Metadata: interfaces.Metadata{
 			Name:        view.Label,
 			Description: view.Description,

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"encoding/json"
+
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func TestResourceValidation(t *testing.T) {
 		{
 			name: "valid resource with schema and value",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "Resource",
 				"metadata": {
 					"name": "test-resource",
@@ -48,7 +49,7 @@ func TestResourceValidation(t *testing.T) {
 		{
 			name: "valid resource with schema, value and no policy",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "Resource",
 				"metadata": {
 					"name": "test-resource",
@@ -69,7 +70,7 @@ func TestResourceValidation(t *testing.T) {
 		{
 			name: "invalid kind",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "InvalidKind",
 				"metadata": {
 					"name": "test-resource",
@@ -84,7 +85,7 @@ func TestResourceValidation(t *testing.T) {
 		{
 			name: "missing required fields",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "Resource"
 			}`,
 			expectedError: true,
@@ -93,7 +94,7 @@ func TestResourceValidation(t *testing.T) {
 		{
 			name: "invalid resource name format",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "Resource",
 				"metadata": {
 					"name": "invalid name",
@@ -147,7 +148,7 @@ func TestResourceValidation(t *testing.T) {
 
 func TestResourceManagerValueOperations(t *testing.T) {
 	validJSON := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "Resource",
 		"metadata": {
 			"name": "test-resource",
@@ -257,7 +258,7 @@ func TestResourceManagerSave(t *testing.T) {
 	t.Run("Save basic resource", func(t *testing.T) {
 		// Create a basic resource
 		rsrcJson := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "test-resource",
@@ -298,7 +299,7 @@ func TestResourceManagerSave(t *testing.T) {
 	t.Run("Save resource with different values", func(t *testing.T) {
 		// Create first resource
 		rsrcJson1 := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "test-resource2",
@@ -336,7 +337,7 @@ func TestResourceManagerSave(t *testing.T) {
 
 		// Create second resource with different value
 		rsrcJson2 := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "test-resource2",
@@ -379,7 +380,7 @@ func TestResourceManagerSave(t *testing.T) {
 	t.Run("Save resource with different schema", func(t *testing.T) {
 		// Create first resource
 		rsrcJson1 := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "test-resource3",
@@ -417,7 +418,7 @@ func TestResourceManagerSave(t *testing.T) {
 
 		// Create second resource with different schema
 		rsrcJson2 := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "test-resource3",
@@ -518,7 +519,7 @@ func TestResourceManagerDelete(t *testing.T) {
 	t.Run("Delete existing resource", func(t *testing.T) {
 		// Create a resource
 		rsrcJson := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "test-resource",
@@ -567,7 +568,7 @@ func TestResourceManagerDelete(t *testing.T) {
 	t.Run("Delete non-existent resource", func(t *testing.T) {
 		// Create a resource but don't save it
 		rsrcJson := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "non-existent-resource",
@@ -604,7 +605,7 @@ func TestResourceManagerDelete(t *testing.T) {
 	t.Run("Delete resource with invalid variant", func(t *testing.T) {
 		// Create a resource
 		rsrcJson := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "test-resource2",

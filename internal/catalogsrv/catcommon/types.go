@@ -99,10 +99,6 @@ func IsCatalogLevelKind(kind string) bool {
 	return kind == KindNameViews
 }
 
-const (
-	VersionV1 = "v1"
-)
-
 type CatalogObjectType string
 
 const (

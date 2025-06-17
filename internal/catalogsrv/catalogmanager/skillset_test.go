@@ -25,7 +25,7 @@ func TestSkillSetNewManager(t *testing.T) {
 		{
 			name: "valid skillset",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "SkillSet",
 				"metadata": {
 					"name": "test-skillset",
@@ -108,7 +108,7 @@ func TestSkillSetNewManager(t *testing.T) {
 		{
 			name: "invalid json",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "InvalidKind",
 				"metadata": {
 					"name": "test-skillset",
@@ -212,7 +212,7 @@ func TestLoadSkillSetManagerByPath(t *testing.T) {
 	t.Run("Load existing skillset", func(t *testing.T) {
 		// Create a skillset
 		skillsetJson := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "SkillSet",
 			"metadata": {
 				"name": "test-skillset",

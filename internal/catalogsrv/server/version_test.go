@@ -9,10 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 )
 
 func TestGetVersion(t *testing.T) {
-	config.TestInit()
+	newDb()
 	// Create a New Request
 	req, _ := http.NewRequest("GET", "/version", nil)
 	testContext := TestContext{
@@ -33,13 +34,13 @@ func TestGetVersion(t *testing.T) {
 
 	compareJson(t,
 		&GetVersionRsp{
-			ServerVersion: "Tansive Catalog Server: 0.1.0", //TODO - Implement server versioning
-			ApiVersion:    "v1alpha1",
+			ServerVersion: "Tansive Catalog Server: " + Version,
+			ApiVersion:    schemavalidator.Version,
 		}, response.Body.String())
 }
 
 func TestGetReadiness(t *testing.T) {
-	config.TestInit()
+	newDb()
 	// Create a New Request
 	req, _ := http.NewRequest("GET", "/ready", nil)
 	testContext := TestContext{

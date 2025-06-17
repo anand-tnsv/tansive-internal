@@ -32,9 +32,9 @@ type VariantManager interface {
 }
 
 type variantSchema struct {
-	Version  string          `json:"version" validate:"required"`
-	Kind     string          `json:"kind" validate:"required,kindValidator"`
-	Metadata variantMetadata `json:"metadata" validate:"required"`
+	ApiVersion string          `json:"apiVersion" validate:"required,validateVersion"`
+	Kind       string          `json:"kind" validate:"required,kindValidator"`
+	Metadata   variantMetadata `json:"metadata" validate:"required"`
 }
 
 type variantMetadata struct {
@@ -79,7 +79,7 @@ func (vs *variantSchema) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "kindValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind(jsonFieldName))
-		case "requireVersionV1":
+		case "validateVersion":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidVersion(jsonFieldName))
 		default:
 			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
@@ -103,7 +103,7 @@ func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, ca
 	if err := json.Unmarshal(resourceJSON, vs); err != nil {
 		return nil, ErrInvalidSchema.Err(err)
 	}
-	if vs.Version != "v1" {
+	if !schemavalidator.IsVersionCompatible(vs.ApiVersion) {
 		return nil, ErrInvalidVersion
 	}
 	if vs.Kind != "Variant" {
@@ -220,8 +220,8 @@ func (vm *variantManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) 
 	}
 
 	s := variantSchema{
-		Version: catcommon.VersionV1,
-		Kind:    catcommon.VariantKind,
+		ApiVersion: schemavalidator.Version,
+		Kind:       catcommon.VariantKind,
 		Metadata: variantMetadata{
 			Name:        vm.variant.Name,
 			Catalog:     catalog.Name,

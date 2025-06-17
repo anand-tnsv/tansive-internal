@@ -31,9 +31,9 @@ type NamespaceManager interface {
 }
 
 type namespaceSchema struct {
-	Version  string            `json:"version" validate:"requireVersionV1"`
-	Kind     string            `json:"kind" validate:"required,kindValidator"`
-	Metadata namespaceMetadata `json:"metadata" validate:"required"`
+	ApiVersion string            `json:"apiVersion" validate:"required,validateVersion"`
+	Kind       string            `json:"kind" validate:"required,kindValidator"`
+	Metadata   namespaceMetadata `json:"metadata" validate:"required"`
 }
 
 type namespaceMetadata struct {
@@ -153,7 +153,7 @@ func (ns *namespaceSchema) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, e.Value().(string)))
 		case "resourcePathValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidObjectPath(jsonFieldName))
-		case "requireVersionV1":
+		case "validateVersion":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidVersion(jsonFieldName))
 		default:
 			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
@@ -221,8 +221,8 @@ func (nm *namespaceManager) Save(ctx context.Context) apperrors.Error {
 
 func (nm *namespaceManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) {
 	ns := &namespaceSchema{
-		Version: "v1",
-		Kind:    catcommon.NamespaceKind,
+		ApiVersion: "0.1.0-alpha.1",
+		Kind:       catcommon.NamespaceKind,
 		Metadata: namespaceMetadata{
 			Catalog:     nm.namespace.Catalog,
 			Variant:     nm.namespace.Variant,

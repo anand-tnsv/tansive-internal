@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"encoding/json"
+
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -102,7 +103,7 @@ func TestViewOperations(t *testing.T) {
 					defer cleanup()
 
 					viewJSON := `{
-						"version": "v1",
+						"apiVersion": "0.1.0-alpha.1",
 						"kind": "View",
 						"metadata": {
 							"name": "view-%d",
@@ -151,7 +152,7 @@ func TestViewOperations(t *testing.T) {
 			// First create a view to update
 			viewName := "update-view"
 			initialView := `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "View",
 				"metadata": {
 					"name": "update-view",
@@ -186,7 +187,7 @@ func TestViewOperations(t *testing.T) {
 					defer cleanup()
 
 					updateView := `{
-						"version": "v1",
+						"apiVersion": "0.1.0-alpha.1",
 						"kind": "View",
 						"metadata": {
 							"name": "update-view",
@@ -240,7 +241,7 @@ func TestViewOperations(t *testing.T) {
 			// Create a view to read
 			viewName := "read-view"
 			viewJSON := `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "View",
 				"metadata": {
 					"name": "read-view",
@@ -305,7 +306,7 @@ func TestViewOperations(t *testing.T) {
 						firstResult = &view
 					} else {
 						// Compare the structured data
-						assert.Equal(t, firstResult.Version, view.Version)
+						assert.Equal(t, firstResult.ApiVersion, view.ApiVersion)
 						assert.Equal(t, firstResult.Kind, view.Kind)
 						assert.Equal(t, firstResult.Metadata.Name, view.Metadata.Name)
 						assert.Equal(t, firstResult.Metadata.Catalog, view.Metadata.Catalog)
@@ -338,7 +339,7 @@ func TestViewOperations(t *testing.T) {
 					defer cleanup()
 
 					viewJSON := `{
-						"version": "v1",
+						"apiVersion": "0.1.0-alpha.1",
 						"kind": "View",
 						"metadata": {
 							"name": "cr-view-%d",
@@ -392,7 +393,7 @@ func TestViewOperations(t *testing.T) {
 			// Create a view to update and read
 			viewName := "ur-view"
 			initialView := `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "View",
 				"metadata": {
 					"name": "ur-view",
@@ -428,7 +429,7 @@ func TestViewOperations(t *testing.T) {
 
 					// Update the view
 					updateView := `{
-						"version": "v1",
+						"apiVersion": "0.1.0-alpha.1",
 						"kind": "View",
 						"metadata": {
 							"name": "ur-view",

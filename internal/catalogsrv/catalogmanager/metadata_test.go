@@ -20,7 +20,7 @@ func TestGetMetadata(t *testing.T) {
 		{
 			name: "valid metadata",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "ResourceGroup",
 				"metadata": {
 					"name": "test-group",
@@ -46,7 +46,7 @@ func TestGetMetadata(t *testing.T) {
 		{
 			name: "invalid JSON",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "ResourceGroup",
 				"metadata": {
 					"name": "test-group",
@@ -61,7 +61,7 @@ func TestGetMetadata(t *testing.T) {
 		{
 			name: "missing metadata",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "ResourceGroup"
 			}`,
 			expectedError: true,
@@ -96,7 +96,7 @@ func TestCanonicalizeMetadata(t *testing.T) {
 		{
 			name: "update existing metadata",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "ResourceGroup",
 				"metadata": {
 					"name": "old-name",
@@ -129,7 +129,7 @@ func TestCanonicalizeMetadata(t *testing.T) {
 		{
 			name: "partial update",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "ResourceGroup",
 				"metadata": {
 					"name": "old-name",
@@ -157,7 +157,7 @@ func TestCanonicalizeMetadata(t *testing.T) {
 		{
 			name: "set default variant",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "ResourceGroup",
 				"metadata": {
 					"name": "test-group",
@@ -187,7 +187,7 @@ func TestCanonicalizeMetadata(t *testing.T) {
 		{
 			name: "invalid JSON",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "ResourceGroup",
 				"metadata": {
 					"name": "test-group"
@@ -201,7 +201,7 @@ func TestCanonicalizeMetadata(t *testing.T) {
 		{
 			name: "missing metadata",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "ResourceGroup"
 			}`,
 			kind:          "ResourceGroup",

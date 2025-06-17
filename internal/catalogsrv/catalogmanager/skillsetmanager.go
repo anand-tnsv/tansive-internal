@@ -36,10 +36,10 @@ const (
 // SkillSet represents a single skillset in the catalog system.
 // It contains metadata, schema, and value information.
 type SkillSet struct {
-	Version  string              `json:"version" validate:"required,requireVersionV1"` //API Version
-	Kind     string              `json:"kind" validate:"required,oneof=SkillSet"`
-	Metadata interfaces.Metadata `json:"metadata" validate:"required"`
-	Spec     SkillSetSpec        `json:"spec,omitempty"`
+	ApiVersion string              `json:"apiVersion" validate:"required,validateVersion"` //API Version
+	Kind       string              `json:"kind" validate:"required,oneof=SkillSet"`
+	Metadata   interfaces.Metadata `json:"metadata" validate:"required"`
+	Spec       SkillSetSpec        `json:"spec,omitempty"`
 }
 
 // SkillSetSpec defines the specification for a skillset, including its schema,
@@ -142,7 +142,7 @@ func (sm *skillSetManager) FullyQualifiedName() string {
 // StorageRepresentation returns the object storage representation of the skillset.
 func (sm *skillSetManager) StorageRepresentation() *objectstore.ObjectStorageRepresentation {
 	s := objectstore.ObjectStorageRepresentation{
-		Version: sm.skillSet.Version,
+		Version: sm.skillSet.ApiVersion,
 		Type:    catcommon.CatalogObjectTypeSkillset,
 	}
 	s.Spec, _ = json.Marshal(sm.skillSet.Spec)
@@ -219,7 +219,7 @@ func (sm *skillSetManager) Save(ctx context.Context) apperrors.Error {
 		Type:    t,
 		Hash:    newHash,
 		Data:    data,
-		Version: sm.skillSet.Version,
+		Version: sm.skillSet.ApiVersion,
 	}
 
 	// Get the directory ID for the skillset

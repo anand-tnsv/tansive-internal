@@ -31,9 +31,9 @@ type CatalogManager interface {
 
 // catalogSchema represents the structure of a catalog definition
 type catalogSchema struct {
-	Version  string          `json:"version" validate:"required,requireVersionV1"`
-	Kind     string          `json:"kind" validate:"required,kindValidator"`
-	Metadata catalogMetadata `json:"metadata" validate:"required"`
+	ApiVersion string          `json:"apiVersion" validate:"required,validateVersion"`
+	Kind       string          `json:"kind" validate:"required,kindValidator"`
+	Metadata   catalogMetadata `json:"metadata" validate:"required"`
 }
 
 // catalogMetadata contains metadata about a catalog
@@ -80,7 +80,7 @@ func (cs *catalogSchema) Validate() schemaerr.ValidationErrors {
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidNameFormat(jsonFieldName, val))
 		case "kindValidator":
 			validationErrors = append(validationErrors, schemaerr.ErrUnsupportedKind(jsonFieldName))
-		case "requireVersionV1":
+		case "validateVersion":
 			validationErrors = append(validationErrors, schemaerr.ErrInvalidVersion(jsonFieldName))
 		default:
 			validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(jsonFieldName))
@@ -169,8 +169,8 @@ func (cm *catalogManager) Save(ctx context.Context) apperrors.Error {
 // ToJson converts the catalog to its JSON representation
 func (cm *catalogManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) {
 	schema := catalogSchema{
-		Version: catcommon.VersionV1,
-		Kind:    catcommon.CatalogKind,
+		ApiVersion: schemavalidator.Version,
+		Kind:       catcommon.CatalogKind,
 		Metadata: catalogMetadata{
 			Name:        cm.catalog.Name,
 			Description: cm.catalog.Description,

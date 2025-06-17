@@ -73,7 +73,7 @@ func TestResourceOperations(t *testing.T) {
 	obj := &models.CatalogObject{
 		Hash:     rg.Hash,
 		Type:     catcommon.CatalogObjectTypeResource,
-		Version:  "v1",
+		Version:  "0.1.0-alpha.1",
 		TenantID: tenantID,
 		Data:     []byte(`{"key": "value"}`),
 	}

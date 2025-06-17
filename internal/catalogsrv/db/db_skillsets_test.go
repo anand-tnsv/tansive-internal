@@ -89,7 +89,7 @@ func TestSkillSetOperations(t *testing.T) {
 
 	// Create initial data
 	initialData := map[string]interface{}{
-		"version": "v1",
+		"version": "0.1.0-alpha.1",
 		"kind":    "SkillSet",
 		"metadata": map[string]interface{}{
 			"name":      "test-skillset",
@@ -127,7 +127,7 @@ func TestSkillSetOperations(t *testing.T) {
 	obj := &models.CatalogObject{
 		Hash:     ss.Hash,
 		Type:     catcommon.CatalogObjectTypeSkillset,
-		Version:  "v1",
+		Version:  "0.1.0-alpha.1",
 		TenantID: tenantID,
 		Data:     initialDataBytes,
 	}

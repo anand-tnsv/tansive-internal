@@ -52,7 +52,7 @@ func TestResourceCrud(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "valid-catalog",
@@ -72,7 +72,7 @@ func TestResourceCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "valid-variant",
@@ -92,7 +92,7 @@ func TestResourceCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/resources", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "valid-resource",
@@ -150,7 +150,7 @@ func TestResourceCrud(t *testing.T) {
 	// Update the resource
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "valid-resource",
@@ -265,7 +265,7 @@ func TestResourceList(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "list-catalog",
@@ -282,7 +282,7 @@ func TestResourceList(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "list-variant",
@@ -329,7 +329,7 @@ func TestResourceList(t *testing.T) {
 	for _, r := range resources {
 		req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "` + r.Name + `",
@@ -413,7 +413,7 @@ func TestResourceValue(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "value-catalog",
@@ -430,7 +430,7 @@ func TestResourceValue(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "value-variant",
@@ -446,7 +446,7 @@ func TestResourceValue(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/resources", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "value-resource",

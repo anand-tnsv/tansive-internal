@@ -83,7 +83,7 @@ func TestCatalogCreate(t *testing.T) {
 
 	req := `
 {
-	"version": "v1",
+	"apiVersion": "0.1.0-alpha.1",
 	"kind": "Catalog",
 	"metadata": {
 		"name": "valid-catalog",
@@ -157,7 +157,7 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 
 	req := `
 {
-	"version": "v1",
+	"apiVersion": "0.1.0-alpha.1",
 	"kind": "Catalog",
 	"metadata": {
 		"name": "valid-catalog",
@@ -204,7 +204,7 @@ func TestGetUpdateDeleteCatalog(t *testing.T) {
 	// Update the catalog
 	req = `
 {
-	"version": "v1",
+	"apiVersion": "0.1.0-alpha.1",
 	"kind": "Catalog",
 	"metadata": {
 		"name": "valid-catalog",
@@ -296,7 +296,7 @@ func TestVariantCrud(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "valid-catalog",
@@ -317,7 +317,7 @@ func TestVariantCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "valid-variant",
@@ -357,7 +357,7 @@ func TestVariantCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "valid-variant2",
@@ -404,7 +404,7 @@ func TestVariantCrud(t *testing.T) {
 	// Update the variant
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "valid-variant",
@@ -511,7 +511,7 @@ func TestNamespaceCrud(t *testing.T) {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "valid-catalog",
@@ -532,7 +532,7 @@ func TestNamespaceCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/variants", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "valid-variant",
@@ -551,7 +551,7 @@ func TestNamespaceCrud(t *testing.T) {
 	httpReq, _ = http.NewRequest("POST", "/namespaces?c=valid-catalog&v=valid-variant", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Namespace",
 			"metadata": {
 				"name": "valid-namespace",

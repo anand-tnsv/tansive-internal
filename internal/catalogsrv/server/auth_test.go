@@ -99,7 +99,7 @@ func TestAdoptView(t *testing.T) {
 	httpReq, _ = http.NewRequest("PUT", "/resources/definition/resource1", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "resource1",
@@ -189,7 +189,7 @@ func setupTest(t *testing.T) *testSetup {
 	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Catalog",
 			"metadata": {
 				"name": "test-catalog",
@@ -213,7 +213,7 @@ func setupObjects(t *testing.T, token string) {
 	httpReq, _ := http.NewRequest("POST", "/variants", nil)
 	req := `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Variant",
 			"metadata": {
 				"name": "test-variant",
@@ -229,7 +229,7 @@ func setupObjects(t *testing.T, token string) {
 	httpReq, _ = http.NewRequest("POST", "/resources", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "resource1",
@@ -267,7 +267,7 @@ func setupObjects(t *testing.T, token string) {
 	httpReq, _ = http.NewRequest("POST", "/resources", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "resource2",
@@ -306,7 +306,7 @@ func setupObjects(t *testing.T, token string) {
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "read-only-view",
@@ -331,7 +331,7 @@ func setupObjects(t *testing.T, token string) {
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "read-write-view",
@@ -356,7 +356,7 @@ func setupObjects(t *testing.T, token string) {
 	httpReq, _ = http.NewRequest("POST", "/views", nil)
 	req = `
 		{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "View",
 			"metadata": {
 				"name": "full-access-view",

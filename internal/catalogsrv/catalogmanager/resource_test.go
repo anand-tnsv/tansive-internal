@@ -25,7 +25,7 @@ func TestResourceNewManager(t *testing.T) {
 		{
 			name: "valid resource",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "Resource",
 				"metadata": {
 					"name": "test-resource",
@@ -55,7 +55,7 @@ func TestResourceNewManager(t *testing.T) {
 		{
 			name: "invalid json",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "InvalidKind",
 				"metadata": {
 					"name": "test-resource",
@@ -159,7 +159,7 @@ func TestLoadResourceManagerByPath(t *testing.T) {
 	t.Run("Load existing resource", func(t *testing.T) {
 		// Create a resource
 		rsrcJson := []byte(`{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "Resource",
 			"metadata": {
 				"name": "test-resource",

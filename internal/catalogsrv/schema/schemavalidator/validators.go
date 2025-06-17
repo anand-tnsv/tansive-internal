@@ -153,9 +153,9 @@ func skillPathValidator(fl validator.FieldLevel) bool {
 	return true
 }
 
-func requireVersionV1(fl validator.FieldLevel) bool {
+func validateVersion(fl validator.FieldLevel) bool {
 	version := fl.Field().String()
-	return version == catcommon.VersionV1
+	return IsVersionCompatible(version)
 }
 
 func ValidateKindName(name string) bool {
@@ -202,8 +202,8 @@ func init() {
 	V().RegisterValidation("noSpaces", noSpacesValidator)
 	V().RegisterValidation("resourcePathValidator", resourcePathValidator)
 	V().RegisterValidation("notNull", notNull)
-	V().RegisterValidation("requireVersionV1", requireVersionV1)
 	V().RegisterValidation("skillNameValidator", skillNameValidator)
 	V().RegisterValidation("skillPathValidator", skillPathValidator)
 	V().RegisterValidation("jsonSchemaValidator", JsonSchemaValidator)
+	V().RegisterValidation("validateVersion", validateVersion)
 }

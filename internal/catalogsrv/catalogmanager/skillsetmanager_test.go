@@ -31,7 +31,7 @@ func TestSkillSetValidation(t *testing.T) {
 		{
 			name: "valid skillset with multiple runners",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "SkillSet",
 				"metadata": {
 					"name": "test-skillset",
@@ -105,7 +105,7 @@ func TestSkillSetValidation(t *testing.T) {
 		{
 			name: "invalid skillset - skill references non-existent runner",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "SkillSet",
 				"metadata": {
 					"name": "test-skillset",
@@ -143,7 +143,7 @@ func TestSkillSetValidation(t *testing.T) {
 		{
 			name: "invalid skillset - missing runner source for skill",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "SkillSet",
 				"metadata": {
 					"name": "test-skillset",
@@ -180,7 +180,7 @@ func TestSkillSetValidation(t *testing.T) {
 		{
 			name: "invalid kind",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "InvalidKind",
 				"metadata": {
 					"name": "test-skillset",
@@ -196,7 +196,7 @@ func TestSkillSetValidation(t *testing.T) {
 		{
 			name: "missing required fields",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "SkillSet"
 			}`,
 			expectedError: true,
@@ -205,7 +205,7 @@ func TestSkillSetValidation(t *testing.T) {
 		{
 			name: "invalid skillset name format",
 			jsonInput: `{
-				"version": "v1",
+				"apiVersion": "0.1.0-alpha.1",
 				"kind": "SkillSet",
 				"metadata": {
 					"name": "invalid name",
@@ -346,7 +346,7 @@ func TestSkillSetManagerSave(t *testing.T) {
 
 	// Create a valid skillset
 	validJSON := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "SkillSet",
 		"metadata": {
 			"name": "test-skillset",
@@ -443,8 +443,8 @@ func TestSkillSetManagerSave(t *testing.T) {
 	t.Run("saves skillset with multiple skills in metadata", func(t *testing.T) {
 		// Create a skillset with multiple skills
 		ss := &SkillSet{
-			Version: "v1",
-			Kind:    "SkillSet",
+			ApiVersion: "0.1.0-alpha.1",
+			Kind:       "SkillSet",
 			Metadata: interfaces.Metadata{
 				Name:      "multi-skill-set",
 				Namespace: types.NullableStringFrom("default"),
@@ -596,7 +596,7 @@ func TestSkillSetManagerDelete(t *testing.T) {
 	t.Run("Delete - valid skillset", func(t *testing.T) {
 		// First create a skillset
 		validJSON := `{
-			"version": "v1",
+			"apiVersion": "0.1.0-alpha.1",
 			"kind": "SkillSet",
 			"metadata": {
 				"name": "test-skillset",
@@ -737,7 +737,7 @@ func TestSkillValidateInput(t *testing.T) {
 
 func TestSkillSetManagerContextOperations(t *testing.T) {
 	validJSON := `{
-		"version": "v1",
+		"apiVersion": "0.1.0-alpha.1",
 		"kind": "SkillSet",
 		"metadata": {
 			"name": "test-skillset",
