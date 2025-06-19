@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -66,7 +67,10 @@ func putResourceValue(cmd *cobra.Command, args []string) error {
 	// Read input data
 	var jsonData []byte
 	if putFile != "" {
-		jsonData, err = os.ReadFile(putFile)
+		// Clean and validate the file path
+		cleanPath := filepath.Clean(putFile)
+
+		jsonData, err = os.ReadFile(cleanPath)
 		if err != nil {
 			return fmt.Errorf("failed to read file: %v", err)
 		}

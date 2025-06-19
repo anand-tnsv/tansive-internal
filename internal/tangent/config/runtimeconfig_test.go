@@ -8,9 +8,9 @@ import (
 )
 
 func TestRegisterTangent(t *testing.T) {
+	_ = test.SetupTest(t)
 	SetTestMode(true)
 	TestInit(t)
-	_ = test.SetupTest(t)
 	RegisterTangent()
 	runtimeConfig := GetRuntimeConfig()
 	assert.NotNil(t, runtimeConfig)

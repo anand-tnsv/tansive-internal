@@ -50,9 +50,12 @@ func secureRandomInt(max int) (int, error) {
 		}
 		n := binary.BigEndian.Uint64(buf[:])
 		if n < limit {
+			// Ensure the value fits within int range
+			if n > uint64(math.MaxInt) {
+				continue
+			}
 			return int(n % uint64(max)), nil
 		}
-		// Otherwise retry
 	}
 }
 

@@ -356,19 +356,67 @@ func (s *session) getSkillsAsLLMTools() ([]api.LLMTool, apperrors.Error) {
 	return s.skillSet.GetAllSkillsAsLLMTools(nil), nil
 }
 
-func (s *session) getContext(name string) (any, apperrors.Error) {
+func (s *session) getContext(invocationID string, name string) (any, apperrors.Error) {
+	skillName := s.callGraph.GetToolName(toolgraph.CallID(invocationID))
+	if skillName == "" {
+		return nil, ErrUnableToGetSkillset.Msg("invocationID not valid")
+	}
 	if s.skillSet == nil {
 		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
 	}
-	return s.skillSet.GetContextValue(name)
+	value, err := s.skillSet.GetContextValue(name)
+	if err != nil {
+		s.auditLogInfo.auditLogger.Error().
+			Str("event", "context_get").
+			Str("invocation_id", invocationID).
+			Str("skill", string(skillName)).
+			Str("context_name", name).
+			Str("status", "failed").
+			Err(err).
+			Msg("context value retrieval failed")
+		return nil, err
+	}
+	s.auditLogInfo.auditLogger.Info().
+		Str("event", "context_get").
+		Str("invocation_id", invocationID).
+		Str("skill", string(skillName)).
+		Str("context_name", name).
+		Str("status", "success").
+		Msg("context value retrieved")
+	return value, err
 }
 
 var _ = (&session{}).setContext
 
-func (s *session) setContext(name string, value any) apperrors.Error {
+func (s *session) setContext(invocationID string, name string, value any) (ret apperrors.Error) {
+	skillName := s.callGraph.GetToolName(toolgraph.CallID(invocationID))
+	if skillName == "" {
+		return ErrUnableToGetSkillset.Msg("invocationID not valid")
+	}
 	if s.skillSet == nil {
 		return ErrUnableToGetSkillset.Msg("skillset not found")
 	}
+	defer func() {
+		if ret != nil {
+			s.auditLogInfo.auditLogger.Error().
+				Str("event", "context_set").
+				Str("invocation_id", invocationID).
+				Str("skill", string(skillName)).
+				Str("context_name", name).
+				Str("status", "failed").
+				Err(ret).
+				Msg("context value set failed")
+		} else {
+			s.auditLogInfo.auditLogger.Info().
+				Str("event", "context_set").
+				Str("invocation_id", invocationID).
+				Str("skill", string(skillName)).
+				Str("context_name", name).
+				Str("status", "success").
+				Msg("context value set")
+		}
+	}()
+
 	nullableAny, err := types.NullableAnyFrom(value)
 	if err != nil {
 		return ErrInvalidObject.Msg(err.Error())

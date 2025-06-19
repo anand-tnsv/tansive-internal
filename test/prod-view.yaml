@@ -4,7 +4,7 @@ metadata:
   name: prod-view
   catalog: test-catalog
   variant: prod
-  description: View with full access to resources
+  description: View with constrained access to resources
 spec:
   rules:
     - intent: Allow

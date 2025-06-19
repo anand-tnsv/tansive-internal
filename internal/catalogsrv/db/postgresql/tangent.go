@@ -83,18 +83,15 @@ func (mm *metadataManager) createTangentWithTransaction(ctx context.Context, tan
 
 func (mm *metadataManager) GetTangent(ctx context.Context, id uuid.UUID) (*models.Tangent, apperrors.Error) {
 	tenantID := catcommon.GetTenantID(ctx)
-	if tenantID == "" {
-		return nil, dberror.ErrMissingTenantID
-	}
 
 	query := `
 		SELECT id, info, public_key, status, tenant_id, created_at, updated_at
 		FROM tangents
-		WHERE tenant_id = $1 AND id = $2
+		WHERE id = $1
 	`
 
 	var tangent models.Tangent
-	err := mm.conn().QueryRowContext(ctx, query, tenantID, id).
+	err := mm.conn().QueryRowContext(ctx, query, id).
 		Scan(&tangent.ID, &tangent.Info, &tangent.PublicKey, &tangent.Status, &tangent.TenantID, &tangent.CreatedAt, &tangent.UpdatedAt)
 
 	if err != nil {
@@ -102,6 +99,13 @@ func (mm *metadataManager) GetTangent(ctx context.Context, id uuid.UUID) (*model
 			return nil, dberror.ErrNotFound.Msg("tangent not found")
 		}
 		return nil, dberror.ErrDatabase.Err(err)
+	}
+
+	if tenantID != "" {
+		if tangent.TenantID != string(tenantID) {
+			log.Ctx(ctx).Error().Msgf("tangent %s is not in tenant %s", id, tenantID)
+			return nil, dberror.ErrNotFound.Msg("tangent not found")
+		}
 	}
 
 	return &tangent, nil

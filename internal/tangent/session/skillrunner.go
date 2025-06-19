@@ -43,7 +43,7 @@ func (s *skillRunner) GetTools(ctx context.Context, sessionID string) ([]api.LLM
 	return session.getSkillsAsLLMTools()
 }
 
-func (s *skillRunner) GetContext(ctx context.Context, sessionID string, name string) (any, apperrors.Error) {
+func (s *skillRunner) GetContext(ctx context.Context, sessionID, invocationID, name string) (any, apperrors.Error) {
 	sessionUUID, err := uuid.Parse(sessionID)
 	if err != nil {
 		return nil, ErrSessionError.Msg("invalid sessionID")
@@ -52,7 +52,7 @@ func (s *skillRunner) GetContext(ctx context.Context, sessionID string, name str
 	if err != nil {
 		return nil, ErrSessionError.Msg(err.Error())
 	}
-	return session.getContext(name)
+	return session.getContext(invocationID, name)
 }
 
 func (s *skillRunner) Run(ctx context.Context, params *tangentcommon.RunParams) (map[string]any, apperrors.Error) {
@@ -88,7 +88,7 @@ func (s *skillRunner) Run(ctx context.Context, params *tangentcommon.RunParams) 
 	errWriter := tangentcommon.NewBufferedWriter()
 
 	// Run the skill
-	runCtx := session.getLogger(TopicSessionLog).With().Str("actor", "system").Str("session_id", session.id.String()).Str("skill", session.context.Skill).Logger().WithContext(ctx)
+	runCtx := session.getLogger(TopicSessionLog).With().Str("actor", params.SkillName).Str("session_id", session.id.String()).Str("skill", session.context.Skill).Logger().WithContext(ctx)
 	apperr := session.Run(runCtx, params.InvocationID, params.SkillName, params.InputArgs, &tangentcommon.IOWriters{
 		Out: outWriter,
 		Err: errWriter,

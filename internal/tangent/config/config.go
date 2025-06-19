@@ -196,7 +196,10 @@ func TestInit(t *testing.T) {
 	if err := LoadConfig(filepath.Join(projectRoot, "tangent.conf")); err != nil {
 		panic(fmt.Errorf("error loading config: %v", err))
 	}
+	RegisterTangent()
 	t.Cleanup(func() {
-		deleteRuntimeConfig()
+		if isTestMode {
+			deleteRuntimeConfig()
+		}
 	})
 }

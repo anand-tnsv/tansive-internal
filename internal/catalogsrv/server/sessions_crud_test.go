@@ -1,21 +1,62 @@
 package server
 
 import (
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/session"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/tangent"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
+
+func generateTangentKeyPair() (ed25519.PublicKey, ed25519.PrivateKey, error) {
+	return ed25519.GenerateKey(nil)
+}
+
+func signRequest(r *http.Request, privateKey ed25519.PrivateKey, tangentID uuid.UUID) error {
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+
+	var body []byte
+	var err error
+
+	if r.Body != nil {
+		body, err = io.ReadAll(r.Body)
+		if err != nil {
+			return err
+		}
+		r.Body = io.NopCloser(strings.NewReader(string(body)))
+	}
+
+	stringToSign := strings.Join([]string{
+		r.Method,
+		r.URL.Path,
+		r.URL.RawQuery,
+		string(body),
+		timestamp,
+	}, "\n")
+
+	signature := ed25519.Sign(privateKey, []byte(stringToSign))
+	signatureB64 := base64.StdEncoding.EncodeToString(signature)
+
+	r.Header.Set("X-Tangent-Signature", signatureB64)
+	r.Header.Set("X-Tangent-Signature-Timestamp", timestamp)
+	r.Header.Set("X-TangentID", tangentID.String())
+
+	return nil
+}
 
 func TestSessionCrud(t *testing.T) {
 	ctx := newDb()
@@ -217,9 +258,38 @@ func TestSessionCrud(t *testing.T) {
 
 	// Test execution state creation and retrieval
 	t.Run("execution state flow", func(t *testing.T) {
+		// Create a tangent with Ed25519 keys for signing
+		publicKey, privateKey, err := generateTangentKeyPair()
+		require.NoError(t, err)
+
+		tangentID := uuid.New()
+		tangentInfo := &tangent.TangentInfo{
+			ID:                     tangentID,
+			CreatedBy:              "test-user",
+			URL:                    "http://test.tansive.dev:8468",
+			Capabilities:           []catcommon.RunnerID{"system.commandrunner"},
+			PublicKeyAccessKey:     publicKey,
+			PublicKeyLogSigningKey: []byte("test-signing-key"),
+		}
+
+		// Create tangent in database
+		infoBytes, err := json.Marshal(tangentInfo)
+		require.NoError(t, err)
+
+		tangentModel := &models.Tangent{
+			ID:        tangentID,
+			Info:      infoBytes,
+			PublicKey: publicKey,
+			Status:    "active",
+		}
+
+		err = db.DB(ctx).CreateTangent(ctx, tangentModel)
+		require.NoError(t, err)
+
 		codeVerifier := "test_challenge"
 		hashed := sha256.Sum256([]byte(codeVerifier))
 		codeChallenge := base64.RawURLEncoding.EncodeToString(hashed[:])
+
 		// First create an interactive session
 		httpReq, _ := http.NewRequest("POST", "/sessions?interactive=true&code_challenge="+codeChallenge, nil)
 		req := `
@@ -238,17 +308,20 @@ func TestSessionCrud(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.Code)
 
 		var sessionResp session.InteractiveSessionRsp
-		err := json.Unmarshal(response.Body.Bytes(), &sessionResp)
+		err = json.Unmarshal(response.Body.Bytes(), &sessionResp)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, sessionResp.Code)
 
-		// Create execution state with the code
+		// Create execution state with the code - this uses tangentAuthMiddleware
 		newCtx := newDb()
 		t.Cleanup(func() {
 			db.DB(newCtx).Close(newCtx)
 		})
 
 		httpReq, _ = http.NewRequest("POST", "/sessions/execution-state?code="+sessionResp.Code+"&code_verifier="+codeVerifier, nil)
+		// Sign the request with tangent credentials
+		err = signRequest(httpReq, privateKey, tangentID)
+		require.NoError(t, err)
 		response = executeTestRequest(t, httpReq, nil)
 		require.Equal(t, http.StatusOK, response.Code)
 
@@ -266,7 +339,7 @@ func TestSessionCrud(t *testing.T) {
 		err = json.Unmarshal(response.Body.Bytes(), &executionState)
 		assert.NoError(t, err)
 
-		// Update execution state
+		// Update execution state - this uses tangentAuthMiddleware
 		httpReq, _ = http.NewRequest("PUT", "/sessions/execution-state", nil)
 		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
 		httpReq.Header.Set("Content-Type", "application/json")
@@ -283,6 +356,9 @@ func TestSessionCrud(t *testing.T) {
 				}
 			}`
 		setRequestBodyAndHeader(t, httpReq, updateReq)
+		// Sign the request with tangent credentials
+		err = signRequest(httpReq, privateKey, tangentID)
+		require.NoError(t, err)
 		response = executeTestRequest(t, httpReq, nil)
 		require.Equal(t, http.StatusOK, response.Code)
 
@@ -349,11 +425,13 @@ func TestSessionCrud(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
 					httpReq, _ := http.NewRequest("PUT", "/sessions/execution-state", nil)
-					httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
 					httpReq.Header.Set("Content-Type", "application/json")
 					if tt.body != "" {
 						setRequestBodyAndHeader(t, httpReq, tt.body)
 					}
+					// Sign the request with tangent credentials
+					err = signRequest(httpReq, privateKey, tangentID)
+					require.NoError(t, err)
 					response := executeTestRequest(t, httpReq, nil)
 					assert.Equal(t, tt.wantStatus, response.Code)
 				})
@@ -533,6 +611,34 @@ func TestSessionCrud(t *testing.T) {
 
 	// Test updateExecutionState API
 	t.Run("update execution state", func(t *testing.T) {
+		// Create a tangent with Ed25519 keys for signing
+		publicKey, privateKey, err := generateTangentKeyPair()
+		require.NoError(t, err)
+
+		tangentID := uuid.New()
+		tangentInfo := &tangent.TangentInfo{
+			ID:                     tangentID,
+			CreatedBy:              "test-user",
+			URL:                    "http://test.tansive.dev:8468",
+			Capabilities:           []catcommon.RunnerID{"system.commandrunner"},
+			PublicKeyAccessKey:     publicKey,
+			PublicKeyLogSigningKey: []byte("test-signing-key"),
+		}
+
+		// Create tangent in database
+		infoBytes, err := json.Marshal(tangentInfo)
+		require.NoError(t, err)
+
+		tangentModel := &models.Tangent{
+			ID:        tangentID,
+			Info:      infoBytes,
+			PublicKey: publicKey,
+			Status:    "active",
+		}
+
+		err = db.DB(ctx).CreateTangent(ctx, tangentModel)
+		require.NoError(t, err)
+
 		// First create a session to get its ID
 		httpReq, _ := http.NewRequest("POST", "/sessions", nil)
 		req := `
@@ -562,13 +668,16 @@ func TestSessionCrud(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.Code)
 
 		var sessionResp session.InteractiveSessionRsp
-		err := json.Unmarshal(response.Body.Bytes(), &sessionResp)
+		err = json.Unmarshal(response.Body.Bytes(), &sessionResp)
 		assert.NoError(t, err)
 
-		// Create execution state
+		// Create execution state - this uses tangentAuthMiddleware
 		httpReq, _ = http.NewRequest("POST", "/sessions/execution-state?code="+sessionResp.Code+"&code_verifier="+codeVerifier, nil)
+		// Sign the request with tangent credentials
+		err = signRequest(httpReq, privateKey, tangentID)
+		require.NoError(t, err)
 		response = executeTestRequest(t, httpReq, nil)
-		assert.Equal(t, http.StatusOK, response.Code)
+		require.Equal(t, http.StatusOK, response.Code)
 
 		var tokenResp session.SessionTokenRsp
 		err = json.Unmarshal(response.Body.Bytes(), &tokenResp)
@@ -584,7 +693,7 @@ func TestSessionCrud(t *testing.T) {
 		err = json.Unmarshal(response.Body.Bytes(), &executionState)
 		assert.NoError(t, err)
 
-		// Update execution state
+		// Update execution state - this uses tangentAuthMiddleware
 		httpReq, _ = http.NewRequest("PUT", "/sessions/execution-state", nil)
 		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
 		httpReq.Header.Set("Content-Type", "application/json")
@@ -601,6 +710,9 @@ func TestSessionCrud(t *testing.T) {
 				}
 			}`
 		setRequestBodyAndHeader(t, httpReq, updateReq)
+		// Sign the request with tangent credentials
+		err = signRequest(httpReq, privateKey, tangentID)
+		require.NoError(t, err)
 		response = executeTestRequest(t, httpReq, nil)
 		assert.Equal(t, http.StatusOK, response.Code)
 
@@ -620,6 +732,34 @@ func TestSessionCrud(t *testing.T) {
 
 	// Test getAuditLogVerificationKeyByID API
 	t.Run("get audit log verification key by ID", func(t *testing.T) {
+		// Create a tangent with Ed25519 keys for signing
+		publicKey, privateKey, err := generateTangentKeyPair()
+		require.NoError(t, err)
+
+		tangentID := uuid.New()
+		tangentInfo := &tangent.TangentInfo{
+			ID:                     tangentID,
+			CreatedBy:              "test-user",
+			URL:                    "http://test.tansive.dev:8468",
+			Capabilities:           []catcommon.RunnerID{"system.commandrunner"},
+			PublicKeyAccessKey:     publicKey,
+			PublicKeyLogSigningKey: []byte("test-signing-key"),
+		}
+
+		// Create tangent in database
+		infoBytes, err := json.Marshal(tangentInfo)
+		require.NoError(t, err)
+
+		tangentModel := &models.Tangent{
+			ID:        tangentID,
+			Info:      infoBytes,
+			PublicKey: publicKey,
+			Status:    "active",
+		}
+
+		err = db.DB(ctx).CreateTangent(ctx, tangentModel)
+		require.NoError(t, err)
+
 		// First create a session to get its ID
 		httpReq, _ := http.NewRequest("POST", "/sessions", nil)
 		req := `
@@ -654,13 +794,16 @@ func TestSessionCrud(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.Code)
 
 		var sessionResp session.InteractiveSessionRsp
-		err := json.Unmarshal(response.Body.Bytes(), &sessionResp)
+		err = json.Unmarshal(response.Body.Bytes(), &sessionResp)
 		assert.NoError(t, err)
 
-		// Create execution state
+		// Create execution state - this uses tangentAuthMiddleware
 		httpReq, _ = http.NewRequest("POST", "/sessions/execution-state?code="+sessionResp.Code+"&code_verifier="+codeVerifier, nil)
+		// Sign the request with tangent credentials
+		err = signRequest(httpReq, privateKey, tangentID)
+		require.NoError(t, err)
 		response = executeTestRequest(t, httpReq, nil)
-		assert.Equal(t, http.StatusOK, response.Code)
+		require.Equal(t, http.StatusOK, response.Code)
 
 		var tokenResp session.SessionTokenRsp
 		err = json.Unmarshal(response.Body.Bytes(), &tokenResp)
@@ -678,7 +821,7 @@ func TestSessionCrud(t *testing.T) {
 
 		sessionID := executionState.SessionID.String()
 
-		// Update execution state with audit log and verification key
+		// Update execution state with audit log and verification key - this uses tangentAuthMiddleware
 		httpReq, _ = http.NewRequest("PUT", "/sessions/execution-state", nil)
 		httpReq.Header.Set("Authorization", "Bearer "+tokenResp.Token)
 		httpReq.Header.Set("Content-Type", "application/json")
@@ -696,6 +839,9 @@ func TestSessionCrud(t *testing.T) {
 				}
 			}`
 		setRequestBodyAndHeader(t, httpReq, updateReq)
+		// Sign the request with tangent credentials
+		err = signRequest(httpReq, privateKey, tangentID)
+		require.NoError(t, err)
 		response = executeTestRequest(t, httpReq, nil)
 		assert.Equal(t, http.StatusOK, response.Code)
 

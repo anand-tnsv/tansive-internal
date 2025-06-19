@@ -8,7 +8,7 @@ GOTEST := $(GO) test
 BUILDDIR := build
 
 # Applications
-APPS := tansivesrv tangent tansive-cli
+APPS := tansivesrv tangent tansive
 
 # Targets
 .PHONY: all clean test build cli srv worker
@@ -31,14 +31,14 @@ tangent:
 
 # CLI target
 cli:
-	@echo "Building tansive-cli..."
+	@echo "Building tansive..."
 	@mkdir -p $(BUILDDIR)
-	$(GOBUILD) -o $(BUILDDIR)/tansive-cli ./cmd/tansive-cli
+	$(GOBUILD) -o $(BUILDDIR)/tansive ./cmd/tansive-cli
 
 # Original targets for backward compatibility
 tansivesrv: srv
 
-tansive-cli: cli
+tansive: cli
 
 clean:
 	@echo "Cleaning..."

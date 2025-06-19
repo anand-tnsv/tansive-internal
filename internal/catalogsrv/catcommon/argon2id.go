@@ -80,7 +80,7 @@ func Encrypt(data []byte, password string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
 
-	nonce := make([]byte, nonceSize)
+	nonce := make([]byte, nonceSize) // #nosec G407
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}

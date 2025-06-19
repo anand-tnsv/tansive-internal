@@ -44,6 +44,36 @@ spec:
       value:
         kubeconfig: YXBpVmVyc2lvbjogdjEKa2luZDogQ29uZmlnCmNsdXN0ZXJzOgogIC0gbmFtZTogbXktY2x1c3RlcgogICAgY2x1c3RlcjoKICAgICAgc2VydmVyOiBodHRwczovL2Rldi1lbnYuZXhhbXBsZS5jb20KICAgICAgY2VydGlmaWNhdGUtYXV0aG9yaXR5LWRhdGE6IDxiYXNlNjQtZW5jb2RlZC1jYS1jZXJ0Pg==
       annotations: {}
+    - name: claude
+      schema:
+        type: object
+        properties:
+          apiKey:
+            type: string
+          model:
+            type: string
+        required:
+          - apiKey
+          - model
+      value:
+        apiKey: "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"
+        model: claude-3-7-sonnet-latest
+      annotations: {}
+    - name: gpt4o
+      schema:
+        type: object
+        properties:
+          apiKey:
+            type: string
+          model:
+            type: string
+        required:
+          - apiKey
+          - model
+      value:
+        apiKey: "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"
+        model: gpt-4o
+      annotations: {}
   skills:
     - name: list_pods
       source: my-tools-script

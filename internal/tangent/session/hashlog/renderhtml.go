@@ -283,6 +283,9 @@ details summary {
 					fmt.Fprintf(out, `<div class="input"><strong>Input Args:</strong><br>%s</div>`, html.EscapeString(string(b)))
 				}
 			}
+			if context_name, ok := p["context_name"]; ok {
+				fmt.Fprintf(out, `<div class="field"><span class="label">Context Name:</span><span class="value">%s</span></div>`, html.EscapeString(str(context_name)))
+			}
 			if basis, ok := p["basis"]; ok {
 				if b, err := json.MarshalIndent(basis, "", "  "); err == nil {
 					fmt.Fprintf(out, `<div class="basis"><strong>Policy Basis:</strong><br><pre>%s</pre></div>`, html.EscapeString(string(b)))

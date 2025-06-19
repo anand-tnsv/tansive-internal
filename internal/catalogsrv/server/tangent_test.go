@@ -65,7 +65,7 @@ func TestTangentCrud(t *testing.T) {
 			t.Fatalf("failed to marshal request: %v", err)
 		}
 		setRequestBodyAndHeader(t, httpReq, string(body))
-		response := executeTestRequest(t, httpReq, nil, testContext)
+		response := executeTestRequest(t, httpReq, nil)
 		assert.Equal(t, http.StatusCreated, response.Code)
 
 		// Extract tangent ID from Location header

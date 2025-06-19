@@ -40,7 +40,7 @@ func (m *mockSession) GetTools(ctx context.Context, sessionID string) ([]api.LLM
 	}, nil
 }
 
-func (m *mockSession) GetContext(ctx context.Context, sessionID string, name string) (any, apperrors.Error) {
+func (m *mockSession) GetContext(ctx context.Context, sessionID, invocationID, name string) (any, apperrors.Error) {
 	return 5, nil
 }
 
@@ -92,8 +92,9 @@ func TestSkillService(t *testing.T) {
 	t.Run("GetContext", func(t *testing.T) {
 		ctx := context.Background()
 		sessionID := "test-session"
+		invocationID := "test-invocation-id"
 		name := "test-context"
-		context, err := client.GetContext(ctx, sessionID, name)
+		context, err := client.GetContext(ctx, sessionID, invocationID, name)
 		require.NoError(t, err)
 		require.NotNil(t, context)
 	})

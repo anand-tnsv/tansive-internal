@@ -168,10 +168,10 @@ func (c *Client) GetTools(ctx context.Context, sessionID string) ([]LLMTool, err
 	return nil, fmt.Errorf("failed to get tools after %d retries: %w", c.config.maxRetries, lastErr)
 }
 
-func (c *Client) GetContext(ctx context.Context, sessionID string, name string) (any, error) {
+func (c *Client) GetContext(ctx context.Context, sessionID, invocationID, name string) (any, error) {
 	var lastErr error
 	for i := 0; i < c.config.maxRetries; i++ {
-		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/context?session_id=%s&name=%s", sessionID, name), nil)
+		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/context?session_id=%s&invocation_id=%s&name=%s", sessionID, invocationID, name), nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
@@ -201,12 +201,6 @@ func (c *Client) GetContext(ctx context.Context, sessionID string, name string) 
 const DefaultSocketName = "tangent.service"
 
 func GetSocketPath() (string, error) {
-	if xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR"); xdgRuntimeDir != "" {
-		if _, err := os.Stat(xdgRuntimeDir); err == nil {
-			return filepath.Join(xdgRuntimeDir, DefaultSocketName), nil
-		}
-	}
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)

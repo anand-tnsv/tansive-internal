@@ -7,7 +7,6 @@ info:
     
     Note: This API is served over a Unix Domain Socket (UDS). The generated client must be configured to use the UDS at the appropriate path.
     The default socket path is:
-    - $XDG_RUNTIME_DIR/tangent.service (if XDG_RUNTIME_DIR is set)
     - $HOME/.local/run/tangent.service (fallback)
   license:
     name: Apache 2.0

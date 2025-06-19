@@ -1,3 +1,7 @@
+// Package toolgraph provides a call graph for tracking tool invocations.
+// The implementation uses a simplistic DAG to track the ancestry of tool invocations and to prevent loops.
+// It is also used to get the tool name for a given callID.
+
 package toolgraph
 
 import (
@@ -44,6 +48,13 @@ func (g *CallGraph) RegisterCall(parentID CallID, toolName ToolName, newCallID C
 	g.parents[newCallID] = parentID
 	g.toolNames[newCallID] = toolName
 	return nil
+}
+
+// GetToolName returns the tool name for a given callID.
+func (g *CallGraph) GetToolName(callID CallID) ToolName {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.toolNames[callID]
 }
 
 // DebugGraph returns ancestry for a given callID.

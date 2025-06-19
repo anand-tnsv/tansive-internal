@@ -214,9 +214,8 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) (a
 
 	log.Ctx(ctx).Info().Str("skill", session.context.Skill).Msg("running session")
 	runCtx := session.getLogger(TopicSessionLog).With().Str("skill", session.context.Skill).Str("actor", "system").Logger().WithContext(ctx)
+
 	apperr = session.Run(runCtx, "", session.context.Skill, session.context.InputArgs)
-	cancel()
-	wg.Wait()
 
 	if apperr != nil {
 		log.Ctx(ctx).Error().Err(apperr).Msg("session failed")
@@ -225,6 +224,12 @@ func runSession(ctx context.Context, w http.ResponseWriter, session *session) (a
 	}
 
 	session.auditLogInfo.auditLogger.Info().Str("event", "session_end").Msg("session completed")
+
+	// cancel should be called before wg.Wait() or we'll wait forever
+	cancel()
+	wg.Wait()
+
 	log.Ctx(ctx).Info().Msg("session completed")
+
 	return nil
 }

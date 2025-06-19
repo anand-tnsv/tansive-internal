@@ -94,8 +94,9 @@ func (s *SkillService) handleGetTools(r *http.Request) (*httpx.Response, error) 
 
 func (s *SkillService) handleGetContext(r *http.Request) (*httpx.Response, error) {
 	sessionID := r.URL.Query().Get("session_id")
+	invocationID := r.URL.Query().Get("invocation_id")
 	name := r.URL.Query().Get("name")
-	context, err := s.skillManager.GetContext(r.Context(), sessionID, name)
+	context, err := s.skillManager.GetContext(r.Context(), sessionID, invocationID, name)
 	if err != nil {
 		return nil, ErrSkillServiceError.Msg(err.Error())
 	}
@@ -106,12 +107,6 @@ func (s *SkillService) handleGetContext(r *http.Request) (*httpx.Response, error
 }
 
 func GetSocketPath() (string, error) {
-	if xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR"); xdgRuntimeDir != "" {
-		if _, err := os.Stat(xdgRuntimeDir); err == nil {
-			return filepath.Join(xdgRuntimeDir, defaultSocketName), nil
-		}
-	}
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
@@ -162,10 +157,7 @@ func (s *SkillService) StartServer() error {
 	s.MountHandlers()
 	srv := &http.Server{
 		Handler:           s.Router,
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
-		IdleTimeout:       120 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second, // Keep this for initial connection setup
 	}
 	s.mu.Lock()
 	s.server = srv

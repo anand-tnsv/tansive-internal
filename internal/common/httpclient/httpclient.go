@@ -115,10 +115,16 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 
 		timestamp := time.Now().UTC().Format(time.RFC3339)
 
-		// Canonical string to sign
+		// Ensure the request path starts with a slash to match server expectation
+		requestPath := opts.Path
+		if !strings.HasPrefix(requestPath, "/") {
+			requestPath = "/" + requestPath
+		}
+
+		// Canonical string to sign - use requestPath to match server expectation
 		stringToSign := strings.Join([]string{
 			opts.Method,
-			u.Path,
+			requestPath,
 			u.RawQuery,
 			string(opts.Body),
 			timestamp,
