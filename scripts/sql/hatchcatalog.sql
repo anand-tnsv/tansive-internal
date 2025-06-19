@@ -78,15 +78,17 @@ FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE IF NOT EXISTS catalog_objects (
+  id SERIAL PRIMARY KEY,
+  hash_id CHAR(16) NOT NULL,
   hash CHAR(128) NOT NULL,
   type VARCHAR(64) NOT NULL CHECK (type IN ('resource', 'skillset')),
   version VARCHAR(16) NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   data BYTEA NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (tenant_id, hash)
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+CREATE INDEX idx_catalog_objects_tenant_id_hash ON catalog_objects (tenant_id, hash_id);
 
 CREATE TRIGGER update_catalog_objects_updated_at
 BEFORE UPDATE ON catalog_objects
@@ -237,15 +239,15 @@ CREATE INDEX IF NOT EXISTS idx_sessions_tenant_catalog_status
 ON sessions (tenant_id, catalog_id, status_summary);
 
 CREATE TABLE IF NOT EXISTS tangents (
-  id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  id UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
   public_key BYTEA NOT NULL,
   info JSONB,
   status VARCHAR(128) NOT NULL,
   tenant_id VARCHAR(10) NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (tenant_id, id)
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+CREATE UNIQUE INDEX idx_tangents_tenant_id_id ON tangents (tenant_id, id);
 
 CREATE TRIGGER update_tangents_updated_at
 BEFORE UPDATE ON tangents
@@ -267,3 +269,5 @@ GRANT ALL PRIVILEGES ON TABLE
   sessions,
   tangents
 TO catalogrw;
+
+GRANT USAGE, SELECT ON SEQUENCE catalog_objects_id_seq TO catalogrw;

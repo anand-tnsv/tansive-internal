@@ -82,7 +82,7 @@ func TestSkillSetOperations(t *testing.T) {
 	// Create a mock skillset
 	ss := &models.SkillSet{
 		Path:      "/test/skillset",
-		Hash:      "test_hash_123",
+		Hash:      "test_hash_123456789012345",
 		VariantID: variant.VariantID,
 		Metadata:  initialMetadataBytes,
 	}
@@ -184,7 +184,7 @@ func TestSkillSetOperations(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test UpdateSkillSet
-	ss.Hash = "updated_hash_456"
+	ss.Hash = "updated_hash_456789012345678"
 	ss.Metadata = updatedMetadataBytes
 	err = DB(ctx).UpdateSkillSet(ctx, ss, variant.SkillsetDirectoryID)
 	assert.NoError(t, err)

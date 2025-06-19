@@ -20,11 +20,12 @@ import (
 )
 
 func TestHandleInteractiveSession(t *testing.T) {
-	config.TestInit(t)
-	session.Init()
-	session.SetTestMode(true)
-	stdiorunner.TestInit()
+	config.SetTestMode(true)
 	ts := test.SetupTestCatalog(t)
+	config.TestInit(t)
+	session.SetTestMode(true)
+	session.Init()
+	stdiorunner.TestInit()
 	token := test.AdoptDefaultView(t, ts.Catalog)
 	t.Logf("Token: %s", token)
 

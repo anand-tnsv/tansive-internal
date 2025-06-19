@@ -65,7 +65,7 @@ func TestResourceOperations(t *testing.T) {
 	// Create a mock resource
 	rg := &models.Resource{
 		Path:      "/test/resource",
-		Hash:      "test_hash_123",
+		Hash:      "test_hash_123456789012345",
 		VariantID: variant.VariantID,
 	}
 
@@ -99,7 +99,7 @@ func TestResourceOperations(t *testing.T) {
 	assert.Equal(t, obj.Version, retrievedObj.Version)
 
 	// Test UpdateResource
-	rg.Hash = "updated_hash_456"
+	rg.Hash = "updated_hash_456789012345678"
 	err = DB(ctx).UpdateResource(ctx, rg, variant.ResourceDirectoryID)
 	assert.NoError(t, err)
 

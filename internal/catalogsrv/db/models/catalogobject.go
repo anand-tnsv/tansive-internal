@@ -18,6 +18,8 @@ import (
 */
 
 type CatalogObject struct {
+	ID        int64                       `db:"id"`
+	HashID    string                      `db:"hash_id"`
 	Hash      string                      `db:"hash"`
 	Type      catcommon.CatalogObjectType `db:"type"`
 	Version   string                      `db:"version"`

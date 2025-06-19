@@ -31,6 +31,13 @@ func (om *objectManager) CreateCatalogObject(ctx context.Context, obj *models.Ca
 		return dberror.ErrInvalidInput.Msg("data cannot be nil")
 	}
 
+	// Ensure hash is at least 16 characters for hash_id
+	if len(obj.Hash) < 16 {
+		return dberror.ErrInvalidInput.Msg("hash must be at least 16 characters long")
+	}
+
+	obj.HashID = obj.Hash[:16]
+
 	// snappy compress the data
 	var dataZ []byte
 	if config.CompressCatalogObjects {
@@ -43,11 +50,10 @@ func (om *objectManager) CreateCatalogObject(ctx context.Context, obj *models.Ca
 
 	// Insert the catalog object into the database
 	query := `
-		INSERT INTO catalog_objects (hash, type, version, tenant_id, data)
-		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (tenant_id, hash) DO NOTHING;
+		INSERT INTO catalog_objects (hash_id, hash, type, version, tenant_id, data)
+		VALUES ($1, $2, $3, $4, $5, $6);
 	`
-	result, err := om.conn().ExecContext(ctx, query, obj.Hash, obj.Type, obj.Version, tenantID, dataZ)
+	result, err := om.conn().ExecContext(ctx, query, obj.HashID, obj.Hash, obj.Type, obj.Version, tenantID, dataZ)
 	if err != nil {
 		return dberror.ErrDatabase.Err(err)
 	}
@@ -75,18 +81,25 @@ func (om *objectManager) GetCatalogObject(ctx context.Context, hash string) (*mo
 		return nil, dberror.ErrInvalidInput.Msg("hash cannot be empty")
 	}
 
-	// Query to select catalog object based on composite key (hash, tenant_id)
+	// Ensure hash is at least 16 characters for hash_id
+	if len(hash) < 16 {
+		return nil, dberror.ErrInvalidInput.Msg("hash must be at least 16 characters long")
+	}
+
+	hashID := hash[:16]
+
+	// Query to select catalog object based on composite key (hash_id, tenant_id) and exact hash match
 	query := `
-		SELECT hash, type, version, tenant_id, data
+		SELECT hash_id, hash, type, version, tenant_id, data
 		FROM catalog_objects
-		WHERE tenant_id = $1 AND hash = $2
+		WHERE tenant_id = $1 AND hash_id = $2 AND hash = $3
 	`
-	row := om.conn().QueryRowContext(ctx, query, tenantID, hash)
+	row := om.conn().QueryRowContext(ctx, query, tenantID, hashID, hash)
 
 	var obj models.CatalogObject
 
-	// Scan the result into obj fields
-	err := row.Scan(&obj.Hash, &obj.Type, &obj.Version, &obj.TenantID, &obj.Data)
+	// Scan the result into obj fields - order must match SELECT columns
+	err := row.Scan(&obj.HashID, &obj.Hash, &obj.Type, &obj.Version, &obj.TenantID, &obj.Data)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, dberror.ErrNotFound.Msg("catalog object not found")
@@ -115,6 +128,11 @@ func (om *objectManager) DeleteCatalogObject(ctx context.Context, t catcommon.Ca
 		return dberror.ErrInvalidInput.Msg("hash cannot be empty")
 	}
 
+	// Ensure hash is at least 16 characters for hash_id
+	if len(hash) < 16 {
+		return dberror.ErrInvalidInput.Msg("hash must be at least 16 characters long")
+	}
+
 	var table string
 	switch t {
 	case catcommon.CatalogObjectTypeResource:
@@ -125,7 +143,7 @@ func (om *objectManager) DeleteCatalogObject(ctx context.Context, t catcommon.Ca
 		return dberror.ErrInvalidInput.Msg("invalid catalog object type")
 	}
 
-	// look for references in this table for this has
+	// look for references in this table for this hash
 	query := `
 		SELECT 1
 		FROM ` + table + `
@@ -143,11 +161,12 @@ func (om *objectManager) DeleteCatalogObject(ctx context.Context, t catcommon.Ca
 		// do nothing. There are other references to this object
 		return nil
 	}
+	hashID := hash[:16]
 	query = `
 		DELETE FROM catalog_objects
-		WHERE tenant_id = $1 AND hash = $2
+		WHERE tenant_id = $1 AND hash_id = $2 AND hash = $3
 	`
-	result, err := om.conn().ExecContext(ctx, query, tenantID, hash)
+	result, err := om.conn().ExecContext(ctx, query, tenantID, hashID, hash)
 	if err != nil {
 		return dberror.ErrDatabase.Err(err)
 	}

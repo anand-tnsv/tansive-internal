@@ -16,11 +16,12 @@ import (
 )
 
 func TestCreateSession(t *testing.T) {
-	config.TestInit(t)
-	Init()
-	SetTestMode(true)
-	stdiorunner.TestInit()
+	config.SetTestMode(true)
 	ts := test.SetupTestCatalog(t)
+	config.TestInit(t)
+	SetTestMode(true)
+	Init()
+	stdiorunner.TestInit()
 	token, expiresAt := test.AdoptView(t, ts.Catalog, "prod-view", ts.Token)
 	serverContext := &ServerContext{
 		SessionID:      uuid.New(),

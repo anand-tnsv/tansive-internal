@@ -13,10 +13,13 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
+	"github.com/tansive/tansive-internal/internal/tangent/test"
 	"github.com/tansive/tansive-internal/pkg/api"
 )
 
 func TestNew(t *testing.T) {
+	config.SetTestMode(true)
+	test.SetupTest(t)
 	config.TestInit(t)
 	TestInit()
 	tests := []struct {
@@ -176,6 +179,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
+	config.SetTestMode(true)
+	test.SetupTest(t)
 	config.TestInit(t)
 	TestInit()
 	tests := []struct {
@@ -328,6 +333,8 @@ func TestRun(t *testing.T) {
 }
 
 func TestDevModeSecurity(t *testing.T) {
+	config.SetTestMode(true)
+	test.SetupTest(t)
 	config.TestInit(t)
 	TestInit()
 	tests := []struct {
