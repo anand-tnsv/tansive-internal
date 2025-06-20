@@ -221,7 +221,7 @@ func printSessions(response []byte) error {
 
 // listSessionsCmd represents the list-sessions subcommand
 var listSessionsCmd = &cobra.Command{
-	Use:   "list-sessions [flags]",
+	Use:   "list [flags]",
 	Short: "List all sessions in the Catalog",
 	Long: `List all sessions in the Catalog, showing their status, timestamps, and other details.
 The output includes:
@@ -233,10 +233,10 @@ The output includes:
 
 Examples:
   # List all sessions
-  tansive session list-sessions
+  tansive session list
 
   # List sessions in JSON format
-  tansive session list-sessions -j`,
+  tansive session list -j`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := httpclient.NewClient(GetConfig())
 

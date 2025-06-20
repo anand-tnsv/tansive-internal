@@ -101,11 +101,12 @@ func PrettyPrintNDJSONLine(line []byte) {
 	msg = indentMultiline(msg, "                                   ")
 
 	fmt.Print("  " + timestamp + " ")
-	if actor == "system" {
+	switch actor {
+	case "system":
 		systemColor.Printf("%s", "[tansive]")
-	} else if actor == "runner" {
+	case "runner":
 		runnerColor.Printf("[%s]", runner)
-	} else if actor == "skill" {
+	case "skill":
 		skillColor.Printf("%s", skill)
 	}
 
