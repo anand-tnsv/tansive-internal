@@ -330,4 +330,5 @@ func TestInit() {
 	if err := LoadConfig(filepath.Join(projectRoot, "tansivesrv.conf")); err != nil {
 		panic(fmt.Errorf("error loading config: %v", err))
 	}
+	Init()
 }
