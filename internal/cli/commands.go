@@ -2,9 +2,11 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +15,11 @@ var (
 	jsonOutput bool
 	configFile string
 )
+
+var ErrAlreadyHandled = errors.New("already handled")
+
+var okLabel = color.New(color.FgGreen)
+var errorLabel = color.New(color.FgRed)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -57,13 +64,16 @@ func Execute() {
 
 	err := rootCmd.Execute()
 	if err != nil {
+		if errors.Is(err, ErrAlreadyHandled) {
+			os.Exit(1)
+		}
 		if jsonOutput {
 			kv := map[string]string{
 				"error": err.Error(),
 			}
 			printJSON(kv)
 		} else {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			errorLabel.Fprintf(os.Stderr, "Error: %v\n", err)
 		}
 		os.Exit(1)
 	}
@@ -76,7 +86,7 @@ func preRunHandlePersistents(cmd *cobra.Command, args []string) {
 		var err error
 		configFile, err = GetDefaultConfigPath()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			errorLabel.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 	}

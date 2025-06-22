@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
@@ -60,16 +61,90 @@ func updateResource(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("filename is required")
 	}
 
-	jsonData, resource, err := LoadResourceFromFile(filename)
+	resources, err := LoadResourceFromMultiYAMLFile(filename)
 	if err != nil {
 		return err
 	}
 
+	orderedResourceList := []string{
+		KindCatalog,
+		KindVariant,
+		KindNamespace,
+		KindView,
+		KindSkillset,
+		KindResource,
+	}
+
+	var statusValues []map[string]any
+	defer func() {
+		if len(statusValues) > 0 {
+			if jsonOutput {
+				printJSON(statusValues)
+			} else {
+				for _, status := range statusValues {
+					created, exists := status["created"]
+					if !exists {
+						created = false
+					}
+					location, ok := status["location"].(string)
+					if !ok {
+						location = ""
+					}
+					updated, exists := status["updated"]
+					if !exists {
+						updated = false
+					}
+					if created.(bool) {
+						okLabel.Fprintf(os.Stdout, "[OK] ")
+						fmt.Fprintf(os.Stdout, "Created: %s\n", location)
+					} else if updated.(bool) {
+						okLabel.Fprintf(os.Stdout, "[OK] ")
+						fmt.Fprintf(os.Stdout, "Updated: %s: %s\n", status["kind"], status["name"])
+					} else {
+						if !ignoreErrors {
+							errorLabel.Fprintf(os.Stderr, "[ERROR] ")
+							fmt.Fprintf(os.Stderr, "%s: %s: %s\n", status["kind"], status["name"], status["error"])
+						} else {
+							errorLabel.Fprintf(os.Stdout, "[ERROR] ")
+							fmt.Fprintf(os.Stdout, "%s: %s: %s\n", status["kind"], status["name"], status["error"])
+						}
+					}
+				}
+			}
+		}
+	}()
+
+	for _, kind := range orderedResourceList {
+		resources, ok := resources[kind]
+		if !ok {
+			continue
+		}
+		for _, resource := range resources {
+			kv, err := handleUpdateResource(resource.Metadata, resource.JSON)
+			if err != nil {
+				statusValues = append(statusValues, map[string]any{
+					"kind":    resource.Metadata.Kind,
+					"name":    resource.Metadata.Metadata["name"],
+					"updated": false,
+					"error":   err.Error(),
+				})
+				if !ignoreErrors {
+					return ErrAlreadyHandled
+				}
+				continue
+			}
+			statusValues = append(statusValues, kv)
+		}
+	}
+	return nil
+
+}
+
+func handleUpdateResource(resource ResourceMetadata, jsonData []byte) (map[string]any, error) {
 	resourceType, err := GetResourceType(resource.Kind)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
 	client := httpclient.NewClient(GetConfig())
 	queryParams := make(map[string]string)
 	if updateCatalog != "" {
@@ -93,34 +168,25 @@ func updateResource(cmd *cobra.Command, args []string) error {
 			}
 			_, err = client.UpdateResource(resourceType, jsonData, queryParams, objectType)
 			if err != nil {
-				return fmt.Errorf("failed to update resource: %v", err)
+				return nil, fmt.Errorf("failed to update resource: %v", err)
 			}
-			if jsonOutput {
-				kv := map[string]any{
-					"kind":    resource.Kind,
-					"updated": true,
-				}
-				printJSON(kv)
-			} else {
-				fmt.Printf("Successfully updated %s\n", resource.Kind)
+			kv := map[string]any{
+				"kind":    resource.Kind,
+				"updated": true,
+				"name":    resource.Metadata["name"],
 			}
-			return nil
+			return kv, nil
 		}
-		return fmt.Errorf("failed to create resource: %v", err)
+		return nil, fmt.Errorf("failed to create resource: %v", err)
 	}
 
-	if jsonOutput {
-		kv := map[string]any{
-			"kind":     resource.Kind,
-			"created":  true,
-			"location": location,
-		}
-		printJSON(kv)
-	} else {
-		fmt.Printf("Successfully created %s\n", resource.Kind)
-		fmt.Printf("Location: %s\n", location)
+	kv := map[string]any{
+		"kind":     resource.Kind,
+		"created":  true,
+		"location": location,
+		"name":     resource.Metadata["name"],
 	}
-	return nil
+	return kv, nil
 }
 
 // init initializes the update command with its flags and adds it to the root command

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
@@ -12,6 +13,7 @@ var (
 	createCatalog   string
 	createVariant   string
 	createNamespace string
+	ignoreErrors    bool
 )
 
 // createCmd represents the create command
@@ -53,14 +55,81 @@ func createResource(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("filename is required")
 	}
 
-	jsonData, resource, err := LoadResourceFromFile(filename)
+	resources, err := LoadResourceFromMultiYAMLFile(filename)
 	if err != nil {
 		return err
 	}
 
+	orderedResourceList := []string{
+		KindCatalog,
+		KindVariant,
+		KindNamespace,
+		KindView,
+		KindSkillset,
+		KindResource,
+	}
+
+	var statusValues []map[string]any
+	defer func() {
+		if len(statusValues) > 0 {
+			if jsonOutput {
+				printJSON(statusValues)
+			} else {
+				for _, status := range statusValues {
+					created, exists := status["created"]
+					if !exists {
+						created = false
+					}
+					location, ok := status["location"].(string)
+					if !ok {
+						location = ""
+					}
+					if created.(bool) {
+						okLabel.Fprintf(os.Stdout, "[OK] ")
+						fmt.Fprintf(os.Stdout, "Created: %s\n", location)
+					} else {
+						if !ignoreErrors {
+							errorLabel.Fprintf(os.Stderr, "[ERROR] ")
+							fmt.Fprintf(os.Stderr, "%s: %s: %s\n", status["kind"], status["name"], status["error"])
+						} else {
+							errorLabel.Fprintf(os.Stdout, "[ERROR] ")
+							fmt.Fprintf(os.Stdout, "%s: %s: %s\n", status["kind"], status["name"], status["error"])
+						}
+					}
+				}
+			}
+		}
+	}()
+
+	for _, kind := range orderedResourceList {
+		resources, ok := resources[kind]
+		if !ok {
+			continue
+		}
+		for _, resource := range resources {
+			kv, err := handleCreateResource(resource.Metadata, resource.JSON)
+			if err != nil {
+				statusValues = append(statusValues, map[string]any{
+					"kind":    resource.Metadata.Kind,
+					"name":    resource.Metadata.Metadata["name"],
+					"created": false,
+					"error":   err.Error(),
+				})
+				if !ignoreErrors {
+					return ErrAlreadyHandled
+				}
+				continue
+			}
+			statusValues = append(statusValues, kv)
+		}
+	}
+	return nil
+}
+
+func handleCreateResource(resource ResourceMetadata, jsonData []byte) (map[string]any, error) {
 	resourceType, err := GetResourceType(resource.Kind)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	client := httpclient.NewClient(GetConfig())
@@ -77,21 +146,16 @@ func createResource(cmd *cobra.Command, args []string) error {
 
 	_, location, err := client.CreateResource(resourceType, jsonData, queryParams)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if jsonOutput {
-		kv := map[string]any{
-			"kind":     resource.Kind,
-			"created":  true,
-			"location": location,
-		}
-		printJSON(kv)
-	} else {
-		fmt.Printf("Successfully created %s\n", resource.Kind)
-		fmt.Printf("Location: %s\n", location)
+	kv := map[string]any{
+		"kind":     resource.Kind,
+		"created":  true,
+		"location": location,
+		"name":     resource.Metadata["name"],
 	}
-	return nil
+	return kv, nil
 }
 
 // init initializes the create command with its flags and adds it to the root command
@@ -104,6 +168,7 @@ func init() {
 	createCmd.Flags().StringVarP(&createCatalog, "catalog", "c", "", "Catalog name")
 	createCmd.Flags().StringVarP(&createVariant, "variant", "v", "", "Variant name")
 	createCmd.Flags().StringVarP(&createNamespace, "namespace", "n", "", "Namespace name")
+	createCmd.Flags().BoolVarP(&ignoreErrors, "ignore-errors", "i", false, "Ignore errors and continue with the next resource")
 
 	// Add the create command to the root command
 	rootCmd.AddCommand(createCmd)

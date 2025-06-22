@@ -258,7 +258,7 @@ This is useful when you want to reset your configuration or switch to a differen
 		if jsonOutput {
 			printJSON(map[string]int{"result": 1})
 		} else {
-			fmt.Println("Configuration cleared successfully")
+			fmt.Println("Cleared configuration")
 		}
 
 		return nil
