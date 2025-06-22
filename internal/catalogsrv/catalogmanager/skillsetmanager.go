@@ -21,6 +21,7 @@ import (
 	schemaerr "github.com/tansive/tansive-internal/internal/catalogsrv/schema/errors"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/common/jsruntime"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/api"
 	"github.com/tansive/tansive-internal/pkg/types"
@@ -67,13 +68,14 @@ type SkillSetRunner struct {
 }
 
 type Skill struct {
-	Name            string            `json:"name" validate:"required,skillNameValidator"`
-	Description     string            `json:"description" validate:"required"`
-	Source          string            `json:"source" validate:"required"`
-	InputSchema     json.RawMessage   `json:"inputSchema" validate:"required,jsonSchemaValidator"`
-	OutputSchema    json.RawMessage   `json:"outputSchema" validate:"required,jsonSchemaValidator"`
-	ExportedActions []policy.Action   `json:"exportedActions" validate:"required,dive"`
-	Annotations     map[string]string `json:"annotations" validate:"omitempty"`
+	Name            string               `json:"name" validate:"required,skillNameValidator"`
+	Description     string               `json:"description" validate:"required"`
+	Source          string               `json:"source" validate:"required"`
+	InputSchema     json.RawMessage      `json:"inputSchema" validate:"required,jsonSchemaValidator"`
+	OutputSchema    json.RawMessage      `json:"outputSchema" validate:"required,jsonSchemaValidator"`
+	Transform       types.NullableString `json:"transform" validate:"omitempty"`
+	ExportedActions []policy.Action      `json:"exportedActions" validate:"required,dive"`
+	Annotations     map[string]string    `json:"annotations" validate:"omitempty"`
 }
 
 func (s *Skill) GetExportedActions() []policy.Action {
@@ -454,7 +456,7 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 
 	err := schemavalidator.V().Struct(s)
 	if err == nil {
-		// Validate each skill's input and output schemas
+		// Validate each skill's input and output schemas and transform
 		for _, skill := range s.Spec.Skills {
 			isRunnerFound := false
 			// All skills must have a runner
@@ -481,6 +483,13 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 				_, err := compileSchema(string(skill.OutputSchema))
 				if err != nil {
 					validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("skill %s output schema: %v", skill.Name, err)))
+				}
+			}
+			// Validate transform
+			if !skill.Transform.IsNil() {
+				_, err := jsruntime.New(skill.Transform.String())
+				if err != nil {
+					validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("skill %s transform: %v", skill.Name, err)))
 				}
 			}
 		}

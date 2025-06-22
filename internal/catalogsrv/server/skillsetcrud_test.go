@@ -157,6 +157,7 @@ func TestSkillSetCrud(t *testing.T) {
 								}
 							}
 						},
+						"transform": null,
 						"exportedActions": ["test.action"]
 					},
 					{
@@ -180,6 +181,7 @@ func TestSkillSetCrud(t *testing.T) {
 								}
 							}
 						},
+						"transform": null,
 						"exportedActions": ["python.action"]
 					}
 				],
@@ -289,6 +291,7 @@ func TestSkillSetCrud(t *testing.T) {
 								}
 							}
 						},
+						"transform": null,
 						"exportedActions": ["updated.action"]
 					},
 					{
@@ -312,6 +315,7 @@ func TestSkillSetCrud(t *testing.T) {
 								}
 							}
 						},
+						"transform": null,
 						"exportedActions": ["updated.python.action"]
 					}
 				],
@@ -523,6 +527,7 @@ func TestSkillSetList(t *testing.T) {
 								}
 							}
 						},
+						"transform": null,
 						"exportedActions": ["test.action"]
 					}
 				],

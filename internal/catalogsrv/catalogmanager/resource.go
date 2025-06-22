@@ -227,13 +227,14 @@ func (h *resourceKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error)
 	if err != nil {
 		return nil, err
 	}
-	if h.req.ObjectProperty == catcommon.ResourcePropertyDefinition {
+	switch h.req.ObjectProperty {
+	case catcommon.ResourcePropertyDefinition:
 		return rm.JSON(ctx)
-	} else if h.req.ObjectProperty == catcommon.ResourcePropertyValue {
+	case catcommon.ResourcePropertyValue:
 		return rm.GetValueJSON(ctx)
+	default:
+		return nil, ErrDisallowedByPolicy
 	}
-
-	return nil, ErrDisallowedByPolicy
 }
 
 // Update updates an existing resource with new data.
@@ -260,13 +261,14 @@ func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apper
 		return ErrObjectNotFound
 	}
 
-	if h.req.ObjectProperty == catcommon.ResourcePropertyDefinition {
+	switch h.req.ObjectProperty {
+	case catcommon.ResourcePropertyDefinition:
 		rm, err := NewResourceManager(ctx, rsrcJSON, m)
 		if err != nil {
 			return err
 		}
 		return rm.Save(ctx)
-	} else if h.req.ObjectProperty == catcommon.ResourcePropertyValue {
+	case catcommon.ResourcePropertyValue:
 		val := types.NullableAny{}
 		if err := json.Unmarshal(rsrcJSON, &val); err != nil {
 			return ErrInvalidResourceValue
@@ -275,9 +277,9 @@ func (h *resourceKindHandler) Update(ctx context.Context, rsrcJSON []byte) apper
 			return err
 		}
 		return existing.Save(ctx)
+	default:
+		return ErrDisallowedByPolicy
 	}
-
-	return ErrDisallowedByPolicy
 }
 
 // Delete removes a resource from storage.

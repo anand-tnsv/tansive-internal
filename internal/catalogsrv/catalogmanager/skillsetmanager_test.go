@@ -260,6 +260,129 @@ func TestSkillSetValidation(t *testing.T) {
 			expectedError: true,
 			errorTypes:    []string{"invalid name"},
 		},
+		{
+			name: "valid skillset with transform",
+			jsonInput: `{
+				"apiVersion": "0.1.0-alpha.1",
+				"kind": "SkillSet",
+				"metadata": {
+					"name": "test-skillset",
+					"catalog": "test-catalog",
+					"namespace": "default",
+					"variant": "default",
+					"path": "/skillsets/test-skillset"
+				},
+				"spec": {
+					"version": "1.0.0",
+					"runners": [
+						{
+							"name": "command-runner",
+							"id": "system.commandrunner",
+							"config": {
+								"command": "python3 test.py"
+							}
+						}
+					],
+					"skills": [
+						{
+							"name": "test-skill",
+							"description": "A test skill with transform",
+							"source": "command-runner",
+							"inputSchema": {"type": "object"},
+							"outputSchema": {"type": "object"},
+							"transform": "function(input) { return input; }",
+							"exportedActions": ["test.action"]
+						}
+					]
+				}
+			}`,
+			expectedError: false,
+		},
+		{
+			name: "invalid skillset - invalid transform syntax",
+			jsonInput: `{
+				"apiVersion": "0.1.0-alpha.1",
+				"kind": "SkillSet",
+				"metadata": {
+					"name": "test-skillset",
+					"catalog": "test-catalog",
+					"namespace": "default",
+					"variant": "default",
+					"path": "/skillsets/test-skillset"
+				},
+				"spec": {
+					"version": "1.0.0",
+					"runners": [
+						{
+							"name": "command-runner",
+							"id": "system.commandrunner",
+							"config": {
+								"command": "python3 test.py"
+							}
+						}
+					],
+					"skills": [
+						{
+							"name": "test-skill",
+							"description": "A test skill with invalid transform",
+							"source": "command-runner",
+							"inputSchema": {"type": "object"},
+							"outputSchema": {"type": "object"},
+							"transform": "function(input) { invalid syntax }",
+							"exportedActions": ["test.action"]
+						}
+					]
+				}
+			}`,
+			expectedError: true,
+			errorTypes:    []string{"skill test-skill transform"},
+		},
+		{
+			name: "valid skillset with multiple skills and transforms",
+			jsonInput: `{
+				"apiVersion": "0.1.0-alpha.1",
+				"kind": "SkillSet",
+				"metadata": {
+					"name": "test-skillset",
+					"catalog": "test-catalog",
+					"namespace": "default",
+					"variant": "default",
+					"path": "/skillsets/test-skillset"
+				},
+				"spec": {
+					"version": "1.0.0",
+					"runners": [
+						{
+							"name": "command-runner",
+							"id": "system.commandrunner",
+							"config": {
+								"command": "python3 test.py"
+							}
+						}
+					],
+					"skills": [
+						{
+							"name": "test-skill-1",
+							"description": "A test skill without transform",
+							"source": "command-runner",
+							"inputSchema": {"type": "object"},
+							"outputSchema": {"type": "object"},
+							"exportedActions": ["test.action1"]
+						},
+						{
+							"name": "test-skill-2",
+							"description": "A test skill with transform",
+							"source": "command-runner",
+							"inputSchema": {"type": "object"},
+							"outputSchema": {"type": "object"},
+							"transform": "function(input) { return { ...input, processed: true }; }",
+							"exportedActions": ["test.action2"]
+						}
+					]
+				}
+			}`,
+			expectedError: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -717,6 +840,22 @@ func TestSkillValidateInput(t *testing.T) {
 			},
 			input:         `{"name": "John", "age": "thirty"}`,
 			expectedError: true,
+		},
+		{
+			name: "valid input with transform field",
+			skill: Skill{
+				Name:         "test-skill",
+				Description:  "A test skill with transform",
+				Source:       "command-runner",
+				InputSchema:  json.RawMessage(`{"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}, "required": ["name"]}`),
+				OutputSchema: json.RawMessage(`{"type": "object"}`),
+				Transform:    types.NullableStringFrom("function(input) { return input; }"),
+				ExportedActions: []policy.Action{
+					"test.action",
+				},
+			},
+			input:         `{"name": "John", "age": 30}`,
+			expectedError: false,
 		},
 	}
 
