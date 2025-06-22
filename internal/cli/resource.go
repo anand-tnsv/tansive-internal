@@ -26,13 +26,16 @@ func LoadResourceFromFile(filename string) ([]byte, *Resource, error) {
 	// Remove stray tabs
 	data = replaceTabsWithSpaces(data)
 
-	// Convert YAML to JSON
+	data, err = PreprocessYAML(data)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	jsonData, err := yaml.YAMLToJSON(data)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to parse YAML: %v", err)
 	}
 
-	// Parse the resource to get its kind
 	var resource Resource
 	if err := json.Unmarshal(jsonData, &resource); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse resource: %v", err)

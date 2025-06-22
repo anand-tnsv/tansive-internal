@@ -31,5 +31,8 @@ Godeps/
 *.tmp
 .DS_Store
 
+# Environment files
+.env
+
 # Output binaries
 /bin/
