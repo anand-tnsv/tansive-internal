@@ -2,7 +2,6 @@ package jsruntime
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -21,9 +20,9 @@ type Options struct {
 }
 
 // New creates a JSFunction from a JS function source string.
-func New(jsCode string) (*JSFunction, apperrors.Error) {
+func New(ctx context.Context, jsCode string) (*JSFunction, apperrors.Error) {
 	vm := goja.New()
-	bindConsole(vm)
+	bindConsole(ctx, vm)
 
 	wrapped := fmt.Sprintf("(%s)", jsCode)
 	v, err := vm.RunString(wrapped)
@@ -43,27 +42,18 @@ func New(jsCode string) (*JSFunction, apperrors.Error) {
 }
 
 // Run executes the function with two JSON arguments, respecting timeout and returning JSON output.
-func (j *JSFunction) Run(ctx context.Context, sessionArgs, inputArgs []byte, opts Options) ([]byte, apperrors.Error) {
+func (j *JSFunction) Run(ctx context.Context, sessionArgs, inputArgs map[string]any, opts Options) (map[string]any, apperrors.Error) {
 	// New VM per run to isolate memory
 	vm := goja.New()
-	bindConsole(vm)
+	bindConsole(ctx, vm)
 
-	// recompile function
+	// Recompile function
 	wrapped := fmt.Sprintf("(%s)", j.code)
 	v, err := vm.RunString(wrapped)
 	if err != nil {
 		return nil, ErrJSExecutionError.Err(err)
 	}
 	fn, _ := goja.AssertFunction(v)
-
-	// Parse input
-	var obj1, obj2 any
-	if err := json.Unmarshal(sessionArgs, &obj1); err != nil {
-		return nil, ErrJSExecutionError.Msg("invalid session args").Err(err)
-	}
-	if err := json.Unmarshal(inputArgs, &obj2); err != nil {
-		return nil, ErrJSExecutionError.Msg("invalid input args").Err(err)
-	}
 
 	// Use context with timeout
 	if opts.Timeout == 0 {
@@ -84,8 +74,8 @@ func (j *JSFunction) Run(ctx context.Context, sessionArgs, inputArgs []byte, opt
 			close(done)
 		}()
 
-		val1 := vm.ToValue(obj1)
-		val2 := vm.ToValue(obj2)
+		val1 := vm.ToValue(sessionArgs)
+		val2 := vm.ToValue(inputArgs)
 		result, callErr = fn(goja.Undefined(), val1, val2)
 	}()
 
@@ -101,11 +91,12 @@ func (j *JSFunction) Run(ctx context.Context, sessionArgs, inputArgs []byte, opt
 		}
 	}
 
-	// Convert back to JSON
 	exported := result.Export()
-	jsonBytes, err := json.Marshal(exported)
-	if err != nil {
-		return nil, ErrJSExecutionError.Msg("failed to marshal result").Err(err)
+	resMap, ok := exported.(map[string]any)
+	if !ok {
+		msg := fmt.Sprintf("expected function to return object, got %T", exported)
+		return nil, ErrJSExecutionError.Msg(msg)
 	}
-	return jsonBytes, nil
+
+	return resMap, nil
 }

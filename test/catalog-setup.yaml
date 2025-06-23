@@ -36,6 +36,13 @@ spec:
         - kubernetes.troubleshoot
       targets:
         - res://skillsets/skillsets/kubernetes-demo
+    - intent: Allow
+      actions:
+        - system.skillset.use
+        - patient.labresults.get
+        - patient.id.resolve
+      targets:
+        - res://skillsets/skillsets/health-record-demo
 ---
 apiVersion: 0.1.0-alpha.1
 kind: View

@@ -132,7 +132,10 @@ func TestSkillSetCrud(t *testing.T) {
 								}
 							}
 						},
-						"value": null
+						"value": null,
+						"attributes": {
+							"hidden": false
+						}
 					}
 				],
 				"skills": [
@@ -266,7 +269,10 @@ func TestSkillSetCrud(t *testing.T) {
 								}
 							}
 						},
-						"value": null
+						"value": null,
+						"attributes": {
+							"hidden": false
+						}
 					}
 				],
 				"skills": [
@@ -502,7 +508,10 @@ func TestSkillSetList(t *testing.T) {
 								}
 							}
 						},
-						"value": null
+						"value": null,
+						"attributes": {
+							"hidden": false
+						}
 					}
 				],
 				"skills": [

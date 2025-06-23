@@ -2,7 +2,10 @@ package catalogmanager
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/url"
 	"path"
 
@@ -20,6 +23,8 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/pkg/api"
 	"github.com/tansive/tansive-internal/pkg/types"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 // SkillSetManager defines the interface for managing a single skillset.
@@ -267,6 +272,7 @@ func (h *skillsetKindHandler) Create(ctx context.Context, skillsetJSON []byte) (
 
 // Get retrieves a skillset by its path and returns it as JSON.
 // It validates the metadata and loads the skillset from storage.
+// Hidden context values are replaced with their SHA256 hash (8 characters).
 func (h *skillsetKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	m := &interfaces.Metadata{
 		Catalog:   h.req.Catalog,
@@ -284,7 +290,55 @@ func (h *skillsetKindHandler) Get(ctx context.Context) ([]byte, apperrors.Error)
 	if err != nil {
 		return nil, err
 	}
-	return sm.JSON(ctx)
+
+	// Get the JSON representation
+	jsonData, err := sm.JSON(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process hidden context values
+	jsonData, err = h.hashHiddenContextValues(jsonData)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to hash hidden context values")
+		return nil, ErrUnableToLoadObject.Msg("failed to process context values")
+	}
+
+	return jsonData, nil
+}
+
+// hashHiddenContextValues processes the JSON to find context values with hidden=true
+// and replaces their values with SHA256 hashes (8 characters)
+func (h *skillsetKindHandler) hashHiddenContextValues(jsonData []byte) ([]byte, apperrors.Error) {
+	contexts := gjson.GetBytes(jsonData, "spec.context")
+	if !contexts.IsArray() {
+		return jsonData, nil
+	}
+
+	for i, context := range contexts.Array() {
+		hidden := gjson.Get(context.Raw, "attributes.hidden")
+		if !hidden.Bool() {
+			continue
+		}
+
+		value := gjson.Get(context.Raw, "value")
+		if !value.Exists() || value.Type == gjson.Null {
+			continue
+		}
+
+		valueBytes := []byte(value.Raw)
+		hash := sha256.Sum256(valueBytes)
+		hashHex := hex.EncodeToString(hash[:])[:8] // Take first 8 characters
+
+		path := fmt.Sprintf("spec.context.%d.value", i)
+		var err error
+		jsonData, err = sjson.SetBytes(jsonData, path, hashHex)
+		if err != nil {
+			return nil, ErrUnableToLoadObject.Msg("failed to replace context value with hash")
+		}
+	}
+
+	return jsonData, nil
 }
 
 // Update updates an existing skillset with new data.

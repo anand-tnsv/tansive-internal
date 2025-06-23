@@ -16,6 +16,7 @@ import (
 	srvsession "github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
+	"github.com/tansive/tansive-internal/internal/common/jsruntime"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/eventlogger"
@@ -93,9 +94,26 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 		Any("actions", actions).
 		Msg("allowed by policy")
 
-	if err := s.ValidateInputForSkill(ctx, skillName, inputArgs); err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("invalid input for skill")
+	transformApplied, inputArgs, err := s.TransformInputForSkill(ctx, skillName, inputArgs)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("unable to transform input")
+		s.auditLogInfo.auditLogger.Error().
+			Str("event", "skill_input_transformed").
+			Str("status", "failed").
+			Str("invocation_id", invocationID).
+			Err(err).
+			Str("skill", skillName).
+			Msg("input transformed")
 		return err
+	}
+	if transformApplied {
+		s.auditLogInfo.auditLogger.Info().
+			Str("event", "skill_input_transformed").
+			Str("status", "success").
+			Str("invocation_id", invocationID).
+			Str("skill", skillName).
+			Any("input_args", inputArgs).
+			Msg("input transformed")
 	}
 
 	// We only support interactive skills for now
@@ -141,6 +159,32 @@ func (s *session) ValidateRunPolicy(ctx context.Context, invokerID string, skill
 	}
 
 	return allowed, basis, actions, nil
+}
+
+func (s *session) TransformInputForSkill(ctx context.Context, skillName string, inputArgs map[string]any) (transformApplied bool, retArgs map[string]any, retErr apperrors.Error) {
+	skill, err := s.resolveSkill(skillName)
+	if err != nil {
+		return false, inputArgs, err
+	}
+	defer func() {
+		if retErr == nil {
+			retErr = skill.ValidateInput(retArgs)
+		}
+	}()
+	if !skill.Transform.IsNil() {
+		jsFunc, err := jsruntime.New(ctx, skill.Transform.String())
+		if err != nil {
+			return false, inputArgs, err
+		}
+		inputArgs, err = jsFunc.Run(ctx, s.context.SessionVariables, inputArgs, jsruntime.Options{
+			Timeout: 25 * time.Millisecond,
+		})
+		if err != nil {
+			return false, inputArgs, err
+		}
+		return true, inputArgs, nil
+	}
+	return false, inputArgs, nil
 }
 
 func (s *session) ValidateInputForSkill(ctx context.Context, skillName string, inputArgs map[string]any) apperrors.Error {

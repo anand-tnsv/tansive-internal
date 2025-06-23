@@ -2,6 +2,7 @@ package catalogmanager
 
 import (
 	"context"
+	"encoding/json"
 	"path"
 	"testing"
 
@@ -339,4 +340,234 @@ func TestLoadSkillSetManagerByPath(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, loadedSm)
 	})
+}
+
+func TestHashHiddenContextValues(t *testing.T) {
+	// Create a test skillset with hidden context values
+	skillsetJSON := `{
+		"apiVersion": "0.1.0-alpha.1",
+		"kind": "SkillSet",
+		"metadata": {
+			"name": "test-skillset",
+			"catalog": "test-catalog",
+			"variant": "test-variant",
+			"path": "/test"
+		},
+		"spec": {
+			"version": "1.0.0",
+			"runners": [
+				{
+					"name": "test-runner",
+					"id": "system.testrunner",
+					"config": {}
+				}
+			],
+			"context": [
+				{
+					"name": "visible-context",
+					"schema": {"type": "string"},
+					"value": "visible-value",
+					"attributes": {
+						"hidden": false
+					}
+				},
+				{
+					"name": "hidden-context",
+					"schema": {"type": "string"},
+					"value": "secret-password",
+					"attributes": {
+						"hidden": true
+					}
+				},
+				{
+					"name": "hidden-complex-context",
+					"schema": {"type": "object"},
+					"value": {"key": "secret-value", "nested": {"data": "sensitive"}},
+					"attributes": {
+						"hidden": true
+					}
+				},
+				{
+					"name": "null-context",
+					"schema": {"type": "string"},
+					"value": null,
+					"attributes": {
+						"hidden": true
+					}
+				}
+			],
+			"skills": [
+				{
+					"name": "test-skill",
+					"description": "Test skill",
+					"source": "test-runner",
+					"inputSchema": {"type": "object"},
+					"outputSchema": {"type": "object"},
+					"exportedActions": ["test.action"]
+				}
+			]
+		}
+	}`
+
+	// Create a skillset kind handler
+	req := interfaces.RequestContext{
+		Catalog:    "test-catalog",
+		Variant:    "test-variant",
+		Namespace:  "",
+		ObjectPath: "/test",
+		ObjectName: "test-skillset",
+		ObjectType: catcommon.CatalogObjectTypeSkillset,
+	}
+
+	handler := &skillsetKindHandler{req: req}
+
+	// Test the hashHiddenContextValues function
+	jsonData := []byte(skillsetJSON)
+	result, err := handler.hashHiddenContextValues(jsonData)
+	require.NoError(t, err)
+
+	// Parse the result to verify the changes
+	var resultMap map[string]interface{}
+	unmarshalErr := json.Unmarshal(result, &resultMap)
+	require.NoError(t, unmarshalErr)
+
+	// Get the context array
+	spec := resultMap["spec"].(map[string]interface{})
+	contexts := spec["context"].([]interface{})
+
+	// Verify visible context is unchanged
+	visibleContext := contexts[0].(map[string]interface{})
+	assert.Equal(t, "visible-value", visibleContext["value"])
+
+	// Verify hidden context is hashed
+	hiddenContext := contexts[1].(map[string]interface{})
+	hashedValue := hiddenContext["value"].(string)
+	assert.NotEqual(t, "secret-password", hashedValue)
+	assert.Len(t, hashedValue, 8) // Should be 8 characters
+
+	// Verify hidden complex context is hashed
+	hiddenComplexContext := contexts[2].(map[string]interface{})
+	hashedComplexValue := hiddenComplexContext["value"].(string)
+	assert.NotEqual(t, map[string]interface{}{"key": "secret-value", "nested": map[string]interface{}{"data": "sensitive"}}, hashedComplexValue)
+	assert.Len(t, hashedComplexValue, 8) // Should be 8 characters
+
+	// Verify null context is unchanged (null values should not be hashed)
+	nullContext := contexts[3].(map[string]interface{})
+	assert.Nil(t, nullContext["value"])
+}
+
+func TestHashHiddenContextValuesNoHiddenContexts(t *testing.T) {
+	// Create a test skillset with no hidden context values
+	skillsetJSON := `{
+		"apiVersion": "0.1.0-alpha.1",
+		"kind": "SkillSet",
+		"metadata": {
+			"name": "test-skillset",
+			"catalog": "test-catalog",
+			"variant": "test-variant",
+			"path": "/test"
+		},
+		"spec": {
+			"version": "1.0.0",
+			"runners": [
+				{
+					"name": "test-runner",
+					"id": "system.testrunner",
+					"config": {}
+				}
+			],
+			"context": [
+				{
+					"name": "visible-context",
+					"schema": {"type": "string"},
+					"value": "visible-value",
+					"attributes": {
+						"hidden": false
+					}
+				}
+			],
+			"skills": [
+				{
+					"name": "test-skill",
+					"description": "Test skill",
+					"source": "test-runner",
+					"inputSchema": {"type": "object"},
+					"outputSchema": {"type": "object"},
+					"exportedActions": ["test.action"]
+				}
+			]
+		}
+	}`
+
+	req := interfaces.RequestContext{
+		Catalog:    "test-catalog",
+		Variant:    "test-variant",
+		Namespace:  "",
+		ObjectPath: "/test",
+		ObjectName: "test-skillset",
+		ObjectType: catcommon.CatalogObjectTypeSkillset,
+	}
+
+	handler := &skillsetKindHandler{req: req}
+
+	// Test the hashHiddenContextValues function
+	jsonData := []byte(skillsetJSON)
+	result, err := handler.hashHiddenContextValues(jsonData)
+	require.NoError(t, err)
+
+	// The result should be identical to the input since no contexts are hidden
+	assert.Equal(t, skillsetJSON, string(result))
+}
+
+func TestHashHiddenContextValuesNoContexts(t *testing.T) {
+	// Create a test skillset with no context values
+	skillsetJSON := `{
+		"apiVersion": "0.1.0-alpha.1",
+		"kind": "SkillSet",
+		"metadata": {
+			"name": "test-skillset",
+			"catalog": "test-catalog",
+			"variant": "test-variant",
+			"path": "/test"
+		},
+		"spec": {
+			"version": "1.0.0",
+			"runners": [
+				{
+					"name": "test-runner",
+					"id": "system.testrunner",
+					"config": {}
+				}
+			],
+			"skills": [
+				{
+					"name": "test-skill",
+					"description": "Test skill",
+					"source": "test-runner",
+					"inputSchema": {"type": "object"},
+					"outputSchema": {"type": "object"},
+					"exportedActions": ["test.action"]
+				}
+			]
+		}
+	}`
+
+	req := interfaces.RequestContext{
+		Catalog:    "test-catalog",
+		Variant:    "test-variant",
+		Namespace:  "",
+		ObjectPath: "/test",
+		ObjectName: "test-skillset",
+		ObjectType: catcommon.CatalogObjectTypeSkillset,
+	}
+
+	handler := &skillsetKindHandler{req: req}
+
+	// Test the hashHiddenContextValues function
+	jsonData := []byte(skillsetJSON)
+	result, err := handler.hashHiddenContextValues(jsonData)
+	require.NoError(t, err)
+
+	// The result should be identical to the input since there are no contexts
+	assert.Equal(t, skillsetJSON, string(result))
 }

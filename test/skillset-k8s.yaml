@@ -16,7 +16,7 @@ spec:
           key: "value"
         env:
           TEST_VAR: "test_value"
-        script: "openai-demo"
+        script: "openai-demo-mac"
         security:
           type: dev-mode  # could be one of: dev-mode, sandboxed
     - name: my-tools-script
@@ -43,6 +43,8 @@ spec:
           - kubeconfig
       value:
         kubeconfig: {{ .ENV.KUBECONFIG }}
+      attributes:
+        hidden: true
       annotations: {}
     - name: claude
       schema:
@@ -59,6 +61,8 @@ spec:
         apiKey: {{ .ENV.CLAUDE_API_KEY }}
         model: claude-3-7-sonnet-latest
       annotations: {}
+      attributes:
+        hidden: true
     - name: gpt4o
       schema:
         type: object
@@ -74,6 +78,8 @@ spec:
         apiKey: {{ .ENV.OPENAI_API_KEY }}
         model: gpt-4o
       annotations: {}
+      attributes:
+        hidden: true
   skills:
     - name: list_pods
       source: my-tools-script
@@ -88,6 +94,13 @@ spec:
       outputSchema:
         type: string
         description: "Raw output from listing pods, typically from 'kubectl get pods'"
+      transform: |
+        function(session, input) {
+          console.log('transforming input', input)
+          return {
+            labelSelector: 'overridden-by-transform'
+          }
+        }
       exportedActions:
         - kubernetes.pods.list
       annotations:

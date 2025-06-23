@@ -1,14 +1,15 @@
 package jsruntime
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"errors"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -63,7 +64,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jsFunc, err := New(tt.jsCode)
+			jsFunc, err := New(context.Background(), tt.jsCode)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, jsFunc)
@@ -81,81 +82,81 @@ func TestJSFunction_Run(t *testing.T) {
 	tests := []struct {
 		name        string
 		jsCode      string
-		sessionArgs []byte
-		inputArgs   []byte
+		sessionArgs map[string]any
+		inputArgs   map[string]any
 		timeout     time.Duration
-		wantResult  string
+		wantResult  map[string]any
 		wantErr     bool
 	}{
 		{
 			name:        "simple addition",
-			jsCode:      "function(a, b) { return a + b; }",
-			sessionArgs: []byte(`5`),
-			inputArgs:   []byte(`3`),
-			wantResult:  `8`,
+			jsCode:      "function(a, b) { return { result: a.value + b.value }; }",
+			sessionArgs: map[string]any{"value": 5},
+			inputArgs:   map[string]any{"value": 3},
+			wantResult:  map[string]any{"result": int64(8)},
 			wantErr:     false,
 		},
 		{
 			name:        "object manipulation",
 			jsCode:      "function(session, input) { return { result: session.value + input.value, session: session, input: input }; }",
-			sessionArgs: []byte(`{"value": 10, "id": "session1"}`),
-			inputArgs:   []byte(`{"value": 20, "id": "input1"}`),
-			wantResult:  `{"input":{"id":"input1","value":20},"result":30,"session":{"id":"session1","value":10}}`,
+			sessionArgs: map[string]any{"value": 10, "id": "session1"},
+			inputArgs:   map[string]any{"value": 20, "id": "input1"},
+			wantResult:  map[string]any{"input": map[string]any{"id": "input1", "value": 20}, "result": int64(30), "session": map[string]any{"id": "session1", "value": 10}},
 			wantErr:     false,
 		},
 		{
 			name:        "array operations",
-			jsCode:      "function(session, input) { return session.items.concat(input.items); }",
-			sessionArgs: []byte(`{"items": [1, 2, 3]}`),
-			inputArgs:   []byte(`{"items": [4, 5, 6]}`),
-			wantResult:  `[1,2,3,4,5,6]`,
+			jsCode:      "function(session, input) { return { result: session.items.concat(input.items) }; }",
+			sessionArgs: map[string]any{"items": []any{1, 2, 3}},
+			inputArgs:   map[string]any{"items": []any{4, 5, 6}},
+			wantResult:  map[string]any{"result": []any{int64(1), int64(2), int64(3), int64(4), int64(5), int64(6)}},
 			wantErr:     false,
 		},
 		{
 			name:        "conditional logic",
-			jsCode:      "function(session, input) { return session.enabled ? input.value : 0; }",
-			sessionArgs: []byte(`{"enabled": true}`),
-			inputArgs:   []byte(`{"value": 42}`),
-			wantResult:  `42`,
+			jsCode:      "function(session, input) { return { result: session.enabled ? input.value : 0 }; }",
+			sessionArgs: map[string]any{"enabled": true},
+			inputArgs:   map[string]any{"value": 42},
+			wantResult:  map[string]any{"result": int64(42)},
 			wantErr:     false,
 		},
 		{
 			name:        "conditional logic false",
-			jsCode:      "function(session, input) { return session.enabled ? input.value : 0; }",
-			sessionArgs: []byte(`{"enabled": false}`),
-			inputArgs:   []byte(`{"value": 42}`),
-			wantResult:  `0`,
+			jsCode:      "function(session, input) { return { result: session.enabled ? input.value : 0 }; }",
+			sessionArgs: map[string]any{"enabled": false},
+			inputArgs:   map[string]any{"value": 42},
+			wantResult:  map[string]any{"result": int64(0)},
 			wantErr:     false,
 		},
 		{
 			name:        "null and undefined handling",
 			jsCode:      "function(session, input) { return { sessionNull: session === null, inputUndefined: input === undefined, sessionType: typeof session, inputType: typeof input }; }",
-			sessionArgs: []byte(`null`),
-			inputArgs:   []byte(`null`),
-			wantResult:  `{"inputType":"object","inputUndefined":false,"sessionNull":true,"sessionType":"object"}`,
+			sessionArgs: nil,
+			inputArgs:   nil,
+			wantResult:  map[string]any{"inputType": "object", "inputUndefined": false, "sessionNull": true, "sessionType": "object"},
 			wantErr:     false,
 		},
 		{
 			name:        "empty objects",
-			jsCode:      "function(session, input) { return Object.keys(session).length + Object.keys(input).length; }",
-			sessionArgs: []byte(`{}`),
-			inputArgs:   []byte(`{}`),
-			wantResult:  `0`,
+			jsCode:      "function(session, input) { return { count: Object.keys(session).length + Object.keys(input).length }; }",
+			sessionArgs: map[string]any{},
+			inputArgs:   map[string]any{},
+			wantResult:  map[string]any{"count": int64(0)},
 			wantErr:     false,
 		},
 		{
 			name:        "complex nested objects",
 			jsCode:      "function(session, input) { return { deep: { nested: { value: session.config.deep.nested.value + input.config.deep.nested.value } } }; }",
-			sessionArgs: []byte(`{"config": {"deep": {"nested": {"value": 100}}}}`),
-			inputArgs:   []byte(`{"config": {"deep": {"nested": {"value": 200}}}}`),
-			wantResult:  `{"deep":{"nested":{"value":300}}}`,
+			sessionArgs: map[string]any{"config": map[string]any{"deep": map[string]any{"nested": map[string]any{"value": 100}}}},
+			inputArgs:   map[string]any{"config": map[string]any{"deep": map[string]any{"nested": map[string]any{"value": 200}}}},
+			wantResult:  map[string]any{"deep": map[string]any{"nested": map[string]any{"value": int64(300)}}},
 			wantErr:     false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jsFunc, err := New(tt.jsCode)
+			jsFunc, err := New(context.Background(), tt.jsCode)
 			require.NoError(t, err)
 
 			opts := Options{Timeout: tt.timeout}
@@ -168,7 +169,7 @@ func TestJSFunction_Run(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.JSONEq(t, tt.wantResult, string(result))
+				assert.Equal(t, tt.wantResult, result)
 			}
 		})
 	}
@@ -178,44 +179,30 @@ func TestJSFunction_Run_ErrorCases(t *testing.T) {
 	tests := []struct {
 		name        string
 		jsCode      string
-		sessionArgs []byte
-		inputArgs   []byte
+		sessionArgs map[string]any
+		inputArgs   map[string]any
 		timeout     time.Duration
 		expectedErr error
 	}{
 		{
-			name:        "invalid session args JSON",
-			jsCode:      "function(a, b) { return a + b; }",
-			sessionArgs: []byte(`{invalid json`),
-			inputArgs:   []byte(`5`),
-			expectedErr: ErrJSExecutionError,
-		},
-		{
-			name:        "invalid input args JSON",
-			jsCode:      "function(a, b) { return a + b; }",
-			sessionArgs: []byte(`5`),
-			inputArgs:   []byte(`{invalid json`),
-			expectedErr: ErrJSExecutionError,
-		},
-		{
 			name:        "runtime error in function",
 			jsCode:      "function(a, b) { return a.nonExistentProperty.method(); }",
-			sessionArgs: []byte(`{"value": 5}`),
-			inputArgs:   []byte(`{"value": 3}`),
+			sessionArgs: map[string]any{"value": 5},
+			inputArgs:   map[string]any{"value": 3},
 			expectedErr: ErrJSRuntimeError,
 		},
 		{
 			name:        "reference error",
 			jsCode:      "function(a, b) { return undefinedVariable; }",
-			sessionArgs: []byte(`{"value": 5}`),
-			inputArgs:   []byte(`{"value": 3}`),
+			sessionArgs: map[string]any{"value": 5},
+			inputArgs:   map[string]any{"value": 3},
 			expectedErr: ErrJSRuntimeError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jsFunc, err := New(tt.jsCode)
+			jsFunc, err := New(context.Background(), tt.jsCode)
 			require.NoError(t, err)
 
 			opts := Options{Timeout: tt.timeout}
@@ -235,13 +222,13 @@ func TestJSFunction_Run_Timeout(t *testing.T) {
 	// Function that runs indefinitely
 	jsCode := "function(a, b) { while(true) { } return a + b; }"
 
-	jsFunc, err := New(jsCode)
+	jsFunc, err := New(context.Background(), jsCode)
 	require.NoError(t, err)
 
 	opts := Options{Timeout: 10 * time.Millisecond}
 
 	start := time.Now()
-	result, err := jsFunc.Run(context.Background(), []byte(`5`), []byte(`3`), opts)
+	result, err := jsFunc.Run(context.Background(), map[string]any{"value": 5}, map[string]any{"value": 3}, opts)
 	duration := time.Since(start)
 
 	assert.Error(t, err)
@@ -251,155 +238,255 @@ func TestJSFunction_Run_Timeout(t *testing.T) {
 }
 
 func TestJSFunction_Run_DefaultTimeout(t *testing.T) {
-	jsCode := "function(a, b) { return a + b; }"
-	jsFunc, err := New(jsCode)
+	jsCode := "function(a, b) { return { result: a.value + b.value }; }"
+	jsFunc, err := New(context.Background(), jsCode)
 	require.NoError(t, err)
 
 	// Test with zero timeout (should use default)
 	opts := Options{Timeout: 0}
 
-	result, err := jsFunc.Run(context.Background(), []byte(`5`), []byte(`3`), opts)
+	result, err := jsFunc.Run(context.Background(), map[string]any{"value": 5}, map[string]any{"value": 3}, opts)
 	assert.NoError(t, err)
-	assert.Equal(t, `8`, string(result))
+	assert.Equal(t, map[string]any{"result": int64(8)}, result)
 }
 
 func TestJSFunction_Run_Isolation(t *testing.T) {
 	// Test that each run uses a fresh VM instance
-	jsCode := "function(a, b) { if (!a.counter) a.counter = 0; a.counter++; return { counter: a.counter, sum: a + b }; }"
+	jsCode := "function(a, b) { if (!a.counter) a.counter = 0; a.counter++; return { counter: a.counter, sum: a.value + b.value }; }"
 
-	jsFunc, err := New(jsCode)
+	jsFunc, err := New(context.Background(), jsCode)
 	require.NoError(t, err)
 
 	opts := Options{Timeout: 100 * time.Millisecond}
 
 	// First run
-	firstSession := map[string]interface{}{}
-	firstSessionBytes, _ := json.Marshal(firstSession)
-	result1, err := jsFunc.Run(context.Background(), firstSessionBytes, []byte(`3`), opts)
+	firstSession := map[string]any{}
+	result1, err := jsFunc.Run(context.Background(), firstSession, map[string]any{"value": 3}, opts)
 	require.NoError(t, err)
 
-	var result1Obj map[string]interface{}
-	if err := json.Unmarshal(result1, &result1Obj); err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, float64(1), result1Obj["counter"])
+	assert.Equal(t, int64(1), result1["counter"])
 
 	// Second run - should start fresh
-	secondSession := map[string]interface{}{}
-	secondSessionBytes, _ := json.Marshal(secondSession)
-	result2, err := jsFunc.Run(context.Background(), secondSessionBytes, []byte(`20`), opts)
+	secondSession := map[string]any{}
+	result2, err := jsFunc.Run(context.Background(), secondSession, map[string]any{"value": 20}, opts)
 	require.NoError(t, err)
 
-	var result2Obj map[string]interface{}
-	if err := json.Unmarshal(result2, &result2Obj); err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, float64(1), result2Obj["counter"]) // Should be 1 again, not 2
+	assert.Equal(t, int64(1), result2["counter"]) // Should be 1 again, not 2
 }
 
 func TestJSFunction_Run_ConsoleLog(t *testing.T) {
-	jsCode := "function(a, b) { console.log('Session:', a, 'Input:', b); return a + b; }"
+	// Test that console.log works and doesn't cause panics
+	jsCode := "function(a, b) { console.log('Session:', a, 'Input:', b); return { result: a.value + b.value }; }"
 
-	jsFunc, err := New(jsCode)
+	jsFunc, err := New(context.Background(), jsCode)
 	require.NoError(t, err)
 
 	opts := Options{Timeout: 100 * time.Millisecond}
 
 	// This should not panic and should execute successfully
-	result, err := jsFunc.Run(context.Background(), []byte(`5`), []byte(`3`), opts)
+	result, err := jsFunc.Run(context.Background(), map[string]any{"value": 5}, map[string]any{"value": 3}, opts)
 	assert.NoError(t, err)
-	assert.Equal(t, `8`, string(result))
+	assert.Equal(t, map[string]any{"result": int64(8)}, result)
+}
+
+func TestJSFunction_Run_ConsoleLog_WithBuffer(t *testing.T) {
+	// Test that console.log actually produces log output
+	jsCode := "function(a, b) { console.log('Test message:', a, b); console.error('Error message:', a.value + b.value); return { result: a.value + b.value }; }"
+
+	// Create a buffer to capture log output
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf)
+
+	// Create context with logger
+	ctx := logger.WithContext(context.Background())
+
+	jsFunc, err := New(ctx, jsCode)
+	require.NoError(t, err)
+
+	opts := Options{Timeout: 100 * time.Millisecond}
+
+	// Run the function
+	result, err := jsFunc.Run(ctx, map[string]any{"value": 5}, map[string]any{"value": 3}, opts)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{"result": int64(8)}, result)
+
+	// Verify that console.log and console.error messages are in the output
+	outputStr := buf.String()
+	assert.Contains(t, outputStr, "Test message:")
+	assert.Contains(t, outputStr, "Error message:")
+	assert.Contains(t, outputStr, "5")
+	assert.Contains(t, outputStr, "3")
+	assert.Contains(t, outputStr, "8")
+}
+
+func TestJSFunction_Run_ConsoleLog_MultipleCalls_WithBuffer(t *testing.T) {
+	// Test multiple console.log calls in the same function
+	jsCode := "function(a, b) { console.log('First:', a); console.log('Second:', b); console.log('Sum:', a.value + b.value); return { result: a.value + b.value }; }"
+
+	// Create a buffer to capture log output
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf)
+
+	// Create context with logger
+	ctx := logger.WithContext(context.Background())
+
+	jsFunc, err := New(ctx, jsCode)
+	require.NoError(t, err)
+
+	opts := Options{Timeout: 100 * time.Millisecond}
+
+	// Run the function
+	result, err := jsFunc.Run(ctx, map[string]any{"value": 10}, map[string]any{"value": 20}, opts)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{"result": int64(30)}, result)
+
+	// Verify all console.log messages are present
+	outputStr := buf.String()
+	assert.Contains(t, outputStr, "First:")
+	assert.Contains(t, outputStr, "Second:")
+	assert.Contains(t, outputStr, "Sum:")
+	assert.Contains(t, outputStr, "10")
+	assert.Contains(t, outputStr, "20")
+	assert.Contains(t, outputStr, "30")
+}
+
+func TestJSFunction_Run_ConsoleLog_ComplexObjects_WithBuffer(t *testing.T) {
+	// Test console.log with complex objects
+	jsCode := "function(session, input) { console.log('Session object:', session); console.log('Input object:', input); return { sum: session.value + input.value }; }"
+
+	// Create a buffer to capture log output
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf)
+
+	// Create context with logger
+	ctx := logger.WithContext(context.Background())
+
+	jsFunc, err := New(ctx, jsCode)
+	require.NoError(t, err)
+
+	opts := Options{Timeout: 100 * time.Millisecond}
+
+	// Run the function
+	result, err := jsFunc.Run(ctx, map[string]any{"value": 10}, map[string]any{"value": 20}, opts)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{"sum": int64(30)}, result)
+
+	// Verify console.log messages are present
+	outputStr := buf.String()
+	assert.Contains(t, outputStr, "Session object:")
+	assert.Contains(t, outputStr, "Input object:")
+	assert.Contains(t, outputStr, "value")
+	assert.Contains(t, outputStr, "10")
+	assert.Contains(t, outputStr, "20")
+}
+
+func TestJSFunction_Run_ConsoleLog_Error_WithBuffer(t *testing.T) {
+	// Test that console.error works and produces error level logs
+	jsCode := "function(a, b) { console.error('Error message:', a.value + b.value); return { result: a.value + b.value }; }"
+
+	// Create a buffer to capture log output
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf)
+
+	// Create context with logger
+	ctx := logger.WithContext(context.Background())
+
+	jsFunc, err := New(ctx, jsCode)
+	require.NoError(t, err)
+
+	opts := Options{Timeout: 100 * time.Millisecond}
+
+	// Run the function
+	result, err := jsFunc.Run(ctx, map[string]any{"value": 5}, map[string]any{"value": 3}, opts)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{"result": int64(8)}, result)
+
+	// Verify that console.error message is in the output
+	outputStr := buf.String()
+	assert.Contains(t, outputStr, "Error message:")
+	assert.Contains(t, outputStr, "8")
 }
 
 func TestJSFunction_Run_LargeData(t *testing.T) {
 	// Test with large JSON objects
-	largeSession := make(map[string]interface{})
-	largeInput := make(map[string]interface{})
+	largeSession := make(map[string]any)
+	largeInput := make(map[string]any)
 
 	for i := 0; i < 1000; i++ {
 		largeSession[fmt.Sprintf("key%d", i)] = fmt.Sprintf("value%d", i)
 		largeInput[fmt.Sprintf("inputKey%d", i)] = i
 	}
 
-	sessionBytes, err := json.Marshal(largeSession)
-	require.NoError(t, err)
-
-	inputBytes, err := json.Marshal(largeInput)
-	require.NoError(t, err)
-
 	jsCode := "function(session, input) { return { sessionKeys: Object.keys(session).length, inputKeys: Object.keys(input).length, sum: Object.keys(session).length + Object.keys(input).length }; }"
 
-	jsFunc, err := New(jsCode)
+	jsFunc, err := New(context.Background(), jsCode)
 	require.NoError(t, err)
 
 	opts := Options{Timeout: 1 * time.Second}
 
-	result, err := jsFunc.Run(context.Background(), sessionBytes, inputBytes, opts)
+	result, err := jsFunc.Run(context.Background(), largeSession, largeInput, opts)
 	assert.NoError(t, err)
 
-	var resultObj map[string]interface{}
-	err = json.Unmarshal(result, &resultObj)
-	require.NoError(t, err)
-	assert.Equal(t, float64(1000), resultObj["sessionKeys"])
-	assert.Equal(t, float64(1000), resultObj["inputKeys"])
-	assert.Equal(t, float64(2000), resultObj["sum"])
+	assert.Equal(t, int64(1000), result["sessionKeys"])
+	assert.Equal(t, int64(1000), result["inputKeys"])
+	assert.Equal(t, int64(2000), result["sum"])
 }
 
 func TestJSFunction_Run_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name        string
 		jsCode      string
-		sessionArgs []byte
-		inputArgs   []byte
-		expected    string
+		sessionArgs map[string]any
+		inputArgs   map[string]any
+		expected    map[string]any
 	}{
 		{
 			name:        "empty arrays",
-			jsCode:      "function(a, b) { return [a.length, b.length]; }",
-			sessionArgs: []byte(`[]`),
-			inputArgs:   []byte(`[]`),
-			expected:    `[0,0]`,
+			jsCode:      "function(a, b) { return { lengths: [a.value.length, b.value.length] }; }",
+			sessionArgs: map[string]any{"value": []any{}},
+			inputArgs:   map[string]any{"value": []any{}},
+			expected:    map[string]any{"lengths": []any{int64(0), int64(0)}},
 		},
 		{
 			name:        "null values",
 			jsCode:      "function(a, b) { return { aNull: a === null, bNull: b === null, aType: typeof a, bType: typeof b }; }",
-			sessionArgs: []byte(`null`),
-			inputArgs:   []byte(`null`),
-			expected:    `{"aNull":true,"aType":"object","bNull":true,"bType":"object"}`,
+			sessionArgs: nil,
+			inputArgs:   nil,
+			expected:    map[string]any{"aNull": true, "aType": "object", "bNull": true, "bType": "object"},
 		},
 		{
 			name:        "boolean values",
-			jsCode:      "function(a, b) { return { aBool: typeof a, bBool: typeof b, result: a && b }; }",
-			sessionArgs: []byte(`true`),
-			inputArgs:   []byte(`false`),
-			expected:    `{"aBool":"boolean","bBool":"boolean","result":false}`,
+			jsCode:      "function(a, b) { return { aBool: typeof a.value, bBool: typeof b.value, result: a.value && b.value }; }",
+			sessionArgs: map[string]any{"value": true},
+			inputArgs:   map[string]any{"value": false},
+			expected:    map[string]any{"aBool": "boolean", "bBool": "boolean", "result": false},
 		},
 		{
 			name:        "string values",
-			jsCode:      "function(a, b) { return a + ' ' + b; }",
-			sessionArgs: []byte(`"hello"`),
-			inputArgs:   []byte(`"world"`),
-			expected:    `"hello world"`,
+			jsCode:      "function(a, b) { return { concatenated: a.value + ' ' + b.value }; }",
+			sessionArgs: map[string]any{"value": "hello"},
+			inputArgs:   map[string]any{"value": "world"},
+			expected:    map[string]any{"concatenated": "hello world"},
 		},
 		{
 			name:        "number values",
-			jsCode:      "function(a, b) { return { sum: a + b, product: a * b, quotient: a / b }; }",
-			sessionArgs: []byte(`10`),
-			inputArgs:   []byte(`5`),
-			expected:    `{"product":50,"quotient":2,"sum":15}`,
+			jsCode:      "function(a, b) { return { sum: a.value + b.value, product: a.value * b.value, quotient: a.value / b.value }; }",
+			sessionArgs: map[string]any{"value": 10},
+			inputArgs:   map[string]any{"value": 5},
+			expected:    map[string]any{"product": int64(50), "quotient": int64(2), "sum": int64(15)},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jsFunc, err := New(tt.jsCode)
+			jsFunc, err := New(context.Background(), tt.jsCode)
 			require.NoError(t, err)
 
 			opts := Options{Timeout: 100 * time.Millisecond}
 
 			result, err := jsFunc.Run(context.Background(), tt.sessionArgs, tt.inputArgs, opts)
 			assert.NoError(t, err)
-			assert.JSONEq(t, tt.expected, string(result))
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -408,12 +495,12 @@ func TestJSFunction_Run_PanicRecovery(t *testing.T) {
 	// Test that panics in the JavaScript code are properly recovered
 	jsCode := "function(a, b) { throw new Error('Test error'); }"
 
-	jsFunc, err := New(jsCode)
+	jsFunc, err := New(context.Background(), jsCode)
 	require.NoError(t, err)
 
 	opts := Options{Timeout: 100 * time.Millisecond}
 
-	result, err := jsFunc.Run(context.Background(), []byte(`5`), []byte(`3`), opts)
+	result, err := jsFunc.Run(context.Background(), map[string]any{"value": 5}, map[string]any{"value": 3}, opts)
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.ErrorIs(t, err, ErrJSRuntimeError)
@@ -422,11 +509,11 @@ func TestJSFunction_Run_PanicRecovery(t *testing.T) {
 
 func BenchmarkJSFunction_Run(b *testing.B) {
 	jsCode := "function(session, input) { return { result: session.value + input.value, timestamp: Date.now() }; }"
-	jsFunc, err := New(jsCode)
+	jsFunc, err := New(context.Background(), jsCode)
 	require.NoError(b, err)
 
-	sessionArgs := []byte(`{"value": 10, "id": "session1"}`)
-	inputArgs := []byte(`{"value": 20, "id": "input1"}`)
+	sessionArgs := map[string]any{"value": 10, "id": "session1"}
+	inputArgs := map[string]any{"value": 20, "id": "input1"}
 	opts := Options{Timeout: 100 * time.Millisecond}
 
 	b.ResetTimer()
@@ -443,7 +530,7 @@ func BenchmarkJSFunction_New(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := New(jsCode)
+		_, err := New(context.Background(), jsCode)
 		if err != nil {
 			b.Fatal(err)
 		}

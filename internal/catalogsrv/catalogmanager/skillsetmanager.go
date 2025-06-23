@@ -55,10 +55,11 @@ type SkillSetSpec struct {
 }
 
 type SkillSetContext struct {
-	Name     string            `json:"name" validate:"required,resourceNameValidator"`
-	Provider ResourceProvider  `json:"provider,omitempty" validate:"required_without=Schema,omitempty,resourceNameValidator"`
-	Schema   json.RawMessage   `json:"schema" validate:"required_without=Provider,omitempty,jsonSchemaValidator"`
-	Value    types.NullableAny `json:"value" validate:"omitempty"`
+	Name       string            `json:"name" validate:"required,resourceNameValidator"`
+	Provider   ResourceProvider  `json:"provider,omitempty" validate:"required_without=Schema,omitempty,resourceNameValidator"`
+	Schema     json.RawMessage   `json:"schema" validate:"required_without=Provider,omitempty,jsonSchemaValidator"`
+	Value      types.NullableAny `json:"value" validate:"omitempty"`
+	Attributes ContextAttributes `json:"attributes" validate:"omitempty"`
 }
 
 type SkillSetRunner struct {
@@ -76,6 +77,10 @@ type Skill struct {
 	Transform       types.NullableString `json:"transform" validate:"omitempty"`
 	ExportedActions []policy.Action      `json:"exportedActions" validate:"required,dive"`
 	Annotations     map[string]string    `json:"annotations" validate:"omitempty"`
+}
+
+type ContextAttributes struct {
+	Hidden bool `json:"hidden" validate:"omitempty"`
 }
 
 func (s *Skill) GetExportedActions() []policy.Action {
@@ -487,7 +492,7 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 			}
 			// Validate transform
 			if !skill.Transform.IsNil() {
-				_, err := jsruntime.New(skill.Transform.String())
+				_, err := jsruntime.New(context.Background(), skill.Transform.String())
 				if err != nil {
 					validationErrors = append(validationErrors, schemaerr.ErrValidationFailed(fmt.Sprintf("skill %s transform: %v", skill.Name, err)))
 				}

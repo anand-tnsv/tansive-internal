@@ -42,7 +42,7 @@ const variableSchema = `
   "type": "object",
   "maxProperties": %d,
   "propertyNames": {
-    "pattern": "^[a-zA-Z0-9.-]+$"
+    "pattern": "^[a-zA-Z0-9._-]+$"
   },
   "additionalProperties": {
     "type": ["string", "number", "boolean", "object", "array", "null"]
