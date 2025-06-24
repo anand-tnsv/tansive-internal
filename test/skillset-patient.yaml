@@ -28,7 +28,7 @@ spec:
       config:
         version: "0.1.0-alpha.1"
         runtime: "binary"
-        script: "openai-demo-mac"
+        script: "openai-demo"
         security:
           type: dev-mode  # could be one of: dev-mode, sandboxed
   context:

@@ -17,7 +17,6 @@ tmp/
 # Test files
 *_test.go
 test/
-test_scripts/
 
 # IDE files
 .vscode/
@@ -37,12 +36,11 @@ Dockerfile*
 .dockerignore
 
 # Scripts
-scripts/
-*.sh
 
-# Configuration files (except the main one)
+# Configuration files (except the main ones)
 *.conf
-!tansivesrv.conf
+!tangent.conf
+!tangent.docker.conf
 
 # Go cache
 go.sum

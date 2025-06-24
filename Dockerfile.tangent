@@ -1,0 +1,74 @@
+# Builder stage
+FROM golang:1.23-bullseye AS builder
+
+WORKDIR /app
+
+# Copy go mod files first
+COPY go.mod ./
+
+# Copy source code
+COPY . .
+
+# Generate go.sum and download dependencies
+RUN go mod tidy && go mod download
+
+# Build the binary
+RUN go build -o tangent ./cmd/tangent
+
+# Final stage
+FROM python:3.12-slim-bookworm
+
+# Install system packages: bash, Node.js, build tools
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    bash curl git build-essential gnupg ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get update && apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Optional: symlink node (some systems use /usr/bin/nodejs)
+RUN ln -s /usr/bin/node /usr/local/bin/node || true
+
+# Install common Python AI/LLM libraries
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && pip install --no-cache-dir \
+    openai langchain transformers torch \
+    pandas numpy scikit-learn xgboost \
+    fastapi uvicorn aiohttp
+
+# Install TypeScript runtime tools
+RUN npm install -g typescript ts-node
+
+# Create necessary directories
+RUN mkdir -p /var/tangent/scripts /etc/tansive
+
+# Copy built binary from builder stage
+COPY --from=builder /app/tangent /usr/local/bin/tangent
+
+# Copy configuration file and test scripts
+COPY tangent.docker.conf /etc/tansive/tangent.conf
+COPY test_scripts/ /var/tangent/scripts/
+
+# Create a non-root user for running the service
+RUN useradd -r -s /bin/bash -d /var/tangent tangent && \
+    chown -R tangent:tangent /var/tangent /etc/tansive
+
+# Switch to non-root user
+USER tangent
+
+# Expose the server port (from tangent.conf)
+EXPOSE 8468
+
+# Set environment variables
+ENV WORKING_DIR=/var/tangent
+ENV SCRIPT_DIR=/var/tangent/scripts
+
+# Create volumes for persistent data
+VOLUME ["/var/tangent", "/var/tangent/scripts"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8468/health || exit 1
+
+# Default command
+CMD ["/usr/local/bin/tangent", "-config", "/etc/tansive/tangent.conf"] 
