@@ -15,6 +15,11 @@ func VerifyHashedLog(r io.Reader, pubKey []byte) error {
 	}
 
 	scanner := bufio.NewScanner(r)
+	// Increase buffer size to handle larger lines (default is 64KB)
+	const maxScanTokenSize = 1024 * 1024 // 1MB
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, maxScanTokenSize)
+
 	lineNum := 0
 	expectedPrevHash := ""
 

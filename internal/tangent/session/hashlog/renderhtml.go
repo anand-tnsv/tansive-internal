@@ -45,6 +45,11 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
+	// Increase buffer size to handle larger lines (default is 64KB)
+	const maxScanTokenSize = 1024 * 1024 // 1MB
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, maxScanTokenSize)
+
 	invocationMap := make(map[string][]HashedLogEntry)
 	invokerMap := make(map[string]string)
 	firstSessionID := ""
@@ -75,6 +80,11 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 		if tangentURL == "" {
 			tangentURL = str(p["tangent_url"])
 		}
+	}
+
+	// Check for scanner errors (e.g., lines too long)
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("failed to read log file: %w", err)
 	}
 
 	// Build invocation tree
