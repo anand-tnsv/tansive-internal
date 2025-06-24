@@ -268,11 +268,14 @@ func ValidateConfig(cfg *ConfigParam) error {
 	// Audit log validation
 	if cfg.AuditLog.Path == "" {
 		// get the user config directory
-		userConfigDir, err := os.UserConfigDir()
+		userHomeDir, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("error getting user config directory: %v", err)
 		}
-		cfg.AuditLog.Path = filepath.Join(userConfigDir, "tansive", "auditlogs")
+		cfg.AuditLog.Path = filepath.Join(userHomeDir, ".tansive", "auditlogs")
+		if err := os.MkdirAll(cfg.AuditLog.Path, 0700); err != nil {
+			return fmt.Errorf("error creating audit log directory: %v", err)
+		}
 	}
 
 	return nil

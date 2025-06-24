@@ -37,11 +37,8 @@ func GetRuntimeConfig() *RuntimeConfig {
 }
 
 func GetAuditLogDir() string {
-	appDataDir, err := os.UserConfigDir()
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to get user config dir")
-	}
-	return filepath.Join(appDataDir, "tangent", "auditlogs")
+	appDataDir := Config().WorkingDir
+	return filepath.Join(appDataDir, "auditlogs")
 }
 
 func CreateAuditLogDir() {
@@ -54,14 +51,11 @@ func CreateAuditLogDir() {
 }
 
 func GetRuntimeConfigDir() string {
-	appDataDir, err := os.UserConfigDir()
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to get user config dir")
-	}
+	appDataDir := Config().WorkingDir
 	if isTestMode {
-		return filepath.Join(appDataDir, "tangent", "runtime-test")
+		return filepath.Join(appDataDir, "runtime-test")
 	}
-	return filepath.Join(appDataDir, "tangent", "runtime")
+	return filepath.Join(appDataDir, "runtime")
 }
 
 func CreateRuntimeConfigDir() {

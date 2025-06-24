@@ -9,7 +9,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
+	"github.com/tansive/tansive-internal/internal/tangent/test"
 	"github.com/tansive/tansive-internal/pkg/api"
 )
 
@@ -45,6 +47,9 @@ func (m *mockSession) GetContext(ctx context.Context, sessionID, invocationID, n
 }
 
 func TestSkillService(t *testing.T) {
+	test.SetupTestCatalog(t)
+	config.SetTestMode(true)
+	config.TestInit(t)
 	skillService := NewSkillService(&mockSession{id: "test-session"})
 
 	go func() {
@@ -54,7 +59,7 @@ func TestSkillService(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	serviceEndpoint, goerr := api.GetSocketPath()
+	serviceEndpoint, goerr := config.GetSocketPath()
 	require.NoError(t, goerr)
 	client, err := api.NewClient(serviceEndpoint)
 	require.NoError(t, err)
@@ -101,10 +106,13 @@ func TestSkillService(t *testing.T) {
 }
 
 func TestServerStartStop(t *testing.T) {
+	test.SetupTestCatalog(t)
+	config.SetTestMode(true)
+	config.TestInit(t)
 	skillService := NewSkillService(&mockSession{id: "test-session"})
 	require.NotNil(t, skillService)
 
-	socketPath, err := GetSocketPath()
+	socketPath, err := config.GetSocketPath()
 	require.NoError(t, err)
 
 	if _, err := os.Stat(socketPath); err == nil {
@@ -136,8 +144,11 @@ func TestServerStartStop(t *testing.T) {
 }
 
 func TestGetSocketPath(t *testing.T) {
-	path, err := GetSocketPath()
+	test.SetupTestCatalog(t)
+	config.SetTestMode(true)
+	config.TestInit(t)
+	path, err := config.GetSocketPath()
 	require.NoError(t, err)
 	require.NotEmpty(t, path)
-	require.Contains(t, path, defaultSocketName)
+	require.Contains(t, path, config.DefaultSocketName)
 }

@@ -16,11 +16,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
+	"github.com/tansive/tansive-internal/internal/tangent/config"
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 	"github.com/tansive/tansive-internal/pkg/api"
 )
-
-const defaultSocketName = "tangent.service"
 
 type SkillService struct {
 	skillManager tangentcommon.SkillManager
@@ -106,18 +105,6 @@ func (s *SkillService) handleGetContext(r *http.Request) (*httpx.Response, error
 	}, nil
 }
 
-func GetSocketPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get user home directory: %w", err)
-	}
-	runtimeDir := filepath.Join(homeDir, ".local", "run")
-	if err := os.MkdirAll(runtimeDir, 0700); err != nil {
-		return "", fmt.Errorf("failed to create runtime directory: %w", err)
-	}
-	return filepath.Join(runtimeDir, defaultSocketName), nil
-}
-
 func (s *SkillService) MountHandlers() {
 	s.Router.Post("/skill-invocations", httpx.WrapHttpRsp(s.handleInvokeSkill))
 	s.Router.Get("/tools", httpx.WrapHttpRsp(s.handleGetTools))
@@ -125,7 +112,7 @@ func (s *SkillService) MountHandlers() {
 }
 
 func (s *SkillService) StartServer() error {
-	socketPath, err := GetSocketPath()
+	socketPath, err := config.GetSocketPath()
 	if err != nil {
 		return err
 	}

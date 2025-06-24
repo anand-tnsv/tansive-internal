@@ -57,7 +57,7 @@ func TestCreateSession(t *testing.T) {
 	CreateSkillService()
 	// wait for few milliseconds to ensure the skill service is running
 	time.Sleep(100 * time.Millisecond)
-	serviceEndpoint, goerr := api.GetSocketPath()
+	serviceEndpoint, goerr := config.GetSocketPath()
 	require.NoError(t, goerr)
 	client, goerr := api.NewClient(serviceEndpoint)
 	require.NoError(t, goerr)

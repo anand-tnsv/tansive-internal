@@ -220,7 +220,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 
 	runner.AddWriters(interactiveIOWriters)
 
-	serviceEndpoint, goerr := api.GetSocketPath()
+	serviceEndpoint, goerr := config.GetSocketPath()
 	if goerr != nil {
 		return ErrUnableToGetSkillset.Msg("failed to get socket path")
 	}

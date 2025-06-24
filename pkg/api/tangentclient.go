@@ -8,8 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -196,18 +194,4 @@ func (c *Client) GetContext(ctx context.Context, sessionID, invocationID, name s
 	}
 
 	return nil, fmt.Errorf("failed to get context after %d retries: %w", c.config.maxRetries, lastErr)
-}
-
-const DefaultSocketName = "tangent.service"
-
-func GetSocketPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get user home directory: %w", err)
-	}
-	runtimeDir := filepath.Join(homeDir, ".local", "run")
-	if err := os.MkdirAll(runtimeDir, 0700); err != nil {
-		return "", fmt.Errorf("failed to create runtime directory: %w", err)
-	}
-	return filepath.Join(runtimeDir, DefaultSocketName), nil
 }

@@ -55,6 +55,7 @@ type ConfigParam struct {
 	ServerHostName string `toml:"server_hostname"` // Hostname for the server
 	ServerPort     string `toml:"server_port"`     // Port for the server
 	HandleCORS     bool   `toml:"handle_cors"`     // Whether to handle CORS
+	WorkingDir     string `toml:"working_dir"`     // Working directory for the server
 
 	// Stdio runner configuration
 	StdioRunner StdioRunnerConfig `toml:"stdio_runner"`
@@ -142,6 +143,17 @@ func ValidateConfig(cfg *ConfigParam) error {
 		return fmt.Errorf("tansive_server.port is required")
 	}
 
+	if cfg.WorkingDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("error getting user home directory: %v", err)
+		}
+		cfg.WorkingDir = filepath.Join(homeDir, ".tangent")
+		if err := os.MkdirAll(cfg.WorkingDir, 0700); err != nil {
+			return fmt.Errorf("error creating working directory: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -202,4 +214,14 @@ func TestInit(t *testing.T) {
 			deleteRuntimeConfig()
 		}
 	})
+}
+
+const DefaultSocketName = "tangent.service"
+
+func GetSocketPath() (string, error) {
+	runtimeDir := filepath.Join(Config().WorkingDir, "run")
+	if err := os.MkdirAll(runtimeDir, 0700); err != nil {
+		return "", fmt.Errorf("failed to create runtime directory: %w", err)
+	}
+	return filepath.Join(runtimeDir, DefaultSocketName), nil
 }
