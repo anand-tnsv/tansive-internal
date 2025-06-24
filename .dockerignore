@@ -41,6 +41,7 @@ Dockerfile*
 *.conf
 !tangent.conf
 !tangent.docker.conf
+!tansivesrv.conf
 
 # Go cache
 go.sum

@@ -16,7 +16,7 @@ spec:
           key: "value"
         env:
           TEST_VAR: "test_value"
-        script: "openai-demo-mac"
+        script: "openai-demo"
         security:
           type: dev-mode  # could be one of: dev-mode, sandboxed
     - name: my-tools-script
@@ -43,9 +43,6 @@ spec:
           - kubeconfig
       value:
         kubeconfig: {{ .ENV.KUBECONFIG }}
-      attributes:
-        hidden: true
-      annotations: {}
     - name: claude
       schema:
         type: object
@@ -60,9 +57,6 @@ spec:
       value:
         apiKey: {{ .ENV.CLAUDE_API_KEY }}
         model: claude-3-7-sonnet-latest
-      annotations: {}
-      attributes:
-        hidden: true
     - name: gpt4o
       schema:
         type: object
@@ -77,9 +71,6 @@ spec:
       value:
         apiKey: {{ .ENV.OPENAI_API_KEY }}
         model: gpt-4o
-      annotations: {}
-      attributes:
-        hidden: true
   skills:
     - name: list_pods
       source: my-tools-script

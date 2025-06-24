@@ -6,6 +6,9 @@ ARG TARGETARCH
 
 WORKDIR /app
 
+# Install git for go mod download
+RUN apk add --no-cache git
+
 COPY go.mod ./
 COPY . .
 
@@ -13,43 +16,38 @@ RUN go mod tidy && go mod download
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -o tangent ./cmd/tangent
 
-# Use a smaller base image
-FROM python:3.13.5-slim-bookworm
+# Use Alpine Linux for smaller footprint
+FROM alpine:3.19
 
-# Install only essential system packages (no build tools)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash curl git ca-certificates jq \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Install Python, Node.js, and essential packages
+RUN apk add --no-cache \
+    python3 py3-pip \
+    nodejs npm \
+    bash curl git jq ca-certificates \
+    && ln -sf python3 /usr/bin/python
 
-# Optional: symlink node (some systems use /usr/bin/nodejs)
-RUN ln -s /usr/bin/node /usr/local/bin/node || true
-
-# Install only essential Python packages (PyTorch removed - install separately if needed)
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir \
+# Install only essential Python packages (using --break-system-packages for Alpine)
+RUN pip3 install --no-cache-dir --break-system-packages \
     openai langchain \
-    pandas numpy \
     fastapi uvicorn aiohttp
 
 # Install only essential TypeScript tools
 RUN npm install -g typescript
 
-# Install Tangent
+# Create necessary directories
 RUN mkdir -p /var/tangent/scripts /etc/tansive
 
+# Copy binary and config
 COPY --from=builder /app/tangent /usr/local/bin/tangent
-
 COPY scripts/docker/conf/tangent.docker.conf /etc/tansive/tangent.conf
 COPY test_scripts/ /var/tangent/scripts/
 
-# Create a non-root user for running the service
-RUN useradd -r -s /bin/bash -d /var/tangent tangent && \
+# Create non-root user
+RUN addgroup -g 1001 -S tangent && \
+    adduser -u 1001 -S tangent -G tangent && \
     chown -R tangent:tangent /var/tangent /etc/tansive
 
-# Switch to non-root user
-USER tangent
+USER root
 
 EXPOSE 8468
 
@@ -59,7 +57,6 @@ ENV SCRIPT_DIR=/var/tangent/scripts
 VOLUME ["/var/tangent", "/var/tangent/scripts"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8468/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8468/health || exit 1
 
-# Default command
 CMD ["/usr/local/bin/tangent", "-config", "/etc/tansive/tangent.conf"] 
