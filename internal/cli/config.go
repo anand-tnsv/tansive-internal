@@ -219,8 +219,16 @@ var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Manage CLI configuration",
 	Long:  `Manage CLI configuration settings like server connection and authentication.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Check if --server flag is provided
+		serverFlag, _ := cmd.Flags().GetString("server")
+		if serverFlag != "" {
+			return setServerConfig(serverFlag)
+		}
+
+		// If no specific flag is provided, show help
 		cmd.Help()
+		return nil
 	},
 }
 
@@ -266,8 +274,72 @@ This is useful when you want to reset your configuration or switch to a differen
 }
 
 func init() {
-	// First add the clear command to the config command
+	// Add flags to config command
+	configCmd.Flags().String("server", "", "Set the server URL and port (e.g., example.com:8080)")
+
 	configCmd.AddCommand(configClearCmd)
-	// Add the config command to the root command
 	rootCmd.AddCommand(configCmd)
+}
+
+// setServerConfig sets the server configuration in the config file
+func setServerConfig(server string) error {
+	configPath := configFile
+	if configPath == "" {
+		var err error
+		configPath, err = GetDefaultConfigPath()
+		if err != nil {
+			return fmt.Errorf("failed to get default config path: %w", err)
+		}
+	}
+
+	var cfg *Config
+	err := LoadConfig(configPath)
+	if err != nil {
+		var fileNotFound bool
+		unwrapped := err
+		for unwrapped != nil {
+			if os.IsNotExist(unwrapped) {
+				fileNotFound = true
+				break
+			}
+			unwrapped = errors.Unwrap(unwrapped)
+		}
+
+		if fileNotFound {
+			cfg = &Config{
+				Version: "0.1.0",
+				APIKey:  "placeholder", // Temporary placeholder to pass validation
+			}
+		} else {
+			return fmt.Errorf("failed to load existing config: %w", err)
+		}
+	} else {
+		cfg = GetConfig()
+	}
+
+	if !strings.Contains(server, ":") {
+		return errors.New("server must include port number (e.g., example.com:8080)")
+	}
+
+	cfg.ServerPort = MorphServer(server)
+
+	if cfg.APIKey == "placeholder" {
+		cfg.APIKey = ""
+	}
+
+	if err := cfg.WriteConfig(configPath); err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
+	}
+
+	if jsonOutput {
+		printJSON(map[string]string{
+			"server":      cfg.ServerPort,
+			"config_file": configPath,
+		})
+	} else {
+		fmt.Printf("Server configured: %s\n", cfg.ServerPort)
+		fmt.Printf("Config file: %s\n", configPath)
+	}
+
+	return nil
 }
