@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -200,11 +201,11 @@ func printSessions(response []byte) error {
 			}
 
 			// Format timestamps
-			startedAt := session.StartedAt.Format("2006-01-02 15:04:05 MST")
+			startedAt := formatTimestampInLocalTimezone(session.StartedAt)
 			endedAt := "N/A"
 			// Check for invalid/zero dates (year 0000 or empty)
 			if !session.UpdatedAt.IsZero() && session.UpdatedAt.Year() > 0 {
-				endedAt = session.UpdatedAt.Format("2006-01-02 15:04:05 MST")
+				endedAt = formatTimestampInLocalTimezone(session.UpdatedAt)
 			}
 
 			fmt.Printf("%-36s %-12s %-25s %-25s %-20s\n",
@@ -295,10 +296,10 @@ Examples:
 			// Print session details in a readable format
 			fmt.Printf("Session ID: %s\n", session.SessionID)
 			fmt.Printf("Status: %s\n", session.StatusSummary)
-			fmt.Printf("Created At: %s\n", session.CreatedAt.Format("2006-01-02 15:04:05 MST"))
-			fmt.Printf("Started At: %s\n", session.StartedAt.Format("2006-01-02 15:04:05 MST"))
+			fmt.Printf("Created At: %s\n", formatTimestampInLocalTimezone(session.CreatedAt))
+			fmt.Printf("Started At: %s\n", formatTimestampInLocalTimezone(session.StartedAt))
 			if !session.UpdatedAt.IsZero() && session.UpdatedAt.Year() > 0 {
-				fmt.Printf("Updated At: %s\n", session.UpdatedAt.Format("2006-01-02 15:04:05 MST"))
+				fmt.Printf("Updated At: %s\n", formatTimestampInLocalTimezone(session.UpdatedAt))
 			}
 			fmt.Printf("Created By: %s\n", session.UserID)
 			if len(session.Error) > 0 {
@@ -307,6 +308,15 @@ Examples:
 		}
 		return nil
 	},
+}
+
+// formatTimestampInLocalTimezone formats a timestamp in local timezone
+// It handles the case where the timestamp might already be in local timezone
+func formatTimestampInLocalTimezone(t time.Time) string {
+	if t.Location() == time.Local {
+		return t.Format("2006-01-02 15:04:05 MST")
+	}
+	return t.Local().Format("2006-01-02 15:04:05 MST")
 }
 
 var (
