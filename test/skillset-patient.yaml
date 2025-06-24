@@ -46,8 +46,6 @@ spec:
       value:
         apiKey: {{ .ENV.CLAUDE_API_KEY }}
         model: claude-3-7-sonnet-latest
-      attributes:
-        hidden: true
     - name: gpt4o
       schema:
         type: object
@@ -62,8 +60,6 @@ spec:
       value:
         apiKey: {{ .ENV.OPENAI_API_KEY }}
         model: gpt-4o
-      attributes:
-        hidden: true
   skills:
     - name: resolve-patient-id
       source: resolve-patient-id
