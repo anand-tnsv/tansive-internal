@@ -91,7 +91,7 @@ func run(ctx context.Context) error {
 	case sig := <-shutdown:
 		slog.Info().Str("signal", sig.String()).Msg("shutdown signal received")
 
-		// Give outstanding requests 5 seconds to complete.
+		// Give outstanding requests 5 seconds to complete and initiate the shutdown.
 		shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 

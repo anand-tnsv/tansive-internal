@@ -154,6 +154,14 @@ func ValidateConfig(cfg *ConfigParam) error {
 		}
 	}
 
+	if cfg.StdioRunner.ScriptDir == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("error getting current working directory: %v", err)
+		}
+		cfg.StdioRunner.ScriptDir = filepath.Join(cwd, "test_scripts")
+	}
+
 	return nil
 }
 
