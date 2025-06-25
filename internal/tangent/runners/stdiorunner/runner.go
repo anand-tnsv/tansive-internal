@@ -7,10 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+
+	"github.com/h2non/filetype"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
@@ -119,11 +123,43 @@ func (r *runner) runWithDevModeSecurity(ctx context.Context, args *api.SkillInpu
 	cmd := exec.CommandContext(ctx, "/bin/bash", wrappedScriptPath)
 	cmd.Dir = homeDirPath
 	cmd.Env = env
-	cmd.Stdout = outWriter
-	cmd.Stderr = errWriter
+	// cmd.Stdout = outWriter
+	// cmd.Stderr = errWriter
 
-	if err := cmd.Run(); err != nil {
-		return ErrExecutionFailed.Msg("command failed: " + err.Error())
+	// if err := cmd.Run(); err != nil {
+	// 	return ErrExecutionFailed.Msg("command failed: " + err.Error())
+	// }
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return ErrExecutionFailed.Msg("failed to get stdout pipe: " + err.Error())
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return ErrExecutionFailed.Msg("failed to get stderr pipe: " + err.Error())
+	}
+
+	if err := cmd.Start(); err != nil {
+		return ErrExecutionFailed.Msg("startcommand failed: " + err.Error())
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		io.Copy(outWriter, stdoutPipe)
+	}()
+
+	go func() {
+		defer wg.Done()
+		io.Copy(errWriter, stderrPipe)
+	}()
+
+	err = cmd.Wait()
+	wg.Wait()
+
+	if err != nil {
+		return ErrExecutionFailed.Msg("command execution failed: " + err.Error())
 	}
 
 	return nil
@@ -139,13 +175,21 @@ func (r *runner) writeWrappedScript(wrappedPath, scriptPath string, args *api.Sk
 
 	var content string
 	if r.config.Runtime == RuntimeBinary {
+		isBinary, err := isBinaryExecutable(scriptPath)
+		if err != nil {
+			return fmt.Errorf("failed to check if script is binary: %w", err)
+		}
+		if !isBinary {
+			return fmt.Errorf("script is not a binary: %s", scriptPath)
+		}
+
 		content = fmt.Sprintf(`#!/bin/bash
 set -euo pipefail
 
 exec '%s' '%s'
 `, scriptPath, escapedArgs)
 	} else {
-		execCmd, err := resolveRuntimeCommand(r.config.Runtime)
+		runtimeCmd, err := resolveRuntimeCommand(r.config.Runtime)
 		if err != nil {
 			return fmt.Errorf("unsupported runtime: %w", err)
 		}
@@ -153,29 +197,29 @@ exec '%s' '%s'
 		content = fmt.Sprintf(`#!/bin/bash
 set -euo pipefail
 
-exec '%s' '%s' '%s'
-`, execCmd, scriptPath, escapedArgs)
+exec %s '%s' '%s'
+`, strings.Join(runtimeCmd, " "), scriptPath, escapedArgs)
 	}
 
 	return os.WriteFile(wrappedPath, []byte(content), 0644)
 }
 
-func resolveRuntimeCommand(runtime Runtime) (string, error) {
+func resolveRuntimeCommand(runtime Runtime) ([]string, error) {
 	switch runtime {
 	case RuntimeBash:
-		return "/bin/bash", nil
+		return []string{"/bin/bash"}, nil
 	case RuntimePython:
-		return "python3", nil
+		return []string{"python3", "-u"}, nil
 	case RuntimeNode:
-		return "node", nil
+		return []string{"node"}, nil
 	case RuntimeNPX:
-		return "npx", nil
+		return []string{"npx"}, nil
 	case RuntimeNPM:
-		return "npm", nil
+		return []string{"npm"}, nil
 	case RuntimeBinary:
-		return "", nil
+		return nil, nil
 	default:
-		return "", fmt.Errorf("invalid runtime: %s", runtime)
+		return nil, fmt.Errorf("invalid runtime: %s", runtime)
 	}
 }
 
@@ -192,4 +236,36 @@ func appendOrReplaceEnv(env []string, key, value string) []string {
 
 func (r *runner) GetHomeDirPath() string {
 	return r.homeDirPath
+}
+
+// Known executable binary types
+var binaryTypes = map[string]bool{
+	"elf":   true, // Linux
+	"macho": true, // macOS
+	"pe":    true, // Windows
+}
+
+func isBinaryExecutable(path string) (bool, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	// Read first 261 bytes (enough for filetype sniffing)
+	header := make([]byte, 261)
+	_, err = file.Read(header)
+	if err != nil {
+		return false, err
+	}
+
+	kind, err := filetype.Match(header)
+	if err != nil {
+		return false, err
+	}
+	if kind == filetype.Unknown {
+		return false, nil
+	}
+
+	return binaryTypes[kind.Extension], nil
 }

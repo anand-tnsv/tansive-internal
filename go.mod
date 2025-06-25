@@ -17,6 +17,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
+	github.com/h2non/filetype v1.1.3
 	github.com/jackc/pgconn v1.14.3
 	github.com/jackc/pgtype v1.14.4
 	github.com/jackc/pgx/v4 v4.18.3

@@ -11,11 +11,11 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/httpclient"
 )
 
-// selectCatalogCmd represents the select-catalog command
-var selectCatalogCmd = &cobra.Command{
-	Use:   "select-catalog CATALOG_NAME [flags]",
-	Short: "Select your default view in the Catalog",
-	Long: `Select your default view in the Catalog. This view will be used for all subsequent operations until you switch views.
+// setCatalogCmd represents the set-catalog command
+var setCatalogCmd = &cobra.Command{
+	Use:   "set-catalog CATALOG_NAME [flags]",
+	Short: "Set your default view in the Catalog",
+	Long: `Set your default view in the Catalog. This view will be used for all subsequent operations until you switch views.
 The command will:
 1. Adopt the default view for the specified catalog
 2. Store the authentication token for this view
@@ -23,10 +23,10 @@ The command will:
 
 Examples:
   # Select a catalog as your default
-  tansive select-catalog my-catalog
+  tansive set-catalog my-catalog
 
   # Select a catalog and output in JSON format
-  tansive select-catalog my-catalog -j`,
+  tansive set-catalog my-catalog -j`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		catalogName := args[0]
@@ -157,6 +157,6 @@ Examples:
 
 // init initializes the select-catalog and adopt-view commands and adds them to the root command
 func init() {
-	rootCmd.AddCommand(selectCatalogCmd)
+	rootCmd.AddCommand(setCatalogCmd)
 	rootCmd.AddCommand(adoptViewCmd)
 }

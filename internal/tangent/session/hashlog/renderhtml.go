@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"html"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -18,13 +19,11 @@ type VerificationStatus struct {
 }
 
 func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus) error {
-	// Sanitize and validate input path
 	cleanPath := filepath.Clean(path)
 	if cleanPath == "" || cleanPath == "." {
 		return fmt.Errorf("invalid input path")
 	}
 
-	// Ensure the path is absolute
 	absPath, err := filepath.Abs(cleanPath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve absolute path: %w", err)
@@ -37,18 +36,13 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 		Children  []*SkillNode
 	}
 
-	// Read and group entries by invocation_id
 	f, err := os.Open(absPath)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
 	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
-	// Increase buffer size to handle larger lines (default is 64KB)
-	const maxScanTokenSize = 1024 * 1024 // 1MB
-	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, maxScanTokenSize)
+	reader := bufio.NewReader(f)
 
 	invocationMap := make(map[string][]HashedLogEntry)
 	invokerMap := make(map[string]string)
@@ -56,9 +50,17 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 	tangentID := ""
 	tangentURL := ""
 
-	for scanner.Scan() {
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("failed to read log file: %w", err)
+		}
+
 		var entry HashedLogEntry
-		if err := json.Unmarshal(scanner.Bytes(), &entry); err != nil {
+		if err := json.Unmarshal(line, &entry); err != nil {
 			continue
 		}
 		p := entry.Payload
@@ -82,14 +84,9 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 		}
 	}
 
-	// Check for scanner errors (e.g., lines too long)
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("failed to read log file: %w", err)
-	}
-
-	// Build invocation tree
 	nodes := make(map[string]*SkillNode)
 	var roots []*SkillNode
+	var generalRoot *SkillNode
 
 	for id, entries := range invocationMap {
 		node := &SkillNode{
@@ -99,14 +96,7 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 		}
 		nodes[id] = node
 	}
-	// for _, node := range nodes {
-	// 	if node.InvokerID == "" || nodes[node.InvokerID] == nil {
-	// 		roots = append(roots, node)
-	// 	} else {
-	// 		nodes[node.InvokerID].Children = append(nodes[node.InvokerID].Children, node)
-	// 	}
-	// }
-	var generalRoot *SkillNode
+
 	for _, node := range nodes {
 		if node.ID == "__general__" {
 			generalRoot = node
@@ -115,7 +105,6 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 		if parent, ok := nodes[node.InvokerID]; ok {
 			parent.Children = append(parent.Children, node)
 		} else {
-			// No valid invoker_id — treat as child of __general__
 			if generalRoot != nil {
 				generalRoot.Children = append(generalRoot.Children, node)
 			}
@@ -124,7 +113,6 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 	if generalRoot != nil {
 		roots = []*SkillNode{generalRoot}
 	} else {
-		// fallback
 		for _, node := range nodes {
 			if node.InvokerID == "" {
 				roots = append(roots, node)
@@ -132,9 +120,7 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 		}
 	}
 
-	// Start HTML output
 	htmlPath := strings.TrimSuffix(absPath, filepath.Ext(absPath)) + ".html"
-	// Ensure the HTML file is created in the same directory as the input file
 	if filepath.Dir(htmlPath) != filepath.Dir(absPath) {
 		return fmt.Errorf("invalid output path: must be in same directory as input")
 	}
@@ -144,8 +130,146 @@ func RenderHashedLogToHTML(path string, verificationStatus ...VerificationStatus
 	}
 	defer out.Close()
 
-	fmt.Fprint(out, `<html><head><meta charset="UTF-8"><title>Tansive™ Session Log</title>
-<style>
+	// BEGIN HTML
+	fmt.Fprint(out, `<html><head><meta charset="UTF-8"><title>Tansive™ Session Log</title><style>`)
+	fmt.Fprint(out, cssStyle)
+	fmt.Fprint(out, `</style></head><body>
+<h1>Tansive™ Session Audit Log</h1>
+<h2><strong>Session:</strong> `+html.EscapeString(firstSessionID)+`</h2>
+<h2><strong>Tangent ID:</strong> `+html.EscapeString(tangentID)+`</h2>
+<h2><strong>Tangent URL:</strong> `+html.EscapeString(tangentURL)+`</h2>`)
+
+	if len(verificationStatus) > 0 {
+		fmt.Fprintf(out, `<h2><strong>Verification Status:</strong> %s</h2>`, html.EscapeString(str(verificationStatus[0].Verified)))
+		fmt.Fprintf(out, `<h2><strong>Key Digest:</strong> %s</h2>`, html.EscapeString(verificationStatus[0].KeyDigest))
+		if verificationStatus[0].Error != nil {
+			fmt.Fprintf(out, `<h2><strong>Error:</strong> %s</h2>`, html.EscapeString(verificationStatus[0].Error.Error()))
+		}
+	}
+	fmt.Fprint(out, `<br />`)
+
+	var renderNode func(node *SkillNode, depth int)
+	renderNode = func(node *SkillNode, depth int) {
+		skillName := "Skill Invocation"
+		for _, e := range node.Entries {
+			if name := str(e.Payload["skill"]); name != "" {
+				skillName = name
+				break
+			}
+		}
+		prefix := strings.Repeat("↳ ", depth)
+		fmt.Fprintf(out, `<details open><summary>%s🧠 %s</summary><div class="indent">`, prefix, html.EscapeString(skillName))
+
+		for _, entry := range node.Entries {
+			renderLogEntry(out, entry)
+		}
+
+		fmt.Fprint(out, `</div></details>`)
+		for _, child := range node.Children {
+			renderNode(child, depth+1)
+		}
+	}
+
+	sort.SliceStable(roots, func(i, j int) bool {
+		if roots[i].ID == "__general__" {
+			return true
+		}
+		if roots[j].ID == "__general__" {
+			return false
+		}
+		return roots[i].ID < roots[j].ID
+	})
+
+	for _, root := range roots {
+		renderNode(root, 0)
+	}
+
+	fmt.Fprint(out, `</body></html>`)
+	return nil
+}
+
+func str(v any) string {
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", v)
+}
+
+func renderLogEntry(out io.Writer, entry HashedLogEntry) {
+	p := entry.Payload
+	event := strings.ToUpper(str(p["event"]))
+	decision := strings.ToUpper(str(p["decision"]))
+	level := str(p["level"])
+	levelClass := "level"
+	switch level {
+	case "info":
+		levelClass += " level-info"
+	case "error":
+		levelClass += " level-error"
+	}
+
+	fmt.Fprint(out, `<div class="entry">`)
+	if rawTime, ok := p["time"]; ok {
+		switch v := rawTime.(type) {
+		case float64:
+			ts := time.UnixMilli(int64(v)).Local().Format("2006-01-02 15:04:05 MST")
+			fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(ts))
+		case int64:
+			ts := time.UnixMilli(v).Local().Format("2006-01-02 15:04:05 MST")
+			fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(ts))
+		case string:
+			if parsed, err := time.Parse(time.RFC3339, v); err == nil {
+				fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(parsed.Local().Format("2006-01-02 15:04:05 MST")))
+			} else {
+				fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(v))
+			}
+		default:
+			fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(str(rawTime)))
+		}
+	}
+
+	if event != "" {
+		fmt.Fprintf(out, `<div class="field"><span class="label">Event:</span><span class="value">%s</span></div>`, html.EscapeString(event))
+	}
+	for _, k := range []string{"actor", "runner", "message", "view"} {
+		if v := str(p[k]); v != "" {
+			fmt.Fprintf(out, `<div class="field"><span class="label">%s:</span><span class="value">%s</span></div>`, strings.Title(k), html.EscapeString(v))
+		}
+	}
+	if decision != "" {
+		fmt.Fprintf(out, `<div class="field"><span class="label">Decision:</span><span class="value">%s</span></div>`, html.EscapeString(decision))
+	}
+	if level != "" {
+		fmt.Fprintf(out, `<span class="%s">%s</span>`, levelClass, html.EscapeString(level))
+	}
+	if status := str(p["status"]); status != "" {
+		fmt.Fprintf(out, `<div class="field"><span class="label">Status:</span><span class="value">%s</span></div>`, html.EscapeString(status))
+	}
+	if errVal, ok := p["error"]; ok {
+		fmt.Fprintf(out, `<div class="error"><strong>Error:</strong> %s</div>`, html.EscapeString(fmt.Sprintf("%v", errVal)))
+	}
+	if args, ok := p["input_args"]; ok {
+		if b, err := json.MarshalIndent(args, "", "  "); err == nil {
+			fmt.Fprintf(out, `<div class="input"><strong>Input Args:</strong><br>%s</div>`, html.EscapeString(string(b)))
+		}
+	}
+	if ctx, ok := p["context_name"]; ok {
+		fmt.Fprintf(out, `<div class="field"><span class="label">Context Name:</span><span class="value">%s</span></div>`, html.EscapeString(str(ctx)))
+	}
+	if basis, ok := p["basis"]; ok {
+		if b, err := json.MarshalIndent(basis, "", "  "); err == nil {
+			fmt.Fprintf(out, `<div class="basis"><strong>Policy Basis:</strong><br><pre>%s</pre></div>`, html.EscapeString(string(b)))
+		}
+	}
+	if acts, ok := p["actions"]; ok {
+		if b, err := json.MarshalIndent(acts, "", "  "); err == nil {
+			fmt.Fprintf(out, `<div class="actions"><strong>Actions:</strong><br><pre>%s</pre></div>`, html.EscapeString(string(b)))
+		}
+	}
+	fmt.Fprint(out, `</div>`)
+}
+
+const cssStyle = `
 :root {
   --entry-bg: #fefefe;
 }
@@ -206,139 +330,4 @@ details summary {
   margin-bottom: 0.5em;
 }
 .indent { margin-left: 2em; }
-</style></head><body>
-<h1>Tansive™ Session Audit Log</h1>
-<h2><strong>Session:</strong> `+html.EscapeString(firstSessionID)+`</h2>
-<h2><strong>Tangent ID:</strong> `+html.EscapeString(tangentID)+`</h2>
-<h2><strong>Tangent URL:</strong> `+html.EscapeString(tangentURL)+`</h2>
-`)
-
-	if len(verificationStatus) > 0 {
-		fmt.Fprintf(out, `<h2><strong>Verification Status:</strong> %s</h2>`, html.EscapeString(str(verificationStatus[0].Verified)))
-		fmt.Fprintf(out, `<h2><strong>Key Digest:</strong> %s</h2>`, html.EscapeString(verificationStatus[0].KeyDigest))
-		if verificationStatus[0].Error != nil {
-			fmt.Fprintf(out, `<h2><strong>Error:</strong> %s</h2>`, html.EscapeString(verificationStatus[0].Error.Error()))
-		}
-	}
-	fmt.Fprint(out, `<br />`)
-
-	var renderNode func(node *SkillNode, depth int)
-	renderNode = func(node *SkillNode, depth int) {
-		skillName := "Skill Invocation"
-		for _, e := range node.Entries {
-			if name := str(e.Payload["skill"]); name != "" {
-				skillName = name
-				break
-			}
-		}
-		prefix := strings.Repeat("↳ ", depth)
-		fmt.Fprintf(out, `<details open><summary>%s🧠 %s</summary><div class="indent">`, prefix, html.EscapeString(skillName))
-
-		for _, entry := range node.Entries {
-			p := entry.Payload
-			event := strings.ToUpper(str(p["event"]))
-			decision := strings.ToUpper(str(p["decision"]))
-			level := str(p["level"])
-			levelClass := "level"
-			switch level {
-			case "info":
-				levelClass += " level-info"
-			case "error":
-				levelClass += " level-error"
-			}
-
-			fmt.Fprint(out, `<div class="entry">`)
-			if rawTime, ok := p["time"]; ok {
-				switch v := rawTime.(type) {
-				case float64:
-					ts := time.UnixMilli(int64(v)).Local().Format("2006-01-02 15:04:05 MST")
-					fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(ts))
-				case int64:
-					ts := time.UnixMilli(v).Local().Format("2006-01-02 15:04:05 MST")
-					fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(ts))
-				case string:
-					// Fallback: maybe it's already a formatted string
-					if parsed, err := time.Parse(time.RFC3339, v); err == nil {
-						fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(parsed.Local().Format("2006-01-02 15:04:05 MST")))
-					} else {
-						fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(v))
-					}
-				default:
-					fmt.Fprintf(out, `<div class="time">%s</div>`, html.EscapeString(str(rawTime)))
-				}
-			}
-
-			if event != "" {
-				fmt.Fprintf(out, `<div class="field"><span class="label">Event:</span><span class="value">%s</span></div>`, html.EscapeString(event))
-			}
-			for _, k := range []string{"actor", "runner", "message", "view"} {
-				if v := str(p[k]); v != "" {
-					fmt.Fprintf(out, `<div class="field"><span class="label">%s:</span><span class="value">%s</span></div>`, strings.Title(k), html.EscapeString(v))
-				}
-			}
-			if decision != "" {
-				fmt.Fprintf(out, `<div class="field"><span class="label">Decision:</span><span class="value">%s</span></div>`, html.EscapeString(decision))
-			}
-			if level != "" {
-				fmt.Fprintf(out, `<span class="%s">%s</span>`, levelClass, html.EscapeString(level))
-			}
-			if status := str(p["status"]); status != "" {
-				fmt.Fprintf(out, `<div class="field"><span class="label">Status:</span><span class="value">%s</span></div>`, html.EscapeString(status))
-			}
-			if errVal, ok := p["error"]; ok {
-				fmt.Fprintf(out, `<div class="error"><strong>Error:</strong> %s</div>`, html.EscapeString(fmt.Sprintf("%v", errVal)))
-			}
-			if args, ok := p["input_args"]; ok {
-				if b, err := json.MarshalIndent(args, "", "  "); err == nil {
-					fmt.Fprintf(out, `<div class="input"><strong>Input Args:</strong><br>%s</div>`, html.EscapeString(string(b)))
-				}
-			}
-			if context_name, ok := p["context_name"]; ok {
-				fmt.Fprintf(out, `<div class="field"><span class="label">Context Name:</span><span class="value">%s</span></div>`, html.EscapeString(str(context_name)))
-			}
-			if basis, ok := p["basis"]; ok {
-				if b, err := json.MarshalIndent(basis, "", "  "); err == nil {
-					fmt.Fprintf(out, `<div class="basis"><strong>Policy Basis:</strong><br><pre>%s</pre></div>`, html.EscapeString(string(b)))
-				}
-			}
-			if acts, ok := p["actions"]; ok {
-				if b, err := json.MarshalIndent(acts, "", "  "); err == nil {
-					fmt.Fprintf(out, `<div class="actions"><strong>Actions:</strong><br><pre>%s</pre></div>`, html.EscapeString(string(b)))
-				}
-			}
-			fmt.Fprint(out, `</div>`)
-		}
-
-		fmt.Fprint(out, `</div></details>`)
-
-		for _, child := range node.Children {
-			renderNode(child, depth+1)
-		}
-
-	}
-
-	// Sort roots: render "__general__" first, then others in stable order
-	sort.SliceStable(roots, func(i, j int) bool {
-		if roots[i].ID == "__general__" {
-			return true
-		}
-		if roots[j].ID == "__general__" {
-			return false
-		}
-		return roots[i].ID < roots[j].ID
-	})
-
-	for _, root := range roots {
-		renderNode(root, 0)
-	}
-
-	fmt.Fprint(out, `</body></html>`)
-	return nil
-}
-
-func str(v any) string {
-	if v == nil {
-		return ""
-	}
-	return fmt.Sprintf("%v", v)
-}
+`
