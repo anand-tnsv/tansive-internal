@@ -7,16 +7,16 @@ metadata:
 spec:
   version: "0.1.0"
   runners:
-    - name: my-agent-script
+    - name: my-agent
       id: "system.stdiorunner"
       config:
         version: "0.1.0-alpha.1"
-        runtime: "binary"
+        runtime: "python"
         runtimeConfig:
           key: "value"
         env:
           TEST_VAR: "test_value"
-        script: "openai-demo"
+        script: "run-llm.py"
         security:
           type: dev-mode  # could be one of: dev-mode, sandboxed
     - name: my-tools-script
@@ -85,13 +85,6 @@ spec:
       outputSchema:
         type: string
         description: "Raw output from listing pods, typically from 'kubectl get pods'"
-      transform: |
-        function(session, input) {
-          console.log('transforming input', input)
-          return {
-            labelSelector: 'overridden-by-transform'
-          }
-        }
       exportedActions:
         - kubernetes.pods.list
       annotations:
@@ -122,7 +115,7 @@ spec:
           typically to recover from failures or apply configuration changes.
           It requires the deployment name as input and will execute the equivalent of kubectl rollout restart deployment <name>.
     - name: k8s_troubleshooter
-      source: my-agent-script
+      source: my-agent
       description: "Troubleshoot kubernetes issues"
       inputSchema:
         type: object

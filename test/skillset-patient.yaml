@@ -27,8 +27,8 @@ spec:
       id: "system.stdiorunner"
       config:
         version: "0.1.0-alpha.1"
-        runtime: "binary"
-        script: "openai-demo"
+        runtime: "python"
+        script: "run-llm.py"
         security:
           type: dev-mode  # could be one of: dev-mode, sandboxed
   context:
