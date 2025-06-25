@@ -31,7 +31,7 @@ RUN ln -s /usr/bin/node /usr/local/bin/node || true
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir \
     openai langchain \
     pandas numpy \
-    fastapi uvicorn aiohttp
+    fastapi uvicorn aiohttp tansive-skillset-sdk
 
 # Install only essential TypeScript tools
 RUN npm install -g typescript

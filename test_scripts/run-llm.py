@@ -1,7 +1,7 @@
 import sys
 import json
 import openai
-from tansive_client import TansiveClient
+from tansive.skillset_sdk import TansiveClient
 
 LLM_BLOCKED_BY_POLICY_PROMPT = """
 All tools with tag [TansivePolicy: true] are governed by Tansive policy.
