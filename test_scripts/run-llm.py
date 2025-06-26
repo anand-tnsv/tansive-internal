@@ -1,7 +1,7 @@
 import sys
 import json
 import openai
-from tansive.skillset_sdk import TansiveClient
+from tansive.skillset_sdk import SkillSetClient
 
 LLM_BLOCKED_BY_POLICY_PROMPT = """
 All tools with tag [TansivePolicy: true] are governed by Tansive policy.
@@ -10,19 +10,19 @@ If any tool call with such tag returns an error containing "This operation is bl
 """
 
 
-def get_tools(client: TansiveClient, session_id: str) -> list[dict]:
+def get_skills(client: SkillSetClient, session_id: str) -> list[dict]:
     try:
-        tools = client.get_tools(session_id)
+        skills = client.get_skills(session_id)
     except Exception as e:
-        print(f"failed to get tools: {e}", file=sys.stderr)
+        print(f"failed to get skills: {e}", file=sys.stderr)
         sys.exit(1)
 
     result = []
-    for tool in tools:
+    for skill in skills:
         try:
-            schema = tool["inputSchema"]
+            schema = skill["inputSchema"]
         except KeyError as e:
-            print(f"missing required field in tool: {e}", file=sys.stderr)
+            print(f"missing required field in skill: {e}", file=sys.stderr)
             sys.exit(1)
         except Exception as e:
             print(f"failed to process input schema: {e}", file=sys.stderr)
@@ -32,8 +32,8 @@ def get_tools(client: TansiveClient, session_id: str) -> list[dict]:
             {
                 "type": "function",
                 "function": {
-                    "name": tool["name"],
-                    "description": tool.get("description", ""),
+                    "name": skill["name"],
+                    "description": skill.get("description", ""),
                     "parameters": schema,
                 },
             }
@@ -62,7 +62,7 @@ def main():
         print("model not provided in input args", file=sys.stderr)
         sys.exit(1)
 
-    client = TansiveClient(
+    client = SkillSetClient(
         socket_path, dial_timeout=10.0, max_retries=3, retry_delay=0.1
     )
 
@@ -97,14 +97,14 @@ def main():
         {"role": "system", "content": LLM_BLOCKED_BY_POLICY_PROMPT},
         {"role": "user", "content": question},
     ]
-    tools = get_tools(client, session_id)
+    skills = get_skills(client, session_id)
 
     while True:
         try:
             response = openai_client.chat.completions.create(
                 model=model,
                 messages=messages,
-                tools=tools,
+                tools=skills,
                 seed=0,
             )
         except Exception as e:
@@ -115,17 +115,16 @@ def main():
         message = choice.message
         finish_reason = choice.finish_reason
 
-        if message.content:
+        if finish_reason and finish_reason != "tool_calls":
+            print(f"✅ Final response: {message.content}")
+            break
+        else:
             print(f"🤔 Thinking: {message.content}")
 
-        if finish_reason and finish_reason != "tool_calls":
-            print(f"Final response: {message.content}")
-            break
+        messages.append(message.model_dump(exclude_unset=True))
 
         if not message.tool_calls:
             break
-
-        messages.append(message.model_dump(exclude_unset=True))
 
         for tool_call in message.tool_calls:
             try:
@@ -134,6 +133,7 @@ def main():
                     session_id, invocation_id, tool_call.function.name, tool_args
                 )
                 tool_response = json.dumps(result.output)
+
             except Exception as e:
                 print(f"Tool call failed: {e}", file=sys.stderr)
                 sys.exit(1)

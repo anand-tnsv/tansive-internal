@@ -118,7 +118,7 @@ func CreateOpenAISession(t *testing.T, ctx context.Context, tansiveClient *api.C
 }
 
 func getTools(t *testing.T, ctx context.Context, client *api.Client, sessionID string) []openai.ChatCompletionToolParam {
-	tools, err := client.GetTools(ctx, sessionID)
+	tools, err := client.GetSkills(ctx, sessionID)
 	if err != nil {
 		t.Fatalf("failed to get tools: %v", err)
 	}

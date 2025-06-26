@@ -11,7 +11,7 @@ INPUT=$1
 SKILL_NAME=$(echo "$INPUT" | jq -r '.skillName')
 INPUT_ARGS=$(echo "$INPUT" | jq -c '.inputArgs')
 
-# Dispatch based on skill name
+# Respond based on skill name
 case "$SKILL_NAME" in
   list_pods)
     LABEL_SELECTOR=$(echo "$INPUT_ARGS" | jq -r '.labelSelector')

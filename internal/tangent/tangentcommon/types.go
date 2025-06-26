@@ -23,7 +23,7 @@ type RunParams struct {
 }
 
 type SkillManager interface {
-	GetTools(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error)
+	GetSkills(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error)
 	GetContext(ctx context.Context, sessionID, invocationID, name string) (any, apperrors.Error)
 	Run(ctx context.Context, params *RunParams) (map[string]any, apperrors.Error)
 }

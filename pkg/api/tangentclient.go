@@ -135,10 +135,10 @@ func (c *Client) InvokeSkill(ctx context.Context, sessionID, invocationID, skill
 	return nil, fmt.Errorf("failed to invoke skill after %d retries: %w", c.config.maxRetries, lastErr)
 }
 
-func (c *Client) GetTools(ctx context.Context, sessionID string) ([]LLMTool, error) {
+func (c *Client) GetSkills(ctx context.Context, sessionID string) ([]LLMTool, error) {
 	var lastErr error
 	for i := 0; i < c.config.maxRetries; i++ {
-		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/tools?session_id=%s", sessionID), nil)
+		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/skills?session_id=%s", sessionID), nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
@@ -153,14 +153,14 @@ func (c *Client) GetTools(ctx context.Context, sessionID string) ([]LLMTool, err
 
 		if resp.StatusCode != http.StatusOK {
 			respBody, _ := io.ReadAll(resp.Body)
-			return nil, fmt.Errorf("get tools failed: %s", string(respBody))
+			return nil, fmt.Errorf("get skills failed: %s", string(respBody))
 		}
 
-		var tools []LLMTool
-		if err := json.NewDecoder(resp.Body).Decode(&tools); err != nil {
-			return nil, fmt.Errorf("failed to decode tools: %w", err)
+		var skills []LLMTool
+		if err := json.NewDecoder(resp.Body).Decode(&skills); err != nil {
+			return nil, fmt.Errorf("failed to decode skills: %w", err)
 		}
-		return tools, nil
+		return skills, nil
 	}
 
 	return nil, fmt.Errorf("failed to get tools after %d retries: %w", c.config.maxRetries, lastErr)

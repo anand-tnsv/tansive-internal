@@ -31,7 +31,7 @@ func (m *mockSession) Run(ctx context.Context, params *tangentcommon.RunParams) 
 	}, nil
 }
 
-func (m *mockSession) GetTools(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error) {
+func (m *mockSession) GetSkills(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error) {
 	return []api.LLMTool{
 		{
 			Name:         "test-skill",
@@ -84,14 +84,14 @@ func TestSkillService(t *testing.T) {
 		ctx := context.Background()
 		sessionID := "test-session"
 
-		tools, err := client.GetTools(ctx, sessionID)
+		skills, err := client.GetSkills(ctx, sessionID)
 		require.NoError(t, err)
-		require.NotNil(t, tools)
-		require.Len(t, tools, 1)
-		require.Equal(t, "test-skill", tools[0].Name)
-		require.Equal(t, "test skill description", tools[0].Description)
-		require.Equal(t, json.RawMessage("{}"), tools[0].InputSchema)
-		require.Equal(t, json.RawMessage("{}"), tools[0].OutputSchema)
+		require.NotNil(t, skills)
+		require.Len(t, skills, 1)
+		require.Equal(t, "test-skill", skills[0].Name)
+		require.Equal(t, "test skill description", skills[0].Description)
+		require.Equal(t, json.RawMessage("{}"), skills[0].InputSchema)
+		require.Equal(t, json.RawMessage("{}"), skills[0].OutputSchema)
 	})
 
 	t.Run("GetContext", func(t *testing.T) {

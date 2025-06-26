@@ -31,7 +31,7 @@ func CreateSkillService() (*skillservice.SkillService, apperrors.Error) {
 
 type skillRunner struct{}
 
-func (s *skillRunner) GetTools(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error) {
+func (s *skillRunner) GetSkills(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error) {
 	sessionUUID, err := uuid.Parse(sessionID)
 	if err != nil {
 		return nil, ErrSessionError.Msg("invalid sessionID")

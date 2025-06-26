@@ -113,10 +113,10 @@ func TestCreateSession(t *testing.T) {
 	t.Logf("response outpu: %v", response)
 
 	// // test get tools
-	tools, goerr := client.GetTools(ctx, session.GetSessionID())
+	skills, goerr := client.GetSkills(ctx, session.GetSessionID())
 	require.NoError(t, goerr)
-	require.NotNil(t, tools)
-	t.Logf("tools: %v", tools)
+	require.NotNil(t, skills)
+	t.Logf("skills: %v", skills)
 }
 
 func isError(response *api.SkillResult) bool {

@@ -80,8 +80,8 @@ func (s *SkillService) handleInvokeSkill(r *http.Request) (*httpx.Response, erro
 	}, nil
 }
 
-func (s *SkillService) handleGetTools(r *http.Request) (*httpx.Response, error) {
-	tools, err := s.skillManager.GetTools(r.Context(), r.URL.Query().Get("session_id"))
+func (s *SkillService) handleGetSkills(r *http.Request) (*httpx.Response, error) {
+	tools, err := s.skillManager.GetSkills(r.Context(), r.URL.Query().Get("session_id"))
 	if err != nil {
 		return nil, ErrSkillServiceError.Msg(err.Error())
 	}
@@ -107,7 +107,7 @@ func (s *SkillService) handleGetContext(r *http.Request) (*httpx.Response, error
 
 func (s *SkillService) MountHandlers() {
 	s.Router.Post("/skill-invocations", httpx.WrapHttpRsp(s.handleInvokeSkill))
-	s.Router.Get("/tools", httpx.WrapHttpRsp(s.handleGetTools))
+	s.Router.Get("/skills", httpx.WrapHttpRsp(s.handleGetSkills))
 	s.Router.Get("/context", httpx.WrapHttpRsp(s.handleGetContext))
 }
 
