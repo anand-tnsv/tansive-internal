@@ -19,12 +19,12 @@ type Runner interface {
 	Run(ctx context.Context, args *api.SkillInputArgs) apperrors.Error
 }
 
-func NewRunner(ctx context.Context, sessionID string, runnerDef catalogmanager.SkillSetRunner, writers ...*tangentcommon.IOWriters) (Runner, apperrors.Error) {
-	switch runnerDef.ID {
+func NewRunner(ctx context.Context, sessionID string, runnerDef catalogmanager.SkillSetSource, writers ...*tangentcommon.IOWriters) (Runner, apperrors.Error) {
+	switch runnerDef.Runner {
 	case catcommon.StdioRunnerID:
 		return stdiorunner.New(ctx, sessionID, runnerDef.Config, writers...)
 	default:
-		return nil, apperrors.New(fmt.Sprintf("invalid runner id: %s", runnerDef.ID))
+		return nil, apperrors.New(fmt.Sprintf("invalid runner id: %s", runnerDef.Runner))
 	}
 }
 

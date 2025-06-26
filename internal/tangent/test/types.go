@@ -20,9 +20,9 @@ metadata:
   path: /skillsets
 spec:
   version: "0.1.0"
-  runners:
+  sources:
     - name: my-agent-script
-      id: "system.stdiorunner"
+      runner: "system.stdiorunner"
       config:
         version: "0.1.0-alpha.1"
         runtime: "bash"
@@ -34,7 +34,7 @@ spec:
         security:
           type: dev-mode  # could be one of: dev-mode, sandboxed
     - name: my-tools-script
-      id: "system.stdiorunner"
+      runner: "system.stdiorunner"
       config:
         version: "0.1.0-alpha.1"
         runtime: "bash"

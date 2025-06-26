@@ -47,7 +47,7 @@ type SkillSet struct {
 // value, policy, and annotations.
 type SkillSetSpec struct {
 	Version      string            `json:"version" validate:"required"`
-	Runners      []SkillSetRunner  `json:"runners" validate:"required,dive"`
+	Sources      []SkillSetSource  `json:"sources" validate:"required,dive"`
 	Context      []SkillSetContext `json:"context" validate:"omitempty,dive"`
 	Skills       []Skill           `json:"skills" validate:"required,dive"`
 	Dependencies []Dependency      `json:"dependencies,omitempty" validate:"omitempty,dive"`
@@ -62,9 +62,9 @@ type SkillSetContext struct {
 	Attributes ContextAttributes `json:"attributes" validate:"omitempty"`
 }
 
-type SkillSetRunner struct {
+type SkillSetSource struct {
 	Name   string             `json:"name" validate:"required,resourceNameValidator"`
-	ID     catcommon.RunnerID `json:"id" validate:"required"`
+	Runner catcommon.RunnerID `json:"runner" validate:"required"`
 	Config map[string]any     `json:"config" validate:"required"`
 }
 
@@ -290,26 +290,26 @@ func (sm *skillSetManager) SpecJSON(ctx context.Context) ([]byte, apperrors.Erro
 	return j, nil
 }
 
-func (sm *skillSetManager) GetRunnerDefinitionForSkill(skillName string) (SkillSetRunner, apperrors.Error) {
+func (sm *skillSetManager) GetSourceForSkill(skillName string) (SkillSetSource, apperrors.Error) {
 	for _, skill := range sm.skillSet.Spec.Skills {
 		if skill.Name == skillName {
-			for _, runner := range sm.skillSet.Spec.Runners {
-				if runner.Name == skill.Source {
-					return runner, nil
+			for _, source := range sm.skillSet.Spec.Sources {
+				if source.Name == skill.Source {
+					return source, nil
 				}
 			}
 		}
 	}
-	return SkillSetRunner{}, ErrInvalidObject.Msg("runner not found for skill " + skillName)
+	return SkillSetSource{}, ErrInvalidObject.Msg("source not found for skill " + skillName)
 }
 
-func (sm *skillSetManager) GetRunnerDefinitionByName(runnerName string) (SkillSetRunner, apperrors.Error) {
-	for _, runner := range sm.skillSet.Spec.Runners {
-		if runner.Name == runnerName {
-			return runner, nil
+func (sm *skillSetManager) GetSourceByName(sourceName string) (SkillSetSource, apperrors.Error) {
+	for _, source := range sm.skillSet.Spec.Sources {
+		if source.Name == sourceName {
+			return source, nil
 		}
 	}
-	return SkillSetRunner{}, ErrInvalidObject.Msg("runner not found")
+	return SkillSetSource{}, ErrInvalidObject.Msg("source not found")
 }
 
 func (sm *skillSetManager) GetSkill(name string) (Skill, apperrors.Error) {
@@ -395,8 +395,8 @@ func (sm *skillSetManager) SetContextValue(name string, value types.NullableAny)
 
 func (sm *skillSetManager) GetRunnerTypes() []catcommon.RunnerID {
 	runnerTypes := []catcommon.RunnerID{}
-	for _, runner := range sm.skillSet.Spec.Runners {
-		runnerTypes = append(runnerTypes, runner.ID)
+	for _, runner := range sm.skillSet.Spec.Sources {
+		runnerTypes = append(runnerTypes, runner.Runner)
 	}
 	return runnerTypes
 }
@@ -465,7 +465,7 @@ func (s *SkillSet) Validate() schemaerr.ValidationErrors {
 		for _, skill := range s.Spec.Skills {
 			isRunnerFound := false
 			// All skills must have a runner
-			for _, runner := range s.Spec.Runners {
+			for _, runner := range s.Spec.Sources {
 				if runner.Name == skill.Source {
 					isRunnerFound = true
 					break

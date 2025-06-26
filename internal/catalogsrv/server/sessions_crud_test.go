@@ -148,10 +148,10 @@ func TestSessionCrud(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runners": [
+				"sources": [
 					{
 						"name": "command-runner",
-						"id": "system.commandrunner",
+						"runner": "system.commandrunner",
 						"config": {
 							"command": "python3 test.py"
 						}

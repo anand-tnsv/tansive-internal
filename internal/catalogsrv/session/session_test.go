@@ -84,17 +84,17 @@ func TestNewSession(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runners": [
+			"sources": [
 				{
 					"name": "command-runner",
-					"id": "system.commandrunner",
+					"runner": "system.commandrunner",
 					"config": {
 						"command": "python3 test.py"
 					}
 				},
 				{
 					"name": "python-runner",
-					"id": "system.pythonrunner",
+					"runner": "system.pythonrunner",
 					"config": {
 						"script": "test.py"
 					}
@@ -560,17 +560,17 @@ func TestSessionSaveAndGet(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runners": [
+			"sources": [
 				{
 					"name": "command-runner",
-					"id": "system.commandrunner",
+					"runner": "system.commandrunner",
 					"config": {
 						"command": "python3 test.py"
 					}
 				},
 				{
 					"name": "python-runner",
-					"id": "system.pythonrunner",
+					"runner": "system.pythonrunner",
 					"config": {
 						"script": "test.py"
 					}

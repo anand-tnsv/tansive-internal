@@ -103,17 +103,17 @@ func TestSkillSetCrud(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runners": [
+				"sources": [
 					{
 						"name": "command-runner",
-						"id": "system.commandrunner",
+						"runner": "system.commandrunner",
 						"config": {
 							"command": "python3 test.py"
 						}
 					},
 					{
 						"name": "python-runner",
-						"id": "system.pythonrunner",
+						"runner": "system.pythonrunner",
 						"config": {
 							"module": "test_module",
 							"function": "test_function"
@@ -240,17 +240,17 @@ func TestSkillSetCrud(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runners": [
+				"sources": [
 					{
 						"name": "command-runner",
-						"id": "system.commandrunner",
+						"runner": "system.commandrunner",
 						"config": {
 							"command": "python3 updated_test.py"
 						}
 					},
 					{
 						"name": "python-runner",
-						"id": "system.pythonrunner",
+						"runner": "system.pythonrunner",
 						"config": {
 							"module": "updated_module",
 							"function": "updated_function"
@@ -487,10 +487,10 @@ func TestSkillSetList(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runners": [
+				"sources": [
 					{
 						"name": "command-runner",
-						"id": "system.commandrunner",
+						"runner": "system.commandrunner",
 						"config": {
 							"command": "` + s.Command + `"
 						}

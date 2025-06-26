@@ -29,7 +29,7 @@ func TestSkillSetValidation(t *testing.T) {
 		errorTypes    []string // List of expected error messages
 	}{
 		{
-			name: "valid skillset with multiple runners",
+			name: "valid skillset with multiple sources",
 			jsonInput: `{
 				"apiVersion": "0.1.0-alpha.1",
 				"kind": "SkillSet",
@@ -42,17 +42,17 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runners": [
+					"sources": [
 						{
 							"name": "command-runner",
-							"id": "system.commandrunner",
+							"runner": "system.commandrunner",
 							"config": {
 								"command": "python3 test.py"
 							}
 						},
 						{
 							"name": "python-runner",
-							"id": "system.pythonrunner",
+							"runner": "system.pythonrunner",
 							"config": {
 								"module": "test_module",
 								"function": "test_function"
@@ -116,10 +116,10 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runners": [
+					"sources": [
 						{
 							"name": "command-runner",
-							"id": "system.commandrunner",
+							"runner": "system.commandrunner",
 							"config": {
 								"command": "python3 test.py"
 							}
@@ -154,10 +154,10 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runners": [
+					"sources": [
 						{
 							"name": "command-runner",
-							"id": "system.commandrunner",
+							"runner": "system.commandrunner",
 							"config": {
 								"command": "python3 test.py"
 							}
@@ -216,10 +216,10 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runners": [
+					"sources": [
 						{
 							"name": "command-runner",
-							"id": "system.commandrunner",
+							"runner": "system.commandrunner",
 							"config": {
 								"command": "python3 test.py"
 							}
@@ -274,10 +274,10 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runners": [
+					"sources": [
 						{
 							"name": "command-runner",
-							"id": "system.commandrunner",
+							"runner": "system.commandrunner",
 							"config": {
 								"command": "python3 test.py"
 							}
@@ -312,10 +312,10 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runners": [
+					"sources": [
 						{
 							"name": "command-runner",
-							"id": "system.commandrunner",
+							"runner": "system.commandrunner",
 							"config": {
 								"command": "python3 test.py"
 							}
@@ -351,10 +351,10 @@ func TestSkillSetValidation(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runners": [
+					"sources": [
 						{
 							"name": "command-runner",
-							"id": "system.commandrunner",
+							"runner": "system.commandrunner",
 							"config": {
 								"command": "python3 test.py"
 							}
@@ -480,10 +480,10 @@ func TestSkillSetManagerSave(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runners": [
+			"sources": [
 				{
 					"name": "command-runner",
-					"id": "system.commandrunner",
+					"runner": "system.commandrunner",
 					"config": {
 						"command": "python3 test.py"
 					}
@@ -577,10 +577,10 @@ func TestSkillSetManagerSave(t *testing.T) {
 			},
 			Spec: SkillSetSpec{
 				Version: "1.0.0",
-				Runners: []SkillSetRunner{
+				Sources: []SkillSetSource{
 					{
-						Name: "command-runner",
-						ID:   "system.commandrunner",
+						Name:   "command-runner",
+						Runner: "system.commandrunner",
 						Config: map[string]any{
 							"command": "python3 skillsets/multi-skill-set.py",
 						},
@@ -729,10 +729,10 @@ func TestSkillSetManagerDelete(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runners": [
+				"sources": [
 					{
 						"name": "command-runner",
-						"id": "system.commandrunner",
+						"runner": "system.commandrunner",
 						"config": {
 							"command": "python3 test.py"
 						}
@@ -887,10 +887,10 @@ func TestSkillSetManagerContextOperations(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runners": [
+			"sources": [
 				{
 					"name": "command-runner",
-					"id": "system.commandrunner",
+					"runner": "system.commandrunner",
 					"config": {
 						"command": "python3 test.py"
 					}

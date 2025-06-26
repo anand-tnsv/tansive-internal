@@ -318,7 +318,7 @@ func (s *session) getRunner(ctx context.Context, skillName string, ioWriters ...
 		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
 	}
 
-	runnerDef, err := s.skillSet.GetRunnerDefinitionForSkill(skillName)
+	runnerDef, err := s.skillSet.GetSourceForSkill(skillName)
 	if err != nil {
 		return nil, err
 	}

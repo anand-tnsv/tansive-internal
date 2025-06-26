@@ -36,10 +36,10 @@ func TestSkillSetNewManager(t *testing.T) {
 				},
 				"spec": {
 					"version": "1.0.0",
-					"runners": [
+					"sources": [
 						{
 							"name": "command-runner",
-							"id": "system.commandrunner",
+							"runner": "system.commandrunner",
 							"config": {
 								"command": "python3 test.py"
 							}
@@ -224,10 +224,10 @@ func TestLoadSkillSetManagerByPath(t *testing.T) {
 			},
 			"spec": {
 				"version": "1.0.0",
-				"runners": [
+				"sources": [
 					{
 						"name": "command-runner",
-						"id": "system.commandrunner",
+						"runner": "system.commandrunner",
 						"config": {
 							"command": "python3 test.py"
 						}
@@ -355,10 +355,10 @@ func TestHashHiddenContextValues(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runners": [
+			"sources": [
 				{
 					"name": "test-runner",
-					"id": "system.testrunner",
+					"runner": "system.testrunner",
 					"config": {}
 				}
 			],
@@ -469,10 +469,10 @@ func TestHashHiddenContextValuesNoHiddenContexts(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runners": [
+			"sources": [
 				{
 					"name": "test-runner",
-					"id": "system.testrunner",
+					"runner": "system.testrunner",
 					"config": {}
 				}
 			],
@@ -532,10 +532,10 @@ func TestHashHiddenContextValuesNoContexts(t *testing.T) {
 		},
 		"spec": {
 			"version": "1.0.0",
-			"runners": [
+			"sources": [
 				{
 					"name": "test-runner",
-					"id": "system.testrunner",
+					"runner": "system.testrunner",
 					"config": {}
 				}
 			],

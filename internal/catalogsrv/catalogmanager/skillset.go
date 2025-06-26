@@ -38,8 +38,8 @@ type SkillSetManager interface {
 	StorageRepresentation() *objectstore.ObjectStorageRepresentation
 	GetSkillMetadata() (SkillMetadata, apperrors.Error)
 	GetResourcePath() string
-	GetRunnerDefinitionForSkill(skillName string) (SkillSetRunner, apperrors.Error)
-	GetRunnerDefinitionByName(runnerName string) (SkillSetRunner, apperrors.Error)
+	GetSourceForSkill(skillName string) (SkillSetSource, apperrors.Error)
+	GetSourceByName(sourceName string) (SkillSetSource, apperrors.Error)
 	GetSkill(name string) (Skill, apperrors.Error)
 	GetAllSkills() []Skill
 	GetAllSkillsAsLLMTools(viewDef *policy.ViewDefinition) []api.LLMTool
