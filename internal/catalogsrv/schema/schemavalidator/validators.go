@@ -155,7 +155,7 @@ func skillPathValidator(fl validator.FieldLevel) bool {
 
 func validateVersion(fl validator.FieldLevel) bool {
 	version := fl.Field().String()
-	return IsVersionCompatible(version)
+	return catcommon.IsApiVersionCompatible(version)
 }
 
 func ValidateKindName(name string) bool {

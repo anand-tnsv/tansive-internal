@@ -169,7 +169,7 @@ func (cm *catalogManager) Save(ctx context.Context) apperrors.Error {
 // ToJson converts the catalog to its JSON representation
 func (cm *catalogManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) {
 	schema := catalogSchema{
-		ApiVersion: schemavalidator.Version,
+		ApiVersion: catcommon.ApiVersion,
 		Kind:       catcommon.CatalogKind,
 		Metadata: catalogMetadata{
 			Name:        cm.catalog.Name,

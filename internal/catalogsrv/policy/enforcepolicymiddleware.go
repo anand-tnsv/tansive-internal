@@ -2,6 +2,7 @@ package policy
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
@@ -32,8 +33,20 @@ func EnforceViewPolicyMiddleware(handler ResponseHandlerParam) httpx.RequestHand
 	return func(r *http.Request) (*httpx.Response, error) {
 		ctx := r.Context()
 
+		options := &handlerOptions{}
+		for _, opt := range handler.Options {
+			opt(options)
+		}
+
+		if options.skipViewDefValidation {
+			if handler.AllowedActions != nil && slices.Contains(handler.AllowedActions, ActionAllow) {
+				log.Ctx(ctx).Info().Msg("Skipping view definition validation for allow action")
+				return handler.Handler(r)
+			}
+		}
+
 		// Resolve the authorized view definition
-		authorizedViewDef, err := resolveAuthorizedViewDef(ctx)
+		authorizedViewDef, err := ResolveAuthorizedViewDef(ctx)
 		if err != nil {
 			return nil, err
 		}

@@ -136,4 +136,17 @@ type ResponseHandlerParam struct {
 	Path           string
 	Handler        httpx.RequestHandler
 	AllowedActions []Action
+	Options        []HandlerOptions
+}
+
+type handlerOptions struct {
+	skipViewDefValidation bool
+}
+
+type HandlerOptions func(*handlerOptions)
+
+func SkipViewDefValidation(v bool) HandlerOptions {
+	return func(o *handlerOptions) {
+		o.skipViewDefValidation = v
+	}
 }

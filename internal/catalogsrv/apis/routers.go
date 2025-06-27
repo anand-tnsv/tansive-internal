@@ -102,6 +102,13 @@ var resourceObjectHandlers = []policy.ResponseHandlerParam{
 	},
 	{
 		Method:         http.MethodGet,
+		Path:           "/status",
+		Handler:        getStatus,
+		AllowedActions: []policy.Action{policy.ActionAllow},
+		Options:        []policy.HandlerOptions{policy.SkipViewDefValidation(true)},
+	},
+	{
+		Method:         http.MethodGet,
 		Path:           "/views/{viewName}",
 		Handler:        getObject,
 		AllowedActions: []policy.Action{policy.ActionCatalogList},

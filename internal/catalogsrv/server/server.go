@@ -9,9 +9,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/catalogsrv/apis"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/session"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/tangent"
 	"github.com/tansive/tansive-internal/internal/common/httpx"
@@ -74,8 +74,8 @@ type GetVersionRsp struct {
 func (s *CatalogServer) getVersion(w http.ResponseWriter, r *http.Request) {
 	log.Ctx(r.Context()).Debug().Msg("GetVersion")
 	rsp := &GetVersionRsp{
-		ServerVersion: "Tansive Catalog Server: " + Version,
-		ApiVersion:    schemavalidator.Version,
+		ServerVersion: "Tansive Catalog Server: " + catcommon.ServerVersion,
+		ApiVersion:    catcommon.ApiVersion,
 	}
 	httpx.SendJsonRsp(r.Context(), w, http.StatusOK, rsp)
 }

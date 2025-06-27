@@ -103,7 +103,7 @@ func NewVariantManager(ctx context.Context, resourceJSON []byte, name string, ca
 	if err := json.Unmarshal(resourceJSON, vs); err != nil {
 		return nil, ErrInvalidSchema.Err(err)
 	}
-	if !schemavalidator.IsVersionCompatible(vs.ApiVersion) {
+	if !catcommon.IsApiVersionCompatible(vs.ApiVersion) {
 		return nil, ErrInvalidVersion
 	}
 	if vs.Kind != "Variant" {
@@ -220,7 +220,7 @@ func (vm *variantManager) ToJson(ctx context.Context) ([]byte, apperrors.Error) 
 	}
 
 	s := variantSchema{
-		ApiVersion: schemavalidator.Version,
+		ApiVersion: catcommon.ApiVersion,
 		Kind:       catcommon.VariantKind,
 		Metadata: variantMetadata{
 			Name:        vm.variant.Name,

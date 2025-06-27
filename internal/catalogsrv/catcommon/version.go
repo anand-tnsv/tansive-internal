@@ -1,4 +1,4 @@
-package schemavalidator
+package catcommon
 
 import (
 	"github.com/Masterminds/semver/v3"
@@ -6,15 +6,21 @@ import (
 
 // Version is the current version of the package.
 // The version follows semantic versioning (MAJOR.MINOR.PATCH).
-const Version = "0.1.0-alpha.1"
+const ServerVersion = "0.1.0-alpha.1"
+const ApiVersion = "0.1.0-alpha.1"
 
 // versionConstraint defines the compatible version range.
 // It accepts any version with the same major version and greater or equal minor version.
-var versionConstraint *semver.Constraints
+var serverVersionConstraint *semver.Constraints
+var apiVersionConstraint *semver.Constraints
 
 func init() {
 	var err error
-	versionConstraint, err = semver.NewConstraint("=" + Version)
+	serverVersionConstraint, err = semver.NewConstraint("=" + ServerVersion)
+	if err != nil {
+		panic(err)
+	}
+	apiVersionConstraint, err = semver.NewConstraint("=" + ApiVersion)
 	if err != nil {
 		panic(err)
 	}
@@ -23,10 +29,18 @@ func init() {
 // IsVersionCompatible reports whether the given version is compatible
 // with the current version. The version must be a valid semantic version string.
 // Returns false for invalid version strings.
-func IsVersionCompatible(version string) bool {
+func IsServerVersionCompatible(version string) bool {
 	v, err := semver.NewVersion(version)
 	if err != nil {
 		return false
 	}
-	return versionConstraint.Check(v)
+	return serverVersionConstraint.Check(v)
+}
+
+func IsApiVersionCompatible(version string) bool {
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return false
+	}
+	return apiVersionConstraint.Check(v)
 }

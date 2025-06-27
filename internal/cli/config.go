@@ -263,7 +263,7 @@ This is useful when you want to reset your configuration or switch to a differen
 		if jsonOutput {
 			printJSON(map[string]int{"result": 1})
 		} else {
-			fmt.Println("cleared. choose a new catalog with \"tansive set-catalog <catalog>\"")
+			fmt.Println("Choose a new catalog with \"tansive set-catalog <catalog>\"")
 		}
 
 		return nil

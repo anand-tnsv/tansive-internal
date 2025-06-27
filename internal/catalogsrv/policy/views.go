@@ -302,7 +302,7 @@ func (v *viewKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
 
 	// Convert the view model to JSON
 	viewSchema := &viewSchema{
-		ApiVersion: schemavalidator.Version,
+		ApiVersion: catcommon.ApiVersion,
 		Kind:       catcommon.ViewKind,
 		Metadata: interfaces.Metadata{
 			Name:        view.Label,

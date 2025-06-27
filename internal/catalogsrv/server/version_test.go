@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/schema/schemavalidator"
 )
 
 func TestGetVersion(t *testing.T) {
@@ -34,8 +33,8 @@ func TestGetVersion(t *testing.T) {
 
 	compareJson(t,
 		&GetVersionRsp{
-			ServerVersion: "Tansive Catalog Server: " + Version,
-			ApiVersion:    schemavalidator.Version,
+			ServerVersion: "Tansive Catalog Server: " + catcommon.ServerVersion,
+			ApiVersion:    catcommon.ApiVersion,
 		}, response.Body.String())
 }
 

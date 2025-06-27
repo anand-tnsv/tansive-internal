@@ -27,14 +27,12 @@ import (
 func (ruleSet Rules) IsActionAllowedOnResource(action Action, target TargetResource) (bool, map[Intent][]Rule) {
 	matchedRulesAllow := []Rule{}
 	matchedRulesDeny := []Rule{}
-	allowMatch := false
-	// check if we have a general allow rule
-	if action == ActionAllow {
-		allowMatch = true
-	}
+
+	allowMatch := action == ActionAllow
+	var matchedRule Rule
 	// check if there is an admin match
-	allowMatch, matchedRule := ruleSet.matchesAdmin(string(target))
-	if allowMatch {
+	adminMatch, matchedRule := ruleSet.matchesAdmin(string(target))
+	if adminMatch {
 		allowMatch = true
 		matchedRulesAllow = append(matchedRulesAllow, matchedRule)
 	}
@@ -42,12 +40,13 @@ func (ruleSet Rules) IsActionAllowedOnResource(action Action, target TargetResou
 	for _, rule := range ruleSet {
 		if slices.Contains(rule.Actions, action) {
 			for _, res := range rule.Targets {
-				if rule.Intent == IntentAllow {
+				switch rule.Intent {
+				case IntentAllow:
 					if res.matches(string(target)) {
 						allowMatch = true
 						matchedRulesAllow = append(matchedRulesAllow, rule)
 					}
-				} else if rule.Intent == IntentDeny {
+				case IntentDeny:
 					if res.matches(string(target)) || // target is allowed by the rule
 						target.matches(string(res)) { // target is more permissive than the rule when we evaluate rule subsets
 						allowMatch = false
@@ -185,7 +184,7 @@ func CanAdoptView(ctx context.Context, view string) (bool, apperrors.Error) {
 		return false, ErrInvalidView.Msg("unable to resolve catalog")
 	}
 	viewResource, _ := resolveTargetResource(Scope{Catalog: catalog}, "/views/"+view)
-	ourViewDef, err := resolveAuthorizedViewDef(ctx)
+	ourViewDef, err := ResolveAuthorizedViewDef(ctx)
 	if err != nil {
 		return false, ErrInvalidView.Msg(err.Error())
 	}
@@ -215,7 +214,7 @@ func CanUseSkillSet(ctx context.Context, skillSetPath string) (bool, apperrors.E
 		return false, ErrInvalidView.Msg("unable to resolve view definition")
 	}
 	skillSetResource, _ := resolveTargetResource(vd.Scope, "/skillsets/"+skillSetPath)
-	ourViewDef, err := resolveAuthorizedViewDef(ctx)
+	ourViewDef, err := ResolveAuthorizedViewDef(ctx)
 	if err != nil {
 		return false, ErrInvalidView.Msg(err.Error())
 	}
@@ -274,7 +273,7 @@ func resolveTargetResource(scope Scope, resourcePath string) (TargetResource, er
 	return targetResource, nil
 }
 
-func resolveAuthorizedViewDef(ctx context.Context) (*ViewDefinition, error) {
+func ResolveAuthorizedViewDef(ctx context.Context) (*ViewDefinition, error) {
 	c := catcommon.GetCatalogContext(ctx)
 	if c == nil {
 		return nil, httpx.ErrUnAuthorized("missing request context")
