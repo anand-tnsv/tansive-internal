@@ -61,7 +61,7 @@ func TestViewCrud(t *testing.T) {
 		} `
 	setRequestBodyAndHeader(t, httpReq, req)
 	// set bearer token in header
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	// Execute Request
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	// Check the response code
@@ -83,7 +83,7 @@ func TestViewCrud(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -251,7 +251,7 @@ func TestViewList(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	assert.Equal(t, http.StatusCreated, response.Code)
 	testContext.CatalogContext.Catalog = "list-catalog"
@@ -292,7 +292,7 @@ func TestViewList(t *testing.T) {
 	// List views
 	httpReq, _ = http.NewRequest("GET", "/views?catalog=list-catalog", nil)
 	// set bearer token in header
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	require.Equal(t, http.StatusOK, response.Code)
 

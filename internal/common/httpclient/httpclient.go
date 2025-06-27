@@ -157,6 +157,12 @@ func (c *HTTPClient) DoRequest(opts RequestOptions) ([]byte, string, error) {
 				Message:    serverErr.Error,
 			}
 		}
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, "", &HTTPError{
+				StatusCode: resp.StatusCode,
+				Message:    "server doesn't implement this endpoint",
+			}
+		}
 		return nil, "", &HTTPError{
 			StatusCode: resp.StatusCode,
 			Message:    string(body),

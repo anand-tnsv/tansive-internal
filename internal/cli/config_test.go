@@ -43,16 +43,6 @@ roles:
 			wantErr: true,
 		},
 		{
-			name: "missing api key",
-			config: `version: 1.0
-server:port: "example.com:8080"
-roles:
-  - name: "admin"
-    access_token: "token1"
-    valid_before: "2024-12-31"`,
-			wantErr: true,
-		},
-		{
 			name: "invalid server port format - missing port",
 			config: `version: 1.0
 server:port: "example.com"

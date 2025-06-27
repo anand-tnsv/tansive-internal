@@ -35,7 +35,7 @@ func UserAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// If token validation failed and we're in single user mode, try that
-		if config.Config().SingleUserMode {
+		if config.IsTest() {
 			ctx, err = handleSingleUserMode(ctx, token)
 			if err != nil {
 				log.Ctx(ctx).Warn().Err(err).Msg("authentication failed in single user mode")
@@ -48,13 +48,13 @@ func UserAuthMiddleware(next http.Handler) http.Handler {
 
 		// If we get here, token validation failed and we're not in single user mode
 		log.Ctx(ctx).Warn().Err(err).Msg("token validation failed")
-		httpx.ErrUnAuthorized("invalid authorization token").Send(w)
+		httpx.ErrUnAuthorized("invalid authorization. login required").Send(w)
 	})
 }
 
 // handleSingleUserMode processes authentication in single-user mode
 func handleSingleUserMode(ctx context.Context, token string) (context.Context, error) {
-	if token != config.Config().Auth.FakeSingleUserToken {
+	if token != config.Config().Auth.TestUserToken {
 		return ctx, fmt.Errorf("invalid token in single user mode")
 	}
 	ctx, err := setDefaultSingleUserContext(ctx)

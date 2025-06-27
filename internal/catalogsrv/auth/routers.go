@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/userauth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
@@ -27,11 +28,16 @@ var authHandlers = []policy.ResponseHandlerParam{
 // It sets up middleware and registers handlers for various HTTP methods and paths.
 func Router(r chi.Router) chi.Router {
 	router := chi.NewRouter()
-	router.Use(UserAuthMiddleware)
-	router.Use(LoadContext)
-	for _, handler := range authHandlers {
-		router.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
-	}
+	router.Group(func(r chi.Router) {
+		r.Method(http.MethodPost, "/login", httpx.WrapHttpRsp(userauth.LoginUser))
+	})
+	router.Group(func(r chi.Router) {
+		r.Use(UserAuthMiddleware)
+		r.Use(LoadContext)
+		for _, handler := range authHandlers {
+			r.Method(handler.Method, handler.Path, httpx.WrapHttpRsp(handler.Handler))
+		}
+	})
 	return router
 }
 

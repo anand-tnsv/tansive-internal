@@ -104,7 +104,7 @@ func TestSessionCrud(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -124,7 +124,7 @@ func TestSessionCrud(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -562,7 +562,7 @@ func TestSessionCrud(t *testing.T) {
 	// Test getSessions API
 	t.Run("get sessions", func(t *testing.T) {
 		httpReq, _ := http.NewRequest("GET", "/sessions", nil)
-		httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+		httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 		response := executeTestRequest(t, httpReq, nil, testContext)
 		assert.Equal(t, http.StatusOK, response.Code)
 
@@ -598,7 +598,7 @@ func TestSessionCrud(t *testing.T) {
 
 		// Now get the session summary
 		httpReq, _ = http.NewRequest("GET", "/sessions/summary?sessionID="+sessionID, nil)
-		httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+		httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 		response = executeTestRequest(t, httpReq, nil, testContext)
 		assert.Equal(t, http.StatusOK, response.Code)
 

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/userauth"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -45,10 +47,63 @@ func setCatalogContext(ctx context.Context, viewDef *policy.ViewDefinition, toke
 // ValidateToken validates the provided token and sets up the appropriate context
 func ValidateToken(ctx context.Context, token string) (context.Context, error) {
 	if token == "" {
-		return ctx, ErrInvalidToken.Msg("empty token")
+		return ctx, ErrInvalidToken.Msg("empty token. login required")
 	}
 
-	tokenObj, err := ParseAndValidateToken(ctx, token)
+	tokenType, jwtToken, err := ParseAndValidateToken(ctx, token)
+	if err != nil {
+		return ctx, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+	}
+
+	switch tokenType {
+	case catcommon.IdentityTokenType:
+		return handleIdentityToken(ctx, jwtToken)
+	case catcommon.AccessTokenType:
+		return handleAccessToken(ctx, jwtToken)
+	default:
+		return ctx, ErrInvalidToken.Msg("invalid token. login required")
+	}
+}
+
+func handleIdentityToken(ctx context.Context, jwtToken *jwt.Token) (context.Context, error) {
+	if jwtToken == nil {
+		return ctx, ErrInvalidToken.Msg("login expired")
+	}
+
+	tokenObj, err := userauth.ResolveIdentityToken(ctx, jwtToken)
+	if err != nil {
+		return ctx, ErrUnauthorized.Msg("invalid or expired login: " + err.Error())
+	}
+
+	tenantID := tokenObj.GetTenantID()
+	if tenantID == "" {
+		return ctx, ErrMissingTenantID
+	}
+
+	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(tenantID))
+
+	sub := tokenObj.GetSubject()
+	if strings.HasPrefix(sub, "user/") {
+		catalogContext := &catcommon.CatalogContext{
+			UserContext: &catcommon.UserContext{
+				UserID: strings.TrimPrefix(sub, "user/"),
+			},
+			Subject: catcommon.SubjectTypeUser,
+		}
+		ctx = catcommon.WithCatalogContext(ctx, catalogContext)
+	} else {
+		return ctx, ErrInvalidToken.Msg("invalid subject")
+	}
+
+	return ctx, nil
+}
+
+func handleAccessToken(ctx context.Context, jwtToken *jwt.Token) (context.Context, error) {
+	if jwtToken == nil {
+		return ctx, ErrInvalidToken.Msg("invalid token")
+	}
+
+	tokenObj, err := ResolveAccessToken(ctx, jwtToken)
 	if err != nil {
 		return ctx, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}

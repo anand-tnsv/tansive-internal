@@ -52,7 +52,14 @@ func createTangent(r *http.Request) (*httpx.Response, error) {
 		if errors.Is(err, dberror.ErrAlreadyExists) {
 			log.Ctx(ctx).Error().Err(err).Msg("tangent already exists, updating")
 			if err := db.DB(ctx).UpdateTangent(ctx, &t); err != nil {
+				log.Ctx(ctx).Error().Err(err).Msg("failed to update tangent")
 				return nil, err
+			} else {
+				return &httpx.Response{
+					StatusCode: http.StatusCreated,
+					Location:   "/tangents/" + req.ID.String(),
+					Response:   nil,
+				}, nil
 			}
 		}
 		return nil, err

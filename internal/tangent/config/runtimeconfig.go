@@ -112,8 +112,7 @@ func RuntimeInit() {
 
 func RegisterTangent() error {
 	if runtimeConfig.Registered {
-		log.Info().Msg("tangent already registered")
-		return nil
+		log.Info().Msg("tangent already registered. Updating...")
 	}
 
 	tangentInfo := &srvtangent.TangentInfo{

@@ -71,8 +71,8 @@ var reservedClaims = map[string]bool{
 	"ver":       true,
 }
 
-// CreateToken creates a new JWT token for the given view
-func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOption) (string, time.Time, apperrors.Error) {
+// CreateAccessToken creates a new JWT token for the given view
+func CreateAccessToken(ctx context.Context, derivedView *models.View, opts ...TokenOption) (string, time.Time, apperrors.Error) {
 	options := &TokenOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -133,15 +133,16 @@ func CreateToken(ctx context.Context, derivedView *models.View, opts ...TokenOpt
 func createTokenClaims(ctx context.Context, view *models.View, token *models.ViewToken, expiry time.Time, additionalClaims map[string]any) jwt.MapClaims {
 	now := time.Now()
 	claims := jwt.MapClaims{
+		"token_use": catcommon.AccessTokenType,
 		"view_id":   view.ViewID.String(),
 		"tenant_id": catcommon.GetTenantID(ctx),
 		"iss":       config.Config().ServerHostName + ":" + config.Config().ServerPort,
 		"exp":       jwt.NewNumericDate(expiry),
 		"iat":       jwt.NewNumericDate(now),
 		"nbf":       jwt.NewNumericDate(now.Add(-2 * time.Minute)), // 2-minute skew buffer
-		"aud":       []string{config.Config().ServerHostName + ":" + config.Config().ServerPort},
+		"aud":       []string{"tansivesrv"},
 		"jti":       token.TokenID.String(),
-		"ver":       string(TokenVersionV0_1),
+		"ver":       string(catcommon.TokenVersionV0_1),
 	}
 
 	for k, v := range additionalClaims {

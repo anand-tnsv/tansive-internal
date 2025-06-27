@@ -172,7 +172,7 @@ func TestCreateToken(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create token with parent view definition option
-		token, expiry, appErr := CreateToken(ctx, derivedView, WithParentViewDefinition(parentViewDef))
+		token, expiry, appErr := CreateAccessToken(ctx, derivedView, WithParentViewDefinition(parentViewDef))
 		require.NoError(t, appErr)
 		require.NotEmpty(t, token)
 		require.False(t, expiry.IsZero())
@@ -212,7 +212,7 @@ func TestCreateToken(t *testing.T) {
 	})
 
 	t.Run("invalid view", func(t *testing.T) {
-		token, expiry, err := CreateToken(ctx, nil)
+		token, expiry, err := CreateAccessToken(ctx, nil)
 		assert.Error(t, err)
 		assert.Empty(t, token)
 		assert.True(t, expiry.IsZero())

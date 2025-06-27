@@ -54,6 +54,7 @@ func init() {
 
 	// Add commands
 	rootCmd.AddCommand(newVersionCmd())
+	rootCmd.AddCommand(newLoginCmd())
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -107,7 +108,7 @@ func preRunHandlePersistents(cmd *cobra.Command, args []string) {
 				fmt.Println("Tansive config file not found. Configure tansive with \"tansive config create\" first.")
 				os.Exit(1)
 			} else {
-				fmt.Printf("Unable to load config file: %s\n", err.Error())
+				fmt.Printf("%s\n", err.Error())
 				os.Exit(1)
 			}
 		}

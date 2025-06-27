@@ -1,25 +1,42 @@
-package auth
+package userauth
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog/log"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
-	"github.com/tansive/tansive-internal/internal/catalogsrv/db/models"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
 
-// RequiredClaims is a list of claims that must be present in the token
+// RevocationChecker defines the interface for checking if a token has been revoked
+type RevocationChecker interface {
+	IsRevoked(jti string) bool
+}
+
+// defaultRevocationChecker is a simple implementation that always returns false
+type defaultRevocationChecker struct{}
+
+func (c *defaultRevocationChecker) IsRevoked(jti string) bool {
+	return false
+}
+
+var revocationChecker RevocationChecker = &defaultRevocationChecker{}
+
+// SetRevocationChecker sets the revocation checker implementation
+func SetRevocationChecker(checker RevocationChecker) {
+	if checker == nil {
+		checker = &defaultRevocationChecker{}
+	}
+	revocationChecker = checker
+}
+
+// RequiredClaims is a list of claims that must be present in the identity token
 var RequiredClaims = []string{
-	"view_id",
 	"tenant_id",
 	"iss",
 	"aud",
@@ -29,77 +46,17 @@ var RequiredClaims = []string{
 	"ver",
 }
 
-// Token represents a JWT token with its associated claims and validation methods
-type Token struct {
+// IdentityToken represents a JWT identity token with its associated claims and validation methods
+type IdentityToken struct {
 	token  *jwt.Token
 	claims jwt.MapClaims
-	view   *models.View
 }
 
-func ParseAndValidateToken(ctx context.Context, tokenString string) (catcommon.TokenType, *jwt.Token, apperrors.Error) {
-	signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
-	if err != nil {
-		return catcommon.UnknownTokenType, nil, err
-	}
-
-	var token *jwt.Token
-	var parseErr error
-	token, parseErr = jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		// Validate the signing method
-		if _, ok := token.Method.(*jwt.SigningMethodEd25519); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return signingKey.PublicKey, nil
-	}, jwt.WithValidMethods([]string{"EdDSA"}))
-
-	if parseErr != nil {
-		log.Ctx(ctx).Error().Err(parseErr).Msg("failed to parse token")
-		return catcommon.UnknownTokenType, nil, ErrUnableToParseToken.Err(parseErr)
-	}
-
-	if !token.Valid {
-		return catcommon.UnknownTokenType, nil, ErrUnableToParseToken
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return catcommon.UnknownTokenType, nil, ErrUnableToParseToken
-	}
-
-	tokenType, ok := claims["token_use"].(string)
-	if !ok {
-		return catcommon.UnknownTokenType, nil, ErrUnableToParseToken
-	}
-
-	switch tokenType {
-	case string(catcommon.AccessTokenType):
-		return catcommon.AccessTokenType, token, nil
-	case string(catcommon.IdentityTokenType):
-		return catcommon.IdentityTokenType, token, nil
-	default:
-		return catcommon.UnknownTokenType, nil, ErrUnableToParseToken
-	}
-}
-
-// ResolveAccessToken parses and validates a JWT token string
-func ResolveAccessToken(ctx context.Context, token *jwt.Token) (*Token, apperrors.Error) {
-	if token == nil {
-		return nil, ErrUnableToParseToken
-	}
-
+// ResolveIdentityToken parses and validates a JWT identity token string
+func ResolveIdentityToken(ctx context.Context, token *jwt.Token) (*IdentityToken, apperrors.Error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return nil, ErrUnableToParseToken
-	}
-
-	view_id, ok := claims["view_id"].(string)
-	if !ok {
-		return nil, ErrUnableToParseToken
-	}
-
-	viewID, parseUUIDErr := uuid.Parse(view_id)
-	if parseUUIDErr != nil {
-		return nil, ErrUnableToParseToken.Err(parseUUIDErr)
 	}
 
 	tenantID, ok := claims["tenant_id"].(string)
@@ -109,19 +66,9 @@ func ResolveAccessToken(ctx context.Context, token *jwt.Token) (*Token, apperror
 
 	ctx = catcommon.WithTenantID(ctx, catcommon.TenantId(tenantID))
 
-	view, err := db.DB(ctx).GetView(ctx, viewID)
-	if err != nil {
-		return nil, err
-	}
-
-	if view.TenantID != catcommon.TenantId(tenantID) {
-		return nil, ErrInvalidToken.Msg(fmt.Sprintf("view tenant ID %s does not match token tenant ID %s", view.TenantID, tenantID))
-	}
-
-	tokenObj := &Token{
+	tokenObj := &IdentityToken{
 		token:  token,
 		claims: claims,
-		view:   view,
 	}
 
 	if err := tokenObj.Validate(ctx); err != nil {
@@ -131,8 +78,8 @@ func ResolveAccessToken(ctx context.Context, token *jwt.Token) (*Token, apperror
 	return tokenObj, nil
 }
 
-// Validate checks if the token is valid and not expired
-func (t *Token) Validate(ctx context.Context) apperrors.Error {
+// Validate checks if the identity token is valid and not expired
+func (t *IdentityToken) Validate(ctx context.Context) apperrors.Error {
 	// Check all required claims are present
 	for _, claim := range RequiredClaims {
 		if _, ok := t.claims[claim]; !ok {
@@ -162,7 +109,7 @@ func (t *Token) Validate(ctx context.Context) apperrors.Error {
 	}
 	if now.After(time.Unix(int64(exp), 0).Add(config.Config().Auth.GetClockSkewOrDefault())) {
 		log.Ctx(ctx).Debug().Msg("token expired")
-		return ErrInvalidToken.Msg("token expired")
+		return ErrInvalidToken.Msg("login expired")
 	}
 
 	// Check not before with skew
@@ -248,7 +195,7 @@ func (t *Token) Validate(ctx context.Context) apperrors.Error {
 }
 
 // Get retrieves a claim value from the token
-func (t *Token) Get(key string) (any, bool) {
+func (t *IdentityToken) Get(key string) (any, bool) {
 	if t.claims == nil {
 		return nil, false
 	}
@@ -257,7 +204,7 @@ func (t *Token) Get(key string) (any, bool) {
 }
 
 // GetString retrieves a string claim value from the token
-func (t *Token) GetString(key string) (string, bool) {
+func (t *IdentityToken) GetString(key string) (string, bool) {
 	val, ok := t.Get(key)
 	if !ok {
 		return "", false
@@ -266,7 +213,8 @@ func (t *Token) GetString(key string) (string, bool) {
 	return str, ok
 }
 
-func (t *Token) GetTokenUse() catcommon.TokenType {
+// GetTokenUse returns the token use type
+func (t *IdentityToken) GetTokenUse() catcommon.TokenType {
 	tokenType, ok := t.Get("token_use")
 	if !ok {
 		return catcommon.UnknownTokenType
@@ -278,7 +226,8 @@ func (t *Token) GetTokenUse() catcommon.TokenType {
 	return catcommon.TokenType(s)
 }
 
-func (t *Token) GetSubject() string {
+// GetSubject returns the subject claim
+func (t *IdentityToken) GetSubject() string {
 	subject, ok := t.Get("sub")
 	if !ok {
 		return ""
@@ -290,7 +239,8 @@ func (t *Token) GetSubject() string {
 	return s
 }
 
-func (t *Token) GetTenantID() string {
+// GetTenantID returns the tenant ID from the token
+func (t *IdentityToken) GetTenantID() string {
 	tenantID, ok := t.Get("tenant_id")
 	if !ok {
 		return ""
@@ -302,15 +252,8 @@ func (t *Token) GetTenantID() string {
 	return s
 }
 
-func (t *Token) GetCatalogID() uuid.UUID {
-	if t.view == nil {
-		return uuid.Nil
-	}
-	return t.view.CatalogID
-}
-
 // GetUUID retrieves a UUID claim value from the token
-func (t *Token) GetUUID(key string) (uuid.UUID, bool) {
+func (t *IdentityToken) GetUUID(key string) (uuid.UUID, bool) {
 	str, ok := t.GetString(key)
 	if !ok {
 		return uuid.Nil, false
@@ -322,16 +265,8 @@ func (t *Token) GetUUID(key string) (uuid.UUID, bool) {
 	return id, true
 }
 
-// GetViewID returns the view ID associated with the token
-func (t *Token) GetViewID() uuid.UUID {
-	if t.view == nil {
-		return uuid.Nil
-	}
-	return t.view.ViewID
-}
-
 // GetExpiry returns the token's expiration time
-func (t *Token) GetExpiry() time.Time {
+func (t *IdentityToken) GetExpiry() time.Time {
 	exp, ok := t.claims["exp"].(float64)
 	if !ok {
 		return time.Time{}
@@ -339,13 +274,8 @@ func (t *Token) GetExpiry() time.Time {
 	return time.Unix(int64(exp), 0)
 }
 
-// GetView returns the view associated with the token
-func (t *Token) GetView() *models.View {
-	return t.view
-}
-
 // GetRawToken returns the raw token string
-func (t *Token) GetRawToken() string {
+func (t *IdentityToken) GetRawToken() string {
 	if t.token == nil {
 		return ""
 	}

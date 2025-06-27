@@ -59,7 +59,7 @@ func TestSkillSetCrud(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -79,7 +79,7 @@ func TestSkillSetCrud(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	if !assert.Equal(t, http.StatusCreated, response.Code) {
 		t.Logf("Response: %v", response.Body.String())
@@ -430,7 +430,7 @@ func TestSkillSetList(t *testing.T) {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response := executeTestRequest(t, httpReq, nil, testContext)
 	assert.Equal(t, http.StatusCreated, response.Code)
 	testContext.CatalogContext.Catalog = "list-catalog"
@@ -560,7 +560,7 @@ func TestSkillSetList(t *testing.T) {
 
 	// List skillsets
 	httpReq, _ = http.NewRequest("GET", "/skillsets?catalog=list-catalog&variant=list-variant", nil)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.TestUserToken)
 	response = executeTestRequest(t, httpReq, nil, testContext)
 	require.Equal(t, http.StatusOK, response.Code)
 

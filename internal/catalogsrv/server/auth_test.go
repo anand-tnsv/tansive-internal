@@ -17,10 +17,11 @@ type testSetup struct {
 	ctx       context.Context
 	tenantID  catcommon.TenantId
 	projectID catcommon.ProjectId
+	userToken string
 }
 
 func TestAdoptView(t *testing.T) {
-	_ = setupTest(t)
+	setup := setupTest(t)
 
 	// Try to get Catalog without token
 	httpReq, _ := http.NewRequest("GET", "/catalogs/test-catalog", nil)
@@ -28,7 +29,7 @@ func TestAdoptView(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, response.Code)
 
 	// Test successful adoption of default view
-	token := adoptDefaultView(t, "test-catalog")
+	token := adoptDefaultView(t, "test-catalog", setup.userToken)
 
 	// Try to get Catalog with adopted token
 	httpReq, _ = http.NewRequest("GET", "/catalogs/test-catalog", nil)
@@ -164,6 +165,7 @@ func setupTest(t *testing.T) *testSetup {
 		db.DB(ctx).Close(ctx)
 	})
 
+	config.SetTestMode(false)
 	tenantID := catcommon.TenantId("TABCDE")
 	projectID := catcommon.ProjectId("PABCDE")
 	cfg := config.Config()
@@ -185,8 +187,22 @@ func setupTest(t *testing.T) *testSetup {
 	err = db.DB(ctx).CreateProject(ctx, projectID)
 	require.NoError(t, err)
 
+	// Login as single user
+	httpReq, _ := http.NewRequest("POST", "/auth/login", nil)
+	response := executeTestRequest(t, httpReq, nil)
+	require.Equal(t, http.StatusOK, response.Code)
+
+	var loginResponse struct {
+		Token     string `json:"token"`
+		ExpiresAt string `json:"expires_at"`
+	}
+	err = json.Unmarshal(response.Body.Bytes(), &loginResponse)
+	require.NoError(t, err)
+	token := loginResponse.Token
+	require.NotEmpty(t, token)
+
 	// Create a catalog
-	httpReq, _ := http.NewRequest("POST", "/catalogs", nil)
+	httpReq, _ = http.NewRequest("POST", "/catalogs", nil)
 	req := `
 		{
 			"apiVersion": "0.1.0-alpha.1",
@@ -197,14 +213,15 @@ func setupTest(t *testing.T) *testSetup {
 			}
 		}`
 	setRequestBodyAndHeader(t, httpReq, req)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
-	response := executeTestRequest(t, httpReq, nil)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	response = executeTestRequest(t, httpReq, nil)
 	require.Equal(t, http.StatusCreated, response.Code)
 
 	return &testSetup{
 		ctx:       ctx,
 		tenantID:  tenantID,
 		projectID: projectID,
+		userToken: token,
 	}
 }
 
@@ -378,9 +395,9 @@ func setupObjects(t *testing.T, token string) {
 	require.Equal(t, http.StatusCreated, response.Code)
 }
 
-func adoptDefaultView(t *testing.T, catalog string) string {
+func adoptDefaultView(t *testing.T, catalog string, token string) string {
 	httpReq, _ := http.NewRequest("POST", "/auth/default-view-adoptions/"+catalog, nil)
-	httpReq.Header.Set("Authorization", "Bearer "+config.Config().Auth.FakeSingleUserToken)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
 	response := executeTestRequest(t, httpReq, nil)
 	require.Equal(t, http.StatusOK, response.Code)
 

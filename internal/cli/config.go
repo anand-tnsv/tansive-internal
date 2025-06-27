@@ -69,9 +69,6 @@ func LoadConfig(file string) error {
 	if c.ServerPort == "" {
 		return errors.New("server:port is required")
 	}
-	if c.APIKey == "" {
-		return errors.New("api_key is required")
-	}
 
 	// Validate server port format
 	if !strings.Contains(c.ServerPort, ":") {
@@ -266,7 +263,7 @@ This is useful when you want to reset your configuration or switch to a differen
 		if jsonOutput {
 			printJSON(map[string]int{"result": 1})
 		} else {
-			fmt.Println("Cleared configuration")
+			fmt.Println("cleared. choose a new catalog with \"tansive set-catalog <catalog>\"")
 		}
 
 		return nil
@@ -308,7 +305,6 @@ func setServerConfig(server string) error {
 		if fileNotFound {
 			cfg = &Config{
 				Version: "0.1.0",
-				APIKey:  "placeholder", // Temporary placeholder to pass validation
 			}
 		} else {
 			return fmt.Errorf("failed to load existing config: %w", err)
@@ -321,11 +317,14 @@ func setServerConfig(server string) error {
 		return errors.New("server must include port number (e.g., example.com:8080)")
 	}
 
+	cfg.Version = "0.1.0"
 	cfg.ServerPort = MorphServer(server)
 
-	if cfg.APIKey == "placeholder" {
-		cfg.APIKey = ""
-	}
+	// Clear the token-related fields
+	cfg.APIKey = ""
+	cfg.CurrentToken = ""
+	cfg.TokenExpiry = ""
+	cfg.CurrentCatalog = ""
 
 	if err := cfg.WriteConfig(configPath); err != nil {
 		return fmt.Errorf("failed to write config: %w", err)

@@ -37,7 +37,7 @@ type AuthConfig struct {
 	ClockSkew            string `toml:"clock_skew"`             // Allowed clock skew for time-based claims
 	KeyEncryptionPasswd  string `toml:"key_encryption_passwd"`  // Password for key encryption
 	DefaultTokenValidity string `toml:"default_token_validity"` // Default token validity duration
-	FakeSingleUserToken  string `toml:"fake_single_user_token"` // Token for single user mode
+	TestUserToken        string `toml:"test_user_token"`        // Token for internal unit test mode
 }
 
 // GetMaxTokenAge returns the maximum token age as time.Duration
@@ -240,10 +240,9 @@ func ValidateConfig(cfg *ConfigParam) error {
 		if cfg.DefaultProjectID == "" {
 			return fmt.Errorf("default_project_id is required in single user mode")
 		}
-		if cfg.Auth.FakeSingleUserToken == "" {
-			return fmt.Errorf("auth.fake_single_user_token is required in single user mode")
-		}
 	}
+
+	cfg.Auth.TestUserToken = "test-user-token"
 
 	// Database validation
 	if cfg.DB.Host == "" {
@@ -312,7 +311,18 @@ func LoadConfig(filename string) error {
 	return nil
 }
 
+var isTest = false
+
+func IsTest() bool {
+	return isTest
+}
+
+func SetTestMode(test bool) {
+	isTest = test
+}
+
 func TestInit() {
+	isTest = true
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)

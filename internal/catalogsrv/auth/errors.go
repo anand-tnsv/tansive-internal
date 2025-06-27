@@ -44,4 +44,5 @@ var (
 // Ops errors
 var (
 	ErrUnableToCreateView apperrors.Error = ErrAuth.New("unable to create view").SetStatusCode(http.StatusInternalServerError)
+	ErrBadRequest         apperrors.Error = ErrAuth.New("bad request").SetStatusCode(http.StatusBadRequest)
 )

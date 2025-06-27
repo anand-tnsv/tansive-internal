@@ -156,7 +156,7 @@ func createSessionToken(ctx context.Context, session SessionManager) (string, ti
 		additionalClaims["created_by"] = "user/" + userID
 	}
 
-	token, expiry, err := auth.CreateToken(ctx, view, auth.WithAdditionalClaims(additionalClaims))
+	token, expiry, err := auth.CreateAccessToken(ctx, view, auth.WithAdditionalClaims(additionalClaims))
 	if err != nil {
 		return "", time.Time{}, err
 	}

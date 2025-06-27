@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/auth/keymanager"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
@@ -21,14 +22,14 @@ func TestNewToken(t *testing.T) {
 		"view_id":   viewID.String(),
 		"tenant_id": "TABCDE",
 		"iss":       serverAddr,
-		"aud":       []string{serverAddr},
+		"aud":       []string{"tansivesrv"},
 		"jti":       uuid.New().String(),
 		"exp":       time.Now().Add(time.Hour).Unix(),
 		"iat":       time.Now().Unix(),
 		"nbf":       time.Now().Unix(),
 		"sub":       "test-subject",
 		"token_use": "access",
-		"ver":       string(TokenVersionV0_1),
+		"ver":       string(catcommon.TokenVersionV0_1),
 	}
 
 	signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
@@ -63,7 +64,14 @@ func TestNewToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			token, err := ParseAndValidateToken(ctx, tt.tokenString)
+			tokenType, jwtToken, err := ParseAndValidateToken(ctx, tt.tokenString)
+			if err != nil {
+				assert.Error(t, err)
+				return
+			}
+			assert.Equal(t, catcommon.AccessTokenType, tokenType)
+			assert.NotNil(t, jwtToken)
+			token, err := ResolveAccessToken(ctx, jwtToken)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -90,12 +98,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: true,
 		},
@@ -105,7 +113,7 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
@@ -134,7 +142,7 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
@@ -149,12 +157,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(-time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -164,12 +172,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Add(time.Hour).Unix(), // Token not valid for another hour
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -179,12 +187,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Add(-25 * time.Hour).Unix(), // Issued more than 24 hours ago
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -207,7 +215,7 @@ func TestTokenValidation(t *testing.T) {
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -222,7 +230,7 @@ func TestTokenValidation(t *testing.T) {
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -232,12 +240,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       "wrong-issuer",
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -247,11 +255,11 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -261,12 +269,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{"wrong-audience", serverAddr, "another-wrong"},
+				"aud":       []string{"wrong-audience", "tansivesrv", "another-wrong"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: true,
 		},
@@ -276,12 +284,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(-config.Config().Auth.GetClockSkewOrDefault() / 2).Unix(), // Expired but within skew
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: true,
 		},
@@ -291,12 +299,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(-config.Config().Auth.GetClockSkewOrDefault() * 2).Unix(), // Expired outside skew
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -306,12 +314,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Add(config.Config().Auth.GetClockSkewOrDefault() / 2).Unix(), // Not yet valid but within skew
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: true,
 		},
@@ -321,12 +329,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Add(config.Config().Auth.GetClockSkewOrDefault() * 2).Unix(), // Not yet valid outside skew
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -336,12 +344,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       serverAddr,
+				"aud":       "tansivesrv",
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: true,
 		},
@@ -356,7 +364,7 @@ func TestTokenValidation(t *testing.T) {
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -366,12 +374,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       "not-a-number",
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -381,12 +389,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       true,
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -396,12 +404,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       uuid.New().String(),
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       []string{"not-a-number"},
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -411,12 +419,12 @@ func TestTokenValidation(t *testing.T) {
 				"view_id":   viewID.String(),
 				"tenant_id": "TABCDE",
 				"iss":       serverAddr,
-				"aud":       []string{serverAddr},
+				"aud":       []string{"tansivesrv"},
 				"jti":       123,
 				"exp":       now.Add(time.Hour).Unix(),
 				"iat":       now.Unix(),
 				"nbf":       now.Unix(),
-				"ver":       string(TokenVersionV0_1),
+				"ver":       string(catcommon.TokenVersionV0_1),
 			},
 			isValid: false,
 		},
@@ -487,12 +495,12 @@ func TestTokenGetters(t *testing.T) {
 		"token_use": tokenUse,
 		"view_id":   viewID.String(),
 		"iss":       serverAddr,
-		"aud":       []string{serverAddr},
+		"aud":       []string{"tansivesrv"},
 		"jti":       uuid.New().String(),
 		"exp":       time.Now().Add(time.Hour).Unix(),
 		"iat":       time.Now().Unix(),
 		"nbf":       time.Now().Unix(),
-		"ver":       string(TokenVersionV0_1),
+		"ver":       string(catcommon.TokenVersionV0_1),
 	}
 
 	signingKey, err := keymanager.GetKeyManager().GetActiveKey(ctx)
@@ -508,7 +516,14 @@ func TestTokenGetters(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	parsedToken, err := ParseAndValidateToken(ctx, tokenString)
+	tokenType, jwtToken, err := ParseAndValidateToken(ctx, tokenString)
+	if err != nil {
+		assert.Error(t, err)
+		return
+	}
+	assert.Equal(t, catcommon.AccessTokenType, tokenType)
+	assert.NotNil(t, jwtToken)
+	parsedToken, err := ResolveAccessToken(ctx, jwtToken)
 	require.NoError(t, err)
 
 	t.Run("GetSubject", func(t *testing.T) {
@@ -520,7 +535,7 @@ func TestTokenGetters(t *testing.T) {
 	})
 
 	t.Run("GetTokenUse", func(t *testing.T) {
-		assert.Equal(t, TokenType(tokenUse), parsedToken.GetTokenUse())
+		assert.Equal(t, catcommon.TokenType(tokenUse), parsedToken.GetTokenUse())
 	})
 
 	t.Run("GetViewID", func(t *testing.T) {
@@ -551,12 +566,12 @@ func TestParseAndValidateToken(t *testing.T) {
 		"view_id":   viewID.String(),
 		"tenant_id": string(tenantID),
 		"iss":       serverAddr,
-		"aud":       []string{serverAddr},
+		"aud":       []string{"tansivesrv"},
 		"jti":       uuid.New().String(),
 		"exp":       time.Now().Add(time.Hour).Unix(),
 		"iat":       time.Now().Unix(),
 		"nbf":       time.Now().Unix(),
-		"ver":       string(TokenVersionV0_1),
+		"ver":       string(catcommon.TokenVersionV0_1),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
@@ -566,7 +581,14 @@ func TestParseAndValidateToken(t *testing.T) {
 	}
 
 	// Test parsing and validation
-	parsedToken, err := ParseAndValidateToken(ctx, tokenString)
+	tokenType, jwtToken, err := ParseAndValidateToken(ctx, tokenString)
+	if err != nil {
+		assert.Error(t, err)
+		return
+	}
+	assert.Equal(t, catcommon.AccessTokenType, tokenType)
+	assert.NotNil(t, jwtToken)
+	parsedToken, err := ResolveAccessToken(ctx, jwtToken)
 	require.NoError(t, err)
 	assert.NotNil(t, parsedToken)
 	assert.Equal(t, viewID, parsedToken.view.ViewID)
