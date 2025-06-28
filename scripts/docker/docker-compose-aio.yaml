@@ -35,7 +35,8 @@ services:
     restart: unless-stopped
     command: ["/app/tansivesrv", "--config", "/etc/tansive/tansivesrv.conf"]
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8678/ready"]
+      test:
+        ["CMD", "wget", "--spider", "--no-check-certificate", "-q", "https://localhost:8678/ready"]
       interval: 10s
       timeout: 5s
       retries: 5

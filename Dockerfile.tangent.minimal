@@ -57,6 +57,6 @@ ENV SCRIPT_DIR=/var/tangent/scripts
 VOLUME ["/var/tangent", "/var/tangent/scripts"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8468/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider https://localhost:8468/health || exit 1
 
 CMD ["/usr/local/bin/tangent", "-config", "/etc/tansive/tangent.conf"] 
