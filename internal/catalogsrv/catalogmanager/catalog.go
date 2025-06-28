@@ -202,9 +202,10 @@ func DeleteCatalogByName(ctx context.Context, name string) apperrors.Error {
 }
 
 type VariantObject struct {
-	Name      string `json:"name"`
-	SkillSets string `json:"skillsets"`
-	Resources string `json:"resources"`
+	Name       string   `json:"name"`
+	Namespaces []string `json:"namespaces"`
+	SkillSets  string   `json:"skillsets"`
+	Resources  string   `json:"resources"`
 }
 
 // GetTree returns tree of objects in the catalog
@@ -216,6 +217,15 @@ func (cm *catalogManager) GetVariantObjects(ctx context.Context) ([]byte, apperr
 		return nil, err
 	}
 	for _, variant := range variants {
+
+		namespaces, err := db.DB(ctx).ListNamespacesByVariant(ctx, variant.VariantID)
+		if err != nil {
+			return nil, err
+		}
+		namespaceNames := make([]string, 0)
+		for _, namespace := range namespaces {
+			namespaceNames = append(namespaceNames, namespace.Name)
+		}
 		skillsets, err := db.DB(ctx).ListSkillSets(ctx, variant.SkillsetDirectoryID)
 		if err != nil {
 			return nil, err
@@ -243,9 +253,10 @@ func (cm *catalogManager) GetVariantObjects(ctx context.Context) ([]byte, apperr
 		encodedResources := base64.StdEncoding.EncodeToString(compressedResources)
 
 		variantObjects = append(variantObjects, VariantObject{
-			Name:      variant.Name,
-			SkillSets: encodedSkillsets,
-			Resources: encodedResources,
+			Name:       variant.Name,
+			Namespaces: namespaceNames,
+			SkillSets:  encodedSkillsets,
+			Resources:  encodedResources,
 		})
 	}
 	jsonData, goerr := json.Marshal(variantObjects)

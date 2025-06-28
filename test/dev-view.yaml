@@ -14,5 +14,5 @@ spec:
         - kubernetes.deployments.restart
         - kubernetes.troubleshoot
       targets:
-        - res://skillsets/skillsets/kubernetes-demo
+        - res://skillsets/demo-skillsets/kubernetes-demo
 

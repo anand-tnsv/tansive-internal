@@ -3,7 +3,7 @@ kind: SkillSet
 metadata:
   name: kubernetes-demo
   catalog: example-catalog
-  path: /skillsets
+  path: /demo-skillsets
 spec:
   version: "0.1.0"
   sources:

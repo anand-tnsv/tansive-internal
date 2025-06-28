@@ -24,21 +24,22 @@ type CatalogObject struct {
 
 // DecompressedVariantObject represents the structure after decompression
 type DecompressedVariantObject struct {
-	Name      string          `json:"name"`
-	SkillSets []CatalogObject `json:"skillsets"`
-	Resources []CatalogObject `json:"resources"`
+	Name       string          `json:"name"`
+	Namespaces []string        `json:"namespaces"`
+	SkillSets  []CatalogObject `json:"skillsets"`
+	Resources  []CatalogObject `json:"resources"`
 }
 
 // getTreeCmd represents the get-tree command
 var getTreeCmd = &cobra.Command{
-	Use:   "get-tree [flags]",
+	Use:   "tree [flags]",
 	Short: "Get a tree of objects in a catalog",
 	Long: `Get a tree of objects in a catalog. This command retrieves all variants, skillsets, and resources 
 organized in a tree structure for the catalog resolved from the bearer token.
 
 Examples:
   # Get tree for the current catalog (resolved from bearer token)
-  tansive get-tree`,
+  tansive tree`,
 	Args: cobra.NoArgs,
 	RunE: getTreeResource,
 }
@@ -48,27 +49,20 @@ Examples:
 func getTreeResource(cmd *cobra.Command, args []string) error {
 	client := httpclient.NewClient(GetConfig())
 
-	// Set up query parameters with tree=true
-	queryParams := make(map[string]string)
-	queryParams["tree"] = "true"
+	queryParams := map[string]string{"tree": "true"}
 
-	// If catalog is specified via flag, use it; otherwise use current_catalog from config
 	var catalogName string
 	if getTreeCatalog != "" {
 		catalogName = getTreeCatalog
 	} else {
-		// Use current_catalog from config file
-		config := GetConfig()
-		catalogName = config.CurrentCatalog
+		catalogName = GetConfig().CurrentCatalog
 	}
 
-	// Call the catalog's Get method with tree=true
 	response, err := client.GetResource("catalogs", catalogName, queryParams, "")
 	if err != nil {
 		return err
 	}
 
-	// Parse the response as JSON array of VariantObject
 	var variantObjects []catalogmanager.VariantObject
 	if err := json.Unmarshal(response, &variantObjects); err != nil {
 		return fmt.Errorf("failed to parse response: %v", err)
@@ -81,23 +75,49 @@ func getTreeResource(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		// Variant node
+
 		variantNode := &Node{Name: "🧬 " + variant.Name}
 		root.Children = append(root.Children, variantNode)
+
+		// Build namespace set from variant.Namespaces
+		knownNamespaces := map[string]struct{}{}
+		for _, ns := range variant.Namespaces {
+			knownNamespaces[ns] = struct{}{}
+		}
 
 		// Map to group by namespace
 		nsMap := map[string]*Node{}
 
 		process := func(objs []CatalogObject, category string, icon string) {
+			// Build lookup set for namespaces in this variant
+			nsSet := map[string]struct{}{}
+			for _, n := range variant.Namespaces {
+				nsSet[n] = struct{}{}
+			}
+
 			for _, obj := range objs {
 				segments := strings.Split(obj.Path, "/")
-				if len(segments) < 4 {
-					continue // Skip invalid
+				if len(segments) < 3 {
+					continue // Not enough segments
 				}
 
-				ns := segments[1]
-				if ns == "--root--" {
+				if segments[1] != "--root--" {
+					continue // Invalid prefix
+				}
+
+				var ns string
+				var pathStart int
+
+				// Determine if segments[2] is a namespace
+				candidate := segments[2]
+				if _, ok := nsSet[candidate]; ok {
+					// It is a namespace
+					ns = candidate
+					pathStart = 3
+				} else {
+					// It is part of the path
 					ns = "default"
+					pathStart = 2
 				}
 
 				// Namespace node
@@ -108,7 +128,7 @@ func getTreeResource(cmd *cobra.Command, args []string) error {
 					variantNode.Children = append(variantNode.Children, nsNode)
 				}
 
-				// Category node (SkillSets / Resources)
+				// Category node
 				var catNode *Node
 				for _, child := range nsNode.Children {
 					if child.Name == icon+" "+category {
@@ -121,13 +141,22 @@ func getTreeResource(cmd *cobra.Command, args []string) error {
 					nsNode.Children = append(nsNode.Children, catNode)
 				}
 
-				// Skip the category segment
-				insertPath(catNode, segments[3:])
+				insertPath(catNode, segments[pathStart:])
 			}
 		}
 
 		process(variant.SkillSets, "SkillSets", "🧠")
 		process(variant.Resources, "Resources", "📦")
+	}
+
+	for _, variantNode := range root.Children {
+		for _, nsNode := range variantNode.Children {
+			for _, catNode := range nsNode.Children {
+				for _, child := range catNode.Children {
+					collapseSingleChildFolders(child)
+				}
+			}
+		}
 	}
 
 	fmt.Println(root.Name)
@@ -140,7 +169,8 @@ func getTreeResource(cmd *cobra.Command, args []string) error {
 
 func decompressVariantObject(obj catalogmanager.VariantObject) (DecompressedVariantObject, error) {
 	decompressedObj := DecompressedVariantObject{
-		Name: obj.Name,
+		Name:       obj.Name,
+		Namespaces: obj.Namespaces,
 	}
 
 	// Decompress and parse skillsets
@@ -225,6 +255,21 @@ func printTree(node *Node, prefix string, isLast bool) {
 
 	for i, child := range node.Children {
 		printTree(child, newPrefix, i == len(node.Children)-1)
+	}
+}
+
+func collapseSingleChildFolders(node *Node) {
+	for _, child := range node.Children {
+		collapseSingleChildFolders(child)
+	}
+
+	// Keep collapsing while there's exactly one child and it's not a leaf
+	for len(node.Children) == 1 && len(node.Children[0].Children) > 0 {
+		child := node.Children[0]
+		// Merge names with "/"
+		node.Name = node.Name + "/" + child.Name
+		// Adopt the grand-children
+		node.Children = child.Children
 	}
 }
 
