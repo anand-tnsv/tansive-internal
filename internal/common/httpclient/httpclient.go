@@ -7,6 +7,7 @@ package httpclient
 import (
 	"bytes"
 	"crypto/ed25519"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -54,12 +55,40 @@ type HTTPClient struct {
 	httpClient *http.Client
 }
 
+// ClientOptions contains options for configuring the HTTP client.
+type ClientOptions struct {
+	DisableCertValidation bool // If true, skips SSL certificate validation
+}
+
 // NewClient creates a new HTTP client using the provided configuration.
 // The config parameter must implement the Configurator interface.
-func NewClient(config Configurator) *HTTPClient {
+func NewClient(config Configurator, opts ...ClientOptions) *HTTPClient {
+	clientOpts := ClientOptions{}
+	if strings.HasPrefix(config.GetServerURL(), "https://") {
+		clientOpts.DisableCertValidation = true
+	}
+	if len(opts) > 0 {
+		clientOpts = opts[0]
+	}
+	return NewClientWithOptions(config, clientOpts)
+}
+
+// NewClientWithOptions creates a new HTTP client using the provided configuration and options.
+// The config parameter must implement the Configurator interface.
+func NewClientWithOptions(config Configurator, opts ClientOptions) *HTTPClient {
+	httpClient := &http.Client{}
+
+	if opts.DisableCertValidation {
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+	}
+
 	return &HTTPClient{
 		config:     config,
-		httpClient: &http.Client{},
+		httpClient: httpClient,
 	}
 }
 

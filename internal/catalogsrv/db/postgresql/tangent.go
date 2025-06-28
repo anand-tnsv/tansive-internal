@@ -180,7 +180,7 @@ func (mm *metadataManager) ListTangents(ctx context.Context) ([]*models.Tangent,
 		SELECT id, info, public_key, status, tenant_id, created_at, updated_at
 		FROM tangents
 		WHERE tenant_id = $1
-		ORDER BY created_at DESC
+		ORDER BY updated_at DESC
 	`
 
 	rows, err := mm.conn().QueryContext(ctx, query, tenantID)

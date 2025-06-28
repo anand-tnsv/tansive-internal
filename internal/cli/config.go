@@ -20,8 +20,8 @@ const DefaultConfigFile = "config.yaml"
 type Config struct {
 	// Version of the configuration file format
 	Version string `yaml:"version"`
-	// ServerPort is the URL and port of the Tansive server
-	ServerPort string `yaml:"server:port"`
+	// ServerURL is the URL and port of the Tansive server
+	ServerURL string `yaml:"server_url"`
 	// APIKey is the authentication token for the Tansive server
 	APIKey string `yaml:"api_key"`
 	// CurrentToken is the active token for the selected catalog
@@ -66,17 +66,17 @@ func LoadConfig(file string) error {
 	}
 
 	// Validate required fields
-	if c.ServerPort == "" {
+	if c.ServerURL == "" {
 		return errors.New("server:port is required")
 	}
 
 	// Validate server port format
-	if !strings.Contains(c.ServerPort, ":") {
+	if !strings.Contains(c.ServerURL, ":") {
 		return errors.New("server:port must include port number")
 	}
 
 	// Morph the server URL before storing
-	c.ServerPort = MorphServer(c.ServerPort)
+	c.ServerURL = MorphServer(c.ServerURL)
 
 	config = &c
 	return nil
@@ -115,13 +115,13 @@ func (cfg *Config) WriteConfig(file string) error {
 // ValidateConfig validates the configuration
 // Checks for required fields and proper formatting
 func (cfg *Config) ValidateConfig() error {
-	if cfg.ServerPort == "" {
+	if cfg.ServerURL == "" {
 		return errors.New("server:port is required")
 	}
-	if !strings.HasPrefix(cfg.ServerPort, "http://") && !strings.HasPrefix(cfg.ServerPort, "https://") {
+	if !strings.HasPrefix(cfg.ServerURL, "http://") && !strings.HasPrefix(cfg.ServerURL, "https://") {
 		return errors.New("server:port must start with http:// or https://")
 	}
-	if !strings.Contains(cfg.ServerPort, ":") {
+	if !strings.Contains(cfg.ServerURL, ":") {
 		return errors.New("server:port must include port number")
 	}
 	if cfg.APIKey == "" {
@@ -132,7 +132,7 @@ func (cfg *Config) ValidateConfig() error {
 
 // Print prints the current configuration in a human-readable format
 func (cfg *Config) Print() {
-	fmt.Printf("Server: %s\n", cfg.ServerPort)
+	fmt.Printf("Server: %s\n", cfg.ServerURL)
 }
 
 // MorphServer ensures the server URL is properly formatted
@@ -147,7 +147,7 @@ func MorphServer(server string) string {
 
 	// Add http:// if no protocol is specified
 	if !strings.HasPrefix(server, "http://") && !strings.HasPrefix(server, "https://") {
-		server = "http://" + server
+		server = "https://" + server
 	}
 
 	return server
@@ -155,7 +155,7 @@ func MorphServer(server string) string {
 
 // GetServerURL returns the properly formatted server URL
 func (cfg *Config) GetServerURL() string {
-	return MorphServer(cfg.ServerPort)
+	return MorphServer(cfg.ServerURL)
 }
 
 // GetAPIKey returns the API key from the configuration
@@ -318,7 +318,7 @@ func setServerConfig(server string) error {
 	}
 
 	cfg.Version = "0.1.0"
-	cfg.ServerPort = MorphServer(server)
+	cfg.ServerURL = MorphServer(server)
 
 	// Clear the token-related fields
 	cfg.APIKey = ""
@@ -332,11 +332,11 @@ func setServerConfig(server string) error {
 
 	if jsonOutput {
 		printJSON(map[string]string{
-			"server":      cfg.ServerPort,
+			"server":      cfg.ServerURL,
 			"config_file": configPath,
 		})
 	} else {
-		fmt.Printf("Server configured: %s\n", cfg.ServerPort)
+		fmt.Printf("Server configured: %s\n", cfg.ServerURL)
 		fmt.Printf("Config file: %s\n", configPath)
 	}
 

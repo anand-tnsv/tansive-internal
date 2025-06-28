@@ -2,8 +2,11 @@ package tangent
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/config"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
 	"github.com/tansive/tansive-internal/internal/common/uuid"
 )
@@ -23,12 +26,34 @@ type Tangent struct {
 }
 
 func GetTangentWithCapabilities(ctx context.Context, capabilities []catcommon.RunnerID) (*Tangent, apperrors.Error) {
-	// Fake it for now
+	if config.IsTest() {
+		return &Tangent{
+			ID: uuid.New(),
+			TangentInfo: TangentInfo{
+				CreatedBy:    "system",
+				URL:          "http://local.tansive.dev:8468",
+				Capabilities: capabilities,
+			},
+		}, nil
+	}
+
+	// Get all tangents
+	tangents, err := db.DB(ctx).ListTangents(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	info := TangentInfo{}
+	goerr := json.Unmarshal(tangents[0].Info, &info)
+	if goerr != nil {
+		return nil, apperrors.New("failed to unmarshal tangent info: " + goerr.Error())
+	}
+
 	return &Tangent{
-		ID: uuid.New(),
+		ID: info.ID,
 		TangentInfo: TangentInfo{
 			CreatedBy:    "system",
-			URL:          "http://local.tansive.dev:8468",
+			URL:          info.URL,
 			Capabilities: capabilities,
 		},
 	}, nil

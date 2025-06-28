@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/tansive/tansive-internal/internal/common/certs"
 )
 
 // StdioRunnerConfig holds stdio runner related configuration
@@ -38,12 +39,11 @@ func (a *AuthConfig) GetTokenExpiryOrDefault() time.Duration {
 
 // TansiveServerConfig holds tansive server related configuration
 type TansiveServerConfig struct {
-	HostName string `toml:"host_name"` // Tansive server hostname
-	Port     string `toml:"port"`      // Tansive server port
+	URL string `toml:"url"` // Tansive server URL
 }
 
 func (t *TansiveServerConfig) GetURL() string {
-	return "http://" + t.HostName + ":" + t.Port
+	return t.URL
 }
 
 // ConfigParam holds all configuration parameters for the tangent service
@@ -52,10 +52,13 @@ type ConfigParam struct {
 	FormatVersion string `toml:"format_version"` // Version of this configuration file format
 
 	// Server configuration
-	ServerHostName string `toml:"server_hostname"` // Hostname for the server
+	ServerHostName string `toml:"server_hostname"` // Hostname for the server in the format of "hostname:port"
 	ServerPort     string `toml:"server_port"`     // Port for the server
 	HandleCORS     bool   `toml:"handle_cors"`     // Whether to handle CORS
 	WorkingDir     string `toml:"working_dir"`     // Working directory for the server
+	SupportTLS     bool   `toml:"support_tls"`     // Whether to support TLS
+	TLSCertPEM     []byte `toml:"-"`               // PEM encoded TLS certificate
+	TLSKeyPEM      []byte `toml:"-"`               // PEM encoded TLS key
 
 	// Stdio runner configuration
 	StdioRunner StdioRunnerConfig `toml:"stdio_runner"`
@@ -75,6 +78,9 @@ func Config() *ConfigParam {
 }
 
 func GetURL() string {
+	if Config().SupportTLS {
+		return "https://" + Config().ServerHostName + ":" + Config().ServerPort
+	}
 	return "http://" + Config().ServerHostName + ":" + Config().ServerPort
 }
 
@@ -136,11 +142,8 @@ func ValidateConfig(cfg *ConfigParam) error {
 	}
 
 	// Tansive server validation
-	if cfg.TansiveServer.HostName == "" {
-		return fmt.Errorf("tansive_server.host_name is required")
-	}
-	if cfg.TansiveServer.Port == "" {
-		return fmt.Errorf("tansive_server.port is required")
+	if cfg.TansiveServer.URL == "" {
+		return fmt.Errorf("tansive_server.url is required")
 	}
 
 	if cfg.WorkingDir == "" {
@@ -160,6 +163,15 @@ func ValidateConfig(cfg *ConfigParam) error {
 			return fmt.Errorf("error getting current working directory: %v", err)
 		}
 		cfg.StdioRunner.ScriptDir = filepath.Join(cwd, "test_scripts")
+	}
+
+	if cfg.SupportTLS {
+		certPEM, keyPEM, err := certs.GenerateSelfSignedECDSACert(cfg.ServerHostName, 365*24*time.Hour)
+		if err != nil {
+			return fmt.Errorf("error generating self-signed certificate: %v", err)
+		}
+		cfg.TLSCertPEM = certPEM
+		cfg.TLSKeyPEM = keyPEM
 	}
 
 	return nil

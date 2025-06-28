@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/tansive/tansive-internal/internal/common/certs"
 )
 
 // SessionConfig holds session-related configuration
@@ -37,7 +38,7 @@ type AuthConfig struct {
 	ClockSkew            string `toml:"clock_skew"`             // Allowed clock skew for time-based claims
 	KeyEncryptionPasswd  string `toml:"key_encryption_passwd"`  // Password for key encryption
 	DefaultTokenValidity string `toml:"default_token_validity"` // Default token validity duration
-	TestUserToken        string `toml:"test_user_token"`        // Token for internal unit test mode
+	TestUserToken        string `toml:"-"`                      // Token for internal unit test mode
 }
 
 // GetMaxTokenAge returns the maximum token age as time.Duration
@@ -105,6 +106,11 @@ type ConfigParam struct {
 	EndpointPort       string `toml:"endpoint_port"`         // Port for the endpoint server
 	HandleCORS         bool   `toml:"handle_cors"`           // Whether to handle CORS
 	MaxRequestBodySize int64  `toml:"max_request_body_size"` // Maximum size of request body in bytes
+	SupportTLS         bool   `toml:"support_tls"`           // Whether to support TLS
+	TLSCertFile        string `toml:"tls_cert_file"`         // Path to TLS certificate file
+	TLSKeyFile         string `toml:"tls_key_file"`          // Path to TLS key file
+	TLSCertPEM         []byte `toml:"-"`                     // PEM encoded TLS certificate
+	TLSKeyPEM          []byte `toml:"-"`                     // PEM encoded TLS key
 
 	// Session configuration
 	Session SessionConfig `toml:"session"`
@@ -197,9 +203,6 @@ func ValidateConfig(cfg *ConfigParam) error {
 	if cfg.ServerPort == "" {
 		return fmt.Errorf("server_port is required")
 	}
-	if cfg.EndpointPort == "" {
-		return fmt.Errorf("endpoint_port is required")
-	}
 
 	// Session validation
 	if cfg.Session.ExpirationTime == "" {
@@ -277,6 +280,30 @@ func ValidateConfig(cfg *ConfigParam) error {
 		}
 	}
 
+	// TLS validation
+	if cfg.SupportTLS {
+		var err error
+		var certPEM []byte
+		var keyPEM []byte
+		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+			certPEM, err = os.ReadFile(cfg.TLSCertFile)
+			if err != nil {
+				return fmt.Errorf("error reading tls cert file: %v", err)
+			}
+			keyPEM, err = os.ReadFile(cfg.TLSKeyFile)
+			if err != nil {
+				return fmt.Errorf("error reading tls key file: %v", err)
+			}
+		} else {
+			certPEM, keyPEM, err = certs.GenerateSelfSignedECDSACert(cfg.ServerHostName, 365*24*time.Hour)
+			if err != nil {
+				return fmt.Errorf("error generating self-signed certificate: %v", err)
+			}
+		}
+		cfg.TLSCertPEM = certPEM
+		cfg.TLSKeyPEM = keyPEM
+	}
+
 	return nil
 }
 
@@ -302,7 +329,9 @@ func LoadConfig(filename string) error {
 		return fmt.Errorf("invalid configuration: %v", err)
 	}
 
-	// Generate key encryption password if not set
+	// Generate key encryption password if not set. This is intended for preview
+	// Any non-eval use should use a secure key store, or at least set a password in the
+	// config file.
 	if cfg.Auth.KeyEncryptionPasswd == "" {
 		id := "catalogsrv.tansive.io"
 		cfg.Auth.KeyEncryptionPasswd = id
@@ -343,5 +372,6 @@ func TestInit() {
 	if err := LoadConfig(filepath.Join(projectRoot, "tansivesrv.conf")); err != nil {
 		panic(fmt.Errorf("error loading config: %v", err))
 	}
+	//cfg.Auth.SupportTLS = false
 	Init()
 }

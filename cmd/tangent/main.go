@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net/http"
@@ -70,8 +71,28 @@ func run(ctx context.Context) error {
 
 	// Start the service listening for requests.
 	go func() {
-		slog.Info().Str("port", config.Config().ServerPort).Msg("server started")
-		serverErrors <- srv.ListenAndServe()
+		if config.Config().SupportTLS {
+			slog.Info().Str("port", config.Config().ServerPort).Msg("server started with TLS")
+
+			// Create TLS config from PEM certificates
+			tlsConfig, err := createTLSConfig()
+			if err != nil {
+				serverErrors <- fmt.Errorf("creating TLS config: %w", err)
+				return
+			}
+
+			// Create listener with TLS
+			listener, err := tls.Listen("tcp", srv.Addr, tlsConfig)
+			if err != nil {
+				serverErrors <- fmt.Errorf("creating TLS listener: %w", err)
+				return
+			}
+
+			serverErrors <- srv.Serve(listener)
+		} else {
+			slog.Info().Str("port", config.Config().ServerPort).Msg("server started")
+			serverErrors <- srv.ListenAndServe()
+		}
 	}()
 
 	skillService, err := session.CreateSkillService()
@@ -106,6 +127,23 @@ func run(ctx context.Context) error {
 
 	slog.Info().Msg("server stopped")
 	return nil
+}
+
+// createTLSConfig creates a TLS configuration from the PEM certificates in the config
+func createTLSConfig() (*tls.Config, error) {
+	cfg := config.Config()
+
+	cert, err := tls.X509KeyPair(cfg.TLSCertPEM, cfg.TLSKeyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("parsing TLS certificate: %w", err)
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	return tlsConfig, nil
 }
 
 const DefaultConfigFile = "/etc/tansive/tangent.conf"

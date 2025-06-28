@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -85,8 +86,28 @@ func run(ctx context.Context) error {
 
 	// Start the service listening for requests.
 	go func() {
-		log.Info().Str("port", config.Config().ServerPort).Msg("server started")
-		serverErrors <- srv.ListenAndServe()
+		if config.Config().SupportTLS {
+			log.Info().Str("port", config.Config().ServerPort).Msg("server started with TLS")
+
+			// Create TLS config from PEM certificates
+			tlsConfig, err := createTLSConfig()
+			if err != nil {
+				serverErrors <- fmt.Errorf("creating TLS config: %w", err)
+				return
+			}
+
+			// Create listener with TLS
+			listener, err := tls.Listen("tcp", srv.Addr, tlsConfig)
+			if err != nil {
+				serverErrors <- fmt.Errorf("creating TLS listener: %w", err)
+				return
+			}
+
+			serverErrors <- srv.Serve(listener)
+		} else {
+			log.Info().Str("port", config.Config().ServerPort).Msg("server started")
+			serverErrors <- srv.ListenAndServe()
+		}
 	}()
 
 	// Channel to listen for an interrupt or terminate signal from the OS.
@@ -163,6 +184,23 @@ func createDefaultTenantAndProject(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// createTLSConfig creates a TLS configuration from the PEM certificates in the config
+func createTLSConfig() (*tls.Config, error) {
+	cfg := config.Config()
+
+	cert, err := tls.X509KeyPair(cfg.TLSCertPEM, cfg.TLSKeyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("parsing TLS certificate: %w", err)
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	return tlsConfig, nil
 }
 
 const DefaultConfigFile = "/etc/tansive/tansivesrv.conf"
