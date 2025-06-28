@@ -61,15 +61,15 @@ const (
 type SecurityType string
 
 const (
-	// SecurityTypeDevMode provides basic process isolation, not intended for production use.
-	SecurityTypeDevMode SecurityType = "dev-mode"
+	// SecurityTypeDefault provides basic process isolation, not intended for production use.
+	SecurityTypeDefault SecurityType = "default"
 
 	// SecurityTypeSandboxed provides enhanced security constraints.
 	SecurityTypeSandboxed SecurityType = "sandboxed"
 )
 
 // Security defines the security settings for command execution.
-// Type defaults to "dev-mode" if empty.
+// Type defaults to "default" if empty.
 type Security struct {
 	Type SecurityType `json:"type"` // must be one of ValidSecurityTypes
 }
@@ -88,7 +88,7 @@ var ValidRunTimes = map[Runtime]struct{}{
 // ValidSecurityTypes defines the supported security profiles.
 // Only security types in this map are allowed in Config.Security.Type.
 var ValidSecurityTypes = map[SecurityType]struct{}{
-	SecurityTypeDevMode:   {},
+	SecurityTypeDefault:   {},
 	SecurityTypeSandboxed: {},
 }
 
@@ -105,7 +105,7 @@ func (c *Config) Validate() apperrors.Error {
 	}
 
 	if c.Security.Type == "" {
-		c.Security.Type = SecurityTypeDevMode
+		c.Security.Type = SecurityTypeDefault
 	} else if _, ok := ValidSecurityTypes[c.Security.Type]; !ok {
 		return ErrInvalidSecurity
 	}

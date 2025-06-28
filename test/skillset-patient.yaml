@@ -14,7 +14,7 @@ spec:
         runtime: "node"
         script: "resolve-patient-id.js"
         security:
-          type: dev-mode  # could be one of: dev-mode, sandboxed
+          type: default  # could be one of: default, sandboxed
     - name: patient-bloodwork
       runner: "system.stdiorunner"
       config:
@@ -22,7 +22,7 @@ spec:
         runtime: "python"
         script: "patient_bloodwork.py"
         security:
-          type: dev-mode  # could be one of: dev-mode, sandboxed
+          type: default  # could be one of: default, sandboxed
     - name: agent-script
       runner: "system.stdiorunner"
       config:
@@ -30,7 +30,7 @@ spec:
         runtime: "python"
         script: "run-llm.py"
         security:
-          type: dev-mode  # could be one of: dev-mode, sandboxed
+          type: default  # could be one of: default, sandboxed
   context:
     - name: claude
       schema:

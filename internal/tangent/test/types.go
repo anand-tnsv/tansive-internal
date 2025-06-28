@@ -32,7 +32,7 @@ spec:
           TEST_VAR: "test_value"
         script: "test_script.sh"
         security:
-          type: dev-mode  # could be one of: dev-mode, sandboxed
+          type: default  # could be one of: default, sandboxed
     - name: my-tools-script
       runner: "system.stdiorunner"
       config:
@@ -44,7 +44,7 @@ spec:
           TEST_VAR: "test_value"
         script: "tools_script.sh"
         security:
-          type: dev-mode  # could be one of: dev-mode, sandboxed
+          type: default  # could be one of: default, sandboxed
   context:
     - name: kubeconfig
       schema:

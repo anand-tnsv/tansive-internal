@@ -73,15 +73,12 @@ func New(ctx context.Context, sessionID string, configMap map[string]any, writer
 // Run executes the configured command.
 // The context can be used to cancel the execution.
 // Returns an error if execution fails or is cancelled.
-// DevMode security allows execution of scripts from the configured script directory
-// with minimal restrictions, intended for development and testing purposes only.
-// NOT FOR PRODUCTION USE - lacks security measures required for production environments.
 func (r *runner) Run(ctx context.Context, args *api.SkillInputArgs) apperrors.Error {
 	if args == nil {
 		return ErrInvalidArgs.Msg("args is nil")
 	}
 
-	if r.config.Security.Type == SecurityTypeDevMode {
+	if r.config.Security.Type == SecurityTypeDefault {
 		return r.runWithDevModeSecurity(ctx, args)
 	}
 	return ErrInvalidSecurity.Msg("security type not supported: " + string(r.config.Security.Type))

@@ -42,7 +42,7 @@ func TestNew(t *testing.T) {
 				},
 				"script": "test.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			wantErr: false,
@@ -60,7 +60,7 @@ func TestNew(t *testing.T) {
 				},
 				"script": "test.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			wantErr: false,
@@ -79,7 +79,7 @@ func TestNew(t *testing.T) {
 				"env": {},
 				"script": "test.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			wantErr:   true,
@@ -108,7 +108,7 @@ func TestNew(t *testing.T) {
 				"runtimeConfig": {},
 				"env": {},
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			wantErr:   true,
@@ -123,7 +123,7 @@ func TestNew(t *testing.T) {
 				"env": {},
 				"script": "test.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`),
 			wantErr:   true,
@@ -138,7 +138,7 @@ func TestNew(t *testing.T) {
 				"env": {},
 				"script": "test.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`),
 			wantErr:   true,
@@ -202,7 +202,7 @@ func TestRun(t *testing.T) {
 				},
 				"script": "test_script.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			args: json.RawMessage(`{
@@ -224,7 +224,7 @@ func TestRun(t *testing.T) {
 				},
 				"script": "test_script.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			args: json.RawMessage(`{
@@ -251,7 +251,7 @@ func TestRun(t *testing.T) {
 				},
 				"script": "non_existent_script.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			args: json.RawMessage(`{
@@ -272,7 +272,7 @@ func TestRun(t *testing.T) {
 				},
 				"script": "test_script.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			args: json.RawMessage(`{
@@ -356,7 +356,7 @@ func TestDevModeSecurity(t *testing.T) {
 				},
 				"script": "../../../etc/passwd",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			args: json.RawMessage(`{
@@ -377,7 +377,7 @@ func TestDevModeSecurity(t *testing.T) {
 				},
 				"script": "test_script.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			args: json.RawMessage(`{
@@ -403,7 +403,7 @@ func TestDevModeSecurity(t *testing.T) {
 				},
 				"script": "test_script.sh",
 				"security": {
-					"type": "dev-mode"
+					"type": "default"
 				}
 			}`, Version)),
 			args: json.RawMessage(`{
