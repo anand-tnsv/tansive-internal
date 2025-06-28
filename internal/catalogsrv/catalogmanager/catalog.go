@@ -5,9 +5,11 @@ import (
 	"errors"
 	"reflect"
 
+	"encoding/base64"
 	"encoding/json"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/golang/snappy"
 	"github.com/jackc/pgtype"
 	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
@@ -27,6 +29,7 @@ type CatalogManager interface {
 	Description() string
 	Save(context.Context) apperrors.Error
 	ToJson(context.Context) ([]byte, apperrors.Error)
+	GetVariantObjects(context.Context) ([]byte, apperrors.Error)
 }
 
 // catalogSchema represents the structure of a catalog definition
@@ -198,6 +201,60 @@ func DeleteCatalogByName(ctx context.Context, name string) apperrors.Error {
 	return nil
 }
 
+type VariantObject struct {
+	Name      string `json:"name"`
+	SkillSets string `json:"skillsets"`
+	Resources string `json:"resources"`
+}
+
+// GetTree returns tree of objects in the catalog
+func (cm *catalogManager) GetVariantObjects(ctx context.Context) ([]byte, apperrors.Error) {
+	variantObjects := make([]VariantObject, 0)
+	// get all variants
+	variants, err := db.DB(ctx).ListVariantsByCatalog(ctx, cm.catalog.CatalogID)
+	if err != nil {
+		return nil, err
+	}
+	for _, variant := range variants {
+		skillsets, err := db.DB(ctx).ListSkillSets(ctx, variant.SkillsetDirectoryID)
+		if err != nil {
+			return nil, err
+		}
+		resources, err := db.DB(ctx).ListResources(ctx, variant.ResourceDirectoryID)
+		if err != nil {
+			return nil, err
+		}
+		// snappy compress skillsets and resources
+		skillsetsJson, goerr := json.Marshal(skillsets)
+		if goerr != nil {
+			return nil, ErrUnableToLoadObject.Msg(goerr.Error())
+		}
+		resourcesJson, goerr := json.Marshal(resources)
+		if goerr != nil {
+			return nil, ErrUnableToLoadObject.Msg(goerr.Error())
+		}
+
+		// Compress the JSON data with snappy
+		compressedSkillsets := snappy.Encode(nil, skillsetsJson)
+		compressedResources := snappy.Encode(nil, resourcesJson)
+
+		// Base64 encode the compressed data
+		encodedSkillsets := base64.StdEncoding.EncodeToString(compressedSkillsets)
+		encodedResources := base64.StdEncoding.EncodeToString(compressedResources)
+
+		variantObjects = append(variantObjects, VariantObject{
+			Name:      variant.Name,
+			SkillSets: encodedSkillsets,
+			Resources: encodedResources,
+		})
+	}
+	jsonData, goerr := json.Marshal(variantObjects)
+	if goerr != nil {
+		return nil, ErrUnableToLoadObject.Msg(goerr.Error())
+	}
+	return jsonData, nil
+}
+
 // catalogKind implements the ResourceManager interface for catalogs
 type catalogKind struct {
 	req     interfaces.RequestContext
@@ -241,6 +298,9 @@ func (c *catalogKind) Get(ctx context.Context) ([]byte, apperrors.Error) {
 	if err != nil {
 		return nil, err
 	}
+	if c.req.QueryParams.Get("tree") == "true" {
+		return catalog.GetVariantObjects(ctx)
+	}
 	return catalog.ToJson(ctx)
 }
 
@@ -282,7 +342,27 @@ func (c *catalogKind) Update(ctx context.Context, resourceJSON []byte) apperrors
 
 // List returns a list of catalogs
 func (c *catalogKind) List(ctx context.Context) ([]byte, apperrors.Error) {
-	return nil, nil
+	catalogs, err := db.DB(ctx).ListCatalogs(ctx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to list catalogs")
+		return nil, err
+	}
+
+	// Extract just the names from the catalogs
+	var names []string
+	for _, catalog := range catalogs {
+		names = append(names, catalog.Name)
+	}
+
+	jsonData, goerr := json.Marshal(names)
+	if goerr != nil {
+		log.Ctx(ctx).Error().Err(goerr).Msg("failed to marshal catalog names to JSON")
+		return nil, ErrUnableToLoadObject.Msg(goerr.Error())
+	}
+
+	log.Ctx(ctx).Info().Msgf("catalog list: %v", names)
+
+	return jsonData, nil
 }
 
 // NewCatalogKindHandler creates a new catalog resource

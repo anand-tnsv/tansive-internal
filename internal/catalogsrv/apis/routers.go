@@ -23,6 +23,11 @@ var userSessionHandlers = []policy.ResponseHandlerParam{
 		Path:    "/catalogs",
 		Handler: createObject,
 	},
+	{
+		Method:  http.MethodGet,
+		Path:    "/catalogs",
+		Handler: listObjects,
+	},
 }
 
 // resourceObjectHandlers defines the API routes and their authorization requirements.

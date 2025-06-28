@@ -42,6 +42,7 @@ type MetadataManager interface {
 	GetCatalogIDByName(ctx context.Context, catalogName string) (uuid.UUID, apperrors.Error)
 	GetCatalogByID(ctx context.Context, catalogID uuid.UUID) (*models.Catalog, apperrors.Error)
 	GetCatalogByName(ctx context.Context, name string) (*models.Catalog, apperrors.Error)
+	ListCatalogs(ctx context.Context) ([]*models.Catalog, apperrors.Error)
 	UpdateCatalog(ctx context.Context, catalog *models.Catalog) apperrors.Error
 	DeleteCatalog(ctx context.Context, catalogID uuid.UUID, name string) apperrors.Error
 
@@ -50,6 +51,7 @@ type MetadataManager interface {
 	GetVariant(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) (*models.Variant, apperrors.Error)
 	GetVariantByID(ctx context.Context, variantID uuid.UUID) (*models.Variant, apperrors.Error)
 	GetVariantIDFromName(ctx context.Context, catalogID uuid.UUID, name string) (uuid.UUID, apperrors.Error)
+	ListVariantsByCatalog(ctx context.Context, catalogID uuid.UUID) ([]models.VariantSummary, apperrors.Error)
 	UpdateVariant(ctx context.Context, variantID uuid.UUID, name string, updatedVariant *models.Variant) apperrors.Error
 	DeleteVariant(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID, name string) apperrors.Error
 	GetMetadataNames(ctx context.Context, catalogID uuid.UUID, variantID uuid.UUID) (string, string, apperrors.Error)

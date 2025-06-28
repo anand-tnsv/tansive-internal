@@ -312,3 +312,47 @@ func (mm *metadataManager) DeleteCatalog(ctx context.Context, catalogID uuid.UUI
 
 	return nil
 }
+
+// ListCatalogs retrieves all catalogs for the current tenant and project.
+func (mm *metadataManager) ListCatalogs(ctx context.Context) ([]*models.Catalog, apperrors.Error) {
+	tenantID := catcommon.GetTenantID(ctx)
+	if tenantID == "" {
+		return nil, dberror.ErrMissingTenantID
+	}
+
+	projectID := catcommon.GetProjectID(ctx)
+	if projectID == "" {
+		return nil, dberror.ErrInvalidInput.Msg("project ID is required")
+	}
+
+	query := `
+		SELECT catalog_id, name, description, info, project_id
+		FROM catalogs
+		WHERE tenant_id = $1 AND project_id = $2
+		ORDER BY name ASC
+	`
+
+	rows, err := mm.conn().QueryContext(ctx, query, tenantID, projectID)
+	if err != nil {
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+	defer rows.Close()
+
+	var catalogs []*models.Catalog
+
+	for rows.Next() {
+		var catalog models.Catalog
+		err := rows.Scan(&catalog.CatalogID, &catalog.Name, &catalog.Description, &catalog.Info, &catalog.ProjectID)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to scan catalog row")
+			return nil, dberror.ErrDatabase.Err(err)
+		}
+		catalogs = append(catalogs, &catalog)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+
+	return catalogs, nil
+}

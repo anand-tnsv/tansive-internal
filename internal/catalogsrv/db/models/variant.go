@@ -47,3 +47,11 @@ type Variant struct {
 	CreatedAt           time.Time    `db:"created_at"`
 	UpdatedAt           time.Time    `db:"updated_at"`
 }
+
+// VariantSummary represents a simplified variant with just name, ID, and directory IDs
+type VariantSummary struct {
+	VariantID           uuid.UUID `db:"variant_id"`
+	Name                string    `db:"name"`
+	ResourceDirectoryID uuid.UUID `db:"resource_directory"`
+	SkillsetDirectoryID uuid.UUID `db:"skillset_directory"`
+}

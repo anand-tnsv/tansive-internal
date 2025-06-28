@@ -409,3 +409,45 @@ func (mm *metadataManager) GetMetadataNames(ctx context.Context, catalogID uuid.
 
 	return catalogName, variantName, nil
 }
+
+// ListVariantsByCatalog retrieves all variants for a given catalog ID.
+// Returns an array of VariantSummary containing just the variant ID, name, and directory IDs.
+// Returns an error if there is a database error or if the tenant ID is missing.
+func (mm *metadataManager) ListVariantsByCatalog(ctx context.Context, catalogID uuid.UUID) ([]models.VariantSummary, apperrors.Error) {
+	tenantID := catcommon.GetTenantID(ctx)
+	if tenantID == "" {
+		return nil, dberror.ErrMissingTenantID
+	}
+
+	query := `
+		SELECT variant_id, name, resource_directory, skillset_directory
+		FROM variants
+		WHERE tenant_id = $1 AND catalog_id = $2
+		ORDER BY name;
+	`
+
+	rows, err := mm.conn().QueryContext(ctx, query, tenantID, catalogID)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Str("catalog_id", catalogID.String()).Msg("failed to query variants")
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+	defer rows.Close()
+
+	var variants []models.VariantSummary
+	for rows.Next() {
+		var variant models.VariantSummary
+		err := rows.Scan(&variant.VariantID, &variant.Name, &variant.ResourceDirectoryID, &variant.SkillsetDirectoryID)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to scan variant row")
+			return nil, dberror.ErrDatabase.Err(err)
+		}
+		variants = append(variants, variant)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("error iterating over variant rows")
+		return nil, dberror.ErrDatabase.Err(err)
+	}
+
+	return variants, nil
+}

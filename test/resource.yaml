@@ -2,8 +2,7 @@ apiVersion: "0.1.0-alpha.1"
 kind: Resource
 metadata:
   name: example-resource
-  catalog: example-catalog
-  variant: example-variant
+  namespace: my-app-ns
   path: /path/to/resource
   description: "Another example resource for testing purposes"
 spec:

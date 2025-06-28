@@ -94,19 +94,23 @@ func updateResource(cmd *cobra.Command, args []string) error {
 					if !exists {
 						updated = false
 					}
+					name, exists := status["name"]
+					if !exists {
+						name = ""
+					}
 					if created.(bool) {
 						okLabel.Fprintf(os.Stdout, "[OK] ")
 						fmt.Fprintf(os.Stdout, "Created: %s\n", location)
 					} else if updated.(bool) {
 						okLabel.Fprintf(os.Stdout, "[OK] ")
-						fmt.Fprintf(os.Stdout, "Updated: %s: %s\n", status["kind"], status["name"])
+						fmt.Fprintf(os.Stdout, "Updated: %s: %s\n", status["kind"], name)
 					} else {
 						if !ignoreErrors {
 							errorLabel.Fprintf(os.Stderr, "[ERROR] ")
-							fmt.Fprintf(os.Stderr, "%s: %s: %s\n", status["kind"], status["name"], status["error"])
+							fmt.Fprintf(os.Stderr, "%s: %s: %s\n", status["kind"], name, status["error"])
 						} else {
 							errorLabel.Fprintf(os.Stdout, "[ERROR] ")
-							fmt.Fprintf(os.Stdout, "%s: %s: %s\n", status["kind"], status["name"], status["error"])
+							fmt.Fprintf(os.Stdout, "%s: %s: %s\n", status["kind"], name, status["error"])
 						}
 					}
 				}

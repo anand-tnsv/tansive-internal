@@ -1,11 +1,13 @@
 package catalogmanager
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tansive/tansive-internal/internal/catalogsrv/catalogmanager/interfaces"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/db"
 )
@@ -142,4 +144,71 @@ func TestNewCatalogManager(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCatalogKindList(t *testing.T) {
+	// Initialize context with logger and database connection
+	ctx := newDb()
+	defer db.DB(ctx).Close(ctx)
+
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("PDEFGH")
+
+	// Set the tenant ID and project ID in the context
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
+
+	// Create the tenant for testing
+	err := db.DB(ctx).CreateTenant(ctx, tenantID)
+	assert.NoError(t, err)
+	defer db.DB(ctx).DeleteTenant(ctx, tenantID)
+
+	// Create the project for testing
+	err = db.DB(ctx).CreateProject(ctx, projectID)
+	assert.NoError(t, err)
+	defer db.DB(ctx).DeleteProject(ctx, projectID)
+
+	// Create a single catalog for testing using the exact same format as the working test
+	catalogJSON := `{
+    "apiVersion": "0.1.0-alpha.1",
+    "kind": "Catalog",
+    "metadata": {
+        "name": "test-catalog",
+        "description": "Test catalog for listing"
+    }
+}`
+
+	// Create the catalog
+	cm, err := NewCatalogManager(ctx, []byte(catalogJSON), "")
+	if err != nil {
+		t.Logf("NewCatalogManager error: %v", err)
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, cm)
+
+	err = cm.Save(ctx)
+	assert.NoError(t, err)
+	defer DeleteCatalogByName(ctx, cm.Name())
+
+	// Create a catalogKind handler
+	reqContext := interfaces.RequestContext{
+		Catalog: "test-catalog",
+	}
+	catalogKind, err := NewCatalogKindHandler(ctx, reqContext)
+	assert.NoError(t, err)
+	assert.NotNil(t, catalogKind)
+
+	// Test the List method
+	result, err := catalogKind.List(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Parse the JSON result
+	var catalogNames []string
+	err = json.Unmarshal(result, &catalogNames)
+	assert.NoError(t, err)
+
+	// Verify we got the expected catalog name
+	assert.Len(t, catalogNames, 1)
+	assert.Equal(t, "test-catalog", catalogNames[0])
 }

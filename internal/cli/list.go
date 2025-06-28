@@ -50,7 +50,10 @@ Examples:
   tansive list skillsets -c my-catalog -v my-variant
 
   # List resources in JSON format
-  tansive list resources -j`,
+  tansive list resources -j
+
+  # List catalogs in JSON format
+  tansive list catalogs -j`,
 	Args: cobra.ExactArgs(1),
 	RunE: listResources,
 }
@@ -84,11 +87,8 @@ func listResources(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if urlResourceType == "views" {
-		return printViews(response)
-	}
-
-	return nil
+	// Use unified printing function for all resource types
+	return printResourceList(urlResourceType, response)
 }
 
 // init initializes the list command with its flags and adds it to the root command
@@ -101,43 +101,93 @@ func init() {
 	listCmd.Flags().StringVarP(&listNamespace, "namespace", "n", "", "Namespace name")
 }
 
-// printViews formats and prints the views in either JSON or human-readable format
-func printViews(response []byte) error {
+// printResourceList formats and prints resources in either JSON or human-readable format
+// This unified function handles different response formats for various resource types
+func printResourceList(resourceType string, response []byte) error {
 	if jsonOutput {
 		// For JSON output, keep the existing format
-		var responseData map[string]any
-		if err := json.Unmarshal(response, &responseData); err != nil {
-			return fmt.Errorf("failed to parse response")
-		}
+		if resourceType == "catalogs" {
+			// Catalogs are returned as a simple array, so we need to wrap it
+			var catalogNames []string
+			if err := json.Unmarshal(response, &catalogNames); err != nil {
+				return fmt.Errorf("failed to parse catalog names: %v", err)
+			}
 
-		output := map[string]any{
-			"result": 1,
-			"value":  responseData,
-		}
+			output := map[string]any{
+				"result": 1,
+				"value":  catalogNames,
+			}
 
-		jsonBytes, err := json.MarshalIndent(output, "", "    ")
-		if err != nil {
-			return fmt.Errorf("failed to format JSON output: %v", err)
+			jsonBytes, err := json.MarshalIndent(output, "", "    ")
+			if err != nil {
+				return fmt.Errorf("failed to format JSON output: %v", err)
+			}
+			fmt.Println(string(jsonBytes))
+		} else {
+			// For other resource types, keep the existing format
+			var responseData map[string]any
+			if err := json.Unmarshal(response, &responseData); err != nil {
+				return fmt.Errorf("failed to parse response")
+			}
+
+			output := map[string]any{
+				"result": 1,
+				"value":  responseData,
+			}
+
+			jsonBytes, err := json.MarshalIndent(output, "", "    ")
+			if err != nil {
+				return fmt.Errorf("failed to format JSON output: %v", err)
+			}
+			fmt.Println(string(jsonBytes))
 		}
-		fmt.Println(string(jsonBytes))
 	} else {
 		// For non-JSON output, print in a more readable format
-		var responseData map[string]any
-		if err := json.Unmarshal(response, &responseData); err != nil {
-			return fmt.Errorf("failed to parse response: %v", err)
-		}
+		fmt.Printf("%s:\n", cases.Title(language.English).String(resourceType))
 
-		// Print the resource type in plural form
-		fmt.Printf("%s:\n", cases.Title(language.English).String("views"))
-
-		if views, ok := responseData["views"].([]any); ok {
-			// Print each item with proper indentation
-			for _, item := range views {
-				if viewMap, ok := item.(map[string]any); ok {
-					if name, ok := viewMap["name"].(string); ok {
-						fmt.Printf("- %s\n", name)
+		// Handle different response formats based on resource type
+		switch resourceType {
+		case "catalogs":
+			// Catalogs are returned as a simple array of strings
+			var catalogNames []string
+			if err := json.Unmarshal(response, &catalogNames); err != nil {
+				return fmt.Errorf("failed to parse catalog names: %v", err)
+			}
+			for _, name := range catalogNames {
+				fmt.Printf("- %s\n", name)
+			}
+		case "views":
+			// Views are returned as an object with a "views" array
+			var responseData map[string]any
+			if err := json.Unmarshal(response, &responseData); err != nil {
+				return fmt.Errorf("failed to parse response: %v", err)
+			}
+			if views, ok := responseData["views"].([]any); ok {
+				for _, item := range views {
+					if viewMap, ok := item.(map[string]any); ok {
+						if name, ok := viewMap["name"].(string); ok {
+							fmt.Printf("- %s\n", name)
+						}
 					}
 				}
+			}
+		default:
+			// For other resource types, try to extract names from the response
+			var responseData map[string]any
+			if err := json.Unmarshal(response, &responseData); err != nil {
+				return fmt.Errorf("failed to parse response: %v", err)
+			}
+			if items, ok := responseData[resourceType].([]any); ok {
+				for _, item := range items {
+					if itemMap, ok := item.(map[string]any); ok {
+						if name, ok := itemMap["name"].(string); ok {
+							fmt.Printf("- %s\n", name)
+						}
+					}
+				}
+			} else {
+				// If no structured format found, print the raw response
+				fmt.Printf("Raw response: %s\n", string(response))
 			}
 		}
 	}

@@ -429,6 +429,95 @@ func TestDeleteCatalog(t *testing.T) {
 	assert.ErrorIs(t, err, dberror.ErrInvalidInput)
 }
 
+func TestListCatalogs(t *testing.T) {
+	// Initialize context with logger and database connection
+	ctx := log.Logger.WithContext(context.Background())
+	ctx = newDb(ctx)
+	defer DB(ctx).Close(ctx)
+
+	tenantID := catcommon.TenantId("TABCDE")
+	projectID := catcommon.ProjectId("P12345")
+
+	// Set the tenant ID and project ID in the context
+	ctx = catcommon.WithTenantID(ctx, tenantID)
+	ctx = catcommon.WithProjectID(ctx, projectID)
+
+	// Create the tenant and project for testing
+	err := DB(ctx).CreateTenant(ctx, tenantID)
+	assert.NoError(t, err)
+	defer DB(ctx).DeleteTenant(ctx, tenantID)
+
+	err = DB(ctx).CreateProject(ctx, projectID)
+	assert.NoError(t, err)
+	defer DB(ctx).DeleteProject(ctx, projectID)
+
+	// Create multiple catalogs for testing
+	var info pgtype.JSONB
+	err = info.Set(`{"key": "value"}`)
+	assert.NoError(t, err)
+
+	catalogs := []models.Catalog{
+		{
+			Name:        "catalog_a",
+			Description: "First test catalog",
+			Info:        info,
+		},
+		{
+			Name:        "catalog_b",
+			Description: "Second test catalog",
+			Info:        info,
+		},
+		{
+			Name:        "catalog_c",
+			Description: "Third test catalog",
+			Info:        info,
+		},
+	}
+
+	// Create the catalogs
+	for i := range catalogs {
+		err = DB(ctx).CreateCatalog(ctx, &catalogs[i])
+		assert.NoError(t, err)
+		defer DB(ctx).DeleteCatalog(ctx, catalogs[i].CatalogID, "")
+	}
+
+	// List all catalogs
+	retrievedCatalogs, err := DB(ctx).ListCatalogs(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, retrievedCatalogs)
+	assert.Len(t, retrievedCatalogs, 3)
+
+	// Verify the catalogs are returned in alphabetical order by name
+	assert.Equal(t, "catalog_a", retrievedCatalogs[0].Name)
+	assert.Equal(t, "catalog_b", retrievedCatalogs[1].Name)
+	assert.Equal(t, "catalog_c", retrievedCatalogs[2].Name)
+
+	// Verify the descriptions are correct
+	assert.Equal(t, "First test catalog", retrievedCatalogs[0].Description)
+	assert.Equal(t, "Second test catalog", retrievedCatalogs[1].Description)
+	assert.Equal(t, "Third test catalog", retrievedCatalogs[2].Description)
+
+	// Test with missing tenant ID
+	ctxWithoutTenant := log.Logger.WithContext(context.Background())
+	ctxWithoutTenant = newDb(ctxWithoutTenant)
+	defer DB(ctxWithoutTenant).Close(ctxWithoutTenant)
+	ctxWithoutTenant = catcommon.WithProjectID(ctxWithoutTenant, projectID)
+
+	_, err = DB(ctxWithoutTenant).ListCatalogs(ctxWithoutTenant)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, dberror.ErrMissingTenantID)
+
+	// Test with missing project ID
+	ctxWithoutProject := log.Logger.WithContext(context.Background())
+	ctxWithoutProject = newDb(ctxWithoutProject)
+	defer DB(ctxWithoutProject).Close(ctxWithoutProject)
+	ctxWithoutProject = catcommon.WithTenantID(ctxWithoutProject, tenantID)
+
+	_, err = DB(ctxWithoutProject).ListCatalogs(ctxWithoutProject)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, dberror.ErrInvalidInput)
+}
+
 func newDb(c ...context.Context) context.Context {
 	config.TestInit()
 	Init()
