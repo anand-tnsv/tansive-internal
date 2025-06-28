@@ -95,7 +95,7 @@ func preRunHandlePersistents(cmd *cobra.Command, args []string) {
 	isConfig := false
 	c := cmd
 	for c != nil {
-		if c.Name() == "config" {
+		if c.Name() == "config" || c.Name() == "version" {
 			isConfig = true
 			break
 		}
@@ -123,11 +123,11 @@ func newVersionCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			if jsonOutput {
 				kv := map[string]string{
-					"version": "v0.2.0",
+					"version": "v0.1.0-alpha.1",
 				}
 				printJSON(kv)
 			} else {
-				cmd.Println("tansive-cli v0.2.0")
+				cmd.Println("tansive CLI v0.1.0-alpha.1")
 			}
 		},
 	}

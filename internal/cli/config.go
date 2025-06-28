@@ -289,28 +289,8 @@ func setServerConfig(server string) error {
 		}
 	}
 
-	var cfg *Config
-	err := LoadConfig(configPath)
-	if err != nil {
-		var fileNotFound bool
-		unwrapped := err
-		for unwrapped != nil {
-			if os.IsNotExist(unwrapped) {
-				fileNotFound = true
-				break
-			}
-			unwrapped = errors.Unwrap(unwrapped)
-		}
-
-		if fileNotFound {
-			cfg = &Config{
-				Version: "0.1.0",
-			}
-		} else {
-			return fmt.Errorf("failed to load existing config: %w", err)
-		}
-	} else {
-		cfg = GetConfig()
+	cfg := &Config{
+		Version: "0.1.0",
 	}
 
 	if !strings.Contains(server, ":") {

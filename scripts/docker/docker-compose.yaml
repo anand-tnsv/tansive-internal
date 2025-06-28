@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16
@@ -22,7 +20,7 @@ services:
       retries: 5
 
   tansive-server:
-    image: ghcr.io/tansive/tansivesrv:${TAG}
+    image: ghcr.io/tansive/tansive-internal/tansivesrv:${TAG}
     container_name: tansive-server
     depends_on:
       postgres:

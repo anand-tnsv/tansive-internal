@@ -155,8 +155,53 @@ Examples:
 	},
 }
 
+// unsetCatalogCmd represents the unset-catalog command
+var unsetCatalogCmd = &cobra.Command{
+	Use:   "unset-catalog [flags]",
+	Short: "Clear your default catalog selection",
+	Long: `Clear your default catalog view. This will remove the current catalog, token, and token expiry from your configuration.
+The command will:
+1. Clear the current catalog name
+2. Clear the authentication token
+3. Clear the token expiry
+4. Save the updated configuration
+
+Examples:
+  # Clear the current catalog configuration
+  tansive unset-catalog
+
+  # Clear the current catalog configuration and output in JSON format
+  tansive unset-catalog -j`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Update the config by clearing the catalog-related fields
+		cfg := GetConfig()
+		cfg.CurrentToken = ""
+		cfg.TokenExpiry = ""
+		cfg.CurrentCatalog = ""
+
+		// Save the config
+		configFile, err := GetDefaultConfigPath()
+		if err != nil {
+			return fmt.Errorf("failed to get config path: %v", err)
+		}
+		if err := cfg.WriteConfig(configFile); err != nil {
+			return fmt.Errorf("failed to save config: %v", err)
+		}
+
+		if jsonOutput {
+			printJSON(map[string]int{"result": 1})
+		} else {
+			fmt.Println("Catalog configuration cleared")
+		}
+
+		return nil
+	},
+}
+
 // init initializes the select-catalog and adopt-view commands and adds them to the root command
 func init() {
 	rootCmd.AddCommand(setCatalogCmd)
 	rootCmd.AddCommand(adoptViewCmd)
+	rootCmd.AddCommand(unsetCatalogCmd)
 }
