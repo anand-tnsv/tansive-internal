@@ -1,3 +1,6 @@
+// Package session provides session management for interactive skill execution in the Tangent runtime.
+// It handles session lifecycle, skill invocation, policy enforcement, audit logging, and event management.
+// The package requires valid HTTP clients, catalog managers, and policy evaluators for full functionality.
 package session
 
 import (
@@ -27,6 +30,8 @@ import (
 	"github.com/tansive/tansive-internal/pkg/types"
 )
 
+// session represents an active execution session for skill invocation.
+// It manages the session state, skill execution, policy validation, and audit logging.
 type session struct {
 	id            uuid.UUID
 	context       *ServerContext
@@ -39,10 +44,14 @@ type session struct {
 	auditLogInfo  auditLogInfo
 }
 
+// GetSessionID returns the unique identifier for this session.
 func (s *session) GetSessionID() string {
 	return s.id.String()
 }
 
+// Run executes a skill with the given parameters and input arguments.
+// The invokerID must be valid if provided, and the skill must be authorized by policy.
+// Returns an error if execution fails or policy validation fails.
 func (s *session) Run(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
 	log.Ctx(ctx).Info().Msgf("requested skill: %s", skillName)
 	invocationID := uuid.New().String()
@@ -138,6 +147,8 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 	return err
 }
 
+// ValidateRunPolicy checks if the current session is authorized to run the specified skill.
+// Returns whether the action is allowed, the policy basis, required actions, and any error.
 func (s *session) ValidateRunPolicy(ctx context.Context, invokerID string, skillName string) (bool, map[policy.Intent][]policy.Rule, []string, apperrors.Error) {
 	if s.skillSet == nil {
 		log.Ctx(ctx).Error().Msg("skillSet not found")
@@ -161,6 +172,8 @@ func (s *session) ValidateRunPolicy(ctx context.Context, invokerID string, skill
 	return allowed, basis, actions, nil
 }
 
+// TransformInputForSkill applies JavaScript transformations to input arguments if defined.
+// Returns whether transformation was applied, the transformed arguments, and any error.
 func (s *session) TransformInputForSkill(ctx context.Context, skillName string, inputArgs map[string]any) (transformApplied bool, retArgs map[string]any, retErr apperrors.Error) {
 	skill, err := s.resolveSkill(skillName)
 	if err != nil {
@@ -187,6 +200,8 @@ func (s *session) TransformInputForSkill(ctx context.Context, skillName string, 
 	return false, inputArgs, nil
 }
 
+// ValidateInputForSkill validates input arguments against the skill's schema.
+// Returns an error if validation fails.
 func (s *session) ValidateInputForSkill(ctx context.Context, skillName string, inputArgs map[string]any) apperrors.Error {
 	skill, err := s.resolveSkill(skillName)
 	if err != nil {
@@ -195,6 +210,8 @@ func (s *session) ValidateInputForSkill(ctx context.Context, skillName string, i
 	return skill.ValidateInput(inputArgs)
 }
 
+// runInteractiveSkill executes an interactive skill with the given parameters.
+// Currently only interactive skills are supported.
 func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocationID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
 	if s.skillSet == nil {
 		return ErrUnableToGetSkillset.Msg("skillset not found")
@@ -313,6 +330,8 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 	return <-resultChan
 }
 
+// getRunner creates a runner instance for the specified skill.
+// Returns the runner and any error encountered during creation.
 func (s *session) getRunner(ctx context.Context, skillName string, ioWriters ...*tangentcommon.IOWriters) (runners.Runner, apperrors.Error) {
 	if s.skillSet == nil {
 		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
@@ -330,6 +349,8 @@ func (s *session) getRunner(ctx context.Context, skillName string, ioWriters ...
 	return runner, nil
 }
 
+// fetchObjects retrieves the skillset and view definition from the catalog server.
+// Must be called before skill execution to ensure proper authorization.
 func (s *session) fetchObjects(ctx context.Context) apperrors.Error {
 	client := getHTTPClient(&clientConfig{
 		token:       s.token,
@@ -352,6 +373,8 @@ func (s *session) fetchObjects(ctx context.Context) apperrors.Error {
 	return nil
 }
 
+// resolveSkill finds and returns a skill by name from the current skillset.
+// Returns an error if the skill is not found or skillset is unavailable.
 func (s *session) resolveSkill(skillName string) (*catalogmanager.Skill, apperrors.Error) {
 	if s.skillSet == nil {
 		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
@@ -364,6 +387,8 @@ func (s *session) resolveSkill(skillName string) (*catalogmanager.Skill, apperro
 	return &skill, nil
 }
 
+// getSkillset retrieves a skillset manager from the catalog server.
+// Returns the skillset manager and any error encountered during retrieval.
 func getSkillset(ctx context.Context, client httpclient.HTTPClientInterface, skillset string) (catalogmanager.SkillSetManager, apperrors.Error) {
 	response, err := client.GetResource(catcommon.KindNameSkillsets, skillset, nil, "")
 	if err != nil {
@@ -383,14 +408,18 @@ func getSkillset(ctx context.Context, client httpclient.HTTPClientInterface, ski
 	return sm, nil
 }
 
+// getLogger creates a logger instance for the specified event type.
 func (s *session) getLogger(eventType string) zerolog.Logger {
 	return eventlogger.NewLogger(GetEventBus(), s.getTopic(eventType)).With().Str("session_id", s.id.String()).Logger()
 }
 
+// getTopic generates a topic name for the specified event type.
 func (s *session) getTopic(eventType string) string {
 	return GetSessionTopic(s.id.String(), eventType)
 }
 
+// getSkillsAsLLMTools converts available skills to LLM tool format.
+// Returns the tools array and any error encountered during conversion.
 func (s *session) getSkillsAsLLMTools() ([]api.LLMTool, apperrors.Error) {
 	if s.skillSet == nil {
 		return nil, ErrUnableToGetSkillset.Msg("skillset not found")
@@ -400,6 +429,8 @@ func (s *session) getSkillsAsLLMTools() ([]api.LLMTool, apperrors.Error) {
 	return s.skillSet.GetAllSkillsAsLLMTools(nil), nil
 }
 
+// getContext retrieves a context value for the specified invocation and name.
+// Returns the context value and any error encountered during retrieval.
 func (s *session) getContext(invocationID string, name string) (any, apperrors.Error) {
 	skillName := s.callGraph.GetToolName(toolgraph.CallID(invocationID))
 	if skillName == "" {
@@ -432,6 +463,8 @@ func (s *session) getContext(invocationID string, name string) (any, apperrors.E
 
 var _ = (&session{}).setContext
 
+// setContext stores a context value for the specified invocation and name.
+// Returns any error encountered during storage.
 func (s *session) setContext(invocationID string, name string, value any) (ret apperrors.Error) {
 	skillName := s.callGraph.GetToolName(toolgraph.CallID(invocationID))
 	if skillName == "" {
@@ -468,6 +501,8 @@ func (s *session) setContext(invocationID string, name string, value any) (ret a
 	return s.skillSet.SetContextValue(name, nullableAny)
 }
 
+// Finalize cleans up session resources and logs finalization events.
+// Should be called when the session is complete.
 func (s *session) Finalize(ctx context.Context, apperr apperrors.Error) apperrors.Error {
 	auditLogPath := ""
 	auditLog := ""

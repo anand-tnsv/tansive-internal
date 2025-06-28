@@ -9,9 +9,14 @@ import (
 	"sync"
 )
 
+// CallID represents a unique identifier for a tool invocation.
 type CallID string
+
+// ToolName represents the name of a tool being invoked.
 type ToolName string
 
+// CallGraph provides functionality to track tool invocation relationships.
+// Prevents infinite loops and enforces depth limits for tool call chains.
 type CallGraph struct {
 	mu        sync.RWMutex
 	parents   map[CallID]CallID   // childID → parentID
@@ -19,6 +24,8 @@ type CallGraph struct {
 	maxDepth  int
 }
 
+// NewCallGraph creates a new call graph with the specified maximum depth.
+// Returns a call graph instance configured to prevent loops and enforce depth limits.
 func NewCallGraph(maxDepth int) *CallGraph {
 	return &CallGraph{
 		parents:   make(map[CallID]CallID),
@@ -58,6 +65,7 @@ func (g *CallGraph) GetToolName(callID CallID) ToolName {
 }
 
 // DebugGraph returns ancestry for a given callID.
+// Returns a slice of strings representing the call chain from root to the specified call.
 func (g *CallGraph) DebugGraph(callID CallID) []string {
 	g.mu.RLock()
 	defer g.mu.RUnlock()

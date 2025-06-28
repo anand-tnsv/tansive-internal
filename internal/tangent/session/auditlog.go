@@ -12,12 +12,16 @@ import (
 	"github.com/tansive/tansive-internal/internal/tangent/session/hashlog"
 )
 
+// auditLogInfo contains audit logging configuration and state.
+// Manages audit logger instances, completion channels, and signing keys.
 type auditLogInfo struct {
 	auditLogger      zerolog.Logger
 	auditLogComplete chan string
 	auditLogPubKey   []byte
 }
 
+// GetAuditLogPath generates the file path for a session's audit log.
+// Returns the full path to the audit log file in the configured audit log directory.
 func GetAuditLogPath(sessionID string) string {
 	// get os application data directory
 	auditLogDir := config.GetAuditLogDir()
@@ -25,6 +29,9 @@ func GetAuditLogPath(sessionID string) string {
 	return auditLogPath
 }
 
+// InitAuditLog initializes audit logging for a session.
+// Creates a signed hash log writer and starts background processing of audit events.
+// Returns an error if initialization fails.
 func InitAuditLog(ctx context.Context, session *session) apperrors.Error {
 	auditLogPath := GetAuditLogPath(session.id.String())
 	log.Ctx(ctx).Info().Str("audit_log_path", auditLogPath).Msg("initializing audit log")

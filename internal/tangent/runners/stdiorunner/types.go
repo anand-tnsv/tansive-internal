@@ -37,12 +37,23 @@ type Config struct {
 type Runtime string
 
 const (
-	RuntimeBash   Runtime = "bash"   // uses /bin/bash
-	RuntimePython Runtime = "python" // uses python interpreter
-	RuntimeNode   Runtime = "node"   // uses node.js
-	RuntimeNPX    Runtime = "npx"    // uses npx
-	RuntimeNPM    Runtime = "npm"    // uses npm
-	RuntimeBinary Runtime = "binary" // uses binary
+	// RuntimeBash uses /bin/bash for shell script execution.
+	RuntimeBash Runtime = "bash"
+
+	// RuntimePython uses python interpreter for Python script execution.
+	RuntimePython Runtime = "python"
+
+	// RuntimeNode uses node.js for JavaScript execution.
+	RuntimeNode Runtime = "node"
+
+	// RuntimeNPX uses npx for Node.js package execution.
+	RuntimeNPX Runtime = "npx"
+
+	// RuntimeNPM uses npm for Node.js package management.
+	RuntimeNPM Runtime = "npm"
+
+	// RuntimeBinary uses binary for direct executable execution.
+	RuntimeBinary Runtime = "binary"
 )
 
 // SecurityType specifies the security profile for command execution.
@@ -50,8 +61,11 @@ const (
 type SecurityType string
 
 const (
-	SecurityTypeDevMode   SecurityType = "dev-mode"  // provides basic process isolation, not intended for production use
-	SecurityTypeSandboxed SecurityType = "sandboxed" // provides enhanced security constraints
+	// SecurityTypeDevMode provides basic process isolation, not intended for production use.
+	SecurityTypeDevMode SecurityType = "dev-mode"
+
+	// SecurityTypeSandboxed provides enhanced security constraints.
+	SecurityTypeSandboxed SecurityType = "sandboxed"
 )
 
 // Security defines the security settings for command execution.

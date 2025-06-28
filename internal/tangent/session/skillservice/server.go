@@ -1,3 +1,6 @@
+// Package skillservice provides a local HTTP service for skill execution.
+// It runs on Unix domain sockets and provides endpoints for skill invocation, skill listing, and context management.
+// The package requires a valid skill manager and supports graceful shutdown with signal handling.
 package skillservice
 
 import (
@@ -21,6 +24,8 @@ import (
 	"github.com/tansive/tansive-internal/pkg/api"
 )
 
+// SkillService provides a local HTTP server for skill execution.
+// Manages skill invocation, skill listing, and context operations via Unix domain socket.
 type SkillService struct {
 	skillManager tangentcommon.SkillManager
 	Router       *chi.Mux
@@ -29,6 +34,9 @@ type SkillService struct {
 	mu           sync.Mutex
 }
 
+// NewSkillService creates a new skill service with the given skill manager.
+// Returns the service instance and any error encountered during creation.
+// SkillManager must not be nil for proper operation.
 func NewSkillService(skillManager tangentcommon.SkillManager) *SkillService {
 	if skillManager == nil {
 		log.Error().Msg("SkillManager is nil")
@@ -40,18 +48,8 @@ func NewSkillService(skillManager tangentcommon.SkillManager) *SkillService {
 	}
 }
 
-// type skillInvocation struct {
-// 	SessionID    string         `json:"session_id"`
-// 	InvocationID string         `json:"invocation_id"`
-// 	SkillName    string         `json:"skill_name"`
-// 	Args         map[string]any `json:"args"`
-// }
-
-// type skillResult struct {
-// 	InvocationID string         `json:"invocation_id"`
-// 	Output       map[string]any `json:"output"`
-// }
-
+// handleInvokeSkill processes skill invocation requests.
+// Returns the skill execution result and any error encountered during processing.
 func (s *SkillService) handleInvokeSkill(r *http.Request) (*httpx.Response, error) {
 	var req api.SkillInvocation
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -80,6 +78,8 @@ func (s *SkillService) handleInvokeSkill(r *http.Request) (*httpx.Response, erro
 	}, nil
 }
 
+// handleGetSkills retrieves available skills for a session.
+// Returns the list of skills as LLM tools and any error encountered during retrieval.
 func (s *SkillService) handleGetSkills(r *http.Request) (*httpx.Response, error) {
 	tools, err := s.skillManager.GetSkills(r.Context(), r.URL.Query().Get("session_id"))
 	if err != nil {
@@ -91,6 +91,8 @@ func (s *SkillService) handleGetSkills(r *http.Request) (*httpx.Response, error)
 	}, nil
 }
 
+// handleGetContext retrieves context values for a session and invocation.
+// Returns the context value and any error encountered during retrieval.
 func (s *SkillService) handleGetContext(r *http.Request) (*httpx.Response, error) {
 	sessionID := r.URL.Query().Get("session_id")
 	invocationID := r.URL.Query().Get("invocation_id")
@@ -105,12 +107,16 @@ func (s *SkillService) handleGetContext(r *http.Request) (*httpx.Response, error
 	}, nil
 }
 
+// MountHandlers registers HTTP handlers for skill service endpoints.
+// Sets up routes for skill invocation, skill listing, and context operations.
 func (s *SkillService) MountHandlers() {
 	s.Router.Post("/skill-invocations", httpx.WrapHttpRsp(s.handleInvokeSkill))
 	s.Router.Get("/skills", httpx.WrapHttpRsp(s.handleGetSkills))
 	s.Router.Get("/context", httpx.WrapHttpRsp(s.handleGetContext))
 }
 
+// StartServer starts the skill service on a Unix domain socket.
+// Handles graceful shutdown with signal handling and returns any error encountered during startup.
 func (s *SkillService) StartServer() error {
 	socketPath, err := config.GetSocketPath()
 	if err != nil {
@@ -168,6 +174,8 @@ func (s *SkillService) StartServer() error {
 	return nil
 }
 
+// StopServer gracefully shuts down the skill service.
+// Closes the HTTP server and removes the Unix domain socket file.
 func (s *SkillService) StopServer() {
 	s.mu.Lock()
 	defer s.mu.Unlock()

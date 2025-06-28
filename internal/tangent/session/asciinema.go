@@ -8,12 +8,16 @@ import (
 	"time"
 )
 
+// AsciinemaEvent represents a single event in an asciinema recording.
+// Contains timing information, stream type, and event data.
 type AsciinemaEvent struct {
-	Time   float64 `json:"time"`
-	Stream string  `json:"stream"` // "o" or "i"
-	Data   string  `json:"data"`
+	Time   float64 `json:"time"`   // elapsed time in seconds since recording start
+	Stream string  `json:"stream"` // stream type: "o" for output, "i" for input
+	Data   string  `json:"data"`   // event data content
 }
 
+// AsciinemaWriter provides functionality to create and write asciinema recordings.
+// Supports writing events with timestamps and proper asciinema v2 format.
 type AsciinemaWriter struct {
 	file   *os.File
 	writer *bufio.Writer
@@ -21,7 +25,8 @@ type AsciinemaWriter struct {
 	closed bool
 }
 
-// Open creates a new asciinema file and writes the header
+// NewAsciinemaWriter creates a new asciinema file and writes the header.
+// Returns the writer instance and any error encountered during creation.
 func NewAsciinemaWriter(filename string) (*AsciinemaWriter, error) {
 	f, err := os.Create(filename)
 	if err != nil {
@@ -51,7 +56,8 @@ func NewAsciinemaWriter(filename string) (*AsciinemaWriter, error) {
 	}, nil
 }
 
-// Write appends a new event (either input or output) with a timestamp
+// Write appends a new event (either input or output) with a timestamp.
+// Returns an error if the writer is closed or write operation fails.
 func (a *AsciinemaWriter) Write(stream string, data string) error {
 	if a.closed {
 		return fmt.Errorf("asciinema writer already closed")
@@ -66,7 +72,8 @@ func (a *AsciinemaWriter) Write(stream string, data string) error {
 	return err
 }
 
-// Close flushes and closes the underlying file
+// Close flushes and closes the underlying file.
+// Ensures all buffered data is written before closing.
 func (a *AsciinemaWriter) Close() error {
 	if a.closed {
 		return nil

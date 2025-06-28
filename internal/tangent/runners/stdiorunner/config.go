@@ -1,3 +1,7 @@
+// Package stdiorunner provides stdio-based command execution for skill running.
+// It implements secure script execution with configurable runtimes, security profiles,
+// and I/O handling. The package supports multiple runtime environments including bash,
+// Python, Node.js, and binary execution with process isolation and security constraints.
 package stdiorunner
 
 import (
@@ -7,18 +11,24 @@ import (
 	"github.com/tansive/tansive-internal/internal/tangent/config"
 )
 
+// RunnerConfig holds configuration for the stdio runner.
+// Contains script directory and runtime settings for command execution.
 type RunnerConfig struct {
-	ScriptDir string `json:"scriptDir"`
+	ScriptDir string `json:"scriptDir"` // directory containing executable scripts
 }
 
 var runnerConfig *RunnerConfig
 
+// Init initializes the stdio runner with configuration from the main config.
+// Sets up the script directory and runtime environment for command execution.
 func Init() {
 	runnerConfig = &RunnerConfig{
 		ScriptDir: config.Config().StdioRunner.ScriptDir,
 	}
 }
 
+// TestInit initializes the stdio runner for testing purposes.
+// Overrides the script directory with the project's test_scripts directory.
 func TestInit() {
 	// Override the default script directory with project root path
 	wd, err := os.Getwd()

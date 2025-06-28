@@ -7,10 +7,12 @@ import (
 	"github.com/tansive/tansive-internal/internal/common/httpx"
 )
 
+// ResponseHandlerParam defines the configuration for HTTP route handlers.
+// Contains HTTP method, path, and handler function for route registration.
 type ResponseHandlerParam struct {
-	Method  string
-	Path    string
-	Handler httpx.RequestHandler
+	Method  string               // HTTP method (GET, POST, etc.)
+	Path    string               // URL path pattern
+	Handler httpx.RequestHandler // handler function for the route
 }
 
 var resourceObjectHandlers = []ResponseHandlerParam{
@@ -21,6 +23,8 @@ var resourceObjectHandlers = []ResponseHandlerParam{
 	},
 }
 
+// Router sets up HTTP routes for session management.
+// Registers session creation endpoint and applies authentication middleware.
 func Router(r chi.Router) {
 	r.Use(SessionAuthenticator)
 	for _, handler := range resourceObjectHandlers {
@@ -30,6 +34,8 @@ func Router(r chi.Router) {
 	//	r.Method(http.MethodGet, "/{id}/channel", http.HandlerFunc(getSessionChannel))
 }
 
+// SessionAuthenticator provides authentication middleware for session endpoints.
+// Currently a placeholder for future authentication implementation.
 func SessionAuthenticator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

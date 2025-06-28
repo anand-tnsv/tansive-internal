@@ -1,3 +1,6 @@
+// Package eventbus provides an in-memory publish/subscribe event bus for inter-goroutine communication.
+// It implements a thread-safe event system with topic-based routing and pattern matching capabilities.
+// The package supports buffered channels, timeout-based publishing, and graceful shutdown for concurrent applications.
 package eventbus
 
 // Implements a trivial in-memory pub/sub event bus. Used for communication between the different goroutines.  There are opportunities for
@@ -12,23 +15,29 @@ import (
 	"time"
 )
 
+// Event represents a single event in the event bus.
+// Contains the topic and associated data for event routing and processing.
 type Event struct {
-	Topic string
-	Data  any
+	Topic string // event topic for routing
+	Data  any    // event data payload
 }
 
+// Subscriber represents an event subscription with buffered channel and lifecycle management.
+// Provides thread-safe event delivery with timeout and cancellation support.
 type Subscriber struct {
-	ID         string
-	Topic      string
-	BufferSize int
-	Channel    chan Event
-	Context    context.Context
-	Cancel     context.CancelFunc
+	ID         string             // unique subscriber identifier
+	Topic      string             // subscribed topic pattern
+	BufferSize int                // channel buffer size
+	Channel    chan Event         // event delivery channel
+	Context    context.Context    // cancellation context
+	Cancel     context.CancelFunc // context cancellation function
 
-	mu     sync.Mutex
-	closed bool
+	mu     sync.Mutex // protects closed flag
+	closed bool       // indicates if subscriber is closed
 }
 
+// SafeSend attempts to send an event to the subscriber's channel.
+// Returns true if the event was sent successfully, false if subscriber is closed or channel is full.
 func (s *Subscriber) SafeSend(event Event) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -45,6 +54,8 @@ func (s *Subscriber) SafeSend(event Event) bool {
 	}
 }
 
+// TimedSend attempts to send an event with a specified timeout.
+// Returns true if the event was sent successfully within the timeout period.
 func (s *Subscriber) TimedSend(event Event, timeout time.Duration) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -61,6 +72,8 @@ func (s *Subscriber) TimedSend(event Event, timeout time.Duration) bool {
 	}
 }
 
+// Close gracefully shuts down the subscriber.
+// Cancels the context and closes the event channel.
 func (s *Subscriber) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -72,12 +85,16 @@ func (s *Subscriber) Close() {
 	}
 }
 
+// EventBus provides the main event bus implementation with topic-based routing.
+// Manages subscribers, handles event publishing, and supports pattern matching for topic routing.
 type EventBus struct {
 	sync.RWMutex
 	subscribers map[string]map[string]*Subscriber // topic -> subscriberID -> Subscriber
-	counter     uint64
+	counter     uint64                            // atomic counter for subscriber ID generation
 }
 
+// New creates a new EventBus instance.
+// Returns an initialized event bus ready for subscription and publishing.
 func New() *EventBus {
 	return &EventBus{
 		subscribers: make(map[string]map[string]*Subscriber),
@@ -85,6 +102,8 @@ func New() *EventBus {
 }
 
 // Subscribe creates a new subscriber for the given topic and returns the event channel and unsubscribe function.
+// The bufferSize parameter controls the channel buffer capacity for event delivery.
+// Returns a receive-only channel for events and a function to unsubscribe.
 func (bus *EventBus) Subscribe(topic string, bufferSize int) (<-chan Event, func()) {
 	id := fmt.Sprintf("sub-%d", atomic.AddUint64(&bus.counter, 1))
 
@@ -127,6 +146,7 @@ func (bus *EventBus) Subscribe(topic string, bufferSize int) (<-chan Event, func
 }
 
 // CloseTopic removes all subscribers for a given topic.
+// Gracefully closes all subscribers and removes the topic from the bus.
 func (bus *EventBus) CloseTopic(topic string) {
 	bus.Lock()
 	defer bus.Unlock()
@@ -139,6 +159,8 @@ func (bus *EventBus) CloseTopic(topic string) {
 	}
 }
 
+// CloseAllForPattern removes all subscribers matching the given pattern.
+// Uses pattern matching to identify and close subscribers for multiple topics.
 func (bus *EventBus) CloseAllForPattern(pattern string) {
 	bus.Lock()
 	defer bus.Unlock()
@@ -153,7 +175,8 @@ func (bus *EventBus) CloseAllForPattern(pattern string) {
 }
 
 // Publish sends an event to all subscribers of a topic.
-// Non-blocking; will drop events for slow subscribers.
+// Non-blocking; will drop events for slow subscribers based on timeout.
+// Uses pattern matching to route events to appropriate subscribers.
 func (bus *EventBus) Publish(topic string, data any, timeout time.Duration) {
 	event := Event{Topic: topic, Data: data}
 
@@ -175,6 +198,7 @@ func (bus *EventBus) Publish(topic string, data any, timeout time.Duration) {
 }
 
 // Shutdown gracefully closes all subscribers and clears the bus.
+// Ensures all resources are properly cleaned up and channels are closed.
 func (bus *EventBus) Shutdown() {
 	bus.Lock()
 	defer bus.Unlock()
@@ -187,6 +211,9 @@ func (bus *EventBus) Shutdown() {
 	bus.subscribers = make(map[string]map[string]*Subscriber)
 }
 
+// matchTopic determines if a topic matches a pattern.
+// Supports exact matches and wildcard patterns with dot-separated components.
+// Returns true if the topic matches the pattern, false otherwise.
 func matchTopic(pattern, topic string) bool {
 	if pattern == "" || topic == "" {
 		return false

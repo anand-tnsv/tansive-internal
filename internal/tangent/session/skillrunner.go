@@ -15,6 +15,9 @@ import (
 	"github.com/tansive/tansive-internal/pkg/api"
 )
 
+// CreateSkillService creates and starts a skill service for local skill execution.
+// Returns the skill service instance and any error encountered during creation.
+// The service runs on a Unix domain socket for local communication.
 func CreateSkillService() (*skillservice.SkillService, apperrors.Error) {
 	// Create and register the skill service
 	skillService := skillservice.NewSkillService(&skillRunner{})
@@ -29,8 +32,12 @@ func CreateSkillService() (*skillservice.SkillService, apperrors.Error) {
 	return skillService, nil
 }
 
+// skillRunner implements the SkillManager interface for session-based skill execution.
+// Provides skill listing, context management, and skill execution capabilities.
 type skillRunner struct{}
 
+// GetSkills retrieves available skills for a session as LLM tools.
+// Returns the skills list and any error encountered during retrieval.
 func (s *skillRunner) GetSkills(ctx context.Context, sessionID string) ([]api.LLMTool, apperrors.Error) {
 	sessionUUID, err := uuid.Parse(sessionID)
 	if err != nil {
@@ -43,6 +50,8 @@ func (s *skillRunner) GetSkills(ctx context.Context, sessionID string) ([]api.LL
 	return session.getSkillsAsLLMTools()
 }
 
+// GetContext retrieves a context value for a session and invocation.
+// Returns the context value and any error encountered during retrieval.
 func (s *skillRunner) GetContext(ctx context.Context, sessionID, invocationID, name string) (any, apperrors.Error) {
 	sessionUUID, err := uuid.Parse(sessionID)
 	if err != nil {
@@ -55,6 +64,9 @@ func (s *skillRunner) GetContext(ctx context.Context, sessionID, invocationID, n
 	return session.getContext(invocationID, name)
 }
 
+// Run executes a skill with the given parameters.
+// Validates parameters, retrieves the session, and executes the skill.
+// Returns the skill output and any error encountered during execution.
 func (s *skillRunner) Run(ctx context.Context, params *tangentcommon.RunParams) (map[string]any, apperrors.Error) {
 	if params == nil {
 		return nil, ErrSessionError.Msg("params is nil")
@@ -97,6 +109,9 @@ func (s *skillRunner) Run(ctx context.Context, params *tangentcommon.RunParams) 
 	return processOutput(outWriter, errWriter, apperr)
 }
 
+// processOutput processes the output from skill execution.
+// Formats output based on content type and error conditions.
+// Returns the processed response and any error encountered during processing.
 func processOutput(outWriter *tangentcommon.BufferedWriter, errWriter *tangentcommon.BufferedWriter, err apperrors.Error) (map[string]any, apperrors.Error) {
 	response := make(map[string]any)
 
@@ -137,6 +152,8 @@ func processOutput(outWriter *tangentcommon.BufferedWriter, errWriter *tangentco
 	return response, nil
 }
 
+// detectJSONType determines the JSON type of a parsed value.
+// Returns a string representation of the JSON type for content type detection.
 func detectJSONType(v any) string {
 	switch v := v.(type) {
 	case string:

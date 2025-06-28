@@ -12,26 +12,33 @@ import (
 	"github.com/tansive/tansive-internal/internal/tangent/session/toolgraph"
 )
 
+// activeSessions manages the collection of active sessions.
+// Provides thread-safe access to session storage and lifecycle management.
 type activeSessions struct {
 	sessions map[uuid.UUID]*session
 }
 
+// ServerContext defines the execution context for a session.
+// Contains all necessary information for skill execution and policy evaluation.
 type ServerContext struct {
-	SessionID        uuid.UUID              `json:"session_id"`
-	SkillSet         string                 `json:"skillset"`
-	Skill            string                 `json:"skill"`
-	View             string                 `json:"view"`
-	ViewDefinition   *policy.ViewDefinition `json:"view_definition"`
-	SessionVariables map[string]any         `json:"session_variables"`
-	InputArgs        map[string]any         `json:"input_args"`
-	Catalog          string                 `json:"catalog"`
-	Variant          string                 `json:"variant"`
-	Namespace        string                 `json:"namespace"`
-	TenantID         catcommon.TenantId     `json:"tenant_id"`
+	SessionID        uuid.UUID              `json:"session_id"`        // unique session identifier
+	SkillSet         string                 `json:"skillset"`          // skillset name for this session
+	Skill            string                 `json:"skill"`             // skill name to execute
+	View             string                 `json:"view"`              // view name for policy evaluation
+	ViewDefinition   *policy.ViewDefinition `json:"view_definition"`   // policy view definition
+	SessionVariables map[string]any         `json:"session_variables"` // session-scoped variables
+	InputArgs        map[string]any         `json:"input_args"`        // input arguments for skill execution
+	Catalog          string                 `json:"catalog"`           // catalog name
+	Variant          string                 `json:"variant"`           // variant name
+	Namespace        string                 `json:"namespace"`         // namespace for resource isolation
+	TenantID         catcommon.TenantId     `json:"tenant_id"`         // tenant identifier
 }
 
 var sessionManager *activeSessions
 
+// CreateSession creates a new session with the given context and authentication token.
+// Returns the created session and any error encountered during creation.
+// SessionID must be valid and unique within the session manager.
 func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, token string, tokenExpiry time.Time) (*session, apperrors.Error) {
 	if c.SessionID == uuid.Nil {
 		return nil, ErrInvalidSession
@@ -56,6 +63,8 @@ func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, t
 	return session, nil
 }
 
+// GetSession retrieves a session by its unique identifier.
+// Returns the session and any error encountered during retrieval.
 func (as *activeSessions) GetSession(id uuid.UUID) (*session, apperrors.Error) {
 	if session, exists := as.sessions[id]; exists {
 		return session, nil
@@ -63,6 +72,8 @@ func (as *activeSessions) GetSession(id uuid.UUID) (*session, apperrors.Error) {
 	return nil, ErrInvalidSession
 }
 
+// ListSessions returns all active sessions in the session manager.
+// Returns the session list and any error encountered during listing.
 func (as *activeSessions) ListSessions() ([]*session, apperrors.Error) {
 	var sessionList []*session
 	for _, session := range as.sessions {
@@ -71,6 +82,8 @@ func (as *activeSessions) ListSessions() ([]*session, apperrors.Error) {
 	return sessionList, nil
 }
 
+// DeleteSession removes a session from the session manager.
+// Cleans up associated event bus subscriptions and resources.
 func (as *activeSessions) DeleteSession(id uuid.UUID) apperrors.Error {
 	if _, exists := as.sessions[id]; !exists {
 		return ErrInvalidSession
@@ -86,6 +99,8 @@ func init() {
 	}
 }
 
+// ActiveSessionManager returns the global session manager instance.
+// Provides access to session lifecycle management functions.
 func ActiveSessionManager() SessionManager {
 	return sessionManager
 }

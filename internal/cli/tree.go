@@ -58,6 +58,10 @@ func getTreeResource(cmd *cobra.Command, args []string) error {
 		catalogName = GetConfig().CurrentCatalog
 	}
 
+	if catalogName == "" {
+		return fmt.Errorf("set a catalog first with `tansive set-catalog <catalog-name>`")
+	}
+
 	response, err := client.GetResource("catalogs", catalogName, queryParams, "")
 	if err != nil {
 		return err

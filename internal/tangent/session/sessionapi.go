@@ -17,6 +17,9 @@ import (
 	"github.com/tansive/tansive-internal/internal/tangent/tangentcommon"
 )
 
+// createSession handles HTTP requests to create new interactive sessions.
+// Validates request body and returns a chunked response for session execution.
+// Returns an error if request validation or session creation fails.
 func createSession(r *http.Request) (*httpx.Response, error) {
 	ctx := r.Context()
 
@@ -56,6 +59,9 @@ func createSession(r *http.Request) (*httpx.Response, error) {
 	return rsp, nil
 }
 
+// handleInteractiveSession creates an interactive session from the request.
+// Retrieves execution state from the catalog server and creates an active session.
+// Returns the created session and any error encountered during creation.
 func handleInteractiveSession(ctx context.Context, req *tangentcommon.SessionCreateRequest) (*session, apperrors.Error) {
 	client := getHTTPClient(&clientConfig{
 		serverURL: config.Config().TansiveServer.GetURL(),
@@ -96,6 +102,9 @@ func handleInteractiveSession(ctx context.Context, req *tangentcommon.SessionCre
 	return session, nil
 }
 
+// getExecutionState retrieves execution state from the catalog server.
+// Validates token and expiry, then fetches the complete execution state.
+// Returns the execution state and any error encountered during retrieval.
 func getExecutionState(ctx context.Context, rsp *srvsession.SessionTokenRsp) (*srvsession.ExecutionState, apperrors.Error) {
 	if rsp.Token == "" {
 		return nil, ErrTokenRequired
@@ -132,6 +141,9 @@ func getExecutionState(ctx context.Context, rsp *srvsession.SessionTokenRsp) (*s
 	return executionState, nil
 }
 
+// createActiveSession creates an active session from execution state.
+// Converts execution state to server context and creates a session in the session manager.
+// Returns the created session and any error encountered during creation.
 func createActiveSession(ctx context.Context, executionState *srvsession.ExecutionState, token string, tokenExpiry time.Time) (*session, apperrors.Error) {
 	serverCtx := &ServerContext{
 		SessionID:        executionState.SessionID,
@@ -156,6 +168,9 @@ func createActiveSession(ctx context.Context, executionState *srvsession.Executi
 	return session, nil
 }
 
+// runSession executes a session and streams results to the HTTP response.
+// Initializes audit logging, subscribes to event streams, and runs the session.
+// Returns any error encountered during session execution.
 func runSession(ctx context.Context, w http.ResponseWriter, session *session) (apperr apperrors.Error) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
