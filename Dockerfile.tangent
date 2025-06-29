@@ -41,7 +41,7 @@ RUN mkdir -p /var/tangent/scripts /etc/tansive
 COPY --from=builder /app/tangent /usr/local/bin/tangent
 
 COPY scripts/docker/conf/tangent.docker.conf /etc/tansive/tangent.conf
-COPY test_scripts/ /var/tangent/scripts/
+COPY skillset_scripts/ /var/tangent/scripts/
 
 # Create a non-root user for running the service
 RUN useradd -r -s /bin/bash -d /var/tangent tangent && \

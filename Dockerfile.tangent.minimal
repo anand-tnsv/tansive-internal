@@ -40,7 +40,7 @@ RUN mkdir -p /var/tangent/scripts /etc/tansive
 # Copy binary and config
 COPY --from=builder /app/tangent /usr/local/bin/tangent
 COPY scripts/docker/conf/tangent.docker.conf /etc/tansive/tangent.conf
-COPY test_scripts/ /var/tangent/scripts/
+COPY skillset_scripts/ /var/tangent/scripts/
 
 # Create non-root user
 RUN addgroup -g 1001 -S tangent && \

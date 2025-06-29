@@ -20,7 +20,7 @@ services:
       retries: 5
 
   tansive-server:
-    image: ghcr.io/tansive/tansive-internal/tansivesrv:${TAG}
+    image: ghcr.io/tansive/tansive-internal/tansivesrv:latest
     container_name: tansive-server
     depends_on:
       postgres:
