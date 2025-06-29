@@ -57,7 +57,25 @@ Examples:
 
 // getStatus handles retrieving server status information
 func getStatus(cmd *cobra.Command, args []string) error {
-	client := httpclient.NewClient(GetConfig())
+	// Load the config file first
+	LoadConfig(configFile)
+
+	config := GetConfig()
+	if config == nil {
+		if jsonOutput {
+			kv := map[string]string{
+				"version_cli": getCLIVersion(),
+				"error":       "Config file cannot be loaded",
+			}
+			printJSON(kv)
+		} else {
+			fmt.Printf("tansive CLI %s\n", getCLIVersion())
+			fmt.Println("Error: Config file cannot be loaded")
+		}
+		return ErrAlreadyHandled
+	}
+
+	client := httpclient.NewClient(config)
 
 	opts := httpclient.RequestOptions{
 		Method: "GET",
@@ -66,7 +84,17 @@ func getStatus(cmd *cobra.Command, args []string) error {
 
 	response, _, err := client.DoRequest(opts)
 	if err != nil {
-		return err
+		if jsonOutput {
+			kv := map[string]string{
+				"version_cli": getCLIVersion(),
+				"error":       "Unable to connect to server: " + err.Error(),
+			}
+			printJSON(kv)
+		} else {
+			fmt.Printf("tansive CLI %s\n", getCLIVersion())
+			fmt.Println("Error: Unable to connect to server: " + err.Error())
+		}
+		return ErrAlreadyHandled
 	}
 
 	var statusResp StatusResponse
@@ -77,8 +105,9 @@ func getStatus(cmd *cobra.Command, args []string) error {
 	if jsonOutput {
 		// Format as JSON with result and value
 		output := map[string]any{
-			"result": 1,
-			"value":  statusResp,
+			"result":      1,
+			"version_cli": getCLIVersion(),
+			"value":       statusResp,
 		}
 
 		jsonBytes, err := json.MarshalIndent(output, "", "    ")
@@ -88,6 +117,7 @@ func getStatus(cmd *cobra.Command, args []string) error {
 		fmt.Println(string(jsonBytes))
 	} else {
 		// Pretty print the status information
+		fmt.Printf("tansive CLI %s\n", getCLIVersion())
 		printStatusPretty(statusResp)
 	}
 

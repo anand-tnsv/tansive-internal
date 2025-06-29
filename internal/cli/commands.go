@@ -95,7 +95,7 @@ func preRunHandlePersistents(cmd *cobra.Command, args []string) {
 	isConfig := false
 	c := cmd
 	for c != nil {
-		if c.Name() == "config" || c.Name() == "version" {
+		if c.Name() == "config" || c.Name() == "version" || c.Name() == "status" {
 			isConfig = true
 			break
 		}
@@ -121,13 +121,21 @@ func newVersionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Print the version number of tansive-cli",
 		Run: func(cmd *cobra.Command, args []string) {
+			// Get the config file path
+			configPath, err := GetDefaultConfigPath()
+			if err != nil {
+				configPath = "unknown"
+			}
+
 			if jsonOutput {
 				kv := map[string]string{
-					"version": "v0.1.0-alpha.1",
+					"version":     getCLIVersion(),
+					"config_file": configPath,
 				}
 				printJSON(kv)
 			} else {
-				cmd.Println("tansive CLI v0.1.0-alpha.1")
+				cmd.Printf("tansive CLI %s\n", getCLIVersion())
+				cmd.Printf("Config file: %s\n", configPath)
 			}
 		},
 	}
@@ -141,4 +149,9 @@ func printJSON(data interface{}) {
 		os.Exit(1)
 	}
 	fmt.Println(string(jsonData))
+}
+
+// getCLIVersion returns the current CLI version
+func getCLIVersion() string {
+	return "v0.1.0-alpha.1"
 }
