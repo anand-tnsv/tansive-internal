@@ -47,6 +47,7 @@ RUN addgroup -g 1001 -S tangent && \
     adduser -u 1001 -S tangent -G tangent && \
     chown -R tangent:tangent /var/tangent /etc/tansive
 
+# Keep the user root to avoid issues with folder creation. Need to fix this.
 USER root
 
 EXPOSE 8468

@@ -14,7 +14,7 @@ RUN go mod tidy && go mod download
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -o tangent ./cmd/tangent
 
 # Use a smaller base image
-FROM python:3.13.5-slim-bookworm
+FROM python:3.12.9-slim-bookworm
 
 # Install only essential system packages (no build tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -24,7 +24,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Optional: symlink node (some systems use /usr/bin/nodejs)
 RUN ln -s /usr/bin/node /usr/local/bin/node || true
 
 # Install only essential Python packages (PyTorch removed - install separately if needed)

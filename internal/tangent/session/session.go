@@ -42,6 +42,7 @@ type session struct {
 	callGraph     *toolgraph.CallGraph
 	invocationIDs map[string]*policy.ViewDefinition
 	auditLogInfo  auditLogInfo
+	logger        *zerolog.Logger
 }
 
 // GetSessionID returns the unique identifier for this session.
@@ -53,6 +54,7 @@ func (s *session) GetSessionID() string {
 // The invokerID must be valid if provided, and the skill must be authorized by policy.
 // Returns an error if execution fails or policy validation fails.
 func (s *session) Run(ctx context.Context, invokerID string, skillName string, inputArgs map[string]any, ioWriters ...*tangentcommon.IOWriters) apperrors.Error {
+	s.logger.Info().Str("skill", skillName).Msg("requested skill")
 	log.Ctx(ctx).Info().Msgf("requested skill: %s", skillName)
 	invocationID := uuid.New().String()
 	s.auditLogInfo.auditLogger.Info().
@@ -70,15 +72,18 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 	}
 
 	if err := s.fetchObjects(ctx); err != nil {
+		s.logger.Error().Err(err).Msg("unable to fetch objects")
 		return err
 	}
 
 	isAllowed, basis, actions, err := s.ValidateRunPolicy(ctx, invokerID, skillName)
 	if err != nil {
+		s.logger.Error().Err(err).Msg("unable to validate run policy")
 		return err
 	}
 	if !isAllowed {
 		msg := fmt.Sprintf("blocked by Tansive policy: view '%s' does not authorize any of required actions - %v - to use this skill", s.context.View, actions)
+		s.logger.Error().Str("policy_decision", "true").Msg(msg)
 		log.Ctx(ctx).Error().Str("policy_decision", "true").Msg(msg)
 		s.auditLogInfo.auditLogger.Error().
 			Str("event", "policy_decision").
@@ -92,6 +97,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 		return ErrBlockedByPolicy.Msg(msg)
 	}
 	msg := fmt.Sprintf("allowed by Tansive policy: view '%s' authorizes actions - %v - to use this skill", s.context.View, actions)
+	s.logger.Info().Str("policy_decision", "true").Msg(msg)
 	log.Ctx(ctx).Info().Str("policy_decision", "true").Msg(msg)
 	s.auditLogInfo.auditLogger.Info().
 		Str("event", "policy_decision").
@@ -105,6 +111,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 
 	transformApplied, inputArgs, err := s.TransformInputForSkill(ctx, skillName, inputArgs)
 	if err != nil {
+		s.logger.Error().Err(err).Msg("unable to transform input")
 		log.Ctx(ctx).Error().Err(err).Msg("unable to transform input")
 		s.auditLogInfo.auditLogger.Error().
 			Str("event", "skill_input_transformed").
@@ -129,6 +136,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 	err = s.runInteractiveSkill(ctx, invokerID, invocationID, skillName, inputArgs, ioWriters...)
 
 	if err != nil {
+		s.logger.Error().Err(err).Msg("unable to run interactive skill")
 		s.auditLogInfo.auditLogger.Error().
 			Str("event", "skill_end").
 			Str("status", "failed").
@@ -137,6 +145,7 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 			Str("skill", skillName).
 			Msg("skill completed")
 	} else {
+		s.logger.Info().Str("status", "success").Str("skill", skillName).Msg("skill completed")
 		s.auditLogInfo.auditLogger.Info().
 			Str("event", "skill_end").
 			Str("status", "success").
@@ -151,18 +160,21 @@ func (s *session) Run(ctx context.Context, invokerID string, skillName string, i
 // Returns whether the action is allowed, the policy basis, required actions, and any error.
 func (s *session) ValidateRunPolicy(ctx context.Context, invokerID string, skillName string) (bool, map[policy.Intent][]policy.Rule, []string, apperrors.Error) {
 	if s.skillSet == nil {
+		s.logger.Error().Msg("skillSet not found")
 		log.Ctx(ctx).Error().Msg("skillSet not found")
 		return false, nil, nil, ErrUnableToGetSkillset.Msg("skillset not found")
 	}
 
 	skill, err := s.resolveSkill(skillName)
 	if err != nil {
+		s.logger.Error().Err(err).Msg("unable to resolve skill")
 		return false, nil, nil, err
 	}
 
 	actions := []string{}
 	allowed, basis, err := policy.AreActionsAllowedOnResource(s.viewDef, s.skillSet.GetResourcePath(), skill.GetExportedActions())
 	if err != nil {
+		s.logger.Error().Err(err).Msg("unable to validate run policy")
 		return false, nil, nil, err
 	}
 	for _, action := range skill.GetExportedActions() {
@@ -270,6 +282,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 		defer wg.Done()
 		defer cancel()
 
+		s.logger.Info().Str("runner", runner.ID()).Str("actor", "runner").Msg("running skill")
 		ctx = log.Ctx(ctx).With().Str("runner", runner.ID()).Str("actor", "runner").Logger().WithContext(ctx)
 		log.Ctx(ctx).Info().Msgf("running skill: %s", skillName)
 		s.auditLogInfo.auditLogger.Info().
@@ -280,6 +293,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 			Msg("starting runner")
 		err := runner.Run(ctx, &args)
 		if err != nil {
+			s.logger.Error().Err(err).Msg("error running skill")
 			log.Ctx(ctx).Error().Err(err).Msgf("error running skill: %s", skillName)
 			s.auditLogInfo.auditLogger.Error().
 				Str("event", "runner_completed").
@@ -291,6 +305,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 				Msg("runner completed")
 			resultChan <- err
 		} else {
+			s.logger.Info().Str("status", "success").Str("skill", skillName).Msg("skill completed")
 			log.Ctx(ctx).Info().Msgf("skill completed successfully: %s", skillName)
 			s.auditLogInfo.auditLogger.Info().
 				Str("event", "runner_completed").
@@ -324,6 +339,7 @@ func (s *session) runInteractiveSkill(ctx context.Context, invokerID, invocation
 
 	<-gracefulExitChan
 	log.Info().Msg("interactive skill exited")
+	s.logger.Info().Msg("interactive skill exited")
 
 	wg.Wait()
 

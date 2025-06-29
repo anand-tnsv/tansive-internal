@@ -155,7 +155,7 @@ release:
     owner: tansive
     name: tansive-internal
   draft: false
-  prerelease: false
+  prerelease: "false"
   name_template: "{{ .Tag }}"
   footer: |
     ## Installation

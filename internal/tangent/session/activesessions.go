@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/catcommon"
 	"github.com/tansive/tansive-internal/internal/catalogsrv/policy"
 	"github.com/tansive/tansive-internal/internal/common/apperrors"
@@ -57,6 +58,12 @@ func (as *activeSessions) CreateSession(ctx context.Context, c *ServerContext, t
 		callGraph:     toolgraph.NewCallGraph(3), // max depth of 3
 		invocationIDs: make(map[string]*policy.ViewDefinition),
 	}
+	logger := log.Ctx(ctx)
+	if logger == nil {
+		newLogger := log.With().Str("session_id", c.SessionID.String()).Logger()
+		logger = &newLogger
+	}
+	session.logger = logger
 	session.auditLogInfo.auditLogger = session.getLogger(TopicAuditLog)
 	session.auditLogInfo.auditLogPubKey = config.GetRuntimeConfig().LogSigningKey.PublicKey
 	as.sessions[c.SessionID] = session
